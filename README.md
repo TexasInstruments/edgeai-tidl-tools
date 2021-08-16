@@ -1,4 +1,4 @@
-# Edgeai TIDL Tools and Examples
+# Edgeai TIDL Tools and Examples - Work Under progress. Will be Released Soon
 
 This repository contains example developed for Deep learning runtime (DLRT) offering provided by TI’s edge AI solutions. This repository also contains tools that can help in deploying AI applications on TI’s edgeai solutions quickly to achieve most optimal performance.
 
