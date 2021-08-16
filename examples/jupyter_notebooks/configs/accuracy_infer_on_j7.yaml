@@ -1,0 +1,53 @@
+# execution pipeline type - currently only accuracy pipeline is defined
+pipeline_type : 'accuracy'
+# number of frames for inference
+num_frames : 100 #50000
+# number of frames to be used for post training quantization / calibration
+max_frames_calib : 50 #100
+# number of itrations to be used for post training quantization / calibration
+max_calib_iterations : 50
+# clone the modelzoo repo and make sure this folder is available.
+modelzoo_path : 'model-zoo/models'
+# create your datasets under this folder
+datasets_path : 'datasets'
+# important parameter. set this to 'pc' to do import and inference in pc
+# set this to 'j7' to run inference in device. for inference on device run_import
+# below should be switched off and it is assumed that the artifacts are already created.
+target_device : 'j7' #'j7' #'pc'
+# for parallel execution on cpu or gpu. if you don't have gpu, these actual numbers don't matter,
+# but the size of teh list determines the number of parallel processes
+# if you have gpu's these entries can be gpu ids which will be used to set CUDA_VISIBLE_DEVICES
+parallel_devices : null
+# quantization bit precision
+tidl_tensor_bits : 8 #8 #16 #32
+# run import of the model - only to be used in pc - set this to False for j7 evm
+# for pc this can be True or False
+run_import : False
+# run inference - for inference in j7 evm, it is assumed that the artifacts folders are already available
+run_inference : True
+# collect final accuracy results
+collect_results : True
+# detection threshold
+detection_thr : 0.05
+# save detection, segmentation output
+save_output : False
+# wild card list to match against the model_path - only matching models will be run
+# examples: ['classification'] ['imagenet1k'] ['torchvision']
+# examples: ['resnet18_opset9.onnx', 'resnet50_v1.tflite']
+model_selection : null
+# wild card list to match against the tasks. it null, all tasks will be run
+# example: ['classification', 'detection', 'segmentation']
+# example: ['classification']
+task_selection : null
+# which configs to run from the default list. example [0,10] [10,null] etc.
+# this range will be applied after applying model_selection and short-listing
+# null will run all the configs
+config_range : null
+# verbose mode - print out more information
+verbose : False
+dataset_loading : True
+enable_logging : False
+# Use imagenetv2c as imagenet dataset for
+# faster download and accuracy benchmarking
+dataset_type_dict :
+    imagenet : 'imagenetv2c'
