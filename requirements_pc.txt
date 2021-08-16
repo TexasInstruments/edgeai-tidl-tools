@@ -9,7 +9,3 @@ tqdm
 pyyaml
 mxnet
 pytest
-#json_tricks
-#xtcocotools
-#munkres
-#git+https://github.com/yogin16/prototxt_parser.git
