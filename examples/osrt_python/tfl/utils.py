@@ -79,13 +79,13 @@ models_base_path = '../../../models/public/tflite/'
 
 def download_models(mpath = models_base_path):
     # Check whether the specified path exists or not
-    isExist = os.path.exists(models_base_path)
+    isExist = os.path.exists(mpath)
     if not isExist:
         # Create a new directory because it does not exist 
-        os.makedirs(models_base_path)
+        os.makedirs(mpath)
 
     for model_name in models:
-        model_path = models_base_path + model_name
+        model_path = mpath + model_name
         if(not os.path.isfile(model_path)):
             print("Downloading  ", model_name)
             url = models[model_name]

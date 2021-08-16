@@ -90,10 +90,10 @@ def download(mpath, model_name, suffix, type):
             
 def download_models(mpath = models_base_path):
      # Check whether the specified path exists or not
-    isExist = os.path.exists(models_base_path)
+    isExist = os.path.exists(mpath)
     if not isExist:
         # Create a new directory because it does not exist 
-        os.makedirs(models_base_path)
+        os.makedirs(mpath)
 
     for model_name in models:
         download(mpath, model_name, '.onnx', 'model_url')
@@ -101,7 +101,7 @@ def download_models(mpath = models_base_path):
     #run shape inference
     for model_name in models:
         model_file_name = model_name + '.onnx'
-        model_path = models_base_path + model_file_name
+        model_path = mpath + model_file_name
         print("Running shape inference for ", model_file_name)
         onnx.shape_inference.infer_shapes_path(model_path, model_path)
 
