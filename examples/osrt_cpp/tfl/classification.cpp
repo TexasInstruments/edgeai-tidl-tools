@@ -214,11 +214,13 @@ void RunInference(Settings* s) {
 
   if(s->accel == 1)
   {
+
+    char artifact_path[512];
     /* This part creates the dlg_ptr */
     typedef TfLiteDelegate* (*tflite_plugin_create_delegate)(char**, char**, size_t, void (*report_error)(const char *));
     tflite_plugin_create_delegate tflite_plugin_dlg_create;
     char *keys[] = {"artifacts_folder", "num_tidl_subgraphs", "debug_level"};
-    char *values[] = {"../../../../../../test/tflrt/tflrt-artifacts/mobilenet_v1_1.0_224/", "16", "4"};
+    char *values[] = {(char *)s->artifact_path.c_str(), "16", "4"};
 
     printf("ModifyGraphWithDelegate - Done \n");
     void *lib = dlopen("libtidl_tfl_delegate.so", RTLD_NOW);
@@ -350,7 +352,7 @@ void display_usage() {
       << "label_image\n"
       << "--accelerated, -a: [0|1], use Android NNAPI or not\n"
       << "--old_accelerated, -d: [0|1], use old Android NNAPI delegate or not\n"
-      << "--allow_fp16, -f: [0|1], allow running fp32 models with fp16 or not\n"
+      << "--artifact_path, -f: [0|1], Path for Delegate artifacts folder \n"
       << "--count, -c: loop interpreter->Invoke() for certain times\n"
       << "--gl_backend, -g: use GL GPU Delegate on Android\n"
       << "--input_mean, -b: input mean\n"
@@ -374,7 +376,7 @@ int TFLite_Main(int argc, char** argv) {
     static struct option long_options[] = {
         {"accelerated", required_argument, nullptr, 'a'},
         {"device_mem", required_argument, nullptr, 'd'},
-        {"allow_fp16", required_argument, nullptr, 'f'},
+        {"artifact_path", required_argument, nullptr, 'f'},
         {"count", required_argument, nullptr, 'c'},
         {"verbose", required_argument, nullptr, 'v'},
         {"image", required_argument, nullptr, 'i'},
@@ -420,8 +422,7 @@ int TFLite_Main(int argc, char** argv) {
             strtol(optarg, nullptr, 10);  // NOLINT(runtime/deprecated_fn)
         break;
       case 'f':
-        s.allow_fp16 =
-            strtol(optarg, nullptr, 10);  // NOLINT(runtime/deprecated_fn)
+        s.artifact_path = optarg;
         break;
       case 'g':
         s.gl_backend =

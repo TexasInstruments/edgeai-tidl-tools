@@ -132,7 +132,7 @@ void ProcessFrames(void ) {
       outputs.push_back(std::vector<float>(i, 0));
     }
     //First inference is dummy, initialization call!!
-    std::cout << "DUMMY inference call (initialization) started...\n";
+    std::cout << "Inference call (initialization) started...\n";
     memset(input_data, 0, batch_size * RES_X * RES_Y * NUM_CHANNELS * sizeof(float));
     if (SetDLRInput(&model, input_node_name.c_str(), image_shape, input_data, 4) != 0) 
     {
@@ -149,9 +149,6 @@ void ProcessFrames(void ) {
           throw std::runtime_error("Could not get output" + std::to_string(i));
       }
     }
-    std::cout << "...DUMMY inference call ended\n";
-
-    //Used harcoded RES_X and RES_Y values
     uint8_t *in_data_resize = (uint8_t*)malloc(NUM_CHANNELS*(RES_X*RES_Y));
     std::vector<uint8_t> in;
 
@@ -203,7 +200,7 @@ void ProcessFrames(void ) {
 
       }
       frame_cnt += BATCH_SIZE;
-      std::cout << "processFrame: esc key is pressed by user" << std::endl;
+      std::cout  << std::endl;
 }
 
 /*! \brief Get all class labels from the provided file (one per line)

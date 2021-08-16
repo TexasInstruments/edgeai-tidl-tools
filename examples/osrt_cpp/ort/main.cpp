@@ -16,15 +16,15 @@ int main(int argc, char* argv[])
     std::string model_path = "";
     std::string image_path = "";
     std::string labels_path = "";
+    std::string artifacts_path = "";
     
     int tidl_flag = 0;
     int index;
     int c;
-
     opterr = 0;
 
     const char* help_str =
-        "Usage: classification_demo <image_path> <model_path> <labels_path> [-t] [-h]\n"
+        "Usage: classification_demo <image_path>  <model_path> <artifacts_path> <labels_path> [-t] [-h]\n"
         "Options:\n"
         "    image_path\tPath to the input image to classify\n"
         "    model_path\tPath to the ONNX model\n"
@@ -63,13 +63,15 @@ int main(int argc, char* argv[])
 
     image_path = std::string(argv[optind]);
     model_path = std::string(argv[optind+1]);
-    labels_path = std::string(argv[optind+2]);
+    artifacts_path = std::string(argv[optind+2]);
+    labels_path = std::string(argv[optind+3]);
 
     std::cout << image_path << std::endl;
     std::cout << model_path << std::endl;
+    std::cout << artifacts_path << std::endl;
     std::cout << labels_path << std::endl;
 
-    for (index = optind + 3; index < argc; index++)
+    for (index = optind + 4; index < argc; index++)
     {
         printf ("!!! Ignoring argument %s\n", argv[index]);
     }
@@ -86,7 +88,7 @@ int main(int argc, char* argv[])
 
     c_api_tidl_options * options = (c_api_tidl_options *)malloc(sizeof(c_api_tidl_options));
     options->debug_level = 0;
-    strcpy(options->artifacts_folder, "../../../../../../../ti_dl/test/onnxrt/onnxrt-artifacts/resnet18-v1");
+    strcpy(options->artifacts_folder, artifacts_path.c_str());
 
     if (tidl_flag)
     {
