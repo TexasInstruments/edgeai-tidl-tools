@@ -2,10 +2,8 @@ numpy
 onnx
 tflite
 pillow
-opencv-python
-pycocotools
-colorama
-tqdm
-pyyaml
-mxnet
+flatbuffers==1.12.0
+requests
+opencv-python==4.2.0.34
 pytest
+graphviz
