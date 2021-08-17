@@ -11,15 +11,15 @@ parser.add_argument('--num_calib_images', dest='calib_iters', default=4, type=in
 args = parser.parse_args()
 
 models = {
-    'mobilenetv2-1.0.onnx' : {'url':'https://github.com/vinitra-zz/models/raw/7301ce1e16891ed5f75dd15a6a53a643001288f0/vision/classification/mobilenet/model/mobilenetv2-7.onnx', 'dir':'../../../models/public/onnx/'}
-}
+    'mobilenetv2-1.0.onnx' : {'url':'https://git.ti.com/cgit/jacinto-ai/jacinto-ai-modelzoo/plain/models/vision/classification/imagenet1k/torchvision/mobilenet_v2_tv_opset9.onnx', 'dir':'../../../models/public/onnx/'}
+ }
 
 models_base_path = '../../../models/public/onnx/'
 download_models(models_base_path, models)
 
 # model specifics
 model_path = os.path.join(models_base_path, 'mobilenetv2-1.0.onnx')
-model_input_name = 'data'
+model_input_name = 'input.1'
 model_input_shape = (1, 3, 224, 224)
 model_input_dtype = 'float32'
 model_layout = 'NCHW'

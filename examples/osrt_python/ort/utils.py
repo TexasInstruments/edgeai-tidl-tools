@@ -73,7 +73,7 @@ models_base_path = '../../../models/public/onnx/'
 
 models = {
     #'mobilenetv2-7.onnx': {'url': 'https://github.com/vinitra-zz/models/raw/7301ce1e16891ed5f75dd15a6a53a643001288f0/vision/classification/mobilenet/model/mobilenetv2-7.onnx', 'dir': '../testvecs/models/public/onnx/'},
-    'resnet18-v1-7': {'model_url': 'https://github.com/onnx/models/blob/master/vision/classification/resnet/model/resnet18-v1-7.onnx?raw=true', 'dir': '../testvecs/models/public/onnx/'},
+    'resnet18_opset9': {'model_url': 'https://git.ti.com/cgit/jacinto-ai/jacinto-ai-modelzoo/plain/models/vision/classification/imagenet1k/torchvision/resnet18_opset9.onnx', 'dir': '../testvecs/models/public/onnx/'},
     'deeplabv3lite_mobilenetv2': {'model_url': 'https://git.ti.com/cgit/jacinto-ai/jacinto-ai-modelzoo/plain/models/vision/segmentation/ade20k32/jai-pytorch/deeplabv3lite_mobilenetv2_512x512_ade20k32_20210308.onnx', 'dir': '../testvecs/models/public/onnx/'},
     'ssd-lite_mobilenetv2_fpn': {'model_url': 'https://git.ti.com/cgit/jacinto-ai/jacinto-ai-modelzoo/plain/models/vision/detection/coco/edgeai-mmdet/ssd-lite_mobilenetv2_fpn_512x512_20201110_model.onnx', 'dir': '../testvecs/models/public/onnx/', 
                                       'model_prototxt' : 'https://git.ti.com/cgit/jacinto-ai/jacinto-ai-modelzoo/plain/models/vision/detection/coco/edgeai-mmdet/ssd-lite_mobilenetv2_fpn_512x512_20201110_model.prototxt'},
@@ -227,7 +227,7 @@ def det_box_overlay(outputs, org_image_rgb, disable_offload, od_type, framework)
 
 models_configs = {
     'resnet18-v1' : {
-        'model_path' : os.path.join(models_base_path, 'resnet18-v1-7.onnx'),
+        'model_path' : os.path.join(models_base_path, 'resnet18_opset9.onnx'),
         'mean': [123.675, 116.28, 103.53],
         'std' : [0.017125, 0.017507, 0.017429],
         'num_images' : numImages,
