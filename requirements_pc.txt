@@ -1,5 +1,5 @@
 numpy
-onnx
+onnx==1.8.1
 tflite
 pillow
 flatbuffers==1.12.0

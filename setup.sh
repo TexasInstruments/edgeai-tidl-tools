@@ -35,21 +35,6 @@ echo 'python version must be >= 3.6'
 exit 1
 fi
 
-#wget https://github.com/protocolbuffers/protobuf/releases/download/v3.17.3/protobuf-all-3.17.3.tar.gz
-#tar -xzf protobuf-all-3.17.3.tar.gz
-#cd protobuf-3.17.3/
-#./configure
-#make -j 32
-#make check -j 32
-#make install
-#cd ..
-#
-#cd /usr/local
-#wget https://github.com/protocolbuffers/protobuf/releases/download/v3.17.3/protoc-3.17.3-linux-x86_64.zip
-#unzip -o protoc-3.17.3-linux-x86_64.zip
-#cd -
-
-
 ######################################################################
 # Installing dependencies
 echo 'Installing python packages...'
