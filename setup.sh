@@ -46,6 +46,9 @@ pip3 install https://github.com/TexasInstruments/edgeai-tidl-tools/releases/down
 wget https://github.com/TexasInstruments/edgeai-tidl-tools/releases/download/08.00.00-rc1/tidl_tools.tar.gz
 tar -xzf tidl_tools.tar.gz
 cd  tidl_tools
+wget https://github.com/TexasInstruments/edgeai-tidl-tools/releases/download/08.00.00-rc2/libonnxruntime.so.1.7.0
+wget https://github.com/TexasInstruments/edgeai-tidl-tools/releases/download/08.00.00-rc2/libtensorflow-lite.a
+ln -s libonnxruntime.so.1.7.0 libonnxruntime.so
 export TIDL_TOOLS_PATH=$(pwd)
 export LD_LIBRARY_PATH=$TIDL_TOOLS_PATH
 cd ..
