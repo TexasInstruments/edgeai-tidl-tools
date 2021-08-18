@@ -23,7 +23,7 @@ model_input_name = 'input'
 model_input_shape = (1, 299, 299, 3)
 model_input_dtype = 'float32'
 model_layout = 'NHWC'
-model_output_directory = 'tflite_inceptionnetv3'
+model_output_directory = '../../../model-artifacts/dlr/tflite_inceptionnetv3'
 
 # TIDL compiler specifics
 # We are compiling the model for J7 device using

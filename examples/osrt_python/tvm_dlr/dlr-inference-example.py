@@ -130,9 +130,9 @@ def model_create_and_run(model_dir,
 
 
         
-model_create_and_run('tflite_inceptionnetv3', 'input',
+model_create_and_run('../../../model-artifacts/dlr/tflite_inceptionnetv3', 'input',
                         preprocess_for_tflite_inceptionnetv3,
                         postprocess_for_tflite_inceptionnetv3)
-model_create_and_run('onnx_mobilenetv2', 'input.1',
+model_create_and_run('../../../model-artifacts/dlr/onnx_mobilenetv2', 'input.1',
                         preprocess_for_onnx_mobilenetv2,
                         postprocess_for_onnx_mobilenetv2)

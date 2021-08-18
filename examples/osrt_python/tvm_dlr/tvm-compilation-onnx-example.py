@@ -23,7 +23,7 @@ model_input_name = 'input.1'
 model_input_shape = (1, 3, 224, 224)
 model_input_dtype = 'float32'
 model_layout = 'NCHW'
-model_output_directory = 'onnx_mobilenetv2'
+model_output_directory = '../../../model-artifacts/dlr/onnx_mobilenetv2'
 
 # TIDL compiler specifics
 # We are compiling the model for J7 device using

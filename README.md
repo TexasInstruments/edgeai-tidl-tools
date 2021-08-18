@@ -20,16 +20,16 @@ export LD_LIBRARY_PATH=$TIDL_TOOLS_PATH
 
 2. Build the CPP examples using cmake
 ```
-mkdir examples/build
-cd examples/build
-cmake ../
+mkdir build
+cd build
+cmake ../examples/
 make
-cd  ../../
+cd  ../
 ```
 
 3. Run the CPP examples using the below commands
 ```
-./examples/bin/Release/tfl_clasification -m models/public/tflite/mobilenet_v1_1.0_224.tflite -l test_data/labels.txt -i test_data/airshow.jpg  -f examples/osrt_python/tfl/tflrt-artifacts/mobilenet_v1_1.0_224/ -a 1 -d 1
-./examples/bin/Release/ort_clasification  test_data/airshow.jpg models/public/onnx/resnet18_opset9.onnx examples/osrt_python/ort/onnxrt-artifacts/resnet18-v1/ test_data/labels.txt -t
-./examples/bin/Release/dlr_clasification  -m examples/osrt_python/tvm_dlr/onnx_mobilenetv2/ -i test_data/airshow.jpg -n input.1
+./bin/Release/tfl_clasification -m models/public/tflite/mobilenet_v1_1.0_224.tflite -l test_data/labels.txt -i test_data/airshow.jpg  -f model-artifacts/tfl/mobilenet_v1_1.0_224/ -a 1 -d 1
+./bin/Release/ort_clasification  test_data/airshow.jpg models/public/onnx/resnet18_opset9.onnx model-artifacts/ort/resnet18-v1/ test_data/labels.txt -t
+./bin/Release/dlr_clasification  -m model-artifacts/dlr/onnx_mobilenetv2/ -i test_data/airshow.jpg -n input.1
 ```
