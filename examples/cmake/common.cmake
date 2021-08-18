@@ -25,10 +25,37 @@ set(TARGET_PLATFORM     J7)
 set(TARGET_CPU          A72)
 set(TARGET_OS           LINUX)
 
-set(TENSORFLOW_INSTALL_DIR /home/a0393754/work/tensorflow)
-set(ONNXRT_INSTALL_DIR /home/a0393754/work/onnxruntime)
-set(DLR_INSTALL_DIR /home/a0393754/work/neo-ai-dlr)
-set(OPENCV_INSTALL_DIR /home/a0393754/work/opencv-4.1.0)
+if(NOT TENSORFLOW_INSTALL_DIR)
+  if (EXISTS /home/root/tensorflow)
+    set(TENSORFLOW_INSTALL_DIR /home/root/tensorflow)
+  else()
+     message(WARNING "TENSORFLOW_INSTALL_DIR is not set")
+  endif()
+endif()
+
+if(NOT ONNXRT_INSTALL_DIR)
+  if (EXISTS /home/root/onnxruntime)
+    set(ONNXRT_INSTALL_DIR /home/root/onnxruntime)
+  else()
+     message(WARNING "ONNXRT_INSTALL_DIR is not set")
+  endif()
+endif()
+
+if(NOT DLR_INSTALL_DIR)
+  if (EXISTS /home/root/neo-ai-dlr)
+    set(DLR_INSTALL_DIR /home/root/neo-ai-dlr)
+  else()
+     message(WARNING "DLR_INSTALL_DIR is not set")
+  endif()
+endif()
+
+if(NOT OPENCV_INSTALL_DIR)
+  if (EXISTS /home/root/opencv-4.1.0)
+    set(OPENCV_INSTALL_DIR /home/root/opencv-4.1.0)
+  else()
+     message(WARNING "OPENCV_INSTALL_DIR is not set")
+  endif()
+endif()
 
 add_definitions(
     -DTARGET_CPU=${TARGET_CPU}
@@ -38,9 +65,6 @@ add_definitions(
 link_directories(/usr/local/dlr
                  /usr/lib/aarch64-linux-gnu
                  /usr/lib/
-                 ${TENSORFLOW_INSTALL_DIR}/tensorflow/lite/tools/make/gen/linux_x86_64/lib
-                 ${ONNXRT_INSTALL_DIR}/build/Linux/Release
-                 ${DLR_INSTALL_DIR}/build/lib
                  ${OPENCV_INSTALL_DIR}/cmake/lib
                  ${OPENCV_INSTALL_DIR}/cmake/3rdparty/lib
                  $ENV{TIDL_TOOLS_PATH}
@@ -80,7 +104,6 @@ include_directories(${PROJECT_SOURCE_DIR}
 #    )
 
 set(SYSTEM_LINK_LIBS
-    tinfo
     glib-2.0
     gobject-2.0
     opencv_imgproc

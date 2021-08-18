@@ -129,7 +129,7 @@ void Validator::ScoreModel()
     // use OrtGetTensorShapeElementCount() to get official size!
 
     // std::vector<float> input_tensor_values(input_tensor_size);
-    std::vector<const char*> output_node_names = {"resnetv15_dense0_fwd"};
+    std::vector<const char*> output_node_names = {"191"};
     printf("Output name -- %s \n", *(output_node_names.data()));
 
     // create input tensor object from data values
