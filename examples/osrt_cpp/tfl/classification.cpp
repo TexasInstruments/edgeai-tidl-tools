@@ -220,7 +220,7 @@ void RunInference(Settings* s) {
     typedef TfLiteDelegate* (*tflite_plugin_create_delegate)(char**, char**, size_t, void (*report_error)(const char *));
     tflite_plugin_create_delegate tflite_plugin_dlg_create;
     char *keys[] = {"artifacts_folder", "num_tidl_subgraphs", "debug_level"};
-    char *values[] = {(char *)s->artifact_path.c_str(), "16", "4"};
+    char *values[] = {(char *)s->artifact_path.c_str(), "16", "0"};
 
     printf("ModifyGraphWithDelegate - Done \n");
     void *lib = dlopen("libtidl_tfl_delegate.so", RTLD_NOW);

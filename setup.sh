@@ -47,6 +47,7 @@ pip3 install https://github.com/TexasInstruments/edgeai-tidl-tools/releases/down
 pip3 install https://github.com/TexasInstruments/edgeai-tidl-tools/releases/download/08.00.00-rc1/tflite_runtime-2.4.0-py3-none-any.whl
 wget https://github.com/TexasInstruments/edgeai-tidl-tools/releases/download/08.00.00-rc1/tidl_tools.tar.gz
 tar -xzf tidl_tools.tar.gz
+rm tidl_tools.tar.gz
 cd  tidl_tools
 wget https://github.com/TexasInstruments/edgeai-tidl-tools/releases/download/08.00.00-rc2/libonnxruntime.so.1.7.0
 wget https://github.com/TexasInstruments/edgeai-tidl-tools/releases/download/08.00.00-rc2/libtensorflow-lite.a
@@ -62,11 +63,12 @@ mkdir -p tensorflow/tensorflow/lite/tools/make/downloads
 cd tensorflow/tensorflow/lite/tools/make/downloads
 wget https://github.com/google/flatbuffers/archive/v1.12.0.tar.gz
 tar -xzf v1.12.0.tar.gz
-v1.12.0.tar.gz
+rm v1.12.0.tar.gz
 mv  flatbuffers-1.12.0 flatbuffers
 cd -
 wget https://github.com/opencv/opencv/archive/4.1.0.zip
 unzip 4.1.0.zip
+rm 4.1.0.zip
 cd opencv-4.1.0/cmake/
 cmake -DBUILD_opencv_highgui:BOOL="1" -DBUILD_opencv_videoio:BOOL="0" -DWITH_IPP:BOOL="0" -DWITH_WEBP:BOOL="1" -DWITH_OPENEXR:BOOL="1" -DWITH_IPP_A:BOOL="0" -DBUILD_WITH_DYNAMIC_IPP:BOOL="0" -DBUILD_opencv_cudacodec:BOOL="0" -DBUILD_PNG:BOOL="1" -DBUILD_opencv_cudaobjdetect:BOOL="0" -DBUILD_ZLIB:BOOL="1" -DBUILD_TESTS:BOOL="0" -DWITH_CUDA:BOOL="0" -DBUILD_opencv_cudafeatures2d:BOOL="0" -DBUILD_opencv_cudaoptflow:BOOL="0" -DBUILD_opencv_cudawarping:BOOL="0" -DINSTALL_TESTS:BOOL="0" -DBUILD_TIFF:BOOL="1" -DBUILD_JPEG:BOOL="1" -DBUILD_opencv_cudaarithm:BOOL="0" -DBUILD_PERF_TESTS:BOOL="0" -DBUILD_opencv_cudalegacy:BOOL="0" -DBUILD_opencv_cudaimgproc:BOOL="0" -DBUILD_opencv_cudastereo:BOOL="0" -DBUILD_opencv_cudafilters:BOOL="0" -DBUILD_opencv_cudabgsegm:BOOL="0" -DBUILD_SHARED_LIBS:BOOL="0" -DWITH_ITT=OFF ../
 make -j 32
