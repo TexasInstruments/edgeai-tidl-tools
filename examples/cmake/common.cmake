@@ -9,10 +9,20 @@ IF(NOT CMAKE_BUILD_TYPE)
   SET(CMAKE_BUILD_TYPE Release)
 ENDIF()
 
+if(NOT DEFINED CMAKE_SYSTEM_PROCESSOR OR CMAKE_SYSTEM_PROCESSOR STREQUAL "")
+  message(WARNING "CMAKE_SYSTEM_PROCESSOR is not defined. Perhaps CMake toolchain is broken")
+endif()
+
+message(STATUS "Detected processor: ${CMAKE_SYSTEM_PROCESSOR}")
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "amd64.*|x86_64.*|AMD64.*")
+  set(X86_64 1)
+elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64.*|AARCH64.*|arm64.*|ARM64.*)")
+  set(AARCH64 1)
+endif()
+
+
 message(STATUS "CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE} PROJECT_NAME = ${PROJECT_NAME}")
 
-set(CMAKE_C_COMPILER gcc-5)
-set(CMAKE_CXX_COMPILER g++-5)
 
 SET(CMAKE_FIND_LIBRARY_PREFIXES "" "lib")
 SET(CMAKE_FIND_LIBRARY_SUFFIXES ".a" ".lib" ".so")
@@ -62,13 +72,20 @@ add_definitions(
     -DTARGET_OS=${TARGET_OS}
 )
 
-link_directories(/usr/local/dlr
+link_directories(/usr/lib 
+                 /usr/local/dlr
                  /usr/lib/aarch64-linux-gnu
-                 /usr/lib/
-                 ${OPENCV_INSTALL_DIR}/cmake/lib
+                 /usr/lib/python3.8/site-packages/dlr/
+                 )
+
+if(X86_64 EQUAL 1)
+link_directories(${OPENCV_INSTALL_DIR}/cmake/lib
                  ${OPENCV_INSTALL_DIR}/cmake/3rdparty/lib
                  $ENV{TIDL_TOOLS_PATH}
                  )
+set(CMAKE_C_COMPILER gcc-5)
+set(CMAKE_CXX_COMPILER g++-5)
+endif()             
 
 #message("PROJECT_SOURCE_DIR =" ${PROJECT_SOURCE_DIR})
 #message("CMAKE_SOURCE_DIR =" ${CMAKE_SOURCE_DIR})
@@ -103,6 +120,8 @@ include_directories(${PROJECT_SOURCE_DIR}
 #    common
 #    )
 
+
+if(X86_64 EQUAL 1)
 set(SYSTEM_LINK_LIBS
     glib-2.0
     gobject-2.0
@@ -123,7 +142,21 @@ set(SYSTEM_LINK_LIBS
     pthread
     dl
     )
-
+else()
+set(SYSTEM_LINK_LIBS
+    glib-2.0
+    gobject-2.0
+    opencv_imgproc
+    opencv_imgcodecs
+    opencv_core
+    dlr
+    tensorflow-lite
+    onnxruntime
+    vx_tidl_rt
+    pthread
+    dl
+    )
+endif()  
 
 # Function for building a node:
 # ARG0: app name
