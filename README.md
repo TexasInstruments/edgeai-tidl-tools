@@ -8,7 +8,7 @@ This repository contains example developed for Deep learning runtime (DLRT) offe
 2. Set below to environement vairables. If you are building complete SDK from source, then thes path can be set as per the SDK intall paths
 
 ```
-export TIDL_TOOLS_PATH=/base_repo_path/tidl_tools
+export TIDL_TOOLS_PATH=$PWD/tidl_tools
 export LD_LIBRARY_PATH=$TIDL_TOOLS_PATH 
 ```
 3. Run below script to compile and validate the models in PC
@@ -29,7 +29,7 @@ cd  ../
 
 3. Run the CPP examples using the below commands
 ```
-./bin/Release/tfl_clasification -m models/public/tflite/mobilenet_v1_1.0_224.tflite -l test_data/labels.txt -i test_data/airshow.jpg  -f model-artifacts/tfl/mobilenet_v1_1.0_224/ -a 1 -d 1
+./bin/Release/tfl_clasification -m models/public/tflite/mobilenet_v1_1.0_224.tflite -l test_data/labels.txt -i test_data/airshow.jpg  -f model-artifacts/tfl/mobilenet_v1_1.0_224/ -a 1 -d 1 -c 100
 ./bin/Release/ort_clasification  test_data/airshow.jpg models/public/onnx/resnet18_opset9.onnx model-artifacts/ort/resnet18-v1/ test_data/labels.txt -t
 ./bin/Release/dlr_clasification  -m model-artifacts/dlr/onnx_mobilenetv2/ -i test_data/airshow.jpg -n input.1
 ```

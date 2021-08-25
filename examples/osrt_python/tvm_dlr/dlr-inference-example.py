@@ -128,11 +128,18 @@ def model_create_and_run(model_dir,
     for idx, (id, name) in enumerate(zip(classes, names)):
         print(f'[{idx}] {id:03d}, {name}')
 
-
-        
-model_create_and_run('../../../model-artifacts/dlr/tflite_inceptionnetv3', 'input',
+model_output_directory = '../../../model-artifacts/dlr/tflite_inceptionnetv3'
+if platform.machine() == 'aarch64':
+    model_output_directory = model_output_directory+'_device'
+   
+model_create_and_run(model_output_directory, 'input',
                         preprocess_for_tflite_inceptionnetv3,
                         postprocess_for_tflite_inceptionnetv3)
+
+model_output_directory = '../../../model-artifacts/dlr/onnx_mobilenetv2'
+if platform.machine() == 'aarch64':
+    model_output_directory = model_output_directory+'_device'
+
 model_create_and_run('../../../model-artifacts/dlr/onnx_mobilenetv2', 'input.1',
                         preprocess_for_onnx_mobilenetv2,
                         postprocess_for_onnx_mobilenetv2)

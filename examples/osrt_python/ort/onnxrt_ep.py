@@ -179,7 +179,8 @@ def run_model(model, mIdx):
 #models = models_configs.keys()
 
 models = ['resnet18-v1', 'deeplabv3lite_mobilenetv2', 'ssd-lite_mobilenetv2_fpn']
-download_models()
+if platform.machine() != 'aarch64':
+    download_models()
 
 log = f'\nRunning {len(models)} Models - {models}\n'
 print(log)

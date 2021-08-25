@@ -2,12 +2,12 @@ import os
 import platform
 import numpy as np
 from PIL import Image, ImageFont, ImageDraw, ImageEnhance
-import requests
-import onnx
 
 if platform.machine() == 'aarch64':
     numImages = 100
 else : 
+    import requests
+    import onnx
     numImages = 3
 
 tensor_bits = 8

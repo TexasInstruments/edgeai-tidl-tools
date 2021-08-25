@@ -169,7 +169,8 @@ def run_model(model, mIdx):
 
 #models = mlperf_models_configs.keys()
 models = ['mobilenet_v1_1.0_224', 'deeplabv3_mnv2_ade20k_float', 'ssd_mobilenet_v2_300_float']
-download_models()
+if platform.machine() != 'aarch64':
+    download_models()
 #models = ['efficientdet-ti-lite0_k5s1_k3s2']
 #models = ['mobilenet_v1_1.0_224', 'ssd_mobilenet_v2_300_float']
 

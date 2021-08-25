@@ -9,7 +9,9 @@ python3 onnxrt_ep.py
 cd $CURDIR/examples/osrt_python/tvm_dlr
 python3  tvm-compilation-onnx-example.py --pc-inference
 python3  tvm-compilation-tflite-example.py --pc-inference
-python3  dlr-inference-example.py --pc-inference
+python3  tvm-compilation-onnx-example.py
+python3  tvm-compilation-tflite-example.py
+python3  dlr-inference-example.py 
 cd $CURDIR
 
 

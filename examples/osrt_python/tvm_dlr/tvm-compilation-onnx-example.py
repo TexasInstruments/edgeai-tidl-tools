@@ -42,6 +42,7 @@ mod, params = relay.frontend.from_onnx(onnx_model,
 if args.device:
     build_target = 'llvm -device=arm_cpu -mtriple=aarch64-linux-gnu'
     cross_cc_args = {'cc' : os.path.join(os.environ['ARM64_GCC_PATH'], 'bin', 'aarch64-none-linux-gnu-gcc')}
+    model_output_directory = model_output_directory+'_device'
 else:
     build_target = 'llvm'
     cross_cc_args = {}

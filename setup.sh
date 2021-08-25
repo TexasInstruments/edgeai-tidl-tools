@@ -33,6 +33,7 @@ SCRIPTDIR=`pwd`
 
 
 skip_cpp_deps=0
+skip_arm_gcc_download=0
 
 POSITIONAL=()
 while [[ $# -gt 0 ]]
@@ -42,11 +43,16 @@ case $key in
     --skip_cpp_deps)
     skip_cpp_deps=1
     ;;
+    --skip_arm_gcc_download)
+    skip_arm_gcc_download=1
+    ;;
     -h|--help)
     echo Usage: $0 [options]
     echo
     echo Options,
     echo --skip_cpp_deps            Skip Downloading or Compiling dependencies for CPP examples
+    echo --skip_arm_gcc_download            Skip Downloading or setting environment variable  for ARM64_GCC_PATH
+    
     exit 0
     ;;
 esac
@@ -74,15 +80,23 @@ wget https://github.com/TexasInstruments/edgeai-tidl-tools/releases/download/08.
 tar -xzf tidl_tools.tar.gz
 rm tidl_tools.tar.gz
 cd  tidl_tools
-    if [ $skip_cpp_deps -eq 0 ]
-    then
-        wget https://github.com/TexasInstruments/edgeai-tidl-tools/releases/download/08.00.00-rc2/libonnxruntime.so.1.7.0
-        wget https://github.com/TexasInstruments/edgeai-tidl-tools/releases/download/08.00.00-rc2/libtensorflow-lite.a
-        ln -s libonnxruntime.so.1.7.0 libonnxruntime.so
-    fi
+if [ $skip_cpp_deps -eq 0 ]
+then
+    wget https://github.com/TexasInstruments/edgeai-tidl-tools/releases/download/08.00.00-rc2/libonnxruntime.so.1.7.0
+    wget https://github.com/TexasInstruments/edgeai-tidl-tools/releases/download/08.00.00-rc2/libtensorflow-lite.a
+    ln -s libonnxruntime.so.1.7.0 libonnxruntime.so
+fi
 export TIDL_TOOLS_PATH=$(pwd)
 export LD_LIBRARY_PATH=$TIDL_TOOLS_PATH
 cd ..
+
+
+if [ $skip_arm_gcc_download -eq 0 ]
+then
+wget https://developer.arm.com/-/media/Files/downloads/gnu-a/9.2-2019.12/binrel/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu.tar.xz
+tar -xf gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu.tar.xz
+export ARM64_GCC_PATH=$(pwd)/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu
+fi
 
 if [ $skip_cpp_deps -eq 0 ]
 then

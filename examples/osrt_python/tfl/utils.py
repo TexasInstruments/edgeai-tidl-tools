@@ -2,11 +2,11 @@ import os
 import platform
 import numpy as np
 from PIL import Image, ImageFont, ImageDraw, ImageEnhance
-import requests
 
 if platform.machine() == 'aarch64':
     numImages = 100
 else : 
+    import requests
     numImages = 3
 
 models = {
