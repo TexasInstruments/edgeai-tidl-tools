@@ -17,6 +17,39 @@ from jai_benchmark.sessions.onnxrt_session import ONNXRTSession
 from jai_benchmark.utils.artifacts_id_to_model_name import model_id_artifacts_pair
 
 import os
+import platform
+
+if platform.machine() != 'aarch64':
+    import requests
+    import onnx
+
+
+models = {
+    '../../models/public/onnx/resnet18_opset9.onnx': {'model_url': 'https://git.ti.com/cgit/jacinto-ai/jacinto-ai-modelzoo/plain/models/vision/classification/imagenet1k/torchvision/resnet18_opset9.onnx', 'type': 'onnx'},
+    '../../models/public/tflite/mobilenet_v1_1.0_224.tflite': {'model_url': 'https://tfhub.dev/tensorflow/lite-model/mobilenet_v1_1.0_224/1/default/1?lite-format=tflite', 'type': 'tflite'},
+
+}
+
+def download_model(mpath):
+    if(not os.path.isfile(mpath)):
+        # Check whether the specified path exists or not
+        isExist = os.path.exists(os.path.dirname(mpath))
+        if not isExist:
+            # Create a new directory because it does not exist
+            os.makedirs(os.path.dirname(mpath))
+        if mpath in models:
+            model_info = models[mpath]
+            print("Downloading  ", mpath)
+            url = model_info['model_url']
+            r = requests.get(url, allow_redirects=True)
+            open(mpath, 'wb').write(r.content)
+            #run shape inference
+            if model_info['type'] is 'onnx':
+                print("Running shape inference for ", mpath)
+                onnx.shape_inference.infer_shapes_path(mpath, mpath)
+        else : 
+            print(f'Model infor for {mpath} Not found')
+
 
 image_id_name_pairs = {
     'dog' : 'sample-images/dog.jpg',
