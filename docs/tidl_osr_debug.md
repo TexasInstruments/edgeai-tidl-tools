@@ -1,12 +1,12 @@
 # OSRT Troubleshooting Guide
 
 
-Below are some of the troubleshooting guidelines for OSRT model compilation and inference. This section is common across the all the OSRT (TFlite / ONNX runtime /TVM-DRL )
+Below are some of the troubleshooting guidelines for OSRT model compilation and inference. This section is common across the all the OSRT (TFlite / ONNX runtime /TVM-DLR )
 
 * Set debug_level > 0 to enable verbose debug log during import and inference
 * The import process generates visualization of the model in artifacts folder. This can be used to understand the number sub graphs offloaded to C7x-MMA, layers in each subgraph and layers processed on ARM processor
-* If there is any issues observed during model compilation process, enable ARM only mode by passing “-d” as argument to default model compilation script provided
-Example
+* If there are any issues observed during model compilation process, then enable ARM only mode by passing “-d” as an argument to the default model compilation script 
+As an example
     ```
     python3 onnxrt_ep.py -d
     ```

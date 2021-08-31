@@ -35,7 +35,7 @@ and use it in a computer's web browser to access and run the notebooks. ex: http
 
 echo "# ##################################################################"
 
-if [ $skip_cpp_deps -eq 0 ]
+if [ $skip_setup -eq 0 ]
 then
 echo "Installing python modules
 This step is required only the first time"
