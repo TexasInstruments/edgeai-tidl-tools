@@ -65,30 +65,59 @@ set -- "${POSITIONAL[@]}" # restore positional parameters
 version_match=`python3 -c 'import sys;r=0 if sys.version_info >= (3,6) else 1;print(r)'`
 if [ $version_match -ne 0 ]; then
 echo 'python version must be >= 3.6'
-exit 1
+return
+fi
+
+arch=$(uname -p)
+if [[ $arch == x86_64 ]]; then
+    echo "X64 Architecture"
+elif [[ $arch == aarch64 ]]; then
+    echo "ARM Architecture"
+    $skip_arm_gcc_download=1
+else
+echo 'Processor Architecture must be x86_64 or aarch64'
+echo 'Processor Architecture "'$arch'" is Not Supported '
+return
 fi
 
 ######################################################################
 # Installing dependencies
 echo 'Installing python packages...'
+if [[ $arch == x86_64 ]]; then
 pip3 install -r ./requirements_pc.txt
 pip3 install https://github.com/TexasInstruments/edgeai-tidl-tools/releases/download/08.00.00-rc1/dlr-1.8.0-py3-none-any.whl
 pip3 install https://github.com/TexasInstruments/edgeai-tidl-tools/releases/download/08.00.00-rc1/tvm-0.8.dev0-cp36-cp36m-linux_x86_64.whl
 pip3 install https://github.com/TexasInstruments/edgeai-tidl-tools/releases/download/08.00.00-rc1/onnxruntime_tidl-1.7.0-cp36-cp36m-linux_x86_64.whl
 pip3 install https://github.com/TexasInstruments/edgeai-tidl-tools/releases/download/08.00.00-rc1/tflite_runtime-2.4.0-py3-none-any.whl
+elif [[ $arch == aarch64 ]]; then
+pip3 install -r ./requirements_j7.txt
+fi
+
+if [[ -z "$TIDL_TOOLS_PATH" ]]
+then
 wget https://github.com/TexasInstruments/edgeai-tidl-tools/releases/download/08.00.00-rc1/tidl_tools.tar.gz
 tar -xzf tidl_tools.tar.gz
 rm tidl_tools.tar.gz
 cd  tidl_tools
+export TIDL_TOOLS_PATH=$(pwd)
+cd ..
+fi
+
 if [ $skip_cpp_deps -eq 0 ]
 then
+if [[ $arch == x86_64 ]]; then
+    cd  $TIDL_TOOLS_PATH
     wget https://github.com/TexasInstruments/edgeai-tidl-tools/releases/download/08.00.00-rc2/libonnxruntime.so.1.7.0
     wget https://github.com/TexasInstruments/edgeai-tidl-tools/releases/download/08.00.00-rc2/libtensorflow-lite.a
     ln -s libonnxruntime.so.1.7.0 libonnxruntime.so
+    cd -
 fi
-export TIDL_TOOLS_PATH=$(pwd)
+fi
+
+
+if [[ $arch == x86_64 ]]; then
 export LD_LIBRARY_PATH=$TIDL_TOOLS_PATH
-cd ..
+fi
 
 
 if [ $skip_arm_gcc_download -eq 0 ]
@@ -114,10 +143,12 @@ cd -
 wget https://github.com/opencv/opencv/archive/4.1.0.zip
 unzip 4.1.0.zip
 rm 4.1.0.zip
+if [[ $arch == x86_64 ]]; then
 cd opencv-4.1.0/cmake/
 cmake -DBUILD_opencv_highgui:BOOL="1" -DBUILD_opencv_videoio:BOOL="0" -DWITH_IPP:BOOL="0" -DWITH_WEBP:BOOL="1" -DWITH_OPENEXR:BOOL="1" -DWITH_IPP_A:BOOL="0" -DBUILD_WITH_DYNAMIC_IPP:BOOL="0" -DBUILD_opencv_cudacodec:BOOL="0" -DBUILD_PNG:BOOL="1" -DBUILD_opencv_cudaobjdetect:BOOL="0" -DBUILD_ZLIB:BOOL="1" -DBUILD_TESTS:BOOL="0" -DWITH_CUDA:BOOL="0" -DBUILD_opencv_cudafeatures2d:BOOL="0" -DBUILD_opencv_cudaoptflow:BOOL="0" -DBUILD_opencv_cudawarping:BOOL="0" -DINSTALL_TESTS:BOOL="0" -DBUILD_TIFF:BOOL="1" -DBUILD_JPEG:BOOL="1" -DBUILD_opencv_cudaarithm:BOOL="0" -DBUILD_PERF_TESTS:BOOL="0" -DBUILD_opencv_cudalegacy:BOOL="0" -DBUILD_opencv_cudaimgproc:BOOL="0" -DBUILD_opencv_cudastereo:BOOL="0" -DBUILD_opencv_cudafilters:BOOL="0" -DBUILD_opencv_cudabgsegm:BOOL="0" -DBUILD_SHARED_LIBS:BOOL="0" -DWITH_ITT=OFF ../
 make -j 32
 cd -
+fi
 fi
 
 cd $SCRIPTDIR

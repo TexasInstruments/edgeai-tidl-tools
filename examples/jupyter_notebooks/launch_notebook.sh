@@ -1,4 +1,31 @@
 #!/usr/bin/env bash
+skip_setup=0
+skip_models_download=0
+
+POSITIONAL=()
+while [[ $# -gt 0 ]]
+do
+key="$1"
+case $key in
+    --skip_setup)
+    skip_setup=1
+    ;;
+    --skip_models_download)
+    skip_models_download=1
+    ;;
+    -h|--help)
+    echo Usage: $0 [options]
+    echo
+    echo Options,
+    echo --skip_setup                      Skip Installing python dependencies. Direclty launch Notebook session   
+    echo --skip_models_download            Skip Pre-compiled models download   
+    exit 0
+    ;;
+esac
+shift # past argument
+done
+set -- "${POSITIONAL[@]}" # restore positional parameters
+
 
 echo "# ##################################################################"
 echo "This script download python modules, jacinto-ai-benchmark, and some precompiled models artifacts.
@@ -7,6 +34,9 @@ Note: take a note of the EVM's ip address before running this scrip (ifconfig)
 and use it in a computer's web browser to access and run the notebooks. ex: http://192.168.1.199:8888"
 
 echo "# ##################################################################"
+
+if [ $skip_cpp_deps -eq 0 ]
+then
 echo "Installing python modules
 This step is required only the first time"
 #pip3 install pillow
@@ -16,7 +46,7 @@ pip3 install colorama
 #pip3 install pyyaml
 pip3 install pytest
 pip3 install notebook
-#pip3 install ipywidgets
+pip3 install ipywidgets
 pip3 install papermill --ignore-installed
 pip3 install munkres
 #pip3 install json_tricks
@@ -31,7 +61,10 @@ cd ../
 git clone --single-branch -b master https://github.com/TexasInstruments/edgeai-benchmark.git
 cd edgeai-benchmark
 pip3 install -e ./
+fi
 
+if [ $skip_models_download -eq 0 ]
+then
 echo "# ##################################################################"
 echo "Download pre-compiled models
 For additional models visit: https://software-dl.ti.com/jacinto7/esd/modelzoo/latest/docs/html/index.html
@@ -50,20 +83,22 @@ wget https://software-dl.ti.com/jacinto7/esd/modelzoo/08_00_00_05/modelartifacts
 
 find . -name "*.tar.gz" -exec tar --one-top-level -zxvf "{}" \;
 cd ../../
+if
 
 echo "# ##################################################################"
 echo "Setup the environment
 This step is required everytime notebook server is launched"
- echo "Setting LD_LIBRARY_PATH"
- export LD_LIBRARY_PATH="/usr/lib"
- echo "LD_LIBRARY_PATH=${LD_LIBRARY_PATH}"
 
- echo "Setting TIDL_TOOLS_PATH. Note: TIDL_TOOLS_PATH needs to exist for jacinto-ai module, but, this is a dummy path.."
- export TIDL_TOOLS_PATH="/opt/jai_tidl_notebooks"
- echo "TIDL_TOOLS_PATH=${TIDL_TOOLS_PATH}"
- export TIDL_RT_DDR_STATS="1"
- export TIDL_RT_PERFSTATS="1"
- echo "TIDL_RT_PERFSTATS=${TIDL_RT_PERFSTATS}"
+if [[ -z "$TIDL_TOOLS_PATH" ]]
+then
+echo "Setting TIDL_TOOLS_PATH. Note: TIDL_TOOLS_PATH needs to exist for jacinto-ai module, but, this is a dummy path.."
+export TIDL_TOOLS_PATH="/opt/jai_tidl_notebooks"
+echo "TIDL_TOOLS_PATH=${TIDL_TOOLS_PATH}"
+fi
+
+export TIDL_RT_DDR_STATS="1"
+export TIDL_RT_PERFSTATS="1"
+echo "TIDL_RT_PERFSTATS=${TIDL_RT_PERFSTATS}"
 
 echo "# ##################################################################"
 echo "Launch notebook server"
