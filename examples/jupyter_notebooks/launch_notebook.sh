@@ -83,7 +83,7 @@ wget https://software-dl.ti.com/jacinto7/esd/modelzoo/08_00_00_05/modelartifacts
 
 find . -name "*.tar.gz" -exec tar --one-top-level -zxvf "{}" \;
 cd ../../
-if
+fi
 
 echo "# ##################################################################"
 echo "Setup the environment
