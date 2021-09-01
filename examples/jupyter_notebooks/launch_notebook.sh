@@ -69,7 +69,7 @@ echo "# ##################################################################"
 echo "Download pre-compiled models
 For additional models visit: https://software-dl.ti.com/jacinto7/esd/modelzoo/latest/docs/html/index.html
 This step is required only the first time"
-cd ../notebooks
+cd ../jupyter_notebooks
 mkdir prebuilt-models
 mkdir prebuilt-models/8bits
 cd prebuilt-models/8bits
