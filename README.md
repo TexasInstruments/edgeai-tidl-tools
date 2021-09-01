@@ -1,6 +1,6 @@
 # EdgeAI TIDL Tools and Examples
 
-This repository contains examples developed for Deep learning runtime (DLRT) offering provided by TI’s edge AI solutions. This repository also contains tools that can help in deploying AI applications on TI’s edgeai solutions quickly to achieve most optimal performance.
+This repository contains examples developed for Deep learning runtime (DLRT) offering provided by TI’s EdgeAI solutions. This repository also contains tools that can help in deploying AI applications on TI’s EdgeAI solutions quickly to achieve most optimal performance.
 
 ![TI EdgeAI Work Flow](docs/dnn-workflow.png)
 
@@ -50,13 +50,13 @@ source ./setup.sh
 
 ## Python Examples
 
-  - Run below script to validate all the python examples available in the repository. This script would run both Model compilation on Inference on when executed on PC
+  - Run below script to validate all the python examples available in the repository. This script would run both model-compilation and inference when executed on PC
    
 ```
 ./scripts/run_python_examples.sh
 ```
 
-  - This script would run only Inference of example models when executed on target device Like J7ES EVM. So this script must be first executed on PC to generate the artifacts needed for inference and then copy below folders from PC to target device before running this script on device
+  - This script would run only inference of example models when executed on target device like J7ES EVM or SK. So this script must be first executed on PC to generate the artifacts needed for inference and then copy below folders from PC to target device before running this script on device
 ```
 ./model-artifacts
 ./models
@@ -87,7 +87,7 @@ source ./setup.sh
   
 ## Notes
 
--  These examples are only for basic functionally testing and performance benchmarking (Latency and memory bandwidth). Accuracy of the models can be benchmarked using the python module released here [edgeai-benchmark](https://git.ti.com/cgit/jacinto-ai/jacinto-ai-benchmark)
+-  These examples are only for basic functionally testing and performance benchmarking (latency and memory bandwidth). Accuracy of the models can be benchmarked using the python module released here [edgeai-benchmark](https://git.ti.com/cgit/jacinto-ai/jacinto-ai-benchmark)
 
 ## License
-Please see the License under which this repository is made available: [LICENSE](./LICENSE)
+Please see the license under which this repository is made available: [LICENSE](./LICENSE)
