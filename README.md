@@ -26,7 +26,7 @@ This repository contains examples developed for Deep learning runtime (DLRT) off
  cd edgeai-tidl-tools
  source ./setup.sh
 ```
-
+ 
 ### Advanced Setup Options
   - If you are planning to validate only  python examples and avoid running CPP examples, invoke the setup script with below option
    
