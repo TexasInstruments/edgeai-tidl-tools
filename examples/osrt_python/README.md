@@ -5,9 +5,10 @@
   - [OSRT based user work flow](#osrt-based-user-work-flow)
   - [Model Compilation on PC](#model-compilation-on-pc)
   - [Model Inference on EVM](#model-inference-on-evm)
-  - [User options](#user-options)
+  - [User options for TFLite and ONNX Runtime](#user-options-for-tflite-and-onnx-runtime)
     - [Required](#required)
     - [Optional](#optional)
+  - [User options for TVM](#user-options-for-tvm)
   - [Trouble Shooting](#trouble-shooting)
 
 
@@ -74,14 +75,20 @@ python3 tflrt_delegate.py
 Note : These scripts are only for basic functionally testing and performance check. Accuracy of the models can be benchmarked using the python module released here [edgeai-benchmark](https://git.ti.com/cgit/jacinto-ai/jacinto-ai-benchmark)
 
 
-## User options
+## User options for TFLite and ONNX Runtime
 
-An example call to interpreter from the python interface using delegate mechanism:
+An example call to TFLite interpreter from the python interface using delegate mechanism:
     
     interpreter = tflite.Interpreter(model_path='path_to_model', \
                         experimental_delegates=[tflite.load_delegate('libtidl_tfl_delegate.so.1.0', delegate_options)])
 
-'delegate_options' in the interpreter call comprise of the below options (required and optional):
+An example call to ONNX runtime session from the python interface :
+    
+    EP_list = ['TIDLExecutionProvider','CPUExecutionProvider']
+    sess = rt.InferenceSession('path_to_model' ,providers=EP_list, provider_options=[delegate_options, {}], sess_options=so)
+
+'delegate_options' in the inference session call comprise of the following options (required and optional). All these options are common for TFLite and ONNX runtime.
+
 
 ### Required 
 
@@ -131,6 +138,53 @@ Below options will be overwritten only if accuracy_level = 9, else will be disca
 - [^1]: This is not the name of the parameter of the layer but is expected to be the output name of the layer. Note that, if a given layers feature/activations is in 16 bit then parameters will automatically become 16 bit even if its not part of this list  \n- [^2]: Denylist is a string of comma separated numbers which represent the operators as identified in tflite builtin ops. Please refer [Tflite builtin ops](https://github.com/tensorflow/tensorflow/blob/r2.3/tensorflow/lite/builtin_ops.h)  , e.g. deny_list = "1, 2" to deny offloading 'AveragePool2d' and 'Concatenation' operators to TIDL. \n
 - [^3]: Advanced calibration options can be specified by setting accuracy_level = 9. \n
 - [^4]: Note that if for a given layer feature/activations is in 16 bit then parameters will automatically become 16 bit and user need not specify them as part of "advanced_options:params_16bit_names_list". Example format - "conv1_2, fire9/concat_1" \n
+
+
+## User options for TVM
+
+There are only 4 lines that are specific to TIDL offload in TVM+TIDL compilation scripts.
+The rest of the script is no different from a regular TVM compilation
+script without TIDL offload.
+
+    tidl_compiler = tidl.TIDLCompiler(platform="J7", version="7.3",
+                                      tidl_tools_path=get_tidl_tools_path(),
+                                      artifacts_folder=tidl_artifacts_folder,
+                                      tensor_bits=8,
+                                      max_num_subgraphs=max_num_subgraphs,
+                                      deny_list=args.denylist,
+                                      accuracy_level=1,
+                                      advanced_options={'calibration_iterations':10}
+                                     )
+
+We first instantiate a TIDLCompiler object.  The parameters are explained
+in the following table.
+
+| Name/Position      | Value                                                   |
+|:-------------------|:--------------------------------------------------------|
+| platform           | "J7"                                                 |
+| version            | "7.3"                                                   |
+| tidl_tools_path    | set to environment variable TIDL_TOOLS_PATH, usually psdk_rtos_install/tidl_xx_yy_zz_ww/ti_dl/tidl_tools |
+| artifacts_folder   | where to store deployable module                        |
+| **Optional Parameters** |                                                    |
+| tensor_bits        | 8 or 16 for import TIDL tensor and weights, default is 8|
+| debug_level        | 0, 1, 2, 3, 4 for various debug info, default is 0      |
+| max_num_subgraphs  | offload up to \<num\> tidl subgraphs, default is 16     |
+| deny_list          | deny TVM relay ops for TIDL offloading, comma separated string, default is "" |
+| accuracy_level     | 0 for simple calibration, 1 for advanced bias calibration, 9 for user defined, default is 1 |
+| ti_internal_nc_flag| internal use only , default is 0x641                    |
+| advanced_options   | a dictionary to overwrite default calibration options, default is {} |
+| **advanced_options Keys** | (if not specified, defaults are used)            |
+| 'calibration_iterations'  | number of calibration iterations , default is 50 |
+| 'quantization_scale_type' | 0 for non-power-of-2, 1 for power-of-2, default is 0 |
+| 'high_resolution_optimization' | 0 for disable, 1 for enable, default is 0   |
+| 'pre_batchnorm_fold'      | 0 for disable, 1 for enable, default is 1        |
+| 'output_feature_16bit_names_list' | comma separated string, default is ""    |
+| 'params_16bit_names_list'         | comma separated string, default is ""    |
+|                           | (below are overwritable at accuracy level 9 only)|
+| 'activation_clipping'     | 0 for disable, 1 for enable                      |
+| 'weight_clipping'         | 0 for disable, 1 for enable                      |
+| 'bias_calibration'        | 0 for disable, 1 for enable                      |
+| 'channel_wise_quantization' | 0 for disable, 1 for enable                    |
 
 
 ## Trouble Shooting
