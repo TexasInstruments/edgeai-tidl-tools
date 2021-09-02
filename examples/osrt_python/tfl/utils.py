@@ -78,6 +78,10 @@ lables = '../../../test_data/labels.txt'
 models_base_path = '../../../models/public/tflite/'
 
 def download_models(mpath = models_base_path):
+    headers = {
+    'User-Agent': 'My User Agent 1.0',
+    'From': 'aid@ti.com'  # This is another valid field
+    }
     # Check whether the specified path exists or not
     isExist = os.path.exists(mpath)
     if not isExist:
@@ -89,7 +93,7 @@ def download_models(mpath = models_base_path):
         if(not os.path.isfile(model_path)):
             print("Downloading  ", model_name)
             url = models[model_name]
-            r = requests.get(url, allow_redirects=True)
+            r = requests.get(url, allow_redirects=True, headers=headers)
             open(model_path, 'wb').write(r.content)
 
 def load_labels(filename):

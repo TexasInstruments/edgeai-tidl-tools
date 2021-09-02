@@ -79,13 +79,17 @@ models = {
                                       'model_prototxt' : 'https://git.ti.com/cgit/jacinto-ai/jacinto-ai-modelzoo/plain/models/vision/detection/coco/edgeai-mmdet/ssd-lite_mobilenetv2_fpn_512x512_20201110_model.prototxt'},
 }
 def download(mpath, model_name, suffix, type):
+    headers = {
+    'User-Agent': 'My User Agent 1.0',
+    'From': 'aid@ti.com'  # This is another valid field
+    }
     model_file_name = model_name + suffix
     model_path = mpath + model_file_name
     if(not os.path.isfile(model_path)):
         if(type in models[model_name].keys()):
             print("Downloading  ", model_file_name)
             url = models[model_name][type]
-            r = requests.get(url, allow_redirects=True)
+            r = requests.get(url, allow_redirects=True, headers=headers)
             open(model_path, 'wb').write(r.content)
             
 def download_models(mpath = models_base_path):

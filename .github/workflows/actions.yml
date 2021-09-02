@@ -1,0 +1,19 @@
+on: 
+  workflow_dispatch:
+
+jobs:
+  test_in_docker:
+    runs-on: ubuntu-latest
+    name: Test Automation Job in Dcoker
+    steps:
+      # To use this repository's private action,
+      # you must check out the repository
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Docker Run
+        uses: ./ # Uses an action in the root directory
+      - name: Archive results
+        uses: actions/upload-artifact@v2
+        with:
+          name: report
+          path: report.txt

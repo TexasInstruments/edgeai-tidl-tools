@@ -3,6 +3,10 @@ import requests
 
 
 def download_models(mpath, models):
+    headers = {
+    'User-Agent': 'My User Agent 1.0',
+    'From': 'aid@ti.com'  # This is another valid field
+    }
     # Check whether the specified path exists or not
     isExist = os.path.exists(mpath)
     if not isExist:
@@ -13,5 +17,8 @@ def download_models(mpath, models):
         if(not os.path.isfile(model_path)):
             print("Downloading  ", model_name)
             url = models[model_name]['url']
-            r = requests.get(url, allow_redirects=True)
+            try:
+                r = requests.get(url, allow_redirects=True, headers=headers)
+            except requests.exceptions.RequestException as e:  # This is the correct syntax
+                raise SystemExit(e)
             open(model_path, 'wb').write(r.content)

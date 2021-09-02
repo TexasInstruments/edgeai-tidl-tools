@@ -1,0 +1,6 @@
+name: 'TIDL Examples Test'
+description: 'Test TIDL example in PC Emulation mode'
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  
