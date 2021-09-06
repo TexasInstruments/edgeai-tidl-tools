@@ -14,7 +14,7 @@ RUN apt install -y libsm6 libxext6 libxrender1 cmake libprotobuf-dev protobuf-co
 # Copies your code file from your action repository to the filesystem path `/` of the container
 COPY entrypoint.sh /entrypoint.sh
 ARG MODE=test
-RUN bash -c 'if [ $MODE = "dev" ]; then cp /entrypoint.sh /curr_entrypoint.sh; else echo "Starting Dev Container" > /curr_entrypoint.sh; fi'
+RUN bash -c 'if [ $MODE = "dev" ]; then cp /entrypoint.sh /curr_entrypoint.sh; chmod +x /curr_entrypoint.sh; else echo "Starting Dev Container" > /curr_entrypoint.sh; /curr_entrypoint.sh; fi'
 
 
 # Code file to execute when the docker container starts up (`entrypoint.sh`)
