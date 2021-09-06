@@ -7,7 +7,12 @@
 	"context": "..",
 
 	// Update the 'dockerFile' property if you aren't using the standard 'Dockerfile' filename.
-	"dockerFile": "../Dockerfile",
+	
+	"build": {
+		"dockerFile": "../Dockerfile",
+		// Update 'MODE'  Select either dev or test
+		"args": { "MODE": "dev" }
+	},
 
 	// Set *default* container specific settings.json values on container create.
 	"settings": {},

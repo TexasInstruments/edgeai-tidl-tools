@@ -1,7 +1,7 @@
 numpy
 onnx==1.9.0
 tflite
-pillow
+pillow==8.2.0
 flatbuffers==1.12.0
 requests
 opencv-python==4.2.0.34

@@ -77,6 +77,10 @@ link_directories(/usr/lib
                  /usr/lib/aarch64-linux-gnu
                  /usr/lib/python3.8/site-packages/dlr/
                  )
+if (EXISTS $ENV{CONDA_PREFIX}/dlr)
+link_directories($ENV{CONDA_PREFIX}/dlr
+                 )
+endif()  
 
 if(X86_64 EQUAL 1)
 link_directories(${OPENCV_INSTALL_DIR}/cmake/lib
