@@ -62,6 +62,8 @@ limitations under the License.
 namespace tflite {
 namespace label_image {
 
+void* in_ptrs[16] = {NULL};
+void* out_ptrs[16]= {NULL};
 
 double get_us(struct timeval t) { return (t.tv_sec * 1000000 + t.tv_usec); }
 
@@ -239,22 +241,22 @@ void RunInference(Settings* s) {
     for (uint32_t i = 0; i < inputs.size(); i++)
     {
         const TfLiteTensor *tensor = interpreter->input_tensor(i);
-        void* ptr = TIDLRT_allocSharedMem(tflite::kDefaultTensorAlignment, tensor->bytes);
-        if(ptr == NULL)
+        in_ptrs[i] = TIDLRT_allocSharedMem(tflite::kDefaultTensorAlignment, tensor->bytes);
+        if(in_ptrs[i] == NULL)
         {
           LOG(FATAL) << "Could not allocate Memory for input: " << tensor->name << "\n";
         }
-        interpreter->SetCustomAllocationForTensor(inputs[i], {ptr, tensor->bytes});
+        interpreter->SetCustomAllocationForTensor(inputs[i], {in_ptrs[i], tensor->bytes});
     }
     for (uint32_t i = 0; i < outputs.size(); i++)
     {
         const TfLiteTensor *tensor = interpreter->output_tensor(i);
-        void* ptr = TIDLRT_allocSharedMem(tflite::kDefaultTensorAlignment, tensor->bytes);
-        if(ptr == NULL)
+        out_ptrs[i] = TIDLRT_allocSharedMem(tflite::kDefaultTensorAlignment, tensor->bytes);
+        if(out_ptrs[i] == NULL)
         {
           LOG(FATAL) << "Could not allocate Memory for ouput: " << tensor->name << "\n";
         }
-        interpreter->SetCustomAllocationForTensor(outputs[i], {ptr, tensor->bytes});
+        interpreter->SetCustomAllocationForTensor(outputs[i], {out_ptrs[i], tensor->bytes});
     }
   }
 
@@ -344,6 +346,24 @@ void RunInference(Settings* s) {
     const float confidence = result.first;
     const int index = result.second;
     LOG(INFO) << confidence << ": " << index << " " << labels[index] << "\n";
+  }
+  if(s->device_mem)
+  {
+    for (uint32_t i = 0; i < inputs.size(); i++)
+    {
+      if(in_ptrs[i])
+      {
+        TIDLRT_freeSharedMem(in_ptrs[i]);
+      }
+    }
+    for (uint32_t i = 0; i < outputs.size(); i++)
+    {
+      if(out_ptrs[i])
+      {
+        TIDLRT_freeSharedMem(out_ptrs[i]);
+      }
+    }
+
   }
 }
 
