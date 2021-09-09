@@ -1,5 +1,6 @@
 import time
 import platform
+import os
 
 def load_labels():
   with open('../../../test_data/labels.txt', 'r') as f:
@@ -99,8 +100,9 @@ def postprocess_for_onnx_mobilenetv2(res):
 def model_create_and_run(model_dir,
                             model_input_name,
                             preprocess_func,
-                            postprocess_func):
+                            postprocess_func, mIdx):
     from dlr import DLRModel
+    import numpy
     print(f'\n\nRunning Inference on Model -  {model_dir}\n')
 
     model = DLRModel(model_dir, 'cpu')
@@ -118,6 +120,7 @@ def model_create_and_run(model_dir,
     print(f'\n Processing time in ms : {proc_time/numImages:10.1f}\n')
 
     res = postprocess_func(res)
+    numpy.savetxt(os.path.join(model_dir,"output.txt"), res)
 
     #get TOP-5, TOP-1 results
     classes = res.argsort()[-5:][::-1]
@@ -127,6 +130,10 @@ def model_create_and_run(model_dir,
     print(f'results for {img_path}:')
     for idx, (id, name) in enumerate(zip(classes, names)):
         print(f'[{idx}] {id:03d}, {name}')
+    
+    log = f'\n \nCompleted_Model : {mIdx+1:5d}, Name : {os.path.basename(model_dir):50s}, Total time : {proc_time/numImages:10.2f}, Offload Time : {proc_time/numImages:10.2f} , DDR RW MBs : 0, Output File : output.txt\n \n ' #{classes} \n \n'
+    print(log) 
+
 
 model_output_directory = '../../../model-artifacts/dlr/tflite_inceptionnetv3'
 if platform.machine() == 'aarch64':
@@ -134,7 +141,7 @@ if platform.machine() == 'aarch64':
    
 model_create_and_run(model_output_directory, 'input',
                         preprocess_for_tflite_inceptionnetv3,
-                        postprocess_for_tflite_inceptionnetv3)
+                        postprocess_for_tflite_inceptionnetv3, 0)
 
 model_output_directory = '../../../model-artifacts/dlr/onnx_mobilenetv2'
 if platform.machine() == 'aarch64':
@@ -142,4 +149,4 @@ if platform.machine() == 'aarch64':
 
 model_create_and_run('../../../model-artifacts/dlr/onnx_mobilenetv2', 'input.1',
                         preprocess_for_onnx_mobilenetv2,
-                        postprocess_for_onnx_mobilenetv2)
+                        postprocess_for_onnx_mobilenetv2, 1)
