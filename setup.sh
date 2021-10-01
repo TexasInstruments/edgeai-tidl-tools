@@ -95,7 +95,7 @@ fi
 
 if [[ -z "$TIDL_TOOLS_PATH" ]]
 then
-wget https://github.com/TexasInstruments/edgeai-tidl-tools/releases/download/08.00.00-rc1/tidl_tools.tar.gz
+wget https://github.com/TexasInstruments/edgeai-tidl-tools/releases/download/08.00.01.10/tidl_tools.tar.gz
 tar -xzf tidl_tools.tar.gz
 rm tidl_tools.tar.gz
 cd  tidl_tools
