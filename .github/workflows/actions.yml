@@ -16,4 +16,4 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: report
-          path: report.txt
+          path: test_report_pc.csv'
