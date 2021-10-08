@@ -39,18 +39,18 @@ if [ $skip_setup -eq 0 ]
 then
 echo "Installing python modules
 This step is required only the first time"
-#pip3 install pillow
+pip3 install numpy>=1.20
 pip3 install pycocotools
 pip3 install colorama
 #pip3 install tqdm
 #pip3 install pyyaml
 pip3 install pytest
 pip3 install notebook
-pip3 install ipywidgets
+#pip3 install ipywidgets
 pip3 install papermill --ignore-installed
 pip3 install munkres
-#pip3 install json_tricks
-#pip3 install --extra-index-url https://testpypi.python.org/pypi prototxt-parser
+pip3 install json_tricks
+pip3 install git+https://github.com/jin-s13/xtcocoapi.git
 jupyter nbextension enable --py widgetsnbextension
 
 echo "# ##################################################################"
