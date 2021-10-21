@@ -19,39 +19,6 @@ from jai_benchmark.utils.artifacts_id_to_model_name import model_id_artifacts_pa
 import os
 import sys
 from pathlib import Path
-import platform
-
-if platform.machine() != 'aarch64':
-    import requests
-    import onnx
-
-
-models = {
-    '../../models/public/onnx/resnet18_opset9.onnx': {'model_url': 'https://git.ti.com/cgit/jacinto-ai/jacinto-ai-modelzoo/plain/models/vision/classification/imagenet1k/torchvision/resnet18_opset9.onnx', 'type': 'onnx'},
-    '../../models/public/tflite/mobilenet_v1_1.0_224.tflite': {'model_url': 'https://tfhub.dev/tensorflow/lite-model/mobilenet_v1_1.0_224/1/default/1?lite-format=tflite', 'type': 'tflite'},
-
-}
-
-def download_model(mpath):
-    if(not os.path.isfile(mpath)):
-        # Check whether the specified path exists or not
-        isExist = os.path.exists(os.path.dirname(mpath))
-        if not isExist:
-            # Create a new directory because it does not exist
-            os.makedirs(os.path.dirname(mpath))
-        if mpath in models:
-            model_info = models[mpath]
-            print("Downloading  ", mpath)
-            url = model_info['model_url']
-            r = requests.get(url, allow_redirects=True)
-            open(mpath, 'wb').write(r.content)
-            #run shape inference
-            if model_info['type'] is 'onnx':
-                print("Running shape inference for ", mpath)
-                onnx.shape_inference.infer_shapes_path(mpath, mpath)
-        else : 
-            print(f'Model infor for {mpath} Not found')
-
 
 image_id_name_pairs = {
     'dog' : 'sample-images/dog.jpg',
@@ -529,14 +496,14 @@ def get_eval_configs(task_type, runtime_type, num_quant_bits, last_artifacts_id=
     settings = ConfigSettings(settings_dict)
     prebuilt_configs = select_configs(settings,os.path.join(prebuilts_dir, f'{num_quant_bits}bits'), runtime_type)
     merged_list = get_name_key_pair_list(prebuilt_configs.keys(), runtime_type)
-    #print("merged_list: ", prebuilt_configs.keys())
+    print("merged_list: ", prebuilt_configs.keys())
 
     model_selection_artifacts_key = get_selected_artifacts_id()
     if not model_selection_artifacts_key is None:
         last_artifacts_id = model_selection_artifacts_key
     elif last_artifacts_id is None:
         last_artifacts_id = merged_list[0][1]
-    #print("last_artifacts_id: ", last_artifacts_id)
+    print("last_artifacts_id: ", last_artifacts_id)
     selected_model_id = widgets.Dropdown(
     options=merged_list,
     value=last_artifacts_id,
@@ -563,11 +530,9 @@ def task_type_to_dataset_list(task_type):
     return ['imagenet']
 
 """
-class loggerWritter():
-    # Redirect c- stdout and stderr to a couple of files.
+class loggerWritter():  
+    # Redirect c- stdout and stderr to a couple of files. 
 """
-
-log_dir = Path('./')
 
 class loggerWritter():
     def __init__(self, logname):
@@ -579,11 +544,12 @@ class loggerWritter():
             self.logpath_out = os.devnull
             self.logpath_err = os.devnull
         else:
-            self.logpath_out = log_dir / (logname + "_out.log")
-            self.logpath_err = log_dir / (logname + "_err.log")
+            self.logpath_out = (logname + "_out.log")
+            self.logpath_err = (logname + "_err.log")
 
         self.logfile_out = os.open(self.logpath_out, os.O_WRONLY|os.O_TRUNC|os.O_CREAT)
         self.logfile_err = os.open(self.logpath_err, os.O_WRONLY|os.O_TRUNC|os.O_CREAT)
+    
     def __enter__(self):
         self.orig_stdout = sys.stdout # save original stdout
         self.orig_stderr = sys.stderr # save original stderr
@@ -596,11 +562,29 @@ class loggerWritter():
 
         sys.stdout = os.fdopen(self.new_stdout, 'w')
         sys.stderr = os.fdopen(self.new_stderr, 'w')
+        
     def __exit__(self, exc_type, exc_val, exc_tb):
         sys.stdout.flush()
         sys.stderr.flush()
 
         sys.stdout = self.orig_stdout # restore original stdout
         sys.stderr = self.orig_stderr # restore original stderr
+        
         os.close(self.logfile_out)
         os.close(self.logfile_err)
+        
+"""
+def get_svg_path(model_dir):  
+    # Finds all *.svg inside a model artifact folder and return *.svg's files paths inside a list. 
+"""        
+
+def get_svg_path(model_dir):
+    inputNetFile = []
+    artifacts_root = os.path.join(Path('/home/root'), model_dir)
+    for subdir, dirs, files in sorted(os.walk(artifacts_root)):
+        for file in files:
+            filename, file_extension = os.path.splitext(file)
+            if file_extension in ['.svg']:
+                netFile = os.path.join(subdir, file)
+                inputNetFile.append(os.path.join(*Path(netFile).parts[3:]))
+    return inputNetFile
