@@ -1,24 +1,18 @@
 cmake_minimum_required(VERSION 3.0.2)
 
-set(PROJ_NAME tfl_clasification)
-set(PROJ_NAME_OD tfl_od)
-set(PROJ_NAME_SEG tfl_seg)
+set(PROJ_NAME tfl_main)
 
 project(${PROJ_NAME})
-project(${PROJ_NAME_OD})
-project(${PROJ_NAME_SEG})
-
 include(${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/common.cmake)
 
-set(TFL_CLS_APP_SRCS
-    classification.cpp ) 
 
-set(TFL_OD_APP_SRCS
-    od.cpp ) 
+set(TFL_APP_SRCS
+    tfl_main.cpp  tfl_main.h) 
 
-set(TFL_SEG_APP_SRCS
-    segmentation.cpp ) 
+add_subdirectory(post_process)
+add_subdirectory(pre_process)
 
-build_app(${PROJ_NAME} TFL_CLS_APP_SRCS)
-build_app(${PROJ_NAME_OD} TFL_OD_APP_SRCS)
-build_app(${PROJ_NAME_SEG} TFL_SEG_APP_SRCS)
+
+build_app(${PROJ_NAME} TFL_APP_SRCS)
+
+

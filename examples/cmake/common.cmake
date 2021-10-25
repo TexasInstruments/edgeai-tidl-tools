@@ -76,6 +76,7 @@ link_directories(/usr/lib
                  /usr/local/dlr
                  /usr/lib/aarch64-linux-gnu
                  /usr/lib/python3.8/site-packages/dlr/
+                 /home/a0496663/.local/dlr/
                  )
 if (EXISTS $ENV{CONDA_PREFIX}/dlr)
 link_directories($ENV{CONDA_PREFIX}/dlr
@@ -117,6 +118,8 @@ include_directories(${PROJECT_SOURCE_DIR}
                     ${OPENCV_INSTALL_DIR}/modules/imgproc/include
                     ${OPENCV_INSTALL_DIR}/cmake
                     $ENV{TIDL_TOOLS_PATH}
+                    PUBLIC ${PROJECT_SOURCE_DIR}/post_process
+                    PUBLIC ${PROJECT_SOURCE_DIR}/pre_process
                     )
 
 #set(COMMON_LINK_LIBS
@@ -169,10 +172,22 @@ function(build_app)
     set(app ${ARGV0})
     set(src ${ARGV1})
     add_executable(${app} ${${src}})
+    target_include_directories(${app} 
+        PUBLIC ${PROJECT_SOURCE_DIR}/post_process
+        PUBLIC ${PROJECT_SOURCE_DIR}/pre_process
+        )
+    
+    link_directories(${app} 
+        PUBLIC ${PROJECT_SOURCE_DIR}/post_process
+        PUBLIC ${PROJECT_SOURCE_DIR}/pre_process
+        )
+
     target_link_libraries(${app}
                           -Wl,--start-group
                           ${COMMON_LINK_LIBS}
                           ${TARGET_LINK_LIBS}
                           ${SYSTEM_LINK_LIBS}
+                          tfl_post_process
+                          tfl_pre_process
                           -Wl,--end-group)
 endfunction()
