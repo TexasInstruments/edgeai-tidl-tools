@@ -23,8 +23,6 @@ namespace tflite
     void *in_ptrs[16] = {NULL};
     void *out_ptrs[16] = {NULL};
 
-    double get_us(struct timeval t) { return (t.tv_sec * 1000000 + t.tv_usec); }
-
 
     void RunInference(Settings *s)
     {
@@ -151,10 +149,10 @@ namespace tflite
       switch (interpreter->tensor(input)->type)
       {
       case kTfLiteFloat32:
-        img = preprocImage<float>(s->input_bmp_name, interpreter->typed_tensor<float>(input), wanted_height, wanted_width, wanted_channels, s->input_mean, s->input_std);
+        img = tflite::preprocess::preprocImage<float>(s->input_bmp_name, interpreter->typed_tensor<float>(input), wanted_height, wanted_width, wanted_channels, s->input_mean, s->input_std);
         break;
       case kTfLiteUInt8:
-        img = preprocImage<uint8_t>(s->input_bmp_name, interpreter->typed_tensor<uint8_t>(input), wanted_height, wanted_width, wanted_channels, s->input_mean, s->input_std);
+        img = tflite::preprocess::preprocImage<uint8_t>(s->input_bmp_name, interpreter->typed_tensor<uint8_t>(input), wanted_height, wanted_width, wanted_channels, s->input_mean, s->input_std);
         break;
       default:
         LOG(FATAL) << "cannot handle input type " << interpreter->tensor(input)->type << " yet";
@@ -188,25 +186,21 @@ namespace tflite
                 << (get_us(stop_time) - get_us(start_time)) / (s->loop_count * 1000)
                 << " ms \n";
 
-      int32_t size = 512;
-      float alpha = 0.4f;
-      const std::vector<int> outputTensors = interpreter->outputs();
-      int32_t *outputTensor = interpreter->tensor(outputs[0])->data.i32;
+      
       if (s->model_type == tflite::config::SEG)
       {
-        img.data = tflite::main::blendSegMask(img.data, outputTensor, wanted_width, wanted_height, wanted_width, wanted_height, alpha);
+        int32_t *outputTensor = interpreter->tensor(outputs[0])->data.i32;
+        float alpha = 0.4f;
+        img.data = tflite::postprocess::blendSegMask(img.data, outputTensor, img.cols, img.rows, wanted_width, wanted_height, alpha);
       }
       else if (s->model_type == tflite::config::OD)
       {
-        const float threshold = 0.001f;
-        const std::vector<int> outputTensor = interpreter->outputs();
-        const float *detectection_location = interpreter->tensor(outputTensor[0])->data.f;
-        const float *detectection_classes = interpreter->tensor(outputTensor[1])->data.f;
-        const float *detectection_scores = interpreter->tensor(outputTensor[2])->data.f;
-        const int num_detections = (int)*interpreter->tensor(outputTensor[3])->data.f;
+        const float *detectection_location = interpreter->tensor(outputs[0])->data.f;
+        const float *detectection_classes = interpreter->tensor(outputs[1])->data.f;
+        const float *detectection_scores = interpreter->tensor(outputs[2])->data.f;
+        const int num_detections = (int)*interpreter->tensor(outputs[3])->data.f;
         LOG(INFO) << "results " << num_detections << "\n";
-        cv::Mat img = cv::imread(s->input_bmp_name, cv::IMREAD_COLOR);
-        // tflite::postprocess::overlayBoundingBox(img, num_detections, detectection_location);
+        tflite::postprocess::overlayBoundingBox(img, num_detections, detectection_location);
         for (int i = 0; i < num_detections; i++)
         {
           LOG(INFO) << "class " << detectection_classes[i] << "\n";
@@ -219,31 +213,31 @@ namespace tflite
         const float threshold = 0.001f;
         std::vector<std::pair<float, int>> top_results;
 
-        int output = interpreter->outputs()[0];
-        TfLiteIntArray *output_dims = interpreter->tensor(output)->dims;
+        
+        TfLiteIntArray *output_dims = interpreter->tensor(outputs[0])->dims;
         // assume output dims to be something like (1, 1, ... ,size)
         auto output_size = output_dims->data[output_dims->size - 1];
-        switch (interpreter->tensor(output)->type)
+        switch (interpreter->tensor(outputs[0])->type)
         {
         case kTfLiteFloat32:
-          get_top_n<float>(interpreter->typed_output_tensor<float>(0), output_size,
+          tflite::postprocess::get_top_n<float>(interpreter->typed_output_tensor<float>(0), output_size,
                            s->number_of_results, threshold, &top_results, true);
           break;
         case kTfLiteUInt8:
-          get_top_n<uint8_t>(interpreter->typed_output_tensor<uint8_t>(0),
+          tflite::postprocess::get_top_n<uint8_t>(interpreter->typed_output_tensor<uint8_t>(0),
                              output_size, s->number_of_results, threshold,
                              &top_results, false);
           break;
         default:
           LOG(FATAL) << "cannot handle output type "
-                     << interpreter->tensor(output)->type << " yet";
+                     << interpreter->tensor(outputs[0])->type << " yet";
           exit(-1);
         }
 
         std::vector<string> labels;
         size_t label_count;
 
-        if (ReadLabelsFile(s->labels_file_name, &labels, &label_count) != kTfLiteOk)
+        if (tflite::postprocess::ReadLabelsFile(s->labels_file_name, &labels, &label_count) != kTfLiteOk)
           exit(-1);
 
         for (const auto &result : top_results)
@@ -252,8 +246,16 @@ namespace tflite
           const int index = result.second;
           LOG(INFO) << confidence << ": " << index << " " << labels[index] << "\n";
         }
+        // std::string str = "std::string to const char*";
+        // const char *c = str.c_str();
+        img.data = tflite::postprocess::overlayTopNClasses(img.data,top_results,&labels, img.cols,img.rows,10,5,10);
       }
-      bool check = cv::imwrite("./name.jpg", img);
+      /*fix the location and name of the saving image file */
+      cv::cvtColor(img, img, cv::COLOR_RGB2BGR);
+      char filename[100];
+      strcpy(filename, s->artifact_path.c_str());
+      strcat(filename,"cpp_inference_out.jpg");
+      bool check = cv::imwrite(filename, img);
       if (check == false)
       {
         std::cout << "Saving the image, FAILED" << std::endl;
@@ -291,13 +293,6 @@ namespace tflite
             {"verbose", required_argument, nullptr, 'v'},
             {"threads", required_argument, nullptr, 't'},
             {"warmup_runs", required_argument, nullptr, 'w'},
-
-            // {"profiling", required_argument, nullptr, 'p'},
-            // {"input_mean", required_argument, nullptr, 'b'},
-            // {"input_std", required_argument, nullptr, 's'},
-            // {"num_results", required_argument, nullptr, 'r'},
-            // {"gl_backend", required_argument, nullptr, 'g'},
-            // {"max_profiling_buffer_entries", required_argument, nullptr, 'e'},
             {nullptr, 0, nullptr, 0}};
 
         /* getopt_long stores the option index here. */

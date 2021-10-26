@@ -10,7 +10,6 @@ set(TFL_APP_SRCS
     tfl_main.cpp  tfl_main.h) 
 
 add_subdirectory(post_process)
-add_subdirectory(pre_process)
 
 
 build_app(${PROJ_NAME} TFL_APP_SRCS)

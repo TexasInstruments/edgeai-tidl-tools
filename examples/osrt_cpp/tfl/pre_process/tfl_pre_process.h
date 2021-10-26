@@ -32,12 +32,26 @@ namespace tflite
 {
     namespace preprocess
     {
-       template <class T>
+    template <class T>
         cv::Mat preprocImage(const std::string &input_bmp_name,
         T *out, int wanted_height,int wanted_width,
-        int wanted_channels, float mean, float scale);
-         
-        int test();
+        int wanted_channels, float mean, float scale)
+        {
+            int i;
+            uint8_t *pSrc;
+            cv::Mat image = cv::imread(input_bmp_name, cv::IMREAD_COLOR);
+            cv::cvtColor(image, image, cv::COLOR_BGR2RGB);
+            cv::resize(image, image, cv::Size(wanted_width, wanted_height), 0, 0, cv::INTER_AREA);
+            if (image.channels() != wanted_channels)
+            {
+                // LOG(FATAL) << "Warning : Number of channels wanted differs from number of channels in the actual image \n";
+                exit(-1);
+            }
+            pSrc = (uint8_t *)image.data;
+            for (i = 0; i < wanted_height * wanted_width * wanted_channels; i++)
+                out[i] = ((T)pSrc[i] - mean) / scale;
+            return image;
+        }
     } // namespace tflite::preprocess
 }
 #endif /* _PRE_PROCESS_H_ */

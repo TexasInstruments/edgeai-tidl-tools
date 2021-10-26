@@ -38,22 +38,22 @@ namespace tflite
 
         tfl_config model_configs[] =
             {
-                {"model-artifacts/tfl/deeplabv3_mnv2_ade20k_float/",
-                 "test_data/ADE_val_00001801.jpg",
-                 "models/public/tflite/deeplabv3_mnv2_ade20k_float.tflite",
-                 "",
-                 OD, 127.5f, 127.5f},
+                {"model-artifacts/tfl/mobilenet_v1_1.0_224/",
+                 "test_data/airshow.jpg",
+                 "models/public/tflite/mobilenet_v1_1.0_224.tflite",
+                 "test_data/labels.txt",
+                 CLF, 127.5f, 127.5f},
 
                 {"model-artifacts/tfl/ssd_mobilenet_v2_300_float/",
                  "test_data/ADE_val_00001801.jpg",
                  "models/public/tflite/ssd_mobilenet_v2_300_float.tflite",
                  "",
-                 SEG, 127.5f, 127.5f},
+                 OD, 127.5f, 127.5f},
                 {"model-artifacts/tfl/deeplabv3_mnv2_ade20k_float/",
-                 "test_data/airshow.jpg",
+                 "test_data/ADE_val_00001801.jpg",
                  "models/public/tflite/deeplabv3_mnv2_ade20k_float.tflite"  ,
                  "",
-                 CLF, 127.5f, 127.5f}
+                 SEG, 127.5f, 127.5f}
 
         };
     }
