@@ -23,7 +23,6 @@ namespace tflite
     void *in_ptrs[16] = {NULL};
     void *out_ptrs[16] = {NULL};
 
-
     void RunInference(Settings *s)
     {
       if (!s->model_name.c_str())
@@ -186,14 +185,13 @@ namespace tflite
                 << (get_us(stop_time) - get_us(start_time)) / (s->loop_count * 1000)
                 << " ms \n";
 
-      
-      if (s->model_type == tflite::config::SEG)
+      if (s->model_type == tidl::config::SEG)
       {
         int32_t *outputTensor = interpreter->tensor(outputs[0])->data.i32;
         float alpha = 0.4f;
         img.data = tflite::postprocess::blendSegMask(img.data, outputTensor, img.cols, img.rows, wanted_width, wanted_height, alpha);
       }
-      else if (s->model_type == tflite::config::OD)
+      else if (s->model_type == tidl::config::OD)
       {
         const float *detectection_location = interpreter->tensor(outputs[0])->data.f;
         const float *detectection_classes = interpreter->tensor(outputs[1])->data.f;
@@ -208,12 +206,11 @@ namespace tflite
           LOG(INFO) << "score " << detectection_scores[i] << "\n";
         }
       }
-      else if (s->model_type == tflite::config::CLF)
+      else if (s->model_type == tidl::config::CLF)
       {
         const float threshold = 0.001f;
         std::vector<std::pair<float, int>> top_results;
 
-        
         TfLiteIntArray *output_dims = interpreter->tensor(outputs[0])->dims;
         // assume output dims to be something like (1, 1, ... ,size)
         auto output_size = output_dims->data[output_dims->size - 1];
@@ -221,12 +218,12 @@ namespace tflite
         {
         case kTfLiteFloat32:
           tflite::postprocess::get_top_n<float>(interpreter->typed_output_tensor<float>(0), output_size,
-                           s->number_of_results, threshold, &top_results, true);
+                                                s->number_of_results, threshold, &top_results, true);
           break;
         case kTfLiteUInt8:
           tflite::postprocess::get_top_n<uint8_t>(interpreter->typed_output_tensor<uint8_t>(0),
-                             output_size, s->number_of_results, threshold,
-                             &top_results, false);
+                                                  output_size, s->number_of_results, threshold,
+                                                  &top_results, false);
           break;
         default:
           LOG(FATAL) << "cannot handle output type "
@@ -248,13 +245,13 @@ namespace tflite
         }
         // std::string str = "std::string to const char*";
         // const char *c = str.c_str();
-        img.data = tflite::postprocess::overlayTopNClasses(img.data,top_results,&labels, img.cols,img.rows,10,5,10);
+        img.data = tflite::postprocess::overlayTopNClasses(img.data, top_results, &labels, img.cols, img.rows, 10, 5, 10);
       }
       /*fix the location and name of the saving image file */
       cv::cvtColor(img, img, cv::COLOR_RGB2BGR);
       char filename[100];
       strcpy(filename, s->artifact_path.c_str());
-      strcat(filename,"cpp_inference_out.jpg");
+      strcat(filename, "cpp_inference_out.jpg");
       bool check = cv::imwrite(filename, img);
       if (check == false)
       {
@@ -342,14 +339,18 @@ namespace tflite
       }
       for (int i = 0; i < NUM_CONFIGS; i++)
       {
-        s.artifact_path = tflite::config::model_configs[i].artifact_path;
-        s.model_name = tflite::config::model_configs[i].tflite_model_path;
-        s.labels_file_name = tflite::config::model_configs[i].tflite_labels_path;
-        s.input_bmp_name = tflite::config::model_configs[i].image_path;
-        s.input_mean = tflite::config::model_configs[i].mean;
-        s.input_std = tflite::config::model_configs[i].std;
-        s.model_type = tflite::config::model_configs[i].model_type;
-        RunInference(&s);
+        bool isTflModel = endsWith(tidl::config::model_configs[i].model_path, "tflite");
+        if (isTflModel)
+        {
+          s.artifact_path = tidl::config::model_configs[i].artifact_path;
+          s.model_name = tidl::config::model_configs[i].model_path;
+          s.labels_file_name = tidl::config::model_configs[i].labels_path;
+          s.input_bmp_name = tidl::config::model_configs[i].image_path;
+          s.input_mean = tidl::config::model_configs[i].mean;
+          s.input_std = tidl::config::model_configs[i].std;
+          s.model_type = tidl::config::model_configs[i].model_type;
+          RunInference(&s);
+        }
       }
 
       return 0;

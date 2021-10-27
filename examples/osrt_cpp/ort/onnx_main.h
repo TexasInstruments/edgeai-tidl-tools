@@ -13,59 +13,30 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef TENSORFLOW_LITE_EXAMPLES_MAIN_H_
-#define TENSORFLOW_LITE_EXAMPLES_MAIN_H_
+#ifndef ONNX_EXAMPLES_MAIN_H_
+#define ONNX_EXAMPLES_MAIN_H_
 
-#include <fcntl.h>     // NOLINT(build/include_order)
-#include <getopt.h>    // NOLINT(build/include_order)
-#include <sys/time.h>  // NOLINT(build/include_order)
-#include <sys/types.h> // NOLINT(build/include_order)
-#include <sys/uio.h>   // NOLINT(build/include_order)
-#include <unistd.h>    // NOLINT(build/include_order)
-
+#include <getopt.h>
+#include <iostream>
 #include <cstdarg>
 #include <cstdio>
-#include <cstdlib>
 #include <fstream>
-#include <iomanip>
-#include <iostream>
-#include <map>
-#include <memory>
-#include <sstream>
 #include <string>
-#include <unordered_set>
-#include <vector>
 
-#include "tensorflow/lite/kernels/register.h"
-#include "tensorflow/lite/optional_debug_tools.h"
-#include "tensorflow/lite/profiling/profiler.h"
-#include "tensorflow/lite/string_util.h"
-#include "dlfcn.h"
+#include <onnxruntime/core/session/onnxruntime_cxx_api.h>
+#include <onnxruntime/core/providers/tidl/tidl_provider_factory.h>
+#include <onnxruntime/core/providers/cpu/cpu_provider_factory.h>
 
-#include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-#include "opencv2/imgcodecs.hpp"
-#include "opencv2/imgproc/imgproc_c.h"
-#include <iostream>
-#include <cstring>
-#include <algorithm>
-#include <functional>
-#include <queue>
-
-#include "tensorflow/lite/tools/evaluation/utils.h"
-
-#include "itidl_rt.h"
+#include "validator.h"
 #include "../cpp_config.h"
-#include "post_process/tfl_post_process.h"
-#include "pre_process/tfl_pre_process.h"
 
 #define LOG(x) std::cerr
 
-namespace tflite
+namespace onnx
 {
     namespace main
     {
+        using namespace std;
         struct Settings
         {
             bool verbose = false;
@@ -80,10 +51,9 @@ namespace tflite
             float input_mean = 127.5f;
             float input_std = 127.5f;
             string artifact_path = "";
-            string model_name = "";
-            tflite::FlatBufferModel *model;
+            string model_path = "";
             string input_bmp_name = "";
-            string labels_file_name = "";
+            string labels_path = "";
             string input_layer_type = "uint8_t";
             int number_of_threads = 4;
             int number_of_results = 5;
@@ -95,19 +65,12 @@ namespace tflite
         void display_usage()
         {
             LOG(INFO)
-                << "label_image\n"
                 << "--accelerated, -a: [0|1], use Android NNAPI or not\n"
-                << "--old_accelerated, -d: [0|1], use old Android NNAPI delegate or not\n"
                 << "--artifact_path, -f: [0|1], Path for Delegate artifacts folder \n"
                 << "--count, -c: loop interpreter->Invoke() for certain times\n"
-                << "--gl_backend, -g: use GL GPU Delegate on Android\n"
-                << "--input_mean, -b: input mean\n"
-                << "--input_std, -s: input standard deviation\n"
                 << "--image, -i: image_name.bmp\n"
                 << "--labels, -l: labels for the model\n"
-                << "--tflite_model, -m: model_name.tflite\n"
-                << "--profiling, -p: [0|1], profiling or not\n"
-                << "--num_results, -r: number of results to show\n"
+                << "--onnx_model, -m: model_name.onnx\n"
                 << "--threads, -t: number of threads\n"
                 << "--verbose, -v: [0|1] print more information\n"
                 << "--warmup_runs, -w: number of warmup runs\n"
@@ -128,7 +91,7 @@ namespace tflite
             else
                 return false;
         }
-    } //namespace tflite::main
-} //namespace tflite
+    } //namespace onnx::main
+} //namespace onnx
 
-#endif // TENSORFLOW_LITE_EXAMPLES_MAIN_H_
+#endif // ONNX_EXAMPLES_MAIN_H_

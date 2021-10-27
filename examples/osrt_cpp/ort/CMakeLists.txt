@@ -8,6 +8,6 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/common.cmake)
 
 set(ORT_CLS_APP_SRCS
     validator.cpp
-    main.cpp)
+    onnx_main.cpp)
 
 build_app(${PROJ_NAME} ORT_CLS_APP_SRCS)

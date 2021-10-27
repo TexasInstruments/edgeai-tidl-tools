@@ -13,30 +13,30 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#define NUM_CONFIGS 3
-namespace tflite
+#define NUM_CONFIGS 4
+namespace tidl
 {
     namespace config
     {
-        typedef enum TFliteModeltype
+        typedef enum Modeltype // TODO update to tidl modelzoo types
         {
             OD,
             SEG,
             CLF
-        } TFliteModeltype;
+        } Modeltype;
 
-        typedef struct tfl_config
+        typedef struct model_config
         {
             std::string artifact_path;
             std::string image_path;
-            std::string tflite_model_path;
-            std::string tflite_labels_path;
-            TFliteModeltype model_type;
+            std::string model_path;
+            std::string labels_path;
+            Modeltype model_type;
             float mean;
             float std;
-        } tfl_config;
+        } model_config;
 
-        tfl_config model_configs[] =
+        model_config model_configs[] =
             {
                 {"model-artifacts/tfl/mobilenet_v1_1.0_224/",
                  "test_data/airshow.jpg",
@@ -51,10 +51,15 @@ namespace tflite
                  OD, 127.5f, 127.5f},
                 {"model-artifacts/tfl/deeplabv3_mnv2_ade20k_float/",
                  "test_data/ADE_val_00001801.jpg",
-                 "models/public/tflite/deeplabv3_mnv2_ade20k_float.tflite"  ,
+                 "models/public/tflite/deeplabv3_mnv2_ade20k_float.tflite",
                  "",
-                 SEG, 127.5f, 127.5f}
+                 SEG, 127.5f, 127.5f},
+                {"model-artifacts/ort/resnet18-v1/",
+                 "test_data/airshow.jpg",
+                 "models/public/onnx/resnet18_opset9.onnx",
+                 "test_data/labels.txt",
+                 CLF, 127.5f, 127.5f}
 
         };
-    }
-}
+    } //tidl::config
+} //tidl
