@@ -1,5 +1,3 @@
-
-
 /* Copyright 2017 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,31 +25,47 @@ limitations under the License.
 #include <stdint.h>
 #include <string>
 
-
-namespace tflite
+namespace tidl
 {
     namespace preprocess
     {
-    template <class T>
+        template <class T>
+        /**
+  *  \brief Use OpenCV to open an image and resize according to requirment of model, 
+  * scalar modification on based on mean and scale
+  *
+  * @param input_bmp_name
+  * @returns original frame with some in-place post processing done
+  */
         cv::Mat preprocImage(const std::string &input_bmp_name,
-        T *out, int wanted_height,int wanted_width,
-        int wanted_channels, float mean, float scale)
+                             std::vector<T> &out, int wanted_height, int wanted_width,
+                             int wanted_channels,
+                             std::vector<float> mean, std::vector<float> scale)
         {
             int i;
             uint8_t *pSrc;
+            cv::Mat spl[3];
             cv::Mat image = cv::imread(input_bmp_name, cv::IMREAD_COLOR);
             cv::cvtColor(image, image, cv::COLOR_BGR2RGB);
             cv::resize(image, image, cv::Size(wanted_width, wanted_height), 0, 0, cv::INTER_AREA);
             if (image.channels() != wanted_channels)
             {
-                // LOG(FATAL) << "Warning : Number of channels wanted differs from number of channels in the actual image \n";
+                printf("Warning : Number of channels wanted differs from number of channels in the actual image \n");
                 exit(-1);
             }
-            pSrc = (uint8_t *)image.data;
-            for (i = 0; i < wanted_height * wanted_width * wanted_channels; i++)
-                out[i] = ((T)pSrc[i] - mean) / scale;
+            cv::split(image, spl);
+
+            for (int j = 0; j < wanted_channels; j++)
+            {
+                pSrc = (uint8_t *)spl[j].data;
+                for (i = 0; i < wanted_height * wanted_width; i++)
+                {
+                    out[j * (wanted_height * wanted_width) + i] = ((T)pSrc[i] - mean[j]) * scale[j];
+                }
+            }
             return image;
         }
-    } // namespace tflite::preprocess
+
+    } // namespace tidl::preprocess
 }
 #endif /* _PRE_PROCESS_H_ */

@@ -175,9 +175,8 @@ function(build_app)
     target_include_directories(${app} 
         PUBLIC ${PROJECT_SOURCE_DIR}/post_process
         )
-    
     link_directories(${app} 
-        PUBLIC ${PROJECT_SOURCE_DIR}/post_process        
+        PUBLIC ${CMAKE_SOURCE_DIR}/../lib/${CMAKE_BUILD_TYPE}        
         )
 
     target_link_libraries(${app}
@@ -185,7 +184,7 @@ function(build_app)
                           ${COMMON_LINK_LIBS}
                           ${TARGET_LINK_LIBS}
                           ${SYSTEM_LINK_LIBS}
+                          post_process
                           ${lobs}
-                          tfl_post_process
                           -Wl,--end-group)
 endfunction()

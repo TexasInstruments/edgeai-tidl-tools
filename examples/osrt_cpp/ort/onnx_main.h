@@ -22,13 +22,15 @@ limitations under the License.
 #include <cstdio>
 #include <fstream>
 #include <string>
+#include <sys/time.h>
 
 #include <onnxruntime/core/session/onnxruntime_cxx_api.h>
 #include <onnxruntime/core/providers/tidl/tidl_provider_factory.h>
 #include <onnxruntime/core/providers/cpu/cpu_provider_factory.h>
 
-#include "validator.h"
 #include "../cpp_config.h"
+#include "itidl_rt.h"
+#include "../post_process/post_process.h"
 
 #define LOG(x) std::cerr
 
@@ -48,8 +50,8 @@ namespace onnx
             bool gl_backend = false;
             bool hexagon_delegate = false;
             int loop_count = 1;
-            float input_mean = 127.5f;
-            float input_std = 127.5f;
+            std::vector<float> input_mean;
+            std::vector<float> input_std;
             string artifact_path = "";
             string model_path = "";
             string input_bmp_name = "";

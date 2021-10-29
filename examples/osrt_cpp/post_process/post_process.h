@@ -34,14 +34,42 @@ limitations under the License.
 
 #define TI_POSTPROC_DEFAULT_WIDTH 1280
 
-namespace tflite
+namespace tidl
 {
     namespace postprocess
     {
-        /** Post-processing for image based object detection. */
+        using namespace std;
 
+        /**
+ * Use OpenCV to do in-place update of a buffer with post processing content like
+ * drawing bounding box around a detected object in the frame. Typically used for
+ * object classification models.
+ * Although OpenCV expects BGR data, this function adjusts the color values so that
+ * the post processing can be done on a RGB buffer without extra performance impact.
+ *
+ * @param frame Original RGB data buffer, where the in-place updates will happen
+ * @param num_of_detections 
+ * @param box bounding box co-ordinates.
+ *
+ * @returns original frame with some in-place post processing done
+ */
         cv::Mat overlayBoundingBox(cv::Mat img, int num_of_detection, const float *cordinates);
 
+        /**
+ * Use OpenCV to do in-place update of a buffer with post processing content like
+ * alpha blending a specific color for each classified pixel. Typically used for
+ * semantic segmentation models.
+ * Although OpenCV expects BGR data, this function adjusts the color values so that
+ * the post processing can be done on a RGB buffer without extra performance impact.
+ * For every pixel in input frame, this will find the scaled co-ordinates for a
+ * downscaled result and use the color associated with detected class ID.
+ *
+ * @param frame Original RGB data buffer, where the in-place updates will happen
+ * @param classes Reference to a vector of vector of floats representing the output
+ *          from an inference API. It should contain 1 vector describing the class ID
+ *          detected for that pixel.
+ * @returns original frame with some in-place post processing done
+ */
         uchar *blendSegMask(uchar *frame,
                             int32_t *classes,
                             int32_t inDataWidth,
@@ -49,9 +77,11 @@ namespace tflite
                             int32_t outDataWidth,
                             int32_t outDataHeight,
                             float alpha);
-
-        // Returns the top N confidence values over threshold in the provided vector,
-        // sorted by confidence in descending order.
+        /**
+ *  Returns the top N confidence values over threshold in the provided vector,
+ * sorted by confidence in descending order.
+ * @returns top resultls
+ */
         template <class T>
         void get_top_n(T *prediction, int prediction_size, size_t num_results,
                        float threshold, std::vector<std::pair<float, int>> *top_results,
@@ -95,19 +125,46 @@ namespace tflite
 
             std::reverse(top_results->begin(), top_results->end());
         }
-        TfLiteStatus ReadLabelsFile(const string &file_name,
-                                    std::vector<string> *result,
-                                    size_t *found_label_count);
 
+        /**
+ *  \brief Takes a file name, and loads a list of labels from it, one per line, and
+ * returns a vector of the strings. It pads with empty strings so the length
+ * of the result is a multiple of 16, because our model expects that.
+ *
+ *  \param  file_name : previous interrupt state
+ *  \param  result : previous interrupt state
+ *  \param  found_label_count : previous interrupt state
+ * 
+ *  \return int :0?Success:Failure
+ */
+
+        int ReadLabelsFile(const string &file_name,
+                           std::vector<string> *result,
+                           size_t *found_label_count);
+        /**
+  *  \brief Use OpenCV to do in-place update of a buffer with post processing content like
+  * a black rectangle at the top-left corner and text lines describing the
+  * detected class names. Typically used for image classification models
+  * Although OpenCV expects BGR data, this function adjusts the color values so that
+  * the post processing can be done on a RGB buffer without extra performance impact.
+  *
+  * @param frame Original RGB data buffer, where the in-place updates will happen
+  * @param top_results Reference to a vector of pair of float and int representing the output
+  *          from an inference API. It should vectors representing the
+  *          probability with which that class is detected and class index in this image.
+  * @param labels labels in indexed form to print 
+  * @param outDataWidth 
+  * @param outDataHeight
+  * @param N Number of results to be displayed
+  * @returns original frame with some in-place post processing done
+  */
         uchar *overlayTopNClasses(uchar *frame,
-                                  std::vector<std::pair<float, int>> &top_results ,
+                                  std::vector<std::pair<float, int>> &top_results,
                                   std::vector<string> *labels,
                                   int32_t outDataWidth,
                                   int32_t outDataHeight,
-                                  int32_t labelOffset,
-                                  int32_t N,
-                                  int32_t size);
-    } // namespace tflite::postprocess
+                                  int32_t N);
+    } // namespace tidl::postprocess
 
 #endif /* _POST_PROCESS_H_ */
 }

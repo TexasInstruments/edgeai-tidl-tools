@@ -14,6 +14,8 @@ limitations under the License.
 ==============================================================================*/
 
 #include "onnx_main.h"
+#include "../pre_process/pre_process.h"
+#include <onnxruntime/core/session/onnxruntime_cxx_api.h>
 
 namespace onnx
 {
@@ -27,9 +29,9 @@ namespace onnx
             std::string artifacts_path = s->artifact_path;
 
             int tidl_flag = s->accel;
-            
+
             std::cout << "Running model" << s->model_path << std::endl;
-            std::cout << "Image" <<s->input_bmp_name << std::endl;
+            std::cout << "Image" << s->input_bmp_name << std::endl;
             std::cout << "Artifacts path" << s->artifact_path << std::endl;
             std::cout << "Labels path" << s->labels_path << std::endl;
 
@@ -54,9 +56,153 @@ namespace onnx
             }
 
             session_options.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_EXTENDED);
-
             // Do the thing
-            Validator validator(env, model_path, image_path, labels_path, session_options);
+            // Validator validator(env, model_path, image_path, labels_path, session_options);
+            Ort::AllocatorWithDefaultOptions allocator; // ORT Session
+            Ort::Session session(env, model_path.c_str(), session_options);
+
+            // Input information
+            size_t num_input_nodes = session.GetInputCount();
+            std::vector<const char *> input_node_names(num_input_nodes);
+            Ort::TypeInfo type_info = session.GetInputTypeInfo(0);
+            auto tensor_info = type_info.GetTensorTypeAndShapeInfo();
+            std::vector<int64_t> input_node_dims = tensor_info.GetShape();
+            int wanted_channels = input_node_dims[1];
+            int wanted_height = input_node_dims[2];
+            int wanted_width = input_node_dims[3];
+
+            size_t num_output_nodes = session.GetOutputCount();
+            std::vector<const char *> output_node_names(num_output_nodes);
+            output_node_names[0] = session.GetOutputName(0, allocator);
+            char *output_name = session.GetOutputName(0, allocator);
+            type_info = session.GetOutputTypeInfo(0);
+            auto output_tensor_info = type_info.GetTensorTypeAndShapeInfo();
+            std::vector<int64_t> output_node_dims = output_tensor_info.GetShape();
+            size_t output_tensor_size = output_node_dims[1];
+
+            int image_size;
+
+            printf("Number of inputs = %zu\n", num_input_nodes);
+            // iterate over all input nodes
+            for (int i = 0; i < num_input_nodes; i++)
+            {
+                // print input node names
+                char *input_name = session.GetInputName(i, allocator);
+                printf("Input %d : name=%s\n", i, input_name);
+                input_node_names[i] = input_name;
+
+                // print input node types
+                Ort::TypeInfo type_info = session.GetInputTypeInfo(i);
+                auto tensor_info = type_info.GetTensorTypeAndShapeInfo();
+
+                ONNXTensorElementDataType type = tensor_info.GetElementType();
+                printf("Input %d : type=%d\n", i, type);
+
+                // print input shapes/dims
+                input_node_dims = tensor_info.GetShape();
+                printf("Input %d : num_dims=%zu\n", i, input_node_dims.size());
+                for (int j = 0; j < input_node_dims.size(); j++)
+                {
+                    printf("Input %d : dim %d=%jd\n", i, j, input_node_dims[j]);
+                }
+            }
+
+            int num_iter = s->loop_count;
+            std::vector<float> image_data(wanted_height * wanted_width * wanted_channels);
+            cv::Mat img = tidl::preprocess::preprocImage<float>(image_path, image_data, wanted_height, wanted_width, wanted_channels, s->input_mean, s->input_std);
+            size_t input_tensor_size = wanted_channels * wanted_height * wanted_width; // simplify ... using known dim values to calculate size
+
+            // use OrtGetTensorShapeElementCount() to get official size!
+
+            // std::vector<float> input_tensor_values(input_tensor_size);
+            printf("Output name -- %s \n", *(output_node_names.data()));
+
+            // create input tensor object from data values
+            auto memory_info = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
+
+            void *inData = TIDLRT_allocSharedMem(16, input_tensor_size * sizeof(float));
+            if (inData == NULL)
+            {
+                printf("Could not allocate memory for inData \n ");
+                exit(0);
+            }
+            memcpy(inData, image_data.data(), input_tensor_size * sizeof(float));
+
+            void *outData = TIDLRT_allocSharedMem(16, output_tensor_size * sizeof(float));
+            if (outData == NULL)
+            {
+                printf("Could not allocate memory for outData \n ");
+                exit(0);
+            }
+
+#if ORT_ZERO_COPY_API
+            Ort::IoBinding binding(_session);
+            const Ort::RunOptions &runOpts = Ort::RunOptions();
+            Ort::Value input_tensor = Ort::Value::CreateTensor<float>(memory_info, (float *)inData, input_tensor_size, _input_node_dims.data(), 4);
+            assert(input_tensor.IsTensor());
+            std::vector<int64_t> _output_node_dims = {1, 1, 1, 1000};
+
+            Ort::Value output_tensors = Ort::Value::CreateTensor<float>(memory_info, (float *)outData, output_tensor_size, _output_node_dims.data(), 4);
+            assert(output_tensors.IsTensor());
+
+            binding.BindInput(_input_node_names[0], input_tensor);
+            binding.BindOutput(output_node_names[0], output_tensors);
+
+            struct timeval start_time, stop_time;
+            gettimeofday(&start_time, nullptr);
+            for (int i = 0; i < num_iter; i++)
+            {
+                _session.Run(runOpts, binding);
+            }
+            gettimeofday(&stop_time, nullptr);
+            float *floatarr = (float *)outData;
+
+#else
+            //Ort::Value input_tensor = Ort::Value::CreateTensor<float>(memory_info, image_data.data(), input_tensor_size, _input_node_dims.data(), 4);
+            Ort::Value input_tensor = Ort::Value::CreateTensor<float>(memory_info, (float *)inData, input_tensor_size, input_node_dims.data(), 4);
+
+            assert(input_tensor.IsTensor());
+
+            // score model & input tensor, get back output tensor
+            auto run_options = Ort::RunOptions();
+            run_options.SetRunLogVerbosityLevel(2);
+
+            auto output_tensors = session.Run(run_options, input_node_names.data(), &input_tensor, 1, output_node_names.data(), 1);
+
+            struct timeval start_time, stop_time;
+            gettimeofday(&start_time, nullptr);
+            for (int i = 0; i < num_iter; i++)
+            {
+                output_tensors = session.Run(run_options, input_node_names.data(), &input_tensor, 1, output_node_names.data(), 1);
+            }
+            gettimeofday(&stop_time, nullptr);
+
+            assert(output_tensors.size() == 1 && output_tensors.front().IsTensor());
+            // Get pointer to output tensor float values
+            float *floatarr = output_tensors.front().GetTensorMutableData<float>();
+#endif
+            std::cout << "invoked \n";
+            std::cout << "average time: "
+                      << (get_us(stop_time) - get_us(start_time)) / (num_iter * 1000)
+                      << " ms \n";
+
+            // Determine most common index
+            float max_val = 0.0;
+            int max_index = 0;
+            for (int i = 0; i < 1000; i++)
+            {
+                if (floatarr[i] > max_val)
+                {
+                    max_val = floatarr[i];
+                    max_index = i;
+                }
+            }
+            std::cout << "MAX: class [" << max_index << "] = " << max_val << std::endl;
+            std::vector<string> labels;
+            size_t label_count;
+            if (tidl::postprocess::ReadLabelsFile(s->labels_path, &labels, &label_count) != 0)
+                exit(-1);
+            std::cout << labels[max_index + 1] << std::endl;
 
             printf(" Done!\n");
             return 0;

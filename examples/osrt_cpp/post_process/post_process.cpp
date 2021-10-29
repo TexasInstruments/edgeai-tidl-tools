@@ -14,19 +14,32 @@ limitations under the License.
 ==============================================================================*/
 
 /* Module headers. */
-#include "tfl_post_process.h"
+#include "post_process.h"
 
 /**
  * \brief Class implementing the image based object detection post-processing
  *        logic.
  */
 
-namespace tflite
+namespace tidl
 {
     namespace postprocess
     {
         using namespace cv;
-
+        using namespace std;
+        /**
+ * Use OpenCV to do in-place update of a buffer with post processing content like
+ * drawing bounding box around a detected object in the frame. Typically used for
+ * object classification models.
+ * Although OpenCV expects BGR data, this function adjusts the color values so that
+ * the post processing can be done on a RGB buffer without extra performance impact.
+ *
+ * @param frame Original RGB data buffer, where the in-place updates will happen
+ * @param num_of_detections 
+ * @param box bounding box co-ordinates.
+ *
+ * @returns original frame with some in-place post processing done
+ */
         cv::Mat overlayBoundingBox(cv::Mat img, int num_of_detection, const float *cordinates)
         {
             cv::Scalar box_color = (20, 220, 20);
@@ -45,7 +58,21 @@ namespace tflite
             }
             return img;
         }
-
+/**
+ * Use OpenCV to do in-place update of a buffer with post processing content like
+ * alpha blending a specific color for each classified pixel. Typically used for
+ * semantic segmentation models.
+ * Although OpenCV expects BGR data, this function adjusts the color values so that
+ * the post processing can be done on a RGB buffer without extra performance impact.
+ * For every pixel in input frame, this will find the scaled co-ordinates for a
+ * downscaled result and use the color associated with detected class ID.
+ *
+ * @param frame Original RGB data buffer, where the in-place updates will happen
+ * @param classes Reference to a vector of vector of floats representing the output
+ *          from an inference API. It should contain 1 vector describing the class ID
+ *          detected for that pixel.
+ * @returns original frame with some in-place post processing done
+ */
         uchar *blendSegMask(uchar *frame,
                             int32_t *classes,
                             int32_t inDataWidth,
@@ -110,19 +137,26 @@ namespace tflite
             return frame;
         }
 
-        /* Takes a file name, and loads a list of labels from it, one per line, and
-        returns a vector of the strings. It pads with empty strings so the length
-        of the result is a multiple of 16, because our model expects that.*/
-
-        TfLiteStatus ReadLabelsFile(const string &file_name,
-                                    std::vector<string> *result,
-                                    size_t *found_label_count)
+        /**
+ *  \brief Takes a file name, and loads a list of labels from it, one per line, and
+ * returns a vector of the strings. It pads with empty strings so the length
+ * of the result is a multiple of 16, because our model expects that.
+ *
+ *  \param  file_name : previous interrupt state
+ *  \param  result : previous interrupt state
+ *  \param  found_label_count : previous interrupt state
+ * 
+ *  \return int :0?Success:Failure
+ */
+        int ReadLabelsFile(const string &file_name,
+                           std::vector<string> *result,
+                           size_t *found_label_count)
         {
             std::ifstream file(file_name);
             if (!file)
             {
                 // LOG(FATAL) << "Labels file " << file_name << " not found\n";
-                return kTfLiteError;
+                return -1;
             }
             result->clear();
             string line;
@@ -136,32 +170,32 @@ namespace tflite
             {
                 result->emplace_back();
             }
-            return kTfLiteOk;
+            return 0;
         }
 
         /**
-  * Use OpenCV to do in-place update of a buffer with post processing content like
+  *  \brief Use OpenCV to do in-place update of a buffer with post processing content like
   * a black rectangle at the top-left corner and text lines describing the
   * detected class names. Typically used for image classification models
   * Although OpenCV expects BGR data, this function adjusts the color values so that
   * the post processing can be done on a RGB buffer without extra performance impact.
   *
   * @param frame Original RGB data buffer, where the in-place updates will happen
-  * @param results Reference to a vector of vector of floats representing the output
-  *          from an inference API. It should contain 1 vector representing the
-  *          probability with which that class is detected in this image.
-  * @param size Number of elements in the input array 'results'.
+  * @param top_results Reference to a vector of pair of float and int representing the output
+  *          from an inference API. It should vectors representing the
+  *          probability with which that class is detected and class index in this image.
+  * @param labels labels in indexed form to print 
+  * @param outDataWidth 
+  * @param outDataHeight
+  * @param N Number of results to be displayed
   * @returns original frame with some in-place post processing done
   */
-
         uchar *overlayTopNClasses(uchar *frame,
                                   std::vector<std::pair<float, int>> &top_results,
                                   std::vector<string> *labels,
                                   int32_t outDataWidth,
                                   int32_t outDataHeight,
-                                  int32_t labelOffset,
-                                  int32_t N,
-                                  int32_t size)
+                                  int32_t N)
         {
 
             float txtSize = static_cast<float>(outDataWidth) / TI_POSTPROC_DEFAULT_WIDTH;
@@ -173,20 +207,20 @@ namespace tflite
             std::string title = "Top " + std::to_string(N) + " detected classes:";
             putText(img, title.c_str(), Point(5, 2 * rowSize),
                     FONT_HERSHEY_SIMPLEX, txtSize, text_color, 1);
-            int i =0;
+            int i = 0;
             for (auto result : top_results)
             {
                 const float confidence = result.first;
                 int index = result.second;
                 int32_t row = i + 3;
-                string str =  std::to_string(confidence);
+                string str = std::to_string(confidence);
                 str.append((*labels)[index]);
-                putText(img, str , Point(5, row * rowSize),
+                putText(img, str, Point(5, row * rowSize),
                         FONT_HERSHEY_SIMPLEX, txtSize, text_color, 1);
                 i++;
             }
             return frame;
         }
 
-    } // namespace tflite::postprocess
+    } // namespace tidl::postprocess
 }

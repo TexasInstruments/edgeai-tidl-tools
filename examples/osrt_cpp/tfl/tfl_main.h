@@ -16,13 +16,10 @@ limitations under the License.
 #ifndef TENSORFLOW_LITE_EXAMPLES_MAIN_H_
 #define TENSORFLOW_LITE_EXAMPLES_MAIN_H_
 
-#include <fcntl.h>     // NOLINT(build/include_order)
-#include <getopt.h>    // NOLINT(build/include_order)
-#include <sys/time.h>  // NOLINT(build/include_order)
-#include <sys/types.h> // NOLINT(build/include_order)
-#include <sys/uio.h>   // NOLINT(build/include_order)
-#include <unistd.h>    // NOLINT(build/include_order)
-
+#include <fcntl.h>
+#include <getopt.h>
+#include <sys/time.h>
+#include <sys/types.h>
 #include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
@@ -36,29 +33,22 @@ limitations under the License.
 #include <unordered_set>
 #include <vector>
 
-#include "tensorflow/lite/kernels/register.h"
-#include "tensorflow/lite/optional_debug_tools.h"
-#include "tensorflow/lite/profiling/profiler.h"
-#include "tensorflow/lite/string_util.h"
-#include "dlfcn.h"
-
+#include <tensorflow/lite/kernels/register.h>
+#include <tensorflow/lite/optional_debug_tools.h>
+#include <tensorflow/lite/profiling/profiler.h>
+#include <tensorflow/lite/string_util.h>
+#include <dlfcn.h>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
-#include "opencv2/imgcodecs.hpp"
-#include "opencv2/imgproc/imgproc_c.h"
-#include <iostream>
-#include <cstring>
-#include <algorithm>
-#include <functional>
-#include <queue>
-
-#include "tensorflow/lite/tools/evaluation/utils.h"
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/imgproc/imgproc_c.h>
+#include <tensorflow/lite/tools/evaluation/utils.h>
 
 #include "itidl_rt.h"
 #include "../cpp_config.h"
-#include "post_process/tfl_post_process.h"
-#include "pre_process/tfl_pre_process.h"
+#include "post_process/post_process.h"
+#include "pre_process/pre_process.h"
 
 #define LOG(x) std::cerr
 
@@ -66,6 +56,10 @@ namespace tflite
 {
     namespace main
     {
+        /**
+ @struct  Settings
+ @brief   This structure define the parameters of tfl cpp infernce params
+*/
         struct Settings
         {
             bool verbose = false;
@@ -77,8 +71,8 @@ namespace tflite
             bool gl_backend = false;
             bool hexagon_delegate = false;
             int loop_count = 1;
-            float input_mean = 127.5f;
-            float input_std = 127.5f;
+            std::vector<float> input_mean;
+            std::vector<float> input_std;
             string artifact_path = "";
             string model_name = "";
             tflite::FlatBufferModel *model;
@@ -91,7 +85,10 @@ namespace tflite
             int number_of_warmup_runs = 2;
             tidl::config::Modeltype model_type;
         };
-
+        /**
+  *  \brief display usage string for application
+  * @returns void
+  */
         void display_usage()
         {
             LOG(INFO)
@@ -114,12 +111,17 @@ namespace tflite
                 << "\n";
         }
 
+        /**
+  *  \brief returns time in micro sec
+  * @returns void
+  */
         double get_us(struct timeval t) { return (t.tv_sec * 1000000 + t.tv_usec); }
 
-        /*
-        * Case Sensitive Implementation of endsWith()
-        * It checks if the string 'mainStr' ends with given string 'toMatch'
-        */
+        /**
+  *  \brief  Case Sensitive Implementation of endsWith for a string
+  * It checks if the string 'mainStr' ends with given string 'toMatch'
+  * @returns bool
+  */
         bool endsWith(const std::string &mainStr, const std::string &toMatch)
         {
             if (mainStr.size() >= toMatch.size() &&

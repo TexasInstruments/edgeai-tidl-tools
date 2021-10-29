@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.0.2)
+include(${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/common.cmake)
+add_library(post_process post_process.cpp post_process.h )
+install(TARGETS post_process DESTINATION lib)
+install(FILES post_process.h DESTINATION include)

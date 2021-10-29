@@ -23,6 +23,11 @@ namespace tflite
     void *in_ptrs[16] = {NULL};
     void *out_ptrs[16] = {NULL};
 
+        /**
+  *  \brief  Actual infernce happening 
+  *  \param  Settings user input options  and default values of setting if any
+  * @returns void
+  */
     void RunInference(Settings *s)
     {
       if (!s->model_name.c_str())
@@ -143,16 +148,35 @@ namespace tflite
       int wanted_height = dims->data[1];
       int wanted_width = dims->data[2];
       int wanted_channels = dims->data[3];
-
       cv::Mat img;
       switch (interpreter->tensor(input)->type)
       {
       case kTfLiteFloat32:
-        img = tflite::preprocess::preprocImage<float>(s->input_bmp_name, interpreter->typed_tensor<float>(input), wanted_height, wanted_width, wanted_channels, s->input_mean, s->input_std);
+      {
+        std::vector<float> image_data(wanted_height * wanted_width * wanted_channels);
+        img = tidl::preprocess::preprocImage<float>(s->input_bmp_name, image_data, wanted_height, wanted_width, wanted_channels, s->input_mean, s->input_std);
+        for (int i = 0; i < wanted_width * wanted_height; i++)
+        {
+          for (int j = 0; j < wanted_channels; j++)
+          {
+            interpreter->typed_tensor<float>(input)[i * 3 + j] = image_data[j * wanted_height * wanted_width + i];
+          }
+        }
         break;
+      }
       case kTfLiteUInt8:
-        img = tflite::preprocess::preprocImage<uint8_t>(s->input_bmp_name, interpreter->typed_tensor<uint8_t>(input), wanted_height, wanted_width, wanted_channels, s->input_mean, s->input_std);
+      {
+        std::vector<uint8_t> image_data(wanted_height * wanted_width * wanted_channels);
+        img = tidl::preprocess::preprocImage<uint8_t>(s->input_bmp_name, image_data, wanted_height, wanted_width, wanted_channels, s->input_mean, s->input_std);
+        for (int i = 0; i < wanted_width * wanted_height; i++)
+        {
+          for (int j = 0; j < wanted_channels; j++)
+          {
+            interpreter->typed_tensor<uint8_t>(input)[i * 3 + j] = image_data[j * wanted_height * wanted_width + i];
+          }
+        }
         break;
+      }
       default:
         LOG(FATAL) << "cannot handle input type " << interpreter->tensor(input)->type << " yet";
         exit(-1);
@@ -189,7 +213,7 @@ namespace tflite
       {
         int32_t *outputTensor = interpreter->tensor(outputs[0])->data.i32;
         float alpha = 0.4f;
-        img.data = tflite::postprocess::blendSegMask(img.data, outputTensor, img.cols, img.rows, wanted_width, wanted_height, alpha);
+        img.data = tidl::postprocess::blendSegMask(img.data, outputTensor, img.cols, img.rows, wanted_width, wanted_height, alpha);
       }
       else if (s->model_type == tidl::config::OD)
       {
@@ -198,7 +222,7 @@ namespace tflite
         const float *detectection_scores = interpreter->tensor(outputs[2])->data.f;
         const int num_detections = (int)*interpreter->tensor(outputs[3])->data.f;
         LOG(INFO) << "results " << num_detections << "\n";
-        tflite::postprocess::overlayBoundingBox(img, num_detections, detectection_location);
+        tidl::postprocess::overlayBoundingBox(img, num_detections, detectection_location);
         for (int i = 0; i < num_detections; i++)
         {
           LOG(INFO) << "class " << detectection_classes[i] << "\n";
@@ -217,13 +241,13 @@ namespace tflite
         switch (interpreter->tensor(outputs[0])->type)
         {
         case kTfLiteFloat32:
-          tflite::postprocess::get_top_n<float>(interpreter->typed_output_tensor<float>(0), output_size,
-                                                s->number_of_results, threshold, &top_results, true);
+          tidl::postprocess::get_top_n<float>(interpreter->typed_output_tensor<float>(0), output_size,
+                                              s->number_of_results, threshold, &top_results, true);
           break;
         case kTfLiteUInt8:
-          tflite::postprocess::get_top_n<uint8_t>(interpreter->typed_output_tensor<uint8_t>(0),
-                                                  output_size, s->number_of_results, threshold,
-                                                  &top_results, false);
+          tidl::postprocess::get_top_n<uint8_t>(interpreter->typed_output_tensor<uint8_t>(0),
+                                                output_size, s->number_of_results, threshold,
+                                                &top_results, false);
           break;
         default:
           LOG(FATAL) << "cannot handle output type "
@@ -234,7 +258,7 @@ namespace tflite
         std::vector<string> labels;
         size_t label_count;
 
-        if (tflite::postprocess::ReadLabelsFile(s->labels_file_name, &labels, &label_count) != kTfLiteOk)
+        if (tidl::postprocess::ReadLabelsFile(s->labels_file_name, &labels, &label_count) != 0)
           exit(-1);
 
         for (const auto &result : top_results)
@@ -243,11 +267,9 @@ namespace tflite
           const int index = result.second;
           LOG(INFO) << confidence << ": " << index << " " << labels[index] << "\n";
         }
-        // std::string str = "std::string to const char*";
-        // const char *c = str.c_str();
-        img.data = tflite::postprocess::overlayTopNClasses(img.data, top_results, &labels, img.cols, img.rows, 10, 5, 10);
+        int num_results = 5;
+        img.data = tidl::postprocess::overlayTopNClasses(img.data, top_results, &labels, img.cols, img.rows, num_results);
       }
-      /*fix the location and name of the saving image file */
       cv::cvtColor(img, img, cv::COLOR_RGB2BGR);
       char filename[100];
       strcpy(filename, s->artifact_path.c_str());
@@ -276,7 +298,10 @@ namespace tflite
         }
       }
     }
-
+        /**
+  *  \brief  options parsing and infernce calling
+  * @returns int
+  */
     int TFLite_Main(int argc, char **argv)
     {
       Settings s;
