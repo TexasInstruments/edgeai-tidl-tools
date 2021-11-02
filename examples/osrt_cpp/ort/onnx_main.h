@@ -23,6 +23,7 @@ limitations under the License.
 #include <fstream>
 #include <string>
 #include <sys/time.h>
+#include <list>
 
 #include <onnxruntime/core/session/onnxruntime_cxx_api.h>
 #include <onnxruntime/core/providers/tidl/tidl_provider_factory.h>

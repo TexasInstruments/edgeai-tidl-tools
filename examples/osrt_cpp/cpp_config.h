@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#define NUM_CONFIGS 4
+#define NUM_CONFIGS 6
 namespace tidl
 {
     namespace config
@@ -44,7 +44,7 @@ namespace tidl
                  "test_data/labels.txt",
                  CLF,
                  {127.5, 127.5, 127.5},
-                 {0.007843,0.007843,0.007843}},
+                 {0.007843, 0.007843, 0.007843}},
 
                 {"model-artifacts/tfl/ssd_mobilenet_v2_300_float/",
                  "test_data/ADE_val_00001801.jpg",
@@ -52,21 +52,39 @@ namespace tidl
                  "",
                  OD,
                  {127.5, 127.5, 127.5},
-                 {0.007843,0.007843,0.007843}},
+                 {0.007843, 0.007843, 0.007843}},
+
                 {"model-artifacts/tfl/deeplabv3_mnv2_ade20k_float/",
                  "test_data/ADE_val_00001801.jpg",
                  "models/public/tflite/deeplabv3_mnv2_ade20k_float.tflite",
                  "",
                  SEG,
                  {127.5, 127.5, 127.5},
-                {0.007843,0.007843,0.007843}},
+                 {0.007843, 0.007843, 0.007843}},
+
                 {"model-artifacts/ort/resnet18-v1/",
                  "test_data/airshow.jpg",
                  "models/public/onnx/resnet18_opset9.onnx",
                  "test_data/labels.txt",
                  CLF,
                  {123.675, 116.28, 103.53},
-                 {0.017125, 0.017507, 0.017429}}
+                 {0.017125, 0.017507, 0.017429}},
+
+                {"model-artifacts/ort/deeplabv3lite_mobilenetv2/",
+                 "test_data/ADE_val_00001801.jpg",
+                 "models/public/onnx/deeplabv3lite_mobilenetv2.onnx",
+                 "",
+                 SEG,
+                 {123.675, 116.28, 103.53},
+                 {0.017125, 0.017507, 0.017429}},
+
+                {"model-artifacts/ort/ssd-lite_mobilenetv2_fpn/",
+                 "test_data/ADE_val_00001801.jpg",
+                 "models/public/onnx/ssd-lite_mobilenetv2_fpn.onnx",
+                 "",
+                 OD,
+                 {0, 0, 0},
+                 {0.003921568627, 0.003921568627, 0.003921568627}}
 
         };
     } //tidl::config

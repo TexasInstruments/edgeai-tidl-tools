@@ -178,32 +178,105 @@ namespace onnx
             gettimeofday(&stop_time, nullptr);
 
             assert(output_tensors.size() == 1 && output_tensors.front().IsTensor());
-            // Get pointer to output tensor float values
-            float *floatarr = output_tensors.front().GetTensorMutableData<float>();
 #endif
             std::cout << "invoked \n";
             std::cout << "average time: "
                       << (get_us(stop_time) - get_us(start_time)) / (num_iter * 1000)
                       << " ms \n";
 
-            // Determine most common index
-            float max_val = 0.0;
-            int max_index = 0;
-            for (int i = 0; i < 1000; i++)
-            {
-                if (floatarr[i] > max_val)
-                {
-                    max_val = floatarr[i];
-                    max_index = i;
-                }
-            }
-            std::cout << "MAX: class [" << max_index << "] = " << max_val << std::endl;
-            std::vector<string> labels;
-            size_t label_count;
-            if (tidl::postprocess::ReadLabelsFile(s->labels_path, &labels, &label_count) != 0)
-                exit(-1);
-            std::cout << labels[max_index + 1] << std::endl;
 
+            if(s->model_type == tidl::config::Modeltype::CLF){
+                // Get pointer to output tensor float values
+                std::vector<std::pair<float, int>> top_results;
+                const float threshold = 0.001f;
+                float *floatarr = output_tensors.front().GetTensorMutableData<float>();
+                tidl::postprocess::get_top_n<float>(floatarr,
+                                                1000, s->number_of_results, threshold,
+                                                &top_results, false);
+                // Determine most common index
+                float max_val = 0.0;
+                int max_index = 0;
+                for (int i = 0; i < 1000; i++)
+                {
+                    if (floatarr[i] > max_val)
+                    {
+                        max_val = floatarr[i];
+                        max_index = i;
+                    }
+                }
+                std::cout << "MAX: class [" << max_index << "] = " << max_val << std::endl;
+                std::vector<string> labels;
+                size_t label_count;
+                if (tidl::postprocess::ReadLabelsFile(s->labels_path, &labels, &label_count) != 0)
+                    exit(-1);
+                // std::cout << labels[max_index + 1] << std::endl;
+                for (const auto &result : top_results)
+                {
+                    const float confidence = result.first;
+                    const int index = result.second;
+                    LOG(INFO) << confidence << ": " << index << " " << labels[index] << "\n";
+                }
+                int num_results = 5;
+                img.data = tidl::postprocess::overlayTopNClasses(img.data, top_results, &labels, img.cols, img.rows, num_results);
+      
+            }
+            else if(s->model_type == tidl::config::Modeltype::SEG){
+                // Get pointer to output tensor float values
+                int64_t* int64arr = output_tensors.front().GetTensorMutableData<int64_t>();
+                int32_t* int32arr =(int32_t*) malloc(512*512*sizeof(int32_t));
+                float alpha = 0.4f; 
+                for (int i = 0; i < 512*512; i++)
+                {
+                    int32arr[i] = (int32_t) int64arr[i];
+                }
+                tidl::postprocess::blendSegMask(img.data, int32arr, img.cols, img.rows, wanted_width, wanted_height, alpha);
+            }
+            else if(s->model_type == tidl::config::Modeltype::OD){
+                // Get pointer to output tensor float values
+                float* floatarr = output_tensors.front().GetTensorMutableData<float>();
+                std::list<float> detection_class_list,detectection_location_list,detectection_scores_list;
+                
+                //parsing 
+                int num_detections = 0;                
+                for (int i = 4; i < 1000; i = i+5)
+                {
+                    if(floatarr[i] > .3){
+                        num_detections++;
+                        detectection_scores_list.push_back(floatarr[i]);
+                        detection_class_list.push_back((i-4)/5);
+                        detectection_location_list.push_back(floatarr[i-1]/img.cols);
+                        detectection_location_list.push_back(floatarr[i-2]/img.cols);
+                        detectection_location_list.push_back(floatarr[i-3]/img.cols);
+                        detectection_location_list.push_back(floatarr[i-4]/img.cols);
+                    }
+                }
+                float detectection_scores[detectection_scores_list.size()];
+                float detection_class[detection_class_list.size()];
+                float detectection_location[detectection_location_list.size()];
+
+                std::copy(detectection_scores_list.begin(), detectection_scores_list.end(), detectection_scores);
+                std::copy(detection_class_list.begin(), detection_class_list.end(), detection_class);
+                std::copy(detectection_location_list.begin(), detectection_location_list.end(), detectection_location);
+
+     
+                LOG(INFO) << "results " << num_detections << "\n";
+                tidl::postprocess::overlayBoundingBox(img, num_detections, detectection_location);
+                for (int i = 0; i < num_detections; i++)
+                {
+                LOG(INFO) << "class " << detection_class[i] << "\n";
+                LOG(INFO) << "cordinates " << detectection_location[i * 4] << detectection_location[i * 4 + 1] << detectection_location[i * 4 + 2] << detectection_location[i * 4 + 3] << "\n";
+                LOG(INFO) << "score " << detectection_scores[i] << "\n";
+                }
+            }  
+                cv::cvtColor(img, img, cv::COLOR_RGB2BGR);
+                char filename[100];
+                strcpy(filename, s->artifact_path.c_str());
+                strcat(filename, "cpp_inference_out.jpg");
+                bool check = cv::imwrite(filename, img);
+                if (check == false)
+                {
+                    std::cout << "Saving the image, FAILED" << std::endl;
+                }
             printf(" Done!\n");
             return 0;
         }
