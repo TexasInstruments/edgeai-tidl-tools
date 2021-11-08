@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#define NUM_CONFIGS 6
+#define NUM_CONFIGS 8
 namespace tidl
 {
     namespace config
@@ -34,6 +34,7 @@ namespace tidl
             Modeltype model_type;
             std::vector<float> mean;
             std::vector<float> std;
+            std::string input_name;
         } model_config;
 
         model_config model_configs[] =
@@ -84,7 +85,28 @@ namespace tidl
                  "",
                  OD,
                  {0, 0, 0},
-                 {0.003921568627, 0.003921568627, 0.003921568627}}
+                 {0.003921568627, 0.003921568627, 0.003921568627}},
+
+                {"",
+                 "test_data/airshow.jpg",
+                 "model-artifacts/dlr/onnx_mobilenetv2",
+                 "test_data/labels.txt",
+                 CLF,
+                 {123.675, 116.28, 103.53},
+                 {0.017125, 0.017507, 0.017429},
+                 "input.1"
+
+                },
+
+                {"",
+                 "test_data/airshow.jpg",
+                 "model-artifacts/dlr/tflite_inceptionnetv3",
+                 "test_data/labels.txt",
+                 CLF,
+                 {128, 128, 128},
+                 {0.0078125, 0.0078125, 0.0078125},
+                 "input"
+                }
 
         };
     } //tidl::config

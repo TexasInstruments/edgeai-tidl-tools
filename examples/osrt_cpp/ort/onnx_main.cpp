@@ -214,7 +214,7 @@ namespace onnx
                 {
                     const float confidence = result.first;
                     const int index = result.second;
-                    LOG(INFO) << confidence << ": " << index << " " << labels[index] << "\n";
+                    LOG(INFO) << confidence << ": " << index << " " << labels[index+1] << "\n";
                 }
                 int num_results = 5;
                 img.data = tidl::postprocess::overlayTopNClasses(img.data, top_results, &labels, img.cols, img.rows, num_results);
