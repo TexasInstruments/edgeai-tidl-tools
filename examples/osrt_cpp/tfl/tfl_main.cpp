@@ -23,14 +23,14 @@ namespace tflite
     void *in_ptrs[16] = {NULL};
     void *out_ptrs[16] = {NULL};
 
-        /**
+    /**
   *  \brief  Actual infernce happening 
   *  \param  Settings user input options  and default values of setting if any
   * @returns void
   */
-    void RunInference(Settings *s)
+    void RunInference(tidl::arg_parsing::Settings *s)
     {
-      if (!s->model_name.c_str())
+      if (!s->model_path.c_str())
       {
         LOG(ERROR) << "no model file name\n";
         exit(-1);
@@ -38,14 +38,14 @@ namespace tflite
 
       std::unique_ptr<tflite::FlatBufferModel> model;
       std::unique_ptr<tflite::Interpreter> interpreter;
-      model = tflite::FlatBufferModel::BuildFromFile(s->model_name.c_str());
+      model = tflite::FlatBufferModel::BuildFromFile(s->model_path.c_str());
       if (!model)
       {
-        LOG(FATAL) << "\nFailed to mmap model " << s->model_name << "\n";
+        LOG(FATAL) << "\nFailed to mmap model " << s->model_path << "\n";
         exit(-1);
       }
-      s->model = model.get();
-      LOG(INFO) << "Loaded model " << s->model_name << "\n";
+
+      LOG(INFO) << "Loaded model " << s->model_path << "\n";
       model->error_reporter();
       LOG(INFO) << "resolved reporter\n";
 
@@ -154,7 +154,7 @@ namespace tflite
       case kTfLiteFloat32:
       {
         std::vector<float> image_data(wanted_height * wanted_width * wanted_channels);
-        img = tidl::preprocess::preprocImage<float>(s->input_bmp_name, image_data, wanted_height, wanted_width, wanted_channels, s->input_mean, s->input_std);
+        img = tidl::preprocess::preprocImage<float>(s->input_bmp_path, image_data, wanted_height, wanted_width, wanted_channels, s->input_mean, s->input_std);
         for (int i = 0; i < wanted_width * wanted_height; i++)
         {
           for (int j = 0; j < wanted_channels; j++)
@@ -167,7 +167,7 @@ namespace tflite
       case kTfLiteUInt8:
       {
         std::vector<uint8_t> image_data(wanted_height * wanted_width * wanted_channels);
-        img = tidl::preprocess::preprocImage<uint8_t>(s->input_bmp_name, image_data, wanted_height, wanted_width, wanted_channels, s->input_mean, s->input_std);
+        img = tidl::preprocess::preprocImage<uint8_t>(s->input_bmp_path, image_data, wanted_height, wanted_width, wanted_channels, s->input_mean, s->input_std);
         for (int i = 0; i < wanted_width * wanted_height; i++)
         {
           for (int j = 0; j < wanted_channels; j++)
@@ -206,16 +206,16 @@ namespace tflite
 
       LOG(INFO) << "invoked \n";
       LOG(INFO) << "average time: "
-                << (get_us(stop_time) - get_us(start_time)) / (s->loop_count * 1000)
+                << (tidl::utility_functs::get_us(stop_time) - tidl::utility_functs::get_us(start_time)) / (s->loop_count * 1000)
                 << " ms \n";
 
-      if (s->model_type == tidl::config::SEG)
+      if (strcmp(s->task_type.c_str(), "segmentation"))
       {
         int32_t *outputTensor = interpreter->tensor(outputs[0])->data.i32;
         float alpha = 0.4f;
         img.data = tidl::postprocess::blendSegMask(img.data, outputTensor, img.cols, img.rows, wanted_width, wanted_height, alpha);
       }
-      else if (s->model_type == tidl::config::OD)
+      else if (strcmp(s->task_type.c_str(), "detection"))
       {
         const float *detectection_location = interpreter->tensor(outputs[0])->data.f;
         const float *detectection_classes = interpreter->tensor(outputs[1])->data.f;
@@ -230,7 +230,7 @@ namespace tflite
           LOG(INFO) << "score " << detectection_scores[i] << "\n";
         }
       }
-      else if (s->model_type == tidl::config::CLF)
+      else if (strcmp(s->task_type.c_str(), "classification"))
       {
         const float threshold = 0.001f;
         std::vector<std::pair<float, int>> top_results;
@@ -258,7 +258,7 @@ namespace tflite
         std::vector<string> labels;
         size_t label_count;
 
-        if (tidl::postprocess::ReadLabelsFile(s->labels_file_name, &labels, &label_count) != 0)
+        if (tidl::postprocess::ReadLabelsFile(s->labels_file_path, &labels, &label_count) != 0)
           exit(-1);
 
         for (const auto &result : top_results)
@@ -298,85 +298,30 @@ namespace tflite
         }
       }
     }
-        /**
+    /**
   *  \brief  options parsing and infernce calling
   * @returns int
   */
     int TFLite_Main(int argc, char **argv)
     {
-      Settings s;
-      int c;
-      while (1)
-      {
-        static struct option long_options[] = {
-            {"accelerated", required_argument, nullptr, 'a'},
-            {"device_mem", required_argument, nullptr, 'd'},
-            {"count", required_argument, nullptr, 'c'},
-            {"verbose", required_argument, nullptr, 'v'},
-            {"threads", required_argument, nullptr, 't'},
-            {"warmup_runs", required_argument, nullptr, 'w'},
-            {nullptr, 0, nullptr, 0}};
 
-        /* getopt_long stores the option index here. */
-        int option_index = 0;
+      //YAML parsing
 
-        c = getopt_long(argc, argv,
-                        "a:c:d:t:v:w:", long_options,
-                        &option_index);
-
-        /* Detect the end of the options. */
-        if (c == -1)
-          break;
-
-        switch (c)
-        {
-        case 'a':
-          s.accel = strtol(optarg, nullptr, 10); // NOLINT(runtime/deprecated_fn)
-          break;
-        case 'c':
-          s.loop_count =
-              strtol(optarg, nullptr, 10); // NOLINT(runtime/deprecated_fn)
-          break;
-        case 'd':
-          s.device_mem =
-              strtol(optarg, nullptr, 10); // NOLINT(runtime/deprecated_fn)
-          break;
-        case 't':
-          s.number_of_threads = strtol( // NOLINT(runtime/deprecated_fn)
-              optarg, nullptr, 10);
-          break;
-        case 'v':
-          s.verbose =
-              strtol(optarg, nullptr, 10); // NOLINT(runtime/deprecated_fn)
-          break;
-        case 'w':
-          s.number_of_warmup_runs =
-              strtol(optarg, nullptr, 10); // NOLINT(runtime/deprecated_fn)
-          break;
-        case 'h':
-        case '?':
-          /* getopt_long already printed an error message. */
-          tflite::main::display_usage();
-          exit(-1);
-        default:
-          exit(-1);
-        }
-      }
-      for (int i = 0; i < NUM_CONFIGS; i++)
-      {
-        bool isTflModel = endsWith(tidl::config::model_configs[i].model_path, "tflite");
-        if (isTflModel)
-        {
-          s.artifact_path = tidl::config::model_configs[i].artifact_path;
-          s.model_name = tidl::config::model_configs[i].model_path;
-          s.labels_file_name = tidl::config::model_configs[i].labels_path;
-          s.input_bmp_name = tidl::config::model_configs[i].image_path;
-          s.input_mean = tidl::config::model_configs[i].mean;
-          s.input_std = tidl::config::model_configs[i].std;
-          s.model_type = tidl::config::model_configs[i].model_type;
-          RunInference(&s);
-        }
-      }
+      // for (int i = 0; i < NUM_CONFIGS; i++)
+      // {
+      //   bool isTflModel = endsWith(tidl::config::model_configs[i].model_path, "tflite");
+      //   if (isTflModel)
+      //   {
+      //     s.artifact_path = tidl::config::model_configs[i].artifact_path;
+      //     s.model_name = tidl::config::model_configs[i].model_path;
+      //     s.labels_file_name = tidl::config::model_configs[i].labels_path;
+      //     s.input_bmp_name = tidl::config::model_configs[i].image_path;
+      //     s.input_mean = tidl::config::model_configs[i].mean;
+      //     s.input_std = tidl::config::model_configs[i].std;
+      //     s.model_type = tidl::config::model_configs[i].model_type;
+      //     RunInference(&s);
+      //   }
+      // }
 
       return 0;
     }
@@ -386,5 +331,28 @@ namespace tflite
 
 int main(int argc, char **argv)
 {
-  return tflite::main::TFLite_Main(argc, argv);
+  tidl::arg_parsing::Settings s;
+  tidl::arg_parsing::parse_args(argc, argv, &s);
+  tidl::arg_parsing::dump_args(&s);
+  // Parse the input configuration file
+  std::string artifacts_yaml_file_path(s.model_zoo_path);
+  artifacts_yaml_file_path += "/artifacts.yaml";
+  YAML::Node yaml = YAML::LoadFile(artifacts_yaml_file_path);
+  YAML::Node cl0010tflitert = yaml["cl-0010_tflitert"];
+  std::cout << yaml.size() << "\n";
+  for (YAML::const_iterator it = yaml.begin(); it != yaml.end(); ++it)
+  {
+    std::string key = it->first.as<std::string>();       // <- key
+    YAML::Node model_node = it->second; // <- value
+    tidl::utility_functs::Model model;
+    model.model_name = model_node["model_name"].as<std::string>();
+    model.recommended = model_node["recommended"].as<bool>();
+    model.run_dir = model_node["run_dir"].as<std::string>();
+    model.session_name = model_node["session_name"].as<std::string>();
+    model.shortlisted = model_node["shortlisted"].as<bool>();
+    model.size = model_node["size"].as<uint64_t>();
+    model.task_type = model_node["task_type"].as<std::string>();
+    
+  }
+  return 0;
 }

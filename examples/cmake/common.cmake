@@ -120,6 +120,7 @@ include_directories(${PROJECT_SOURCE_DIR}
                     $ENV{TIDL_TOOLS_PATH}
                     PUBLIC ${PROJECT_SOURCE_DIR}/post_process
                     PUBLIC ${PROJECT_SOURCE_DIR}/pre_process
+                    PUBLIC ${PROJECT_SOURCE_DIR}/utils
                     )
 
 #set(COMMON_LINK_LIBS
@@ -148,6 +149,7 @@ set(SYSTEM_LINK_LIBS
     vx_tidl_rt
     pthread
     dl
+    yaml-cpp
     )
 else()
 set(SYSTEM_LINK_LIBS
@@ -175,6 +177,9 @@ function(build_app)
     target_include_directories(${app} 
         PUBLIC ${PROJECT_SOURCE_DIR}/post_process
         )
+    target_include_directories(${app} 
+        PUBLIC ${PROJECT_SOURCE_DIR}/utils
+        )
     link_directories(${app} 
         PUBLIC ${CMAKE_SOURCE_DIR}/../lib/${CMAKE_BUILD_TYPE}        
         )
@@ -185,6 +190,10 @@ function(build_app)
                           ${TARGET_LINK_LIBS}
                           ${SYSTEM_LINK_LIBS}
                           post_process
+                          arg_parsing
+                          utility_functs
+                          model_info
+                          edgeai_classnames
                           ${lobs}
                           -Wl,--end-group)
 endfunction()

@@ -17,7 +17,6 @@ limitations under the License.
 #define TENSORFLOW_LITE_EXAMPLES_MAIN_H_
 
 #include <fcntl.h>
-#include <getopt.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <cstdarg>
@@ -32,6 +31,7 @@ limitations under the License.
 #include <string>
 #include <unordered_set>
 #include <vector>
+#include <yaml-cpp/yaml.h>
 
 #include <tensorflow/lite/kernels/register.h>
 #include <tensorflow/lite/optional_debug_tools.h>
@@ -49,73 +49,16 @@ limitations under the License.
 #include "../cpp_config.h"
 #include "post_process/post_process.h"
 #include "pre_process/pre_process.h"
+#include "utils/include/arg_parsing.h"
+#include "utils/include/utility_functs.h"
+#include "utils/include/ti_logger.h"
 
-#define LOG(x) std::cerr
+
 
 namespace tflite
 {
     namespace main
     {
-        /**
- @struct  Settings
- @brief   This structure define the parameters of tfl cpp infernce params
-*/
-        struct Settings
-        {
-            bool verbose = false;
-            bool accel = false;
-            bool device_mem = false;
-            bool input_floating = false;
-            bool profiling = false;
-            bool allow_fp16 = false;
-            bool gl_backend = false;
-            bool hexagon_delegate = false;
-            int loop_count = 1;
-            std::vector<float> input_mean;
-            std::vector<float> input_std;
-            string artifact_path = "";
-            string model_name = "";
-            tflite::FlatBufferModel *model;
-            string input_bmp_name = "";
-            string labels_file_name = "";
-            string input_layer_type = "uint8_t";
-            int number_of_threads = 4;
-            int number_of_results = 5;
-            int max_profiling_buffer_entries = 1024;
-            int number_of_warmup_runs = 2;
-            tidl::config::Modeltype model_type;
-        };
-        /**
-  *  \brief display usage string for application
-  * @returns void
-  */
-        void display_usage()
-        {
-            LOG(INFO)
-                << "label_image\n"
-                << "--accelerated, -a: [0|1], use Android NNAPI or not\n"
-                << "--old_accelerated, -d: [0|1], use old Android NNAPI delegate or not\n"
-                << "--artifact_path, -f: [0|1], Path for Delegate artifacts folder \n"
-                << "--count, -c: loop interpreter->Invoke() for certain times\n"
-                << "--gl_backend, -g: use GL GPU Delegate on Android\n"
-                << "--input_mean, -b: input mean\n"
-                << "--input_std, -s: input standard deviation\n"
-                << "--image, -i: image_name.bmp\n"
-                << "--labels, -l: labels for the model\n"
-                << "--tflite_model, -m: model_name.tflite\n"
-                << "--profiling, -p: [0|1], profiling or not\n"
-                << "--num_results, -r: number of results to show\n"
-                << "--threads, -t: number of threads\n"
-                << "--verbose, -v: [0|1] print more information\n"
-                << "--warmup_runs, -w: number of warmup runs\n"
-                << "\n";
-        }
-
-        /**
-  *  \brief returns time in micro sec
-  * @returns void
-  */
-        double get_us(struct timeval t) { return (t.tv_sec * 1000000 + t.tv_usec); }
 
         /**
   *  \brief  Case Sensitive Implementation of endsWith for a string
