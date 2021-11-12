@@ -96,7 +96,7 @@ namespace tidl
         void logSetLevel(LogLevel level);
 
     }
-} // namespace ti::edgeai::utils
+} // namespace tidl::utils
 
 //Error reporting in tidl_edge_tools
 #define LOG(x) std::cerr 

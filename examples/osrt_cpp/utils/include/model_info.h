@@ -48,6 +48,7 @@
 #include "model_info.h"
 #include "ti_logger.h"
 #include "edgeai_classnames.h"
+#include "../dl_inferer/include/ti_dl_inferer.h"
 
 namespace tidl
 {
@@ -67,88 +68,7 @@ namespace tidl
 #define TI_POSTPROC_DEFAULT_HEIGHT  720
 #define TI_DEFAULT_DISP_WIDTH       1920
 #define TI_DEFAULT_DISP_HEIGHT      1080
-        /**
-     * \brief Configuration for the DL inferer.
-     *
-     * \ingroup group_dl_inferer
-     */
-        struct InfererConfig
-        {
-            /** Path to the model directory or a file.
-         *  - file for TFLITE and ONNX
-         *  - directory for DLR
-         **/
-            std::string modelFile{};
 
-            /** Path to the directory containing the model artifacts. This is only
-         *  valid for TFLITE models and is not looked at for the other ones.
-         */
-            std::string artifactsPath{};
-
-            /** Type of the runtime API to invoke. The valid values are:
-         * - DL_INFER_RTTYPE_DLR
-         * - DL_INFER_RTTYPE_TFLITE
-         * - DL_INFER_RTTYPE_ONNX
-         */
-            std::string rtType{};
-
-            /** Type of the device. This field is specific to the DLR API and is
-         * is not looked at for the other ones. Please refer to the DLR API
-         * specification for valid values this field can take.
-         */
-            std::string devType{};
-
-            /** Id of the device. This field is specific to the DLR API and is
-         * is not looked at for the other ones. Please refer to the DLR API
-         * specification for valid values this field can take.
-         */
-            int32_t devId{DLR_DEVID_INVALID};
-
-            /**
-         * Helper function to dump the configuration information.
-         */
-            void dumpInfo();
-        };
-
-        /**
-     * \brief Enumeration for the different data types used for identifying
-     *        the data types at the interface.
-     *
-     * \ingroup group_dl_inferer
-     */
-        typedef enum
-        {
-            /**  Invalid type. */
-            DlInferType_Invalid = 0,
-
-            /** Data type signed 8 bit integer. */
-            DlInferType_Int8 = 2,
-
-            /** Data type unsigned 8 bit integer. */
-            DlInferType_UInt8 = 3,
-
-            /** Data type signed 16 bit integer. */
-            DlInferType_Int16 = 4,
-
-            /** Data type unsigned 16 bit integer. */
-            DlInferType_UInt16 = 5,
-
-            /** Data type signed 32 bit integer. */
-            DlInferType_Int32 = 6,
-
-            /** Data type unsigned 32 bit integer. */
-            DlInferType_UInt32 = 7,
-
-            /** Data type signed 64 bit integer. */
-            DlInferType_Int64 = 8,
-
-            /** Data type 16 bit floating point. */
-            DlInferType_Float16 = 9,
-
-            /** Data type 32 bit floating point. */
-            DlInferType_Float32 = 10,
-
-        } DlInferType;
 
         /**
      * \brief Configuration for the DL inferer.
@@ -205,7 +125,7 @@ namespace tidl
             int32_t numChans{0};
 
             /** Data type of Input tensor. */
-            DlInferType inputTensorType{DlInferType_Invalid};
+            tidl::dlInferer::DlInferType inputTensorType{tidl::dlInferer::DlInferType_Invalid};
 
             /** Optional debugging control configuration. */
             // DebugDumpConfig     debugConfig;
@@ -462,9 +382,9 @@ namespace tidl
 
             /** Constructor.
              *
-             * @param node Parsed YAML configuration with model information.
+             * @param mdoel_path model path.
              */
-            ModelInfo(const YAML::Node &node);
+            ModelInfo(std::string m_modelPath);
 
             /** Destructor. */
             ~ModelInfo();
@@ -518,7 +438,7 @@ namespace tidl
 
         public:
             /** Inference context. */
-            // DLInferer              *m_infererObj{nullptr};
+            tidl::dlInferer::DLInferer              *m_infererObj{nullptr};
 
             /* Pre-process configuration. */
             PreprocessImageConfig m_preProcCfg;

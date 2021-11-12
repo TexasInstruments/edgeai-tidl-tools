@@ -52,8 +52,7 @@ limitations under the License.
 #include "utils/include/arg_parsing.h"
 #include "utils/include/utility_functs.h"
 #include "utils/include/ti_logger.h"
-
-
+#include "utils/include/model_info.h"
 
 namespace tflite
 {

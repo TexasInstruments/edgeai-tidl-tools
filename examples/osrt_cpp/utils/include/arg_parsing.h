@@ -20,6 +20,8 @@ limitations under the License.
 #include <vector>
 #include <getopt.h>
 
+
+#include "ti_logger.h"
 namespace tidl
 {
     namespace arg_parsing
@@ -30,7 +32,7 @@ namespace tidl
 */
         struct Settings
         {
-            bool verbose = false;
+            int log_level = tidl::utils::ERROR;
             bool accel = false;
             bool device_mem = false;
             int loop_count = 1;

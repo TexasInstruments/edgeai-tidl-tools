@@ -150,6 +150,7 @@ set(SYSTEM_LINK_LIBS
     pthread
     dl
     yaml-cpp
+    stdc++fs
     )
 else()
 set(SYSTEM_LINK_LIBS
@@ -194,6 +195,8 @@ function(build_app)
                           utility_functs
                           model_info
                           edgeai_classnames
+                          ti_logger
+                          ti_dl_inferer
                           ${lobs}
                           -Wl,--end-group)
 endfunction()

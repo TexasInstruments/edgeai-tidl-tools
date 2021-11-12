@@ -37,6 +37,7 @@ namespace tidl
 {
     namespace modelInfo
     {
+        using namespace tidl::dlInferer;
         int32_t getInfererConfig(const YAML::Node &appConfig,
                                  const std::string &modelBasePath,
                                  InfererConfig &infConfig)
@@ -349,6 +350,16 @@ namespace tidl
             LOG_INFO_RAW("\n");
         }
 
+        ModelInfo::~ModelInfo()
+        {
+            LOG_DEBUG("DESTRUCTOR\n");
+        }
+
+        ModelInfo::ModelInfo(std::string modelPath)
+        {
+            this->m_modelPath = modelPath;
+        }
+
         int32_t ModelInfo::initialize()
         {
             YAML::Node yaml;
@@ -370,7 +381,7 @@ namespace tidl
 
                 // Populate infConfig from yaml
                 status = getInfererConfig(yaml, m_modelPath, infConfig);
-
+                infConfig.dumpInfo();
                 if (status < 0)
                 {
                     LOG_ERROR("getInfererConfig() failed.\n");
@@ -387,6 +398,7 @@ namespace tidl
                     LOG_ERROR("getPreprocessImageConfig() failed.\n");
                 }
             }
+            m_preProcCfg.dumpInfo();
 
             // Populate post-process config from yaml
             if (status == 0)
@@ -398,16 +410,23 @@ namespace tidl
                     LOG_ERROR("getPostprocessImageConfig() failed.\n");
                 }
             }
-
+            m_postProcCfg.dumpInfo();
             // Populate post-process config from yaml
             if (status == 0)
             {
-
+                const VecDlTensor *dlInfOutputs;
+                const VecDlTensor *dlInfInputs;
+                const DlTensor *ifInfo;
+                /* Query the output information for setting up the output buffers. */
+                dlInfOutputs = m_infererObj->getOutputInfo();
+                            std::cout << "hello\n";
                 /* Query the input information for setting the tensor type in pre process. */
-                // dlInfInputs = m_infererObj->getInputInfo();
-                // ifInfo = &dlInfInputs->at(0);
-                // m_preProcCfg.inputTensorType = ifInfo->type;
-
+                dlInfInputs = m_infererObj->getInputInfo();
+                            std::cout << "hello\n";
+                ifInfo = &dlInfInputs->at(0);
+                            std::cout << "hello\n";
+                m_preProcCfg.inputTensorType = ifInfo->type;
+            std::cout << "hello\n";
                 /* Set input data width and height based on the infererence engine
          * information. This is only used for semantic segmentation models
          * which have 4 dimensions. The logic is extended to any models that
@@ -423,15 +442,14 @@ namespace tidl
          * For all other cases, the default values (set in the post-process
          * obhect are used.
          */
-                // ifInfo = &dlInfOutputs->at(0);
-
+                ifInfo = &dlInfOutputs->at(0);
                 if (m_postProcCfg.taskType == "segmentation")
                 {
                     /* Either NCHW or CHW. Width is the last dimention and the height 
              * is the previous to last.
-            //  */
-            //         m_postProcCfg.inDataWidth = ifInfo->shape[ifInfo->dim - 1];
-            //         m_postProcCfg.inDataHeight = ifInfo->shape[ifInfo->dim - 2];
+             */
+                    m_postProcCfg.inDataWidth = ifInfo->shape[ifInfo->dim - 1];
+                    m_postProcCfg.inDataHeight = ifInfo->shape[ifInfo->dim - 2];
                     m_postProcCfg.classnames = nullptr;
                     m_postProcCfg.alpha = m_alpha;
                 }

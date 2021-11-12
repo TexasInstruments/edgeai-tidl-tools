@@ -28,22 +28,6 @@ namespace tidl
 {
     namespace utility_functs
     {
-
-        /**
- @struct  Model
- @brief   This structure define the parameters of a Model parsed from the articats.yaml
-*/
-        struct Model
-        {
-            std::string model_name;
-            bool recommended;
-            std::string run_dir;
-            std::string session_name;
-            bool shortlisted;
-            uint64_t size;
-            std::string task_type;
-        };
-
         /**
   *  \brief returns time in micro sec
   * @returns void

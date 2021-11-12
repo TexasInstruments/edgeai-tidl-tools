@@ -57,7 +57,7 @@ namespace tflite
         exit(-1);
       }
 
-      if (s->verbose)
+      if (s->log_level)
       {
         LOG(INFO) << "tensors size: " << interpreter->tensors_size() << "\n";
         LOG(INFO) << "nodes size: " << interpreter->nodes_size() << "\n";
@@ -82,13 +82,13 @@ namespace tflite
       }
 
       int input = interpreter->inputs()[0];
-      if (s->verbose)
+      if (s->log_level)
         LOG(INFO) << "input: " << input << "\n";
 
       const std::vector<int> inputs = interpreter->inputs();
       const std::vector<int> outputs = interpreter->outputs();
 
-      if (s->verbose)
+      if (s->log_level)
       {
         LOG(INFO) << "number of inputs: " << inputs.size() << "\n";
         LOG(INFO) << "number of outputs: " << outputs.size() << "\n";
@@ -139,7 +139,7 @@ namespace tflite
         }
       }
 
-      if (s->verbose)
+      if (s->log_level)
         PrintInterpreterState(interpreter.get());
 
       /* get input dimension from the input tensor metadata
@@ -334,25 +334,12 @@ int main(int argc, char **argv)
   tidl::arg_parsing::Settings s;
   tidl::arg_parsing::parse_args(argc, argv, &s);
   tidl::arg_parsing::dump_args(&s);
+  tidl::utils::logSetLevel((tidl::utils::LogLevel)s.log_level);
   // Parse the input configuration file
-  std::string artifacts_yaml_file_path(s.model_zoo_path);
-  artifacts_yaml_file_path += "/artifacts.yaml";
-  YAML::Node yaml = YAML::LoadFile(artifacts_yaml_file_path);
-  YAML::Node cl0010tflitert = yaml["cl-0010_tflitert"];
-  std::cout << yaml.size() << "\n";
-  for (YAML::const_iterator it = yaml.begin(); it != yaml.end(); ++it)
-  {
-    std::string key = it->first.as<std::string>();       // <- key
-    YAML::Node model_node = it->second; // <- value
-    tidl::utility_functs::Model model;
-    model.model_name = model_node["model_name"].as<std::string>();
-    model.recommended = model_node["recommended"].as<bool>();
-    model.run_dir = model_node["run_dir"].as<std::string>();
-    model.session_name = model_node["session_name"].as<std::string>();
-    model.shortlisted = model_node["shortlisted"].as<bool>();
-    model.size = model_node["size"].as<uint64_t>();
-    model.task_type = model_node["task_type"].as<std::string>();
-    
-  }
+  tidl::modelInfo::ModelInfo model(s.model_zoo_path);
+  
+  int status = model.initialize();
+  model.dumpInfo("");
+
   return 0;
 }

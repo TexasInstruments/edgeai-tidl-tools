@@ -61,7 +61,7 @@ namespace tidl
             while (1)
             {
                 static struct option long_options[] = {
-                    {"verbose", required_argument, nullptr, 'v'},
+                    {"log_level", required_argument, nullptr, 'v'},
                     {"accelerated", required_argument, nullptr, 'a'},
                     {"device_mem", required_argument, nullptr, 'd'},
                     {"count", required_argument, nullptr, 'c'},
@@ -89,7 +89,7 @@ namespace tidl
                 switch (c)
                 {
                 case 'v':
-                    s->verbose = strtol(optarg, nullptr, 10);
+                    s->log_level = strtol(optarg, nullptr, 10);
                     break;
                 case 'a':
                     s->accel = strtol(optarg, nullptr, 10);
@@ -114,7 +114,7 @@ namespace tidl
                     break;
                 case 'z':
                     s->model_zoo_path = optarg;
-                    break;                    
+                    break;
                 case 't':
                     s->number_of_threads = strtol(optarg, nullptr, 10);
                     break;
@@ -132,8 +132,8 @@ namespace tidl
                 default:
                     exit(-1);
                 }
-                return s;
             }
+            return s;
         }
 
         /**
@@ -149,7 +149,7 @@ namespace tidl
         {
             std::cout << "\n***** Display run Config: start *****\n";
 
-            std::cout << "verbose level set to: " << s->verbose << "\n";
+            std::cout << "verbose level set to: " << s->log_level << "\n";
             std::cout << "accelerated mode set to: " << s->accel << "\n";
             std::cout << "device mem set to: " << s->device_mem << "\n";
             std::cout << "accelerated mode set to: " << s->accel << "\n";
