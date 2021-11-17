@@ -24,51 +24,62 @@ namespace tflite
     void *out_ptrs[16] = {NULL};
 
     /**
+  
   *  \brief  Actual infernce happening 
+  *  \param  ModelInfo YAML parsed model info
   *  \param  Settings user input options  and default values of setting if any
   * @returns void
   */
-    void RunInference(tidl::arg_parsing::Settings *s)
+    void RunInference(tidl::modelInfo::ModelInfo *modelInfo, tidl::arg_parsing::Settings *s)
     {
-      if (!s->model_path.c_str())
+      /* checking model path present or not*/
+      if (!modelInfo->m_infConfig.modelFile.c_str())
       {
-        LOG(ERROR) << "no model file name\n";
+        std::cout << "no model file name\n";
         exit(-1);
       }
-
+      /* preparing tflite model  from file*/
       std::unique_ptr<tflite::FlatBufferModel> model;
       std::unique_ptr<tflite::Interpreter> interpreter;
-      model = tflite::FlatBufferModel::BuildFromFile(s->model_path.c_str());
+      model = tflite::FlatBufferModel::BuildFromFile(modelInfo->m_infConfig.modelFile.c_str());
       if (!model)
       {
-        LOG(FATAL) << "\nFailed to mmap model " << s->model_path << "\n";
+        std::cout << "\nFailed to mmap model " << modelInfo->m_infConfig.modelFile << "\n";
         exit(-1);
       }
-
-      LOG(INFO) << "Loaded model " << s->model_path << "\n";
+      std::cout << "Loaded model " << modelInfo->m_infConfig.modelFile << "\n";
       model->error_reporter();
-      LOG(INFO) << "resolved reporter\n";
+      std::cout << "resolved reporter\n";
 
       tflite::ops::builtin::BuiltinOpResolver resolver;
       tflite::InterpreterBuilder(*model, resolver)(&interpreter);
       if (!interpreter)
       {
-        LOG(FATAL) << "Failed to construct interpreter\n";
+        std::cout << "Failed to construct interpreter\n";
+        exit(-1);
+      }
+      const std::vector<int> inputs = interpreter->inputs();
+      const std::vector<int> outputs = interpreter->outputs();
+
+      std::cout << "tensors size: " << interpreter->tensors_size() << "\n";
+      std::cout << "nodes size: " << interpreter->nodes_size() << "\n";
+      std::cout << "number of inputs: " << inputs.size() << "\n";
+      std::cout << "number of outputs: " << outputs.size() << "\n";
+      std::cout << "input(0) name: " << interpreter->GetInputName(0) << "\n";
+
+      if (inputs.size() != 1)
+      {
+        std::cout << "Supports only single input models \n";
         exit(-1);
       }
 
-      if (s->log_level)
+      if (s->log_level <= tidl::utils::DEBUG)
       {
-        LOG(INFO) << "tensors size: " << interpreter->tensors_size() << "\n";
-        LOG(INFO) << "nodes size: " << interpreter->nodes_size() << "\n";
-        LOG(INFO) << "inputs: " << interpreter->inputs().size() << "\n";
-        LOG(INFO) << "input(0) name: " << interpreter->GetInputName(0) << "\n";
-
         int t_size = interpreter->tensors_size();
         for (int i = 0; i < t_size; i++)
         {
           if (interpreter->tensor(i)->name)
-            LOG(INFO) << i << ": " << interpreter->tensor(i)->name << ", "
+            std::cout << i << ": " << interpreter->tensor(i)->name << ", "
                       << interpreter->tensor(i)->bytes << ", "
                       << interpreter->tensor(i)->type << ", "
                       << interpreter->tensor(i)->params.scale << ", "
@@ -81,27 +92,18 @@ namespace tflite
         interpreter->SetNumThreads(s->number_of_threads);
       }
 
-      int input = interpreter->inputs()[0];
-      if (s->log_level)
-        LOG(INFO) << "input: " << input << "\n";
-
-      const std::vector<int> inputs = interpreter->inputs();
-      const std::vector<int> outputs = interpreter->outputs();
-
-      if (s->log_level)
-      {
-        LOG(INFO) << "number of inputs: " << inputs.size() << "\n";
-        LOG(INFO) << "number of outputs: " << outputs.size() << "\n";
-      }
+      int input = inputs[0];
+      if (s->log_level <= tidl::utils::INFO)
+        std::cout << "input: " << input << "\n";
 
       if (s->accel == 1)
       {
-        char artifact_path[512];
         /* This part creates the dlg_ptr */
+        std::cout << "accelerated mode\n";
         typedef TfLiteDelegate *(*tflite_plugin_create_delegate)(char **, char **, size_t, void (*report_error)(const char *));
         tflite_plugin_create_delegate tflite_plugin_dlg_create;
         char *keys[] = {"artifacts_folder", "num_tidl_subgraphs", "debug_level"};
-        char *values[] = {(char *)s->artifact_path.c_str(), "16", "0"};
+        char *values[] = {(char *)modelInfo->m_infConfig.artifactsPath.c_str(), "16", "0"};
         void *lib = dlopen("libtidl_tfl_delegate.so", RTLD_NOW);
         assert(lib);
         tflite_plugin_dlg_create = (tflite_plugin_create_delegate)dlsym(lib, "tflite_plugin_create_delegate");
@@ -109,21 +111,21 @@ namespace tflite
         interpreter->ModifyGraphWithDelegate(dlg_ptr);
         printf("ModifyGraphWithDelegate - Done \n");
       }
-
       if (interpreter->AllocateTensors() != kTfLiteOk)
       {
-        LOG(FATAL) << "Failed to allocate tensors!";
+        std::cout << "Failed to allocate tensors!";
       }
 
       if (s->device_mem)
       {
+        std::cout << "device mem enabled\n";
         for (uint32_t i = 0; i < inputs.size(); i++)
         {
           const TfLiteTensor *tensor = interpreter->input_tensor(i);
           in_ptrs[i] = TIDLRT_allocSharedMem(tflite::kDefaultTensorAlignment, tensor->bytes);
           if (in_ptrs[i] == NULL)
           {
-            LOG(FATAL) << "Could not allocate Memory for input: " << tensor->name << "\n";
+            std::cout << "Could not allocate Memory for input: " << tensor->name << "\n";
           }
           interpreter->SetCustomAllocationForTensor(inputs[i], {in_ptrs[i], tensor->bytes});
         }
@@ -133,52 +135,36 @@ namespace tflite
           out_ptrs[i] = TIDLRT_allocSharedMem(tflite::kDefaultTensorAlignment, tensor->bytes);
           if (out_ptrs[i] == NULL)
           {
-            LOG(FATAL) << "Could not allocate Memory for ouput: " << tensor->name << "\n";
+            std::cout << "Could not allocate Memory for ouput: " << tensor->name << "\n";
           }
           interpreter->SetCustomAllocationForTensor(outputs[i], {out_ptrs[i], tensor->bytes});
         }
       }
 
-      if (s->log_level)
+      if (s->log_level <= tidl::utils::DEBUG)
         PrintInterpreterState(interpreter.get());
-
-      /* get input dimension from the input tensor metadata
-      assuming one input only */
+      /* get input dimension from the YAML parsed  and batch 
+      from input tensor assuming one tensor*/
       TfLiteIntArray *dims = interpreter->tensor(input)->dims;
-      int wanted_height = dims->data[1];
-      int wanted_width = dims->data[2];
-      int wanted_channels = dims->data[3];
+      int wanted_batch = dims->data[0];
+      int wanted_height = modelInfo->m_preProcCfg.outDataHeight;
+      int wanted_width = modelInfo->m_preProcCfg.outDataWidth;
+      int wanted_channels = modelInfo->m_preProcCfg.numChans;
       cv::Mat img;
       switch (interpreter->tensor(input)->type)
       {
       case kTfLiteFloat32:
       {
-        std::vector<float> image_data(wanted_height * wanted_width * wanted_channels);
-        img = tidl::preprocess::preprocImage<float>(s->input_bmp_path, image_data, wanted_height, wanted_width, wanted_channels, s->input_mean, s->input_std);
-        for (int i = 0; i < wanted_width * wanted_height; i++)
-        {
-          for (int j = 0; j < wanted_channels; j++)
-          {
-            interpreter->typed_tensor<float>(input)[i * 3 + j] = image_data[j * wanted_height * wanted_width + i];
-          }
-        }
+        img = tidl::preprocess::preprocImage<float>(s->input_bmp_path, &interpreter->typed_tensor<float>(input)[0], modelInfo->m_preProcCfg);
         break;
       }
       case kTfLiteUInt8:
       {
-        std::vector<uint8_t> image_data(wanted_height * wanted_width * wanted_channels);
-        img = tidl::preprocess::preprocImage<uint8_t>(s->input_bmp_path, image_data, wanted_height, wanted_width, wanted_channels, s->input_mean, s->input_std);
-        for (int i = 0; i < wanted_width * wanted_height; i++)
-        {
-          for (int j = 0; j < wanted_channels; j++)
-          {
-            interpreter->typed_tensor<uint8_t>(input)[i * 3 + j] = image_data[j * wanted_height * wanted_width + i];
-          }
-        }
+        img = tidl::preprocess::preprocImage<uint8_t>(s->input_bmp_path, &interpreter->typed_tensor<uint8_t>(input)[0], modelInfo->m_preProcCfg);
         break;
       }
       default:
-        LOG(FATAL) << "cannot handle input type " << interpreter->tensor(input)->type << " yet";
+        std::cout << "cannot handle input type " << interpreter->tensor(input)->type << " yet";
         exit(-1);
       }
 
@@ -204,34 +190,38 @@ namespace tflite
       gettimeofday(&stop_time, nullptr);
       printf("interpreter->Invoke - Done \n");
 
-      LOG(INFO) << "invoked \n";
-      LOG(INFO) << "average time: "
+      std::cout << "invoked \n";
+      std::cout << "average time: "
                 << (tidl::utility_functs::get_us(stop_time) - tidl::utility_functs::get_us(start_time)) / (s->loop_count * 1000)
                 << " ms \n";
 
-      if (strcmp(s->task_type.c_str(), "segmentation"))
+      if (!strcmp(modelInfo->m_preProcCfg.taskType.c_str(), "segmentation"))
       {
-        int32_t *outputTensor = interpreter->tensor(outputs[0])->data.i32;
+        std::cout << "preparing segmentation result \n";
+        void *outputTensor = interpreter->tensor(outputs[0])->data.data;
+        TfLiteType type = interpreter->tensor(outputs[0])->type;
         float alpha = 0.4f;
-        img.data = tidl::postprocess::blendSegMask(img.data, outputTensor, img.cols, img.rows, wanted_width, wanted_height, alpha);
+        img.data = tidl::postprocess::blendSegMask(img.data, outputTensor, type, img.cols, img.rows, wanted_width, wanted_height, alpha);
       }
-      else if (strcmp(s->task_type.c_str(), "detection"))
+      else if (!strcmp(modelInfo->m_preProcCfg.taskType.c_str(), "detection"))
       {
+        std::cout << "preparing detection result \n";
         const float *detectection_location = interpreter->tensor(outputs[0])->data.f;
         const float *detectection_classes = interpreter->tensor(outputs[1])->data.f;
         const float *detectection_scores = interpreter->tensor(outputs[2])->data.f;
         const int num_detections = (int)*interpreter->tensor(outputs[3])->data.f;
-        LOG(INFO) << "results " << num_detections << "\n";
+        std::cout << "results " << num_detections << "\n";
         tidl::postprocess::overlayBoundingBox(img, num_detections, detectection_location);
         for (int i = 0; i < num_detections; i++)
         {
-          LOG(INFO) << "class " << detectection_classes[i] << "\n";
-          LOG(INFO) << "cordinates " << detectection_location[i * 4] << detectection_location[i * 4 + 1] << detectection_location[i * 4 + 2] << detectection_location[i * 4 + 3] << "\n";
-          LOG(INFO) << "score " << detectection_scores[i] << "\n";
+          std::cout << "class " << detectection_classes[i] << "\n";
+          std::cout << "cordinates " << detectection_location[i * 4] << detectection_location[i * 4 + 1] << detectection_location[i * 4 + 2] << detectection_location[i * 4 + 3] << "\n";
+          std::cout << "score " << detectection_scores[i] << "\n";
         }
       }
-      else if (strcmp(s->task_type.c_str(), "classification"))
+      else if (!strcmp(modelInfo->m_preProcCfg.taskType.c_str(), "classification"))
       {
+        std::cout << "preparing clasification result \n";
         const float threshold = 0.001f;
         std::vector<std::pair<float, int>> top_results;
 
@@ -259,7 +249,10 @@ namespace tflite
         size_t label_count;
 
         if (tidl::postprocess::ReadLabelsFile(s->labels_file_path, &labels, &label_count) != 0)
+        {
+          LOG(FATAL) << "label file not found!!! \n";
           exit(-1);
+        }
 
         for (const auto &result : top_results)
         {
@@ -270,9 +263,11 @@ namespace tflite
         int num_results = 5;
         img.data = tidl::postprocess::overlayTopNClasses(img.data, top_results, &labels, img.cols, img.rows, num_results);
       }
+      LOG(INFO) << "saving image result file \n";
       cv::cvtColor(img, img, cv::COLOR_RGB2BGR);
       char filename[100];
-      strcpy(filename, s->artifact_path.c_str());
+      // strcpy(filename, s->artifact_path.c_str());
+      strcpy(filename, "/home/a0496663/edgeai-tidl-tools/test_data/");
       strcat(filename, "cpp_inference_out.jpg");
       bool check = cv::imwrite(filename, img);
       if (check == false)
@@ -298,33 +293,6 @@ namespace tflite
         }
       }
     }
-    /**
-  *  \brief  options parsing and infernce calling
-  * @returns int
-  */
-    int TFLite_Main(int argc, char **argv)
-    {
-
-      //YAML parsing
-
-      // for (int i = 0; i < NUM_CONFIGS; i++)
-      // {
-      //   bool isTflModel = endsWith(tidl::config::model_configs[i].model_path, "tflite");
-      //   if (isTflModel)
-      //   {
-      //     s.artifact_path = tidl::config::model_configs[i].artifact_path;
-      //     s.model_name = tidl::config::model_configs[i].model_path;
-      //     s.labels_file_name = tidl::config::model_configs[i].labels_path;
-      //     s.input_bmp_name = tidl::config::model_configs[i].image_path;
-      //     s.input_mean = tidl::config::model_configs[i].mean;
-      //     s.input_std = tidl::config::model_configs[i].std;
-      //     s.model_type = tidl::config::model_configs[i].model_type;
-      //     RunInference(&s);
-      //   }
-      // }
-
-      return 0;
-    }
 
   } // namespace main
 } // namespace tflite
@@ -337,9 +305,9 @@ int main(int argc, char **argv)
   tidl::utils::logSetLevel((tidl::utils::LogLevel)s.log_level);
   // Parse the input configuration file
   tidl::modelInfo::ModelInfo model(s.model_zoo_path);
-  
+
   int status = model.initialize();
-  model.dumpInfo("");
+  tflite::main::RunInference(&model, &s);
 
   return 0;
 }

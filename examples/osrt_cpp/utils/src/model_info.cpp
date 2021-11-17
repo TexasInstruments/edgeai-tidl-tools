@@ -37,7 +37,16 @@ namespace tidl
 {
     namespace modelInfo
     {
-        using namespace tidl::dlInferer;
+
+        void InfererConfig::dumpInfo()
+        {
+            LOG_INFO("InfererConfig::Model Path        = %s\n", modelFile.c_str());
+            LOG_INFO("InfererConfig::Artifacts Path    = %s\n", artifactsPath.c_str());
+            LOG_INFO("InfererConfig::Runtime API       = %s\n", rtType.c_str());
+            LOG_INFO("InfererConfig::Device Type       = %s\n", devType.c_str());
+            LOG_INFO_RAW("\n");
+        }
+
         int32_t getInfererConfig(const YAML::Node &appConfig,
                                  const std::string &modelBasePath,
                                  InfererConfig &infConfig)
@@ -364,7 +373,6 @@ namespace tidl
         {
             YAML::Node yaml;
             int32_t status = 0;
-            InfererConfig infConfig;
             const std::string &configFile = m_modelPath + "/param.yaml";
 
             // Check if the specified configuration file exists
@@ -379,9 +387,8 @@ namespace tidl
             {
                 yaml = YAML::LoadFile(configFile.c_str());
 
-                // Populate infConfig from yaml
-                status = getInfererConfig(yaml, m_modelPath, infConfig);
-                infConfig.dumpInfo();
+                // Populate m_infConfig from yaml
+                status = getInfererConfig(yaml, m_modelPath, m_infConfig);
                 if (status < 0)
                 {
                     LOG_ERROR("getInfererConfig() failed.\n");
@@ -398,7 +405,6 @@ namespace tidl
                     LOG_ERROR("getPreprocessImageConfig() failed.\n");
                 }
             }
-            m_preProcCfg.dumpInfo();
 
             // Populate post-process config from yaml
             if (status == 0)
@@ -410,23 +416,9 @@ namespace tidl
                     LOG_ERROR("getPostprocessImageConfig() failed.\n");
                 }
             }
-            m_postProcCfg.dumpInfo();
             // Populate post-process config from yaml
             if (status == 0)
             {
-                const VecDlTensor *dlInfOutputs;
-                const VecDlTensor *dlInfInputs;
-                const DlTensor *ifInfo;
-                /* Query the output information for setting up the output buffers. */
-                dlInfOutputs = m_infererObj->getOutputInfo();
-                            std::cout << "hello\n";
-                /* Query the input information for setting the tensor type in pre process. */
-                dlInfInputs = m_infererObj->getInputInfo();
-                            std::cout << "hello\n";
-                ifInfo = &dlInfInputs->at(0);
-                            std::cout << "hello\n";
-                m_preProcCfg.inputTensorType = ifInfo->type;
-            std::cout << "hello\n";
                 /* Set input data width and height based on the infererence engine
          * information. This is only used for semantic segmentation models
          * which have 4 dimensions. The logic is extended to any models that
@@ -442,14 +434,13 @@ namespace tidl
          * For all other cases, the default values (set in the post-process
          * obhect are used.
          */
-                ifInfo = &dlInfOutputs->at(0);
                 if (m_postProcCfg.taskType == "segmentation")
                 {
                     /* Either NCHW or CHW. Width is the last dimention and the height 
              * is the previous to last.
              */
-                    m_postProcCfg.inDataWidth = ifInfo->shape[ifInfo->dim - 1];
-                    m_postProcCfg.inDataHeight = ifInfo->shape[ifInfo->dim - 2];
+                    // m_postProcCfg.inDataWidth = ifInfo->shape[ifInfo->dim - 1];
+                    // m_postProcCfg.inDataHeight = ifInfo->shape[ifInfo->dim - 2];
                     m_postProcCfg.classnames = nullptr;
                     m_postProcCfg.alpha = m_alpha;
                 }
@@ -483,7 +474,9 @@ namespace tidl
                 m_preProcCfg.modelName = modelName;
                 m_postProcCfg.modelName = modelName;
             }
-
+            m_infConfig.dumpInfo();
+            m_preProcCfg.dumpInfo();
+            m_postProcCfg.dumpInfo();
             return status;
         }
 

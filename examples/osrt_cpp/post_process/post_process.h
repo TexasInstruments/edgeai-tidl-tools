@@ -71,7 +71,8 @@ namespace tidl
  * @returns original frame with some in-place post processing done
  */
         uchar *blendSegMask(uchar *frame,
-                            int32_t *classes,
+                            void *classes,
+                            TfLiteType type,
                             int32_t inDataWidth,
                             int32_t inDataHeight,
                             int32_t outDataWidth,

@@ -25,6 +25,9 @@ limitations under the License.
 #include <stdint.h>
 #include <string>
 
+/* module headers. */
+#include "../utils/include/model_info.h"
+
 namespace tidl
 {
     namespace preprocess
@@ -38,13 +41,17 @@ namespace tidl
   * @returns original frame with some in-place post processing done
   */
         cv::Mat preprocImage(const std::string &input_bmp_name,
-                             std::vector<T> &out, int wanted_height, int wanted_width,
-                             int wanted_channels,
-                             std::vector<float> mean, std::vector<float> scale)
+                             T *out,
+                             tidl::modelInfo::PreprocessImageConfig preProcessImageConfig)
         {
             int i;
             uint8_t *pSrc;
             cv::Mat spl[3];
+            int wanted_width = preProcessImageConfig.outDataWidth,
+                wanted_height = preProcessImageConfig.outDataHeight,
+                wanted_channels = preProcessImageConfig.numChans;
+            std::vector<float> mean = preProcessImageConfig.mean;
+            std::vector<float> scale = preProcessImageConfig.scale;
             cv::Mat image = cv::imread(input_bmp_name, cv::IMREAD_COLOR);
             cv::cvtColor(image, image, cv::COLOR_BGR2RGB);
             cv::resize(image, image, cv::Size(wanted_width, wanted_height), 0, 0, cv::INTER_AREA);
@@ -54,15 +61,31 @@ namespace tidl
                 exit(-1);
             }
             cv::split(image, spl);
-
-            for (int j = 0; j < wanted_channels; j++)
+            if (!strcmp(preProcessImageConfig.dataLayout.c_str(), "NHWC"))
             {
-                pSrc = (uint8_t *)spl[j].data;
+                std::cout << "template NHWC\n";
                 for (i = 0; i < wanted_height * wanted_width; i++)
                 {
-                    out[j * (wanted_height * wanted_width) + i] = ((T)pSrc[i] - mean[j]) * scale[j];
+                    for (int j = 0; j < wanted_channels; j++)
+                    {
+                        pSrc = (uint8_t *)spl[j].data;
+                        out[i * wanted_channels + j] = ((T)pSrc[i] - mean[j]) * scale[j];
+                    }
                 }
             }
+            else if (!strcmp(preProcessImageConfig.dataLayout.c_str(), "NCHW"))
+            {
+                std::cout << "template NCHW\n";
+                for (int j = 0; j < wanted_channels; j++)
+                {
+                    pSrc = (uint8_t *)spl[j].data;
+                    for (i = 0; i < wanted_height * wanted_width; i++)
+                    {
+                        out[j * (wanted_height * wanted_width) + i] = ((T)pSrc[i] - mean[j]) * scale[j];
+                    }
+                }
+            }
+
             return image;
         }
 

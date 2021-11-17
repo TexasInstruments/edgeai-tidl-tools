@@ -48,7 +48,6 @@
 #include "model_info.h"
 #include "ti_logger.h"
 #include "edgeai_classnames.h"
-#include "../dl_inferer/include/ti_dl_inferer.h"
 
 namespace tidl
 {
@@ -64,11 +63,53 @@ namespace tidl
 #define TI_PREPROC_DEFAULT_WIDTH 320
 #define TI_PREPROC_DEFAULT_HEIGHT 240
 
-#define TI_POSTPROC_DEFAULT_WIDTH   1280
-#define TI_POSTPROC_DEFAULT_HEIGHT  720
-#define TI_DEFAULT_DISP_WIDTH       1920
-#define TI_DEFAULT_DISP_HEIGHT      1080
+#define TI_POSTPROC_DEFAULT_WIDTH 1280
+#define TI_POSTPROC_DEFAULT_HEIGHT 720
+#define TI_DEFAULT_DISP_WIDTH 1920
+#define TI_DEFAULT_DISP_HEIGHT 1080
 
+        /**
+     * \brief Configuration for the DL inferer.
+     *
+     * \ingroup group_dl_inferer
+     */
+        struct InfererConfig
+        {
+            /** Path to the model directory or a file.
+         *  - file for TFLITE and ONNX
+         *  - directory for DLR
+         **/
+            std::string modelFile{};
+
+            /** Path to the directory containing the model artifacts. This is only
+         *  valid for TFLITE models and is not looked at for the other ones.
+         */
+            std::string artifactsPath{};
+
+            /** Type of the runtime API to invoke. The valid values are:
+         * - DL_INFER_RTTYPE_DLR
+         * - DL_INFER_RTTYPE_TFLITE
+         * - DL_INFER_RTTYPE_ONNX
+         */
+            std::string rtType{};
+
+            /** Type of the device. This field is specific to the DLR API and is
+         * is not looked at for the other ones. Please refer to the DLR API
+         * specification for valid values this field can take.
+         */
+            std::string devType{};
+
+            /** Id of the device. This field is specific to the DLR API and is
+         * is not looked at for the other ones. Please refer to the DLR API
+         * specification for valid values this field can take.
+         */
+            int32_t devId{DLR_DEVID_INVALID};
+
+            /**
+         * Helper function to dump the configuration information.
+         */
+            void dumpInfo();
+        };
 
         /**
      * \brief Configuration for the DL inferer.
@@ -125,7 +166,7 @@ namespace tidl
             int32_t numChans{0};
 
             /** Data type of Input tensor. */
-            tidl::dlInferer::DlInferType inputTensorType{tidl::dlInferer::DlInferType_Invalid};
+            // tidl::dlInferer::DlInferType inputTensorType{tidl::dlInferer::DlInferType_Invalid};
 
             /** Optional debugging control configuration. */
             // DebugDumpConfig     debugConfig;
@@ -188,15 +229,14 @@ namespace tidl
              * maping of dlpreproc
              */
                 s += " ! tiovxdlpreproc"
-                     " data-type=" +
-                     std::to_string(inputTensorType) +
-                     " channel-order=" + channelOrder +
-                     " mean-0=" +std::to_string(mean[0]) +
-                     " mean-1=" +std::to_string(mean[0]) +
-                     " mean-2=" +std::to_string(mean[0]) +
-                     " scale-0=" +std::to_string(scale[0]) +
-                     " scale-1=" +std::to_string(scale[0]) +
-                     " scale-2=" +std::to_string(scale[0]) +
+                     " channel-order=" +
+                     channelOrder +
+                     " mean-0=" + std::to_string(mean[0]) +
+                     " mean-1=" + std::to_string(mean[0]) +
+                     " mean-2=" + std::to_string(mean[0]) +
+                     " scale-0=" + std::to_string(scale[0]) +
+                     " scale-1=" + std::to_string(scale[0]) +
+                     " scale-2=" + std::to_string(scale[0]) +
                      " tensor-format=rgb out-pool-size=4"
                      " ! application/x-tensor-tiovx";
             }
@@ -218,7 +258,6 @@ namespace tidl
                 LOG_INFO("PreprocessImageConfig::outDataWidth    = %d\n", outDataWidth);
                 LOG_INFO("PreprocessImageConfig::outDataHeight   = %d\n", outDataHeight);
                 LOG_INFO("PreprocessImageConfig::numChannels     = %d\n", numChans);
-                LOG_INFO("PreprocessImageConfig::inputTensorType = Enum %d\n", inputTensorType);
 
                 LOG_INFO("PreprocessImageConfig::mean          = [");
                 for (uint32_t i = 0; i < mean.size(); i++)
@@ -341,12 +380,13 @@ namespace tidl
                 LOG_INFO("PostprocessImageConfig::normDetect     = %d\n", normDetect);
                 LOG_INFO("PostprocessImageConfig::labelOffsetMap = [ ");
 
-                // for (const auto &[key, value] : labelOffsetMap)
-                // {
-                //     LOG_INFO_RAW("(%d, %d) ", key, value);
-                // }
+                for (const auto labelOffset : labelOffsetMap)
+                {
+                    int32_t key = labelOffset.first, value = labelOffset.second;
+                    LOG_INFO_RAW("(%d, %d) ", key, value);
+                }
 
-                LOG_INFO_RAW("]\n\n");
+                LOG_INFO_RAW("]\n");
 
                 LOG_INFO("PostprocessImageConfig::formatter = [ ");
 
@@ -355,7 +395,7 @@ namespace tidl
                     LOG_INFO_RAW(" %d", formatter[i]);
                 }
 
-                LOG_INFO_RAW("]\n\n");
+                LOG_INFO_RAW("]\n");
 
                 LOG_INFO("PostprocessImageConfig::resultIndices = [ ");
 
@@ -437,14 +477,14 @@ namespace tidl
             void dumpInfo(const char *prefix = "") const;
 
         public:
-            /** Inference context. */
-            tidl::dlInferer::DLInferer              *m_infererObj{nullptr};
-
             /* Pre-process configuration. */
             PreprocessImageConfig m_preProcCfg;
 
             /* Post-processing configuration.*/
             PostprocessImageConfig m_postProcCfg;
+            
+            /* inferer configuration.*/
+            InfererConfig m_infConfig;
 
             /** Path to the model. */
             std::string m_modelPath;

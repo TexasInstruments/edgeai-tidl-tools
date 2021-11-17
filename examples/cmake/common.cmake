@@ -196,7 +196,6 @@ function(build_app)
                           model_info
                           edgeai_classnames
                           ti_logger
-                          ti_dl_inferer
                           ${lobs}
                           -Wl,--end-group)
 endfunction()

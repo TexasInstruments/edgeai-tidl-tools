@@ -58,7 +58,7 @@ namespace tidl
             }
             return img;
         }
-/**
+        /**
  * Use OpenCV to do in-place update of a buffer with post processing content like
  * alpha blending a specific color for each classified pixel. Typically used for
  * semantic segmentation models.
@@ -74,7 +74,8 @@ namespace tidl
  * @returns original frame with some in-place post processing done
  */
         uchar *blendSegMask(uchar *frame,
-                            int32_t *classes,
+                            void *classes,
+                            TfLiteType type,
                             int32_t inDataWidth,
                             int32_t inDataHeight,
                             int32_t outDataWidth,
@@ -98,7 +99,6 @@ namespace tidl
 
             a = alpha * 255;
             sa = (1 - alpha) * 255;
-
             // Here, (w, h) iterate over frame and (sw, sh) iterate over classes
             for (h = 0; h < outDataHeight; h++)
             {
@@ -118,7 +118,15 @@ namespace tidl
                     // sw and sh are scaled co-ordiates over the results[0] vector
                     // Get the color corresponding to class detected at this co-ordinate
                     index = (int32_t)(sh * inDataHeight + sw);
-                    class_id = classes[index];
+                    if (type == TfLiteType::kTfLiteInt64)
+                    {
+                        class_id = *((int64_t *)classes + index);
+                    }
+                    else if (type == TfLiteType::kTfLiteInt32)
+                    {
+                        class_id = *((int32_t *)classes + index);
+                    }
+                    // class_id = classes[index];
 
                     // random color assignment based on class-id's
                     r_m = 10 * class_id;
