@@ -39,9 +39,13 @@ limitations under the License.
 #include "opencv2/imgcodecs.hpp"
 #include "opencv2/imgproc/imgproc_c.h"
 
-#include "../cpp_config.h"
-#include "../pre_process/pre_process.h"
-#include "../post_process/post_process.h"
+#include "itidl_rt.h"
+#include "post_process/post_process.h"
+#include "pre_process/pre_process.h"
+#include "utils/include/arg_parsing.h"
+#include "utils/include/utility_functs.h"
+#include "utils/include/ti_logger.h"
+#include "utils/include/model_info.h"
 
 #define LOG(x) std::cerr
 
@@ -51,36 +55,6 @@ namespace dlr
   {
     std::vector<std::string> vecOfLabels;
 
-    /**
- @struct  Settings
- @brief   This structure define the parameters of tfl cpp infernce params
-*/
-    struct Settings
-    {
-      bool verbose = false;
-      bool accel = false;
-      bool device_mem = false;
-      bool input_floating = false;
-      bool profiling = false;
-      bool allow_fp16 = false;
-      bool gl_backend = false;
-      bool hexagon_delegate = false;
-      int loop_count = 1;
-      std::vector<float> input_mean;
-      std::vector<float> input_std;
-      std::string artifact_path = "";
-      std::string model_path = "";
-      std::string input_bmp_path = "";
-      std::string labels_file_path = "";
-      std::string input_node_name = "input.1";
-      std::string input_layer_type = "uint8_t";
-      int number_of_threads = 4;
-      int number_of_results = 5;
-      int max_profiling_buffer_entries = 1024;
-      int number_of_warmup_runs = 2;
-      tidl::config::Modeltype model_type;
-      bool isFormatNCHW;
-    };
     /**
           *  \brief display usage string for application
   * @returns void

@@ -41,6 +41,7 @@ namespace tidl
             std::string artifact_path = "";
             std::string model_path = "";
             std::string input_bmp_path = "";
+            std::string input_node_name = "input";
             std::string labels_file_path = "";
             std::string model_zoo_path = "";
             int number_of_threads = 4;
