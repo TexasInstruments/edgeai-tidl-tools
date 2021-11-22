@@ -29,59 +29,19 @@ limitations under the License.
 #include <onnxruntime/core/providers/tidl/tidl_provider_factory.h>
 #include <onnxruntime/core/providers/cpu/cpu_provider_factory.h>
 
-#include "../cpp_config.h"
 #include "itidl_rt.h"
-#include "../post_process/post_process.h"
+#include "post_process/post_process.h"
+#include "pre_process/pre_process.h"
+#include "utils/include/arg_parsing.h"
+#include "utils/include/utility_functs.h"
+#include "utils/include/ti_logger.h"
+#include "utils/include/model_info.h"
 
-#define LOG(x) std::cerr
 
 namespace onnx
 {
     namespace main
     {
-        using namespace std;
-        struct Settings
-        {
-            bool verbose = false;
-            bool accel = false;
-            bool device_mem = false;
-            bool input_floating = false;
-            bool profiling = false;
-            bool allow_fp16 = false;
-            bool gl_backend = false;
-            bool hexagon_delegate = false;
-            int loop_count = 1;
-            std::vector<float> input_mean;
-            std::vector<float> input_std;
-            string artifact_path = "";
-            string model_path = "";
-            string input_bmp_name = "";
-            string labels_path = "";
-            string input_layer_type = "uint8_t";
-            int number_of_threads = 4;
-            int number_of_results = 5;
-            int max_profiling_buffer_entries = 1024;
-            int number_of_warmup_runs = 2;
-            tidl::config::Modeltype model_type;
-        };
-
-        void display_usage()
-        {
-            LOG(INFO)
-                << "--accelerated, -a: [0|1], use Android NNAPI or not\n"
-                << "--artifact_path, -f: [0|1], Path for Delegate artifacts folder \n"
-                << "--count, -c: loop interpreter->Invoke() for certain times\n"
-                << "--image, -i: image_name.bmp\n"
-                << "--labels, -l: labels for the model\n"
-                << "--onnx_model, -m: model_name.onnx\n"
-                << "--threads, -t: number of threads\n"
-                << "--verbose, -v: [0|1] print more information\n"
-                << "--warmup_runs, -w: number of warmup runs\n"
-                << "\n";
-        }
-
-        double get_us(struct timeval t) { return (t.tv_sec * 1000000 + t.tv_usec); }
-
         /*
         * Case Sensitive Implementation of endsWith()
         * It checks if the string 'mainStr' ends with given string 'toMatch'

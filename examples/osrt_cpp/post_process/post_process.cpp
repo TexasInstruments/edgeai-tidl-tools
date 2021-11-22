@@ -75,7 +75,7 @@ namespace tidl
  */
         uchar *blendSegMask(uchar *frame,
                             void *classes,
-                            TfLiteType type,
+                            tidl::modelInfo::DlInferType type,
                             int32_t inDataWidth,
                             int32_t inDataHeight,
                             int32_t outDataWidth,
@@ -118,11 +118,11 @@ namespace tidl
                     // sw and sh are scaled co-ordiates over the results[0] vector
                     // Get the color corresponding to class detected at this co-ordinate
                     index = (int32_t)(sh * inDataHeight + sw);
-                    if (type == TfLiteType::kTfLiteInt64)
+                    if (type == tidl::modelInfo::DlInferType::DlInferType_Int64)
                     {
                         class_id = *((int64_t *)classes + index);
                     }
-                    else if (type == TfLiteType::kTfLiteInt32)
+                    else if (type == tidl::modelInfo::DlInferType::DlInferType_Int32)
                     {
                         class_id = *((int32_t *)classes + index);
                     }

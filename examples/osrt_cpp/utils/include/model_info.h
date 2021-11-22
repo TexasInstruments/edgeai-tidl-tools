@@ -111,6 +111,47 @@ namespace tidl
             void dumpInfo();
         };
 
+            /**
+     * \brief Enumeration for the different data types used for identifying
+     *        the data types at the interface.
+     *
+     * \ingroup group_dl_inferer
+     */
+    typedef enum
+    {
+        /**  Invalid type. */
+        DlInferType_Invalid = 0,
+
+        /** Data type signed 8 bit integer. */
+        DlInferType_Int8    = 2,
+
+        /** Data type unsigned 8 bit integer. */
+        DlInferType_UInt8   = 3,
+
+        /** Data type signed 16 bit integer. */
+        DlInferType_Int16   = 4,
+
+        /** Data type unsigned 16 bit integer. */
+        DlInferType_UInt16  = 5,
+
+        /** Data type signed 32 bit integer. */
+        DlInferType_Int32   = 6,
+
+        /** Data type unsigned 32 bit integer. */
+        DlInferType_UInt32  = 7,
+
+        /** Data type signed 64 bit integer. */
+        DlInferType_Int64   = 8,
+
+        /** Data type 16 bit floating point. */
+        DlInferType_Float16 = 9,
+
+        /** Data type 32 bit floating point. */
+        DlInferType_Float32 = 10,
+
+     } DlInferType;
+
+
         /**
      * \brief Configuration for the DL inferer.
      *
@@ -166,80 +207,10 @@ namespace tidl
             int32_t numChans{0};
 
             /** Data type of Input tensor. */
-            // tidl::dlInferer::DlInferType inputTensorType{tidl::dlInferer::DlInferType_Invalid};
+            tidl::modelInfo::DlInferType inputTensorType{tidl::modelInfo::DlInferType_Invalid};
 
             /** Optional debugging control configuration. */
             // DebugDumpConfig     debugConfig;
-
-            /**
-         * Updates the string 's' with the gst videoscale and videobox command strings
-         * based on the pre-processor configuration 'config'. The video scale string is
-         * always generated but the videobox string will be conditionally generated
-         * only if any of the crop (top/bottom, left/right) are non-zero.
-         *
-         * @param s             String with the gst commands
-         */
-            void getPreProcString(std::string &s) const
-            {
-                int32_t top;
-                int32_t left;
-                int32_t bottom;
-                int32_t right;
-                int32_t t;
-
-                s = " ! video/x-raw, width=" +
-                    std::to_string(resizeWidth) +
-                    ", height=" +
-                    std::to_string(resizeHeight);
-
-                t = resizeWidth - outDataWidth;
-                left = t / 2;
-                right = t - left;
-
-                t = resizeHeight - outDataHeight;
-                top = t / 2;
-                bottom = t - top;
-
-                if (left || right || top || bottom)
-                {
-                    s += " ! tiovxcolorconvert out-pool-size=4"
-                         " ! video/x-raw, format=RGB";
-
-                    s += " ! videobox "
-                         " top=" +
-                         std::to_string(top) +
-                         " bottom=" + std::to_string(bottom) +
-                         " left=" + std::to_string(left) +
-                         " right=" + std::to_string(right);
-                }
-
-                std::string channelOrder{""};
-                if (dataLayout == "NCHW")
-                {
-                    channelOrder += "0";
-                }
-                else if (dataLayout == "NHWC")
-                {
-                    channelOrder += "1";
-                }
-
-                /*
-             * dlpreproc takes data-type as an interger which maps to certain
-             * data types, DlInferType enum in dl inferer is aligned with the
-             * maping of dlpreproc
-             */
-                s += " ! tiovxdlpreproc"
-                     " channel-order=" +
-                     channelOrder +
-                     " mean-0=" + std::to_string(mean[0]) +
-                     " mean-1=" + std::to_string(mean[0]) +
-                     " mean-2=" + std::to_string(mean[0]) +
-                     " scale-0=" + std::to_string(scale[0]) +
-                     " scale-1=" + std::to_string(scale[0]) +
-                     " scale-2=" + std::to_string(scale[0]) +
-                     " tensor-format=rgb out-pool-size=4"
-                     " ! application/x-tensor-tiovx";
-            }
 
             /**
          * Helper function to dump the configuration information.

@@ -150,6 +150,21 @@ namespace tflite
       int wanted_height = modelInfo->m_preProcCfg.outDataHeight;
       int wanted_width = modelInfo->m_preProcCfg.outDataWidth;
       int wanted_channels = modelInfo->m_preProcCfg.numChans;
+      /* assuming NHWC*/
+      if (wanted_channels != dims->data[3])
+      {
+        std::cout << "missmatch in YAML parsed wanted channels and model " << wanted_channels << " " << dims->data[3] << "\n";
+        ;
+      }
+      if (wanted_height != dims->data[1])
+      {
+        std::cout << "missmatch in YAML parsed wanted height and model " << wanted_height << " " << dims->data[1] << "\n";
+      }
+      if (wanted_width != dims->data[2])
+      {
+        std::cout << "missmatch in YAML parsed wanted width and model " << wanted_width << " " << dims->data[2] << "\n";
+        ;
+      }
       cv::Mat img;
       switch (interpreter->tensor(input)->type)
       {
@@ -201,7 +216,14 @@ namespace tflite
         void *outputTensor = interpreter->tensor(outputs[0])->data.data;
         TfLiteType type = interpreter->tensor(outputs[0])->type;
         float alpha = 0.4f;
-        img.data = tidl::postprocess::blendSegMask(img.data, outputTensor, type, img.cols, img.rows, wanted_width, wanted_height, alpha);
+        if (type == TfLiteType::kTfLiteInt32)
+        {
+          img.data = tidl::postprocess::blendSegMask(img.data, outputTensor, tidl::modelInfo::DlInferType_Int32, img.cols, img.rows, wanted_width, wanted_height, alpha);
+        }
+        else if (type == TfLiteType::kTfLiteInt64)
+        {
+          img.data = tidl::postprocess::blendSegMask(img.data, outputTensor, tidl::modelInfo::DlInferType_Int64, img.cols, img.rows, wanted_width, wanted_height, alpha);
+        }
       }
       else if (!strcmp(modelInfo->m_preProcCfg.taskType.c_str(), "detection"))
       {

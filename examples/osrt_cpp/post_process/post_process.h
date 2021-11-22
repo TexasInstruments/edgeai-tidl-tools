@@ -32,6 +32,8 @@ limitations under the License.
 #include <tensorflow/lite/profiling/profiler.h>
 #include <tensorflow/lite/string_util.h>
 
+#include "../utils/include/model_info.h"
+
 #define TI_POSTPROC_DEFAULT_WIDTH 1280
 
 namespace tidl
@@ -72,7 +74,7 @@ namespace tidl
  */
         uchar *blendSegMask(uchar *frame,
                             void *classes,
-                            TfLiteType type,
+                            tidl::modelInfo::DlInferType type,
                             int32_t inDataWidth,
                             int32_t inDataHeight,
                             int32_t outDataWidth,
