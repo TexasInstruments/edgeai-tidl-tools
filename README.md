@@ -87,7 +87,7 @@ source ./setup.sh
   
 ## Notes
 
--  These examples are only for basic functionally testing and performance benchmarking (latency and memory bandwidth). Accuracy of the models can be benchmarked using the python module released here [edgeai-benchmark](https://git.ti.com/cgit/jacinto-ai/jacinto-ai-benchmark)
+-  These examples are only for basic functionally testing and performance benchmarking (latency and memory bandwidth). Accuracy of the models can be benchmarked using the python module released here [edgeai-benchmark](https://github.com/TexasInstruments/edgeai-benchmark)
 
 ## License
 Please see the license under which this repository is made available: [LICENSE](./LICENSE)

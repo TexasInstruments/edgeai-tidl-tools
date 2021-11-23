@@ -5,7 +5,7 @@ import re
 import numpy as np
 from PIL import Image, ImageFont, ImageDraw, ImageEnhance
 """
-Jacinto_ai_benchmark for getting preprocessing configurations
+jai_benchmark from edgeai-benchmark for getting preprocessing configurations
 for all supported prebuilt models 
 """
 from jai_benchmark.config_settings import ConfigSettings

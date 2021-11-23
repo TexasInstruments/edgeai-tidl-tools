@@ -28,7 +28,7 @@ set -- "${POSITIONAL[@]}" # restore positional parameters
 
 
 echo "# ##################################################################"
-echo "This script download python modules, jacinto-ai-benchmark, and some precompiled models artifacts.
+echo "This script download python modules, edgeai-benchmark, and some precompiled models artifacts.
 It also sets other requirements, and, at the end, it launches jupyter notebook server in the EVM
 Note: take a note of the EVM's ip address before running this scrip (ifconfig)
 and use it in a computer's web browser to access and run the notebooks. ex: http://192.168.1.199:8888"
