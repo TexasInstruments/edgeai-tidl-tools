@@ -191,6 +191,7 @@ function(build_app)
                           ${TARGET_LINK_LIBS}
                           ${SYSTEM_LINK_LIBS}
                           post_process
+                          pre_process
                           arg_parsing
                           utility_functs
                           model_info

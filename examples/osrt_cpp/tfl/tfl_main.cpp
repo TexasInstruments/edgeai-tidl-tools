@@ -175,7 +175,15 @@ namespace tflite
       }
       case kTfLiteUInt8:
       {
+        /* if model is already quantized update the scale and mean for preperocess computation */
+        std::vector<float> temp_scale = modelInfo->m_preProcCfg.scale,
+                           temp_mean = modelInfo->m_preProcCfg.mean;
+        modelInfo->m_preProcCfg.scale = {1, 1, 1};
+        modelInfo->m_preProcCfg.mean = {0, 0, 0};
         img = tidl::preprocess::preprocImage<uint8_t>(s->input_bmp_path, &interpreter->typed_tensor<uint8_t>(input)[0], modelInfo->m_preProcCfg);
+        /*restoring mean and scale to preserve the data */
+        modelInfo->m_preProcCfg.scale = temp_scale;
+        modelInfo->m_preProcCfg.mean = temp_mean;
         break;
       }
       default:
@@ -215,7 +223,7 @@ namespace tflite
         std::cout << "preparing segmentation result \n";
         void *outputTensor = interpreter->tensor(outputs[0])->data.data;
         TfLiteType type = interpreter->tensor(outputs[0])->type;
-        float alpha = 0.4f;
+        float alpha = modelInfo->m_postProcCfg.alpha;
         if (type == TfLiteType::kTfLiteInt32)
         {
           img.data = tidl::postprocess::blendSegMask(img.data, outputTensor, tidl::modelInfo::DlInferType_Int32, img.cols, img.rows, wanted_width, wanted_height, alpha);
@@ -228,17 +236,74 @@ namespace tflite
       else if (!strcmp(modelInfo->m_preProcCfg.taskType.c_str(), "detection"))
       {
         std::cout << "preparing detection result \n";
-        const float *detectection_location = interpreter->tensor(outputs[0])->data.f;
-        const float *detectection_classes = interpreter->tensor(outputs[1])->data.f;
-        const float *detectection_scores = interpreter->tensor(outputs[2])->data.f;
-        const int num_detections = (int)*interpreter->tensor(outputs[3])->data.f;
-        std::cout << "results " << num_detections << "\n";
-        tidl::postprocess::overlayBoundingBox(img, num_detections, detectection_location);
-        for (int i = 0; i < num_detections; i++)
+        std::vector<int32_t> format = {1, 0, 3, 2, 4, 5};
+        bool isFormat = true;
+        for (int i = 0; i < 6; i++)
         {
-          std::cout << "class " << detectection_classes[i] << "\n";
-          std::cout << "cordinates " << detectection_location[i * 4] << detectection_location[i * 4 + 1] << detectection_location[i * 4 + 2] << detectection_location[i * 4 + 3] << "\n";
-          std::cout << "score " << detectection_scores[i] << "\n";
+          if (modelInfo->m_postProcCfg.formatter[i] != format[i])
+          {
+            isFormat = false;
+            break;
+          }
+        }
+        float threshold = modelInfo->m_vizThreshold;
+        if (isFormat)
+        {
+          float *detectection_location = interpreter->tensor(outputs[0])->data.f;
+          float *detectection_classes = interpreter->tensor(outputs[1])->data.f;
+          float *detectection_scores = interpreter->tensor(outputs[2])->data.f;
+          int num_detections = (int)*interpreter->tensor(outputs[3])->data.f;
+          std::cout << "results " << num_detections << "\n";
+          tidl::postprocess::overlayBoundingBox(img, num_detections, detectection_location, detectection_scores, threshold);
+          for (int i = 0; i < num_detections; i++)
+          {
+            if (detectection_scores[i] > threshold)
+            {
+              std::cout << "class " << detectection_classes[i] << "\n";
+              std::cout << "cordinates " << detectection_location[i * 4] << detectection_location[i * 4 + 1] << detectection_location[i * 4 + 2] << detectection_location[i * 4 + 3] << "\n";
+              std::cout << "score " << detectection_scores[i] << "\n";
+            }
+          }
+        }
+        else
+        {
+          float *out_tensor = interpreter->tensor(outputs[0])->data.f;
+          std::vector<float>  detectection_classes,detectection_location, detectection_scores;
+          int num_detections = 0;
+          TfLiteIntArray *output_dims = interpreter->tensor(outputs[0])->dims;
+          /*asssuming result is of format [1 x num_res x res_dim] */  
+          int res_dim = output_dims->data[output_dims->size - 1];
+          int  num_res = output_dims->data[output_dims->size - 2];
+          for (int i = 0; i < num_res; i++)
+          {
+            float score =  out_tensor[i * res_dim + res_dim -2];
+            float class_val =  out_tensor[i * res_dim + res_dim -1];
+            //TODO need to verify
+            float loc_0 = out_tensor[i * res_dim + 1]/modelInfo->m_postProcCfg.inDataHeight;
+            float loc_1 = out_tensor[i * res_dim + 2]/modelInfo->m_postProcCfg.inDataHeight;
+            float loc_2 = out_tensor[i * res_dim + 3]/modelInfo->m_postProcCfg.inDataHeight;
+            float loc_3 = out_tensor[i * res_dim + 4]/modelInfo->m_postProcCfg.inDataHeight;
+            if (score > threshold)
+            {
+              num_detections++;
+              detectection_scores.push_back(score);
+              detectection_classes.push_back(class_val);
+              detectection_location.push_back(loc_0);
+              detectection_location.push_back(loc_1);
+              detectection_location.push_back(loc_2);
+              detectection_location.push_back(loc_3);
+            }
+          }
+          for (int i = 0; i < num_detections; i++)
+          {
+            if (detectection_scores[i] > threshold)
+            {
+              std::cout << "class " << detectection_classes[i] << "\n";
+              std::cout << "cordinates " << detectection_location[i * 4] << detectection_location[i * 4 + 1] << detectection_location[i * 4 + 2] << detectection_location[i * 4 + 3] << "\n";
+              std::cout << "score " << detectection_scores[i] << "\n";
+            }
+          }
+          tidl::postprocess::overlayBoundingBox(img, num_detections, detectection_location.data(), detectection_scores.data(), threshold);
         }
       }
       else if (!strcmp(modelInfo->m_preProcCfg.taskType.c_str(), "classification"))
@@ -250,6 +315,11 @@ namespace tflite
         TfLiteIntArray *output_dims = interpreter->tensor(outputs[0])->dims;
         // assume output dims to be something like (1, 1, ... ,size)
         auto output_size = output_dims->data[output_dims->size - 1];
+        int outputoffset;
+        if (output_size == 1001)
+          outputoffset = 0;
+        else
+          outputoffset = 1;
         switch (interpreter->tensor(outputs[0])->type)
         {
         case kTfLiteFloat32:
@@ -280,7 +350,7 @@ namespace tflite
         {
           const float confidence = result.first;
           const int index = result.second;
-          LOG(INFO) << confidence << ": " << index << " " << labels[index] << "\n";
+          LOG(INFO) << confidence << ": " << index << " " << labels[index + outputoffset] << "\n";
         }
         int num_results = 5;
         img.data = tidl::postprocess::overlayTopNClasses(img.data, top_results, &labels, img.cols, img.rows, num_results);
@@ -289,8 +359,10 @@ namespace tflite
       cv::cvtColor(img, img, cv::COLOR_RGB2BGR);
       char filename[100];
       // strcpy(filename, s->artifact_path.c_str());
-      strcpy(filename, "/home/a0496663/edgeai-tidl-tools/test_data/");
-      strcat(filename, "cpp_inference_out.jpg");
+      strcpy(filename, "test_data/");
+      strcat(filename, "cpp_inference_out");
+      strncat(filename, modelInfo->m_preProcCfg.modelName.c_str(), 7);
+      strcat(filename, ".jpg");
       bool check = cv::imwrite(filename, img);
       if (check == false)
       {

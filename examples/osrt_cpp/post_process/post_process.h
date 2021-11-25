@@ -52,10 +52,11 @@ namespace tidl
  * @param frame Original RGB data buffer, where the in-place updates will happen
  * @param num_of_detections 
  * @param box bounding box co-ordinates.
- *
+ * @param score scores of detection for comparing with threshold.
+ * @param threshold threshold.
  * @returns original frame with some in-place post processing done
  */
-        cv::Mat overlayBoundingBox(cv::Mat img, int num_of_detection, const float *cordinates);
+        cv::Mat overlayBoundingBox(cv::Mat img, int num_of_detection,  float *cordinates, float *scores, float threshold);
 
         /**
  * Use OpenCV to do in-place update of a buffer with post processing content like

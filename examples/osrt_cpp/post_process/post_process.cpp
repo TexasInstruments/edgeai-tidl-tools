@@ -37,24 +37,27 @@ namespace tidl
  * @param frame Original RGB data buffer, where the in-place updates will happen
  * @param num_of_detections 
  * @param box bounding box co-ordinates.
- *
+ * @param score scores of detection for comparing with threshold.
+ * @param threshold threshold.
  * @returns original frame with some in-place post processing done
  */
-        cv::Mat overlayBoundingBox(cv::Mat img, int num_of_detection, const float *cordinates)
+        cv::Mat overlayBoundingBox(cv::Mat img, int num_of_detection, float *cordinates, float *scores, float threshold)
         {
-            cv::Scalar box_color = (20, 220, 20);
+            cv::Scalar box_color = (20, 120, 20);
             for (int i = 0; i < num_of_detection; i++)
             {
-                /* hard coded colour of box */
-                cv::Scalar boxColor = cv::Scalar(20, 20, 20);
-                int boxThickness = 3;
-                float ymin = cordinates[i * 4 + 0];
-                float xmin = cordinates[i * 4 + 1];
-                float ymax = cordinates[i * 4 + 2];
-                float xmax = cordinates[i * 4 + 3];
-                cv::Point topleft = cv::Point(xmin * img.cols, ymax * img.rows);
-                cv::Point bottomright = cv::Point(xmax * img.cols, ymin * img.rows);
-                cv::rectangle(img, topleft, bottomright, box_color, boxThickness, cv::LINE_8);
+                if (scores[i] > threshold)
+                {
+                    /* hard coded colour of box */
+                    int boxThickness = 2;
+                    float ymin = cordinates[i * 4 + 0];
+                    float xmin = cordinates[i * 4 + 1];
+                    float ymax = cordinates[i * 4 + 2];
+                    float xmax = cordinates[i * 4 + 3];
+                    cv::Point topleft = cv::Point(xmin * img.cols, ymax * img.rows);
+                    cv::Point bottomright = cv::Point(xmax * img.cols, ymin * img.rows);
+                    cv::rectangle(img, topleft, bottomright, box_color, boxThickness, cv::LINE_8);
+                }
             }
             return img;
         }

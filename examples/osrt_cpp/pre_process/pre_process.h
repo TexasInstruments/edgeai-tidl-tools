@@ -42,52 +42,7 @@ namespace tidl
   */
         cv::Mat preprocImage(const std::string &input_bmp_name,
                              T *out,
-                             tidl::modelInfo::PreprocessImageConfig preProcessImageConfig)
-        {
-            int i;
-            uint8_t *pSrc;
-            cv::Mat spl[3];
-            int wanted_width = preProcessImageConfig.outDataWidth,
-                wanted_height = preProcessImageConfig.outDataHeight,
-                wanted_channels = preProcessImageConfig.numChans;
-            std::vector<float> mean = preProcessImageConfig.mean;
-            std::vector<float> scale = preProcessImageConfig.scale;
-            cv::Mat image = cv::imread(input_bmp_name, cv::IMREAD_COLOR);
-            cv::cvtColor(image, image, cv::COLOR_BGR2RGB);
-            cv::resize(image, image, cv::Size(wanted_width, wanted_height), 0, 0, cv::INTER_AREA);
-            if (image.channels() != wanted_channels)
-            {
-                printf("Warning : Number of channels wanted differs from number of channels in the actual image \n");
-                exit(-1);
-            }
-            cv::split(image, spl);
-            if (!strcmp(preProcessImageConfig.dataLayout.c_str(), "NHWC"))
-            {
-                std::cout << "template NHWC\n";
-                for (i = 0; i < wanted_height * wanted_width; i++)
-                {
-                    for (int j = 0; j < wanted_channels; j++)
-                    {
-                        pSrc = (uint8_t *)spl[j].data;
-                        out[i * wanted_channels + j] = ((T)pSrc[i] - mean[j]) * scale[j];
-                    }
-                }
-            }
-            else if (!strcmp(preProcessImageConfig.dataLayout.c_str(), "NCHW"))
-            {
-                std::cout << "template NCHW\n";
-                for (int j = 0; j < wanted_channels; j++)
-                {
-                    pSrc = (uint8_t *)spl[j].data;
-                    for (i = 0; i < wanted_height * wanted_width; i++)
-                    {
-                        out[j * (wanted_height * wanted_width) + i] = ((T)pSrc[i] - mean[j]) * scale[j];
-                    }
-                }
-            }
-
-            return image;
-        }
+                             tidl::modelInfo::PreprocessImageConfig preProcessImageConfig);
 
     } // namespace tidl::preprocess
 }

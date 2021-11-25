@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.0.2)
+include(${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/common.cmake)
+add_library(pre_process pre_process.cpp pre_process.h )
+install(TARGETS pre_process DESTINATION lib)
+install(FILES pre_process.h DESTINATION include)
