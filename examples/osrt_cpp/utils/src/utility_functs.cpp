@@ -24,5 +24,23 @@ namespace tidl
   */
         double get_us(struct timeval t) { return (t.tv_sec * 1000000 + t.tv_usec); }
 
+        /**
+  *  \brief returns bool to check whether two array are same
+  * @returns bool
+  */
+        bool
+        is_same_format(std::vector<int32_t> format1, std::vector<int32_t> format2)
+        {
+            bool isFormat = true;
+            for (int i = 0; i < format2.size(); i++)
+            {
+                if (format1[i] != format2[i])
+                {
+                    isFormat = false;
+                    break;
+                }
+            }
+            return isFormat;
+        }
     }
 }

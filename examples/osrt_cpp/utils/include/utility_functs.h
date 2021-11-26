@@ -16,13 +16,9 @@ limitations under the License.
 #ifndef UTILS_UTILITY_FUCTS_H_
 #define UTILS_UTILITY_FUCTS_H_
 
-
 #include <iostream>
 #include <vector>
 #include <getopt.h>
-
-
-
 
 namespace tidl
 {
@@ -35,9 +31,14 @@ namespace tidl
         double
         get_us(struct timeval t);
 
+        /**
+  *  \brief returns bool to check whether two array are same
+  * @returns bool
+  */
+        bool
+        is_same_format(std::vector<int32_t> format1, std::vector<int32_t> format2);
+
     } // namespace utility_functs
 } //namespace tidl
-
-
 
 #endif //UTILS_UTILITY_FUCTS_H_
