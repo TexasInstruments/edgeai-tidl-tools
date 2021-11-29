@@ -237,17 +237,8 @@ namespace tflite
       {
         std::cout << "preparing detection result \n";
         std::vector<int32_t> format = {1, 0, 3, 2, 4, 5};
-        bool isFormat = true;
-        for (int i = 0; i < 6; i++)
-        {
-          if (modelInfo->m_postProcCfg.formatter[i] != format[i])
-          {
-            isFormat = false;
-            break;
-          }
-        }
         float threshold = modelInfo->m_vizThreshold;
-        if (isFormat)
+        if (tidl::utility_functs::is_same_format(format, modelInfo->m_postProcCfg.formatter))
         {
           float *detectection_location = interpreter->tensor(outputs[0])->data.f;
           float *detectection_classes = interpreter->tensor(outputs[1])->data.f;
@@ -358,7 +349,6 @@ namespace tflite
       LOG(INFO) << "saving image result file \n";
       cv::cvtColor(img, img, cv::COLOR_RGB2BGR);
       char filename[100];
-      // strcpy(filename, s->artifact_path.c_str());
       strcpy(filename, "test_data/");
       strcat(filename, "cpp_inference_out");
       strncat(filename, modelInfo->m_preProcCfg.modelName.c_str(), 7);

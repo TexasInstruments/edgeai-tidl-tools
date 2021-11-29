@@ -94,7 +94,7 @@ namespace onnx
             std::vector<const char *> output_node_names(num_output_nodes);
             for (int i = 0; i < num_output_nodes; i++)
             {
-              output_node_names[i] = session.GetOutputName(i, allocator);
+                output_node_names[i] = session.GetOutputName(i, allocator);
             }
             type_info = session.GetOutputTypeInfo(0);
             auto output_tensor_info = type_info.GetTensorTypeAndShapeInfo();
@@ -205,7 +205,7 @@ namespace onnx
                 printf("Session.Run() - Started for warmup runs\n");
                 for (int i = 0; i < s->number_of_warmup_runs; i++)
                 {
-                    output_tensors = session.Run(run_options, input_node_names.data(), &input_tensor, num_input_nodes, output_node_names.data(),num_output_nodes);
+                    output_tensors = session.Run(run_options, input_node_names.data(), &input_tensor, num_input_nodes, output_node_names.data(), num_output_nodes);
                 }
             }
             struct timeval start_time, stop_time;
@@ -296,71 +296,95 @@ namespace onnx
             else if (!strcmp(modelInfo->m_preProcCfg.taskType.c_str(), "segmentation"))
             {
                 printf("preparing segmentation result \n");
-                void *tensor_op_array;
+                /* if indata and out data is diff resize the image 
+                check whether img need to be resized based on out data
+                asssuming out put format [1,1,,width,height]*/
+                wanted_height = output_tensors.front().GetTensorTypeAndShapeInfo().GetShape()[2];
+                wanted_width = output_tensors.front().GetTensorTypeAndShapeInfo().GetShape()[3];
+                cv::resize(img, img, cv::Size(wanted_width, wanted_height), 0, 0, cv::INTER_AREA);
+                void *tensor_op_array = output_tensors.front().GetTensorMutableData<void>();
+                float alpha = modelInfo->m_postProcCfg.alpha;
                 if (op_tensor_type == ONNX_TENSOR_ELEMENT_DATA_TYPE_INT64)
                 {
-                    tensor_op_array = output_tensors.front().GetTensorMutableData<int64_t>();
+                    img.data = tidl::postprocess::blendSegMask(img.data, tensor_op_array, tidl::modelInfo::DlInferType_Int64, img.cols, img.rows, wanted_width, wanted_height, alpha);
                 }
                 else if (op_tensor_type == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT)
                 {
-                    tensor_op_array = output_tensors.front().GetTensorMutableData<float>();
+                    img.data = tidl::postprocess::blendSegMask(img.data, tensor_op_array, tidl::modelInfo::DlInferType_Float32, img.cols, img.rows, wanted_width, wanted_height, alpha);
                 }
-                else
-                {
-                    printf("out data type not supported\n");
+                else{
+                    printf("output data type not supported\n");
                     exit(1);
                 }
-                float alpha = 0.4f;
-                tidl::postprocess::blendSegMask(img.data, tensor_op_array, tidl::modelInfo::DlInferType_Int64, img.cols, img.rows, wanted_width, wanted_height, alpha);
+                
             }
             else if (!strcmp(modelInfo->m_preProcCfg.taskType.c_str(), "detection"))
             {
                 printf("preparing detection result \n");
                 std::vector<int32_t> format = {0, 1, 2, 3, 4, 5};
-                if (tidl::utility_functs::is_same_format(format, modelInfo->m_postProcCfg.formatter))
+                float threshold = modelInfo->m_vizThreshold;
+                //verify this condition TODO
+                if (output_tensors.size() == 3 && tidl::utility_functs::is_same_format(format, modelInfo->m_postProcCfg.formatter))
                 {
-                    printf("format found\n");
                     /* assuming three outputs: bboxes [1,nboxes,4] , labels [1,nboxes], score[1,nboxes] */
+                    /* How to confirm the type TODO auto var?? output_tensors.at(0).GetTypeInfo().GetTensorTypeAndShapeInfo().GetElementType() == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT */
                     float *bboxes = output_tensors.at(0).GetTensorMutableData<float>();
-                    std::cout << output_tensors.size()<< ":size\n";
                     int64_t *labels = output_tensors.at(1).GetTensorMutableData<int64_t>();
                     float *scores = output_tensors.at(2).GetTensorMutableData<float>();
-                    int nboxes = output_tensors.front().GetTensorTypeAndShapeInfo().GetShape()[1];
-                    for (int i = 0; i < 200; i=i+4)
-                    {
-                        printf("%f %f %f %f\n",bboxes[i], bboxes[i+1], bboxes[i+2], bboxes[i+3]);
-                    }
-                    for (int i = 0; i < 200; i=i+4)
-                    {
-                        printf("%f\n",scores[i]);
-                    }
-                    for (int i = 0; i < 200; i=i+4)
-                    {
-                        printf("%ld\n",labels[i]);
-                    }
-                    
-                    exit(1);
-                }
-                format = {0, 1, 2, 3, 5, 4};
-                if (tidl::utility_functs::is_same_format(format, modelInfo->m_postProcCfg.formatter))
-                {
+
                     std::list<float> detection_class_list, detectection_location_list, detectection_scores_list;
+                    int num_detections = 0;
+                    int nboxes = output_tensors.front().GetTensorTypeAndShapeInfo().GetShape()[1];
+                    for (int i = 0; i < nboxes; i = i + 4)
+                    {
+                        if (scores[i] >= threshold)
+                        {
+                            num_detections++;
+                            detectection_scores_list.push_back(scores[i]);
+                            detection_class_list.push_back(labels[i]);
+                            detectection_location_list.push_back(bboxes[i + 3]);
+                            detectection_location_list.push_back(bboxes[i + 2]);
+                            detectection_location_list.push_back(bboxes[i + 1]);
+                            detectection_location_list.push_back(bboxes[i]);
+                        }
+                    }
                     float detectection_scores[detectection_scores_list.size()];
                     float detection_class[detection_class_list.size()];
                     float detectection_location[detectection_location_list.size()];
-                    int num_detections = 0;
+                    std::copy(detectection_scores_list.begin(), detectection_scores_list.end(), detectection_scores);
+                    std::copy(detection_class_list.begin(), detection_class_list.end(), detection_class);
+                    std::copy(detectection_location_list.begin(), detectection_location_list.end(), detectection_location);
 
+                    printf("results %d\n", num_detections);
+                    tidl::postprocess::overlayBoundingBox(img, num_detections, detectection_location, detectection_scores, threshold);
+                    for (int i = 0; i < num_detections; i++)
+                    {
+                        printf("class %lf\n", detection_class[i]);
+                        printf("cordinates %lf %lf %lf %lf\n", detectection_location[i * 4], detectection_location[i * 4 + 1], detectection_location[i * 4 + 2], detectection_location[i * 4 + 3]);
+                        printf("score %lf\n", detectection_scores[i]);
+                    }
+                }
+                format = {0, 1, 2, 3, 5, 4};
+                if (output_tensors.size() == 2 && tidl::utility_functs::is_same_format(format, modelInfo->m_postProcCfg.formatter))
+                {
+
+                    int num_detections = 0;
+                    float threshold = modelInfo->m_vizThreshold;
+                    std::list<float> detection_class_list, detectection_location_list, detectection_scores_list;
                     if (op_tensor_type == ONNX_TENSOR_ELEMENT_DATA_TYPE_INT64)
                     {
                         int64_t *int64arr = output_tensors.front().GetTensorMutableData<int64_t>();
+                        int64_t *labels = output_tensors.at(1).GetTensorMutableData<int64_t>();
+                        int nboxes = output_tensors.at(0).GetTensorTypeAndShapeInfo().GetShape()[0];
+                        int elem_per_box = output_tensors.at(0).GetTensorTypeAndShapeInfo().GetShape()[1];
                         //parsing
-                        for (int i = 4; i < 1000; i = i + 5)
+                        for (int i = elem_per_box -1; i < nboxes * elem_per_box ;  i = i+elem_per_box)
                         {
-                            if (int64arr[i] > .3)
+                            if (int64arr[i] > threshold)
                             {
                                 num_detections++;
                                 detectection_scores_list.push_back(int64arr[i]);
-                                detection_class_list.push_back((i - 4) / 5);
+                                detection_class_list.push_back(labels[i/elem_per_box]);
                                 detectection_location_list.push_back(int64arr[i - 1] / img.cols);
                                 detectection_location_list.push_back(int64arr[i - 2] / img.cols);
                                 detectection_location_list.push_back(int64arr[i - 3] / img.cols);
@@ -370,15 +394,19 @@ namespace onnx
                     }
                     else if (op_tensor_type == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT)
                     {
-                        float *floatarr = output_tensors.front().GetTensorMutableData<float>();
+                        float *floatarr = output_tensors.at(0).GetTensorMutableData<float>();
+                        int64_t *labels = output_tensors.at(1).GetTensorMutableData<int64_t>();
+                        int nboxes = output_tensors.at(0).GetTensorTypeAndShapeInfo().GetShape()[0];
+                        int elem_per_box = output_tensors.at(0).GetTensorTypeAndShapeInfo().GetShape()[1];
                         //parsing
-                        for (int i = 4; i < 1000; i = i + 5)
+                        for (int i = elem_per_box -1; i < nboxes * elem_per_box ;  i = i+elem_per_box)
                         {
-                            if (floatarr[i] > .3)
+                            /*assuming last element is score */
+                            if (floatarr[i] > threshold)
                             {
                                 num_detections++;
                                 detectection_scores_list.push_back(floatarr[i]);
-                                detection_class_list.push_back((i - 4) / 5);
+                                detection_class_list.push_back(labels[i/elem_per_box]);
                                 detectection_location_list.push_back(floatarr[i - 1] / img.cols);
                                 detectection_location_list.push_back(floatarr[i - 2] / img.cols);
                                 detectection_location_list.push_back(floatarr[i - 3] / img.cols);
@@ -391,13 +419,14 @@ namespace onnx
                         printf("out data type not supported\n");
                         exit(1);
                     }
-
+                    float detectection_scores[detectection_scores_list.size()];
+                    float detection_class[detection_class_list.size()];
+                    float detectection_location[detectection_location_list.size()];
                     std::copy(detectection_scores_list.begin(), detectection_scores_list.end(), detectection_scores);
                     std::copy(detection_class_list.begin(), detection_class_list.end(), detection_class);
                     std::copy(detectection_location_list.begin(), detectection_location_list.end(), detectection_location);
 
                     printf("results %d\n", num_detections);
-                    float threshold = 0.35f;
                     tidl::postprocess::overlayBoundingBox(img, num_detections, detectection_location, detectection_scores, threshold);
                     for (int i = 0; i < num_detections; i++)
                     {
@@ -409,12 +438,14 @@ namespace onnx
             }
             cv::cvtColor(img, img, cv::COLOR_RGB2BGR);
             char filename[100];
-            strcpy(filename, "/home/a0496663/edgeai-tidl-tools/test_data/");
-            strcat(filename, "cpp_inference_out.jpg");
+            strcpy(filename, "test_data/");
+            strcat(filename, "cpp_inference_out");
+            strncat(filename, modelInfo->m_preProcCfg.modelName.c_str(), 7);
+            strcat(filename, ".jpg");
             bool check = cv::imwrite(filename, img);
             if (check == false)
             {
-                LOG(INFO) << "Saving the image, FAILED" << std::endl;
+                std::cout << "Saving the image, FAILED" << std::endl;
             }
             LOG(INFO) << "Done!\n";
             return 0;
