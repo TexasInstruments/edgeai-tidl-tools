@@ -46,15 +46,13 @@ namespace tidl
   *  \brief returns time in micro sec
   * @returns void
   */
-        double
-        get_us(struct timeval t);
+        double get_us(struct timeval t);
 
         /**
   *  \brief returns bool to check whether two array are same
   * @returns bool
   */
-        bool
-        is_same_format(std::vector<int32_t> format1, std::vector<int32_t> format2);
+        bool is_same_format(std::vector<int32_t> format1, std::vector<int32_t> format2);
 
     } // namespace utility_functs
 } //namespace tidl
