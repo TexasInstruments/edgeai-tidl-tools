@@ -2,8 +2,6 @@ include(GNUInstallDirs)
 
 add_compile_options(-std=c++11)
 
-# Specific compile optios across all targets
-#add_compile_definitions(MINIMAL_LOGGING)
 
 IF(NOT CMAKE_BUILD_TYPE)
   SET(CMAKE_BUILD_TYPE Release)
@@ -92,8 +90,6 @@ set(CMAKE_C_COMPILER gcc-5)
 set(CMAKE_CXX_COMPILER g++-5)
 endif()             
 
-#message("PROJECT_SOURCE_DIR =" ${PROJECT_SOURCE_DIR})
-#message("CMAKE_SOURCE_DIR =" ${CMAKE_SOURCE_DIR})
 
 include_directories(${PROJECT_SOURCE_DIR}
                     ${PROJECT_SOURCE_DIR}/..
@@ -123,10 +119,6 @@ include_directories(${PROJECT_SOURCE_DIR}
                     PUBLIC ${PROJECT_SOURCE_DIR}/utils
                     )
 
-#set(COMMON_LINK_LIBS
-#    utils
-#    common
-#    )
 
 
 if(X86_64 EQUAL 1)
@@ -192,11 +184,7 @@ function(build_app)
                           ${SYSTEM_LINK_LIBS}
                           post_process
                           pre_process
-                          arg_parsing
-                          utility_functs
-                          model_info
-                          edgeai_classnames
-                          ti_logger
+                          utils
                           ${lobs}
                           -Wl,--end-group)
 endfunction()

@@ -1,25 +1,38 @@
-/* Copyright 2017 The TensorFlow Authors. All Rights Reserved.
+/*
+Copyright (c) 2020 – 2021 Texas Instruments Incorporated
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+All rights reserved not granted herein.
 
-    http://www.apache.org/licenses/LICENSE-2.0
+Limited License.  
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-==============================================================================*/
+Texas Instruments Incorporated grants a world-wide, royalty-free, non-exclusive license under copyrights and patents it now or hereafter owns or controls to make, have made, use, import, offer to sell and sell ("Utilize") this software subject to the terms herein.  With respect to the foregoing patent license, such license is granted  solely to the extent that any such patent is necessary to Utilize the software alone.  The patent license shall not apply to any combinations which include this software, other than combinations with devices manufactured by or for TI (“TI Devices”).  No hardware patent is licensed hereunder.
+
+Redistributions must preserve existing copyright notices and reproduce this license (including the above copyright notice and the disclaimer and (if applicable) source code license limitations below) in the documentation and/or other materials provided with the distribution
+
+Redistribution and use in binary form, without modification, are permitted provided that the following conditions are met:
+
+*	No reverse engineering, decompilation, or disassembly of this software is permitted with respect to any software provided in binary form.
+
+*	any redistribution and use are licensed by TI for use only with TI Devices.
+
+*	Nothing shall obligate TI to provide you with source code for the software licensed and provided to you in object code.
+
+If software source code is provided to you, modification and redistribution of the source code are permitted provided that the following conditions are met:
+
+*	any redistribution and use of the source code, including any resulting derivative works, are licensed by TI for use only with TI Devices.
+
+*	any redistribution and use of any object code compiled from the source code and any resulting derivative works, are licensed by TI for use only with TI Devices.
+
+Neither the name of Texas Instruments Incorporated nor the names of its suppliers may be used to endorse or promote products derived from this software without specific prior written permission.
+
+DISCLAIMER.
+
+THIS SOFTWARE IS PROVIDED BY TI AND TI’S LICENSORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL TI AND TI’S LICENSORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+*/
 
 /* Module headers. */
 #include "post_process.h"
-
-/**
- * \brief Class implementing the image based object detection post-processing
- *        logic.
- */
 
 namespace tidl
 {
@@ -27,6 +40,7 @@ namespace tidl
     {
         using namespace cv;
         using namespace std;
+
         /**
  * Use OpenCV to do in-place update of a buffer with post processing content like
  * drawing bounding box around a detected object in the frame. Typically used for
@@ -61,6 +75,7 @@ namespace tidl
             }
             return img;
         }
+
         /**
  * Use OpenCV to do in-place update of a buffer with post processing content like
  * alpha blending a specific color for each classified pixel. Typically used for
@@ -76,9 +91,9 @@ namespace tidl
  *          detected for that pixel.
  * @returns original frame with some in-place post processing done
  */
+        template <class T>
         uchar *blendSegMask(uchar *frame,
-                            void *classes,
-                            tidl::modelInfo::DlInferType type,
+                            T *classes,
                             int32_t inDataWidth,
                             int32_t inDataHeight,
                             int32_t outDataWidth,
@@ -102,7 +117,7 @@ namespace tidl
 
             a = alpha * 255;
             sa = (1 - alpha) * 255;
-            // Here, (w, h) iterate over frame and (sw, sh) iterate over classes
+            /* Here, (w, h) iterate over frame and (sw, sh) iterate over classes*/
             for (h = 0; h < outDataHeight; h++)
             {
                 sh = (int32_t)(h * inDataHeight / outDataHeight);
@@ -113,30 +128,22 @@ namespace tidl
                     int32_t index;
                     sw = (int32_t)(w * inDataWidth / outDataWidth);
 
-                    // Get the RGB values from original image
+                    /* Get the RGB values from original image*/
                     r = *(ptr + 0);
                     g = *(ptr + 1);
                     b = *(ptr + 2);
 
-                    // sw and sh are scaled co-ordiates over the results[0] vector
-                    // Get the color corresponding to class detected at this co-ordinate
+                    /* sw and sh are scaled co-ordiates over the results[0] vector
+                    Get the color corresponding to class detected at this co-ordinate*/
                     index = (int32_t)(sh * inDataHeight + sw);
-                    if (type == tidl::modelInfo::DlInferType::DlInferType_Int64)
-                    {
-                        class_id = *((int64_t *)classes + index);
-                    }
-                    else if (type == tidl::modelInfo::DlInferType::DlInferType_Int32)
-                    {
-                        class_id = *((int32_t *)classes + index);
-                    }
-                    // class_id = classes[index];
+                    class_id = classes[index];
 
-                    // random color assignment based on class-id's
+                    /* random color assignment based on class-id's */
                     r_m = 10 * class_id;
                     g_m = 20 * class_id;
                     b_m = 30 * class_id;
 
-                    // Blend the original image with mask value
+                    /* Blend the original image with mask value*/
                     *(ptr + 0) = ((r * a) + (r_m * sa)) / 255;
                     *(ptr + 1) = ((g * a) + (g_m * sa)) / 255;
                     *(ptr + 2) = ((b * a) + (b_m * sa)) / 255;
@@ -147,6 +154,30 @@ namespace tidl
 
             return frame;
         }
+
+        template uchar *blendSegMask<int64_t>(uchar *frame,
+                                              int64_t *classes,
+                                              int32_t inDataWidth,
+                                              int32_t inDataHeight,
+                                              int32_t outDataWidth,
+                                              int32_t outDataHeight,
+                                              float alpha);
+
+        template uchar *blendSegMask<int32_t>(uchar *frame,
+                                              int32_t *classes,
+                                              int32_t inDataWidth,
+                                              int32_t inDataHeight,
+                                              int32_t outDataWidth,
+                                              int32_t outDataHeight,
+                                              float alpha);
+
+        template uchar *blendSegMask<float>(uchar *frame,
+                                            float *classes,
+                                            int32_t inDataWidth,
+                                            int32_t inDataHeight,
+                                            int32_t outDataWidth,
+                                            int32_t outDataHeight,
+                                            float alpha);
 
         /**
  *  \brief Takes a file name, and loads a list of labels from it, one per line, and
@@ -166,7 +197,7 @@ namespace tidl
             std::ifstream file(file_name);
             if (!file)
             {
-                // LOG(FATAL) << "Labels file " << file_name << " not found\n";
+                LOG_ERROR("Labels file  %s not found\n" , file_name.c_str());
                 return -1;
             }
             result->clear();

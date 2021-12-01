@@ -1,17 +1,35 @@
-/* Copyright 2017 The TensorFlow Authors. All Rights Reserved.
+/*
+Copyright (c) 2020 – 2021 Texas Instruments Incorporated
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+All rights reserved not granted herein.
 
-    http://www.apache.org/licenses/LICENSE-2.0
+Limited License.  
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-==============================================================================*/
+Texas Instruments Incorporated grants a world-wide, royalty-free, non-exclusive license under copyrights and patents it now or hereafter owns or controls to make, have made, use, import, offer to sell and sell ("Utilize") this software subject to the terms herein.  With respect to the foregoing patent license, such license is granted  solely to the extent that any such patent is necessary to Utilize the software alone.  The patent license shall not apply to any combinations which include this software, other than combinations with devices manufactured by or for TI (“TI Devices”).  No hardware patent is licensed hereunder.
+
+Redistributions must preserve existing copyright notices and reproduce this license (including the above copyright notice and the disclaimer and (if applicable) source code license limitations below) in the documentation and/or other materials provided with the distribution
+
+Redistribution and use in binary form, without modification, are permitted provided that the following conditions are met:
+
+*	No reverse engineering, decompilation, or disassembly of this software is permitted with respect to any software provided in binary form.
+
+*	any redistribution and use are licensed by TI for use only with TI Devices.
+
+*	Nothing shall obligate TI to provide you with source code for the software licensed and provided to you in object code.
+
+If software source code is provided to you, modification and redistribution of the source code are permitted provided that the following conditions are met:
+
+*	any redistribution and use of the source code, including any resulting derivative works, are licensed by TI for use only with TI Devices.
+
+*	any redistribution and use of any object code compiled from the source code and any resulting derivative works, are licensed by TI for use only with TI Devices.
+
+Neither the name of Texas Instruments Incorporated nor the names of its suppliers may be used to endorse or promote products derived from this software without specific prior written permission.
+
+DISCLAIMER.
+
+THIS SOFTWARE IS PROVIDED BY TI AND TI’S LICENSORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL TI AND TI’S LICENSORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+*/
 
 #ifndef _POST_PROCESS_H_
 #define _POST_PROCESS_H_
@@ -56,7 +74,7 @@ namespace tidl
  * @param threshold threshold.
  * @returns original frame with some in-place post processing done
  */
-        cv::Mat overlayBoundingBox(cv::Mat img, int num_of_detection,  float *cordinates, float *scores, float threshold);
+        cv::Mat overlayBoundingBox(cv::Mat img, int num_of_detection, float *cordinates, float *scores, float threshold);
 
         /**
  * Use OpenCV to do in-place update of a buffer with post processing content like
@@ -73,9 +91,9 @@ namespace tidl
  *          detected for that pixel.
  * @returns original frame with some in-place post processing done
  */
+        template <class T>
         uchar *blendSegMask(uchar *frame,
-                            void *classes,
-                            tidl::modelInfo::DlInferType type,
+                            T *classes,
                             int32_t inDataWidth,
                             int32_t inDataHeight,
                             int32_t outDataWidth,
@@ -91,7 +109,7 @@ namespace tidl
                        float threshold, std::vector<std::pair<float, int>> *top_results,
                        bool input_floating)
         {
-            // Will contain top N results in ascending order.
+            /* Will contain top N results in ascending order.*/
             std::priority_queue<std::pair<float, int>, std::vector<std::pair<float, int>>,
                                 std::greater<std::pair<float, int>>>
                 top_result_pq;
@@ -104,8 +122,8 @@ namespace tidl
                     value = prediction[i];
                 else
                     value = prediction[i] / 255.0;
-                // Only add it if it beats the threshold and has a chance at being in
-                // the top N.
+                /* Only add it if it beats the threshold and has a chance at being in
+                the top N. */
                 if (value < threshold)
                 {
                     continue;
@@ -113,14 +131,14 @@ namespace tidl
 
                 top_result_pq.push(std::pair<float, int>(value, i));
 
-                // If at capacity, kick the smallest value out.
+                /* If at capacity, kick the smallest value out. */
                 if (top_result_pq.size() > num_results)
                 {
                     top_result_pq.pop();
                 }
             }
 
-            // Copy to output vector and reverse into descending order.
+            /* Copy to output vector and reverse into descending order. */
             while (!top_result_pq.empty())
             {
                 top_results->push_back(top_result_pq.top());
@@ -170,5 +188,5 @@ namespace tidl
                                   int32_t N);
     } // namespace tidl::postprocess
 
-#endif /* _POST_PROCESS_H_ */
+#endif // _POST_PROCESS_H_
 }

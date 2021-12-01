@@ -10,6 +10,7 @@
 ## Introduction
 
    - CPP APIs os the DL runtime offered by solutions only supports the model inference. So the user is expeted  to run the [Python Examples](../../README.md#python-exampe) on PC to generate the model artifacts.
+   - CPP API require yaml file reading lib. So the user is expected to install libyaml-cpp-dev by running command "sudo apt-get install libyaml-cpp-dev"
 > Note : We are plannign to clean-up and unify the user inetrface for CPP examples by next release. We are also planning to add more CPP exmaples.
 
 ## Setup

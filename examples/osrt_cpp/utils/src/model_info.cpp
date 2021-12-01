@@ -1,35 +1,35 @@
 /*
- *  Copyright (C) 2021 Texas Instruments Incorporated - http://www.ti.com/
- *
- *  Redistribution and use in source and binary forms, with or without
- *  modification, are permitted provided that the following conditions
- *  are met:
- *
- *    Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- *
- *    Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the
- *    distribution.
- *
- *    Neither the name of Texas Instruments Incorporated nor the names of
- *    its contributors may be used to endorse or promote products derived
- *    from this software without specific prior written permission.
- *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- *  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- *  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- *  A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- *  OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- *  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- *  LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- *  DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- *  THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- *  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
-/* Standard headers. */
+Copyright (c) 2020 – 2021 Texas Instruments Incorporated
+
+All rights reserved not granted herein.
+
+Limited License.  
+
+Texas Instruments Incorporated grants a world-wide, royalty-free, non-exclusive license under copyrights and patents it now or hereafter owns or controls to make, have made, use, import, offer to sell and sell ("Utilize") this software subject to the terms herein.  With respect to the foregoing patent license, such license is granted  solely to the extent that any such patent is necessary to Utilize the software alone.  The patent license shall not apply to any combinations which include this software, other than combinations with devices manufactured by or for TI (“TI Devices”).  No hardware patent is licensed hereunder.
+
+Redistributions must preserve existing copyright notices and reproduce this license (including the above copyright notice and the disclaimer and (if applicable) source code license limitations below) in the documentation and/or other materials provided with the distribution
+
+Redistribution and use in binary form, without modification, are permitted provided that the following conditions are met:
+
+*	No reverse engineering, decompilation, or disassembly of this software is permitted with respect to any software provided in binary form.
+
+*	any redistribution and use are licensed by TI for use only with TI Devices.
+
+*	Nothing shall obligate TI to provide you with source code for the software licensed and provided to you in object code.
+
+If software source code is provided to you, modification and redistribution of the source code are permitted provided that the following conditions are met:
+
+*	any redistribution and use of the source code, including any resulting derivative works, are licensed by TI for use only with TI Devices.
+
+*	any redistribution and use of any object code compiled from the source code and any resulting derivative works, are licensed by TI for use only with TI Devices.
+
+Neither the name of Texas Instruments Incorporated nor the names of its suppliers may be used to endorse or promote products derived from this software without specific prior written permission.
+
+DISCLAIMER.
+
+THIS SOFTWARE IS PROVIDED BY TI AND TI’S LICENSORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL TI AND TI’S LICENSORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+*/
 
 #include "../include/model_info.h"
 
@@ -54,8 +54,8 @@ namespace tidl
             const YAML::Node &n = appConfig["session"];
             int32_t status = 0;
 
-            // Validate the parsed yaml configuration and create the configuration
-            // for the inference object creation.
+            /* Validate the parsed yaml configuration and create the configuration
+            for the inference object creation. */
             if (!n)
             {
                 LOG_ERROR("Inference configuration parameters  missing.\n");
@@ -78,7 +78,7 @@ namespace tidl
             }
             else
             {
-                // Initialize the inference configuration parameter object
+                /*Initialize the inference configuration parameter object*/
                 infConfig.rtType = n["session_name"].as<std::string>();
 
                 if (infConfig.rtType == "tvmdlr")
@@ -125,8 +125,8 @@ namespace tidl
             const YAML::Node &preProc = yaml["preprocess"];
             int32_t status = 0;
 
-            // Validate the parsed yaml configuration and create the configuration
-            // for the inference object creation.
+            /*Validate the parsed yaml configuration and create the configuration 
+            for the inference object creation.*/
             if (!preProc)
             {
                 LOG_ERROR("Preprocess configuration parameters missing.\n");
@@ -158,13 +158,13 @@ namespace tidl
                 status = -1;
             }
 
-            // Check if crop information exists
+            /* Check if crop information exists */
             if (status == 0)
             {
                 config.rtType = session["session_name"].as<std::string>();
                 config.taskType = taskType.as<std::string>();
 
-                // Read the width and height values
+                /* Read the width and height values */
                 const YAML::Node &cropNode = preProc["crop"];
 
                 if (cropNode.Type() == YAML::NodeType::Sequence)
@@ -178,24 +178,24 @@ namespace tidl
                     config.outDataWidth = config.outDataHeight;
                 }
 
-                // Read the data layout
+                /* Read the data layout */
                 config.dataLayout = preProc["data_layout"].as<std::string>();
 
-                // Read the mean values
+                /* Read the mean values */
                 const YAML::Node &meanNode = preProc["mean"];
                 for (uint32_t i = 0; i < meanNode.size(); i++)
                 {
                     config.mean.push_back(meanNode[i].as<float>());
                 }
 
-                // Read the scale values
+                /* Read the scale values */
                 const YAML::Node &scaleNode = preProc["scale"];
                 for (uint32_t i = 0; i < scaleNode.size(); i++)
                 {
                     config.scale.push_back(scaleNode[i].as<float>());
                 }
 
-                // Read the width and height values
+                /* Read the width and height values */
                 const YAML::Node &resizeNode = preProc["resize"];
 
                 if (resizeNode.Type() == YAML::NodeType::Sequence)
@@ -233,8 +233,8 @@ namespace tidl
             const YAML::Node &postProc = yaml["postprocess"];
             int32_t status = 0;
 
-            // Validate the parsed yaml configuration and create the configuration
-            // for the inference object creation.
+            /* Validate the parsed yaml configuration and create the configuration
+            for the inference object creation. */
             if (!session)
             {
                 LOG_ERROR("Inference configuration parameters  missing.\n");
@@ -256,7 +256,7 @@ namespace tidl
                 config.rtType = session["session_name"].as<std::string>();
                 config.taskType = taskType.as<std::string>();
 
-                // Read the data layout
+                /* Read the data layout */
                 if (postProc["data_layout"])
                 {
                     config.dataLayout = postProc["data_layout"].as<std::string>();
@@ -267,19 +267,18 @@ namespace tidl
                     const YAML::Node &formatterNode = postProc["formatter"]["src_indices"];
 
                     /* default is assumed to be [0 1 2 3 4 5] which means
-             * [x1y1 x2y2 label score].
-             *
-             * CASE 1: Only 2 values are specified. These are assumed to
-             *         be "label" and "score". Keep [0..3] same as the default
-             *         values but overwrite [4,5] with these two values.
-             *
-             * CASE 2: Only 4 values are specified. These are assumed to
-             *         be "x1y1" and "x2y2". Keep [4,5] same as the default
-             *         values but overwrite [0..3] with these four values.
-             *
-             * CASE 3: All 6 values are specified. Overwrite the defaults.
-             *
-             */
+                    * [x1y1 x2y2 label score].
+                    *
+                    * CASE 1: Only 2 values are specified. These are assumed to
+                    *         be "label" and "score". Keep [0..3] same as the default
+                    *         values but overwrite [4,5] with these two values.
+                    *
+                    * CASE 2: Only 4 values are specified. These are assumed to
+                    *         be "x1y1" and "x2y2". Keep [4,5] same as the default
+                    *         values but overwrite [0..3] with these four values.
+                    *
+                    * CASE 3: All 6 values are specified. Overwrite the defaults.
+                    * */
                     if (formatterNode.size() == 2)
                     {
                         config.formatter[4] = formatterNode[0].as<int32_t>();
@@ -319,7 +318,7 @@ namespace tidl
 
                 if (metric && metric["label_offset_pred"])
                 {
-                    // Read the width and height values
+                    /* Read the width and height values */
                     const YAML::Node &offset = metric["label_offset_pred"];
 
                     if (offset.Type() == YAML::NodeType::Scalar)
@@ -375,7 +374,7 @@ namespace tidl
             int32_t status = 0;
             const std::string &configFile = m_modelPath + "/param.yaml";
 
-            // Check if the specified configuration file exists
+            /* Check if the specified configuration file exists */
             std::ifstream file(configFile);
             if (!file)
             {
@@ -387,7 +386,7 @@ namespace tidl
             {
                 yaml = YAML::LoadFile(configFile.c_str());
 
-                // Populate m_infConfig from yaml
+                /* Populate m_infConfig from yaml */
                 status = getInfererConfig(yaml, m_modelPath, m_infConfig);
                 if (status < 0)
                 {
@@ -395,7 +394,7 @@ namespace tidl
                 }
             }
 
-            // Populate pre-process config from yaml
+            /* Populate pre-process config from yaml */
             if (status == 0)
             {
                 status = getPreprocessImageConfig(yaml, m_preProcCfg);
@@ -406,7 +405,7 @@ namespace tidl
                 }
             }
 
-            // Populate post-process config from yaml
+            /* Populate post-process config from yaml */
             if (status == 0)
             {
                 status = getPostprocessImageConfig(yaml, m_postProcCfg);
@@ -416,37 +415,34 @@ namespace tidl
                     LOG_ERROR("getPostprocessImageConfig() failed.\n");
                 }
             }
-            // Populate post-process config from yaml
+            /* Populate post-process config from yaml */
             if (status == 0)
             {
                 /* Set input data width and height based on the infererence engine
-         * information. This is only used for semantic segmentation models
-         * which have 4 dimensions. The logic is extended to any models that
-         * have atleast three dimensions which has the following
-         * - Num channels (C)
-         * - Height (H)
-         * - Width (W)
-         *
-         * The semantic segmentation model output will have one extra dimension
-         * which leads to NCHW dimensions in the output.
-         * - Batch (N)
-         *
-         * For all other cases, the default values (set in the post-process
-         * obhect are used.
-         */
+                * information. This is only used for semantic segmentation models
+                * which have 4 dimensions. The logic is extended to any models that
+                * have atleast three dimensions which has the following
+                * - Num channels (C)
+                * - Height (H)
+                * - Width (W)
+                *
+                * The semantic segmentation model output will have one extra dimension
+                * which leads to NCHW dimensions in the output.
+                * - Batch (N)
+                *
+                * For all other cases, the default values (set in the post-process
+                * obhect are used.
+                */
                 if (m_postProcCfg.taskType == "segmentation")
                 {
                     /* Either NCHW or CHW. Width is the last dimention and the height 
-             * is the previous to last.
-             */
-                    // m_postProcCfg.inDataWidth = ifInfo->shape[ifInfo->dim - 1];
-                    // m_postProcCfg.inDataHeight = ifInfo->shape[ifInfo->dim - 2];
+                    is the previous to last. */
                     m_postProcCfg.classnames = nullptr;
                     m_postProcCfg.alpha = m_alpha;
                 }
                 else
                 {
-                    // Query the output data dimension ofrom the pre-process module.
+                    /* Query the output data dimension ofrom the pre-process module. */
                     m_postProcCfg.inDataWidth = m_preProcCfg.outDataWidth;
                     m_postProcCfg.inDataHeight = m_preProcCfg.outDataHeight;
 

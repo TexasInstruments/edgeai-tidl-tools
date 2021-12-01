@@ -1,17 +1,35 @@
-/* Copyright 2017 The TensorFlow Authors. All Rights Reserved.
+/*
+Copyright (c) 2020 – 2021 Texas Instruments Incorporated
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+All rights reserved not granted herein.
 
-    http://www.apache.org/licenses/LICENSE-2.0
+Limited License.  
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-==============================================================================*/
+Texas Instruments Incorporated grants a world-wide, royalty-free, non-exclusive license under copyrights and patents it now or hereafter owns or controls to make, have made, use, import, offer to sell and sell ("Utilize") this software subject to the terms herein.  With respect to the foregoing patent license, such license is granted  solely to the extent that any such patent is necessary to Utilize the software alone.  The patent license shall not apply to any combinations which include this software, other than combinations with devices manufactured by or for TI (“TI Devices”).  No hardware patent is licensed hereunder.
+
+Redistributions must preserve existing copyright notices and reproduce this license (including the above copyright notice and the disclaimer and (if applicable) source code license limitations below) in the documentation and/or other materials provided with the distribution
+
+Redistribution and use in binary form, without modification, are permitted provided that the following conditions are met:
+
+*	No reverse engineering, decompilation, or disassembly of this software is permitted with respect to any software provided in binary form.
+
+*	any redistribution and use are licensed by TI for use only with TI Devices.
+
+*	Nothing shall obligate TI to provide you with source code for the software licensed and provided to you in object code.
+
+If software source code is provided to you, modification and redistribution of the source code are permitted provided that the following conditions are met:
+
+*	any redistribution and use of the source code, including any resulting derivative works, are licensed by TI for use only with TI Devices.
+
+*	any redistribution and use of any object code compiled from the source code and any resulting derivative works, are licensed by TI for use only with TI Devices.
+
+Neither the name of Texas Instruments Incorporated nor the names of its suppliers may be used to endorse or promote products derived from this software without specific prior written permission.
+
+DISCLAIMER.
+
+THIS SOFTWARE IS PROVIDED BY TI AND TI’S LICENSORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL TI AND TI’S LICENSORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+*/
 
 #include "onnx_main.h"
 
@@ -26,7 +44,7 @@ namespace onnx
             std::string labels_path = s->labels_file_path;
             std::string artifacts_path;
             /*check artifacts path need to be overwritten from cmd line args */
-            if (strcmp(s->artifact_path.c_str(), ""))
+            if (s->artifact_path == "")
                 artifacts_path = s->artifact_path;
             else
                 artifacts_path = modelInfo->m_infConfig.artifactsPath;
@@ -36,7 +54,7 @@ namespace onnx
             /* checking model path present or not*/
             if (!modelInfo->m_infConfig.modelFile.c_str())
             {
-                printf("no model file name\n");
+                LOG_INFO("no model file name\n");
                 exit(-1);
             }
 
@@ -46,12 +64,17 @@ namespace onnx
             Ort::SessionOptions session_options;
             session_options.SetIntraOpNumThreads(1);
 
-            c_api_tidl_options *options = (c_api_tidl_options *)malloc(sizeof(c_api_tidl_options));
-
-            strcpy(options->artifacts_folder, artifacts_path.c_str());
             if (s->accel)
             {
-                printf("accelerated mode\n");
+                LOG_INFO("accelerated mode\n");
+                c_api_tidl_options *options = (c_api_tidl_options *)malloc(sizeof(c_api_tidl_options));
+                strcpy(options->artifacts_folder, artifacts_path.c_str());
+                options->debug_level = 0;
+                if (options == NULL)
+                {
+                    LOG_ERROR("failed to allocate c_api_tidl_options \n");
+                    exit(1);
+                }
                 OrtStatus *status = OrtSessionOptionsAppendExecutionProvider_Tidl(session_options, options);
             }
             else
@@ -63,7 +86,7 @@ namespace onnx
             Ort::AllocatorWithDefaultOptions allocator;
             /* ORT Session */
             Ort::Session session(env, model_path.c_str(), session_options);
-            printf("Loaded model %s\n", modelInfo->m_infConfig.modelFile.c_str());
+            LOG_INFO("Loaded model %s\n", modelInfo->m_infConfig.modelFile.c_str());
             /* Input information */
             size_t num_input_nodes = session.GetInputCount();
             std::vector<const char *> input_node_names(num_input_nodes);
@@ -77,16 +100,15 @@ namespace onnx
             /* assuming NCHW*/
             if (wanted_channels != modelInfo->m_preProcCfg.numChans)
             {
-                LOG(INFO) << "missmatch in YAML parsed wanted channels and model " << wanted_channels << " " << input_node_dims[1] << "\n";
-                ;
+                LOG_INFO("missmatch in YAML parsed wanted channels:%d and model:%d\n", wanted_channels, input_node_dims[1]);
             }
             if (wanted_height != modelInfo->m_preProcCfg.outDataHeight)
             {
-                LOG(INFO) << "missmatch in YAML parsed wanted height and model " << wanted_height << " " << input_node_dims[2] << "\n";
+                LOG_INFO("missmatch in YAML parsed wanted height:%d and model:%d\n", wanted_height, input_node_dims[2]);
             }
             if (wanted_width != modelInfo->m_preProcCfg.outDataWidth)
             {
-                LOG(INFO) << "missmatch in YAML parsed wanted width and model " << wanted_width << " " << input_node_dims[3] << "\n";
+                LOG_INFO("missmatch in YAML parsed wanted width:%d and model:%d\n", wanted_width, input_node_dims[3]);
                 ;
             }
             /* output information */
@@ -101,63 +123,64 @@ namespace onnx
             std::vector<int64_t> output_node_dims = output_tensor_info.GetShape();
             size_t output_tensor_size = output_node_dims[1];
 
-            LOG(INFO) << "number of inputs: " << num_input_nodes << "\n";
-            LOG(INFO) << "number of outputs: " << num_output_nodes << "\n";
-            LOG(INFO) << "input(0) name: " << input_node_names[0] << "\n";
-            // iterate over all input nodes
+            LOG_INFO("number of inputs:%d \n", num_input_nodes);
+            LOG_INFO("number of outputs: ", num_output_nodes);
+            LOG_INFO("input(0) name: ", input_node_names[0]);
+            /* iterate over all input nodes */
             for (int i = 0; i < num_input_nodes; i++)
             {
-                // print input node names
+                /* print input node names */
                 char *input_name = session.GetInputName(i, allocator);
-                printf("Input %d : name=%s\n", i, input_name);
+                LOG_INFO("Input %d : name=%s\n", i, input_name);
                 input_node_names[i] = input_name;
 
-                // print input node types
+                /* print input node types */
                 Ort::TypeInfo type_info = session.GetInputTypeInfo(i);
                 auto tensor_info = type_info.GetTensorTypeAndShapeInfo();
 
                 ONNXTensorElementDataType type = tensor_info.GetElementType();
-                printf("Input %d : type=%d\n", i, type);
-                // print input shapes/dims
+                LOG_INFO("Input %d : type=%d\n", i, type);
+                /* print input shapes/dims */
                 input_node_dims = tensor_info.GetShape();
-                printf("Input %d : num_dims=%zu\n", i, input_node_dims.size());
+                LOG_INFO("Input %d : num_dims=%zu\n", i, input_node_dims.size());
                 for (int j = 0; j < input_node_dims.size(); j++)
                 {
-                    printf("Input %d : dim %d=%jd\n", i, j, input_node_dims[j]);
+                    LOG_INFO("Input %d : dim %d=%jd\n", i, j, input_node_dims[j]);
                 }
             }
             if (num_input_nodes != 1)
             {
-                LOG(INFO) << "supports only single input model \n";
+                LOG_INFO("supports only single input model \n");
                 exit(1);
             }
             int num_iter = s->loop_count;
-            size_t input_tensor_size = wanted_channels * wanted_height * wanted_width; // simplify ... using known dim values to calculate size
+            /* simplify ... using known dim values to calculate size */
+            size_t input_tensor_size = wanted_channels * wanted_height * wanted_width;
             if (input_tensor_type == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT)
             {
                 inData = TIDLRT_allocSharedMem(32, input_tensor_size * sizeof(float));
                 if (inData == NULL)
                 {
-                    printf("Could not allocate memory for inData \n ");
+                    LOG_INFO("Could not allocate memory for inData \n ");
                     exit(0);
                 }
                 img = tidl::preprocess::preprocImage<float>(image_path, (float *)inData, modelInfo->m_preProcCfg);
             }
             else
             {
-                printf("indata type not supported yet \n ");
-                exit(0);
+                LOG_INFO("indata type not supported yet \n ");
+                exit(-1);
             }
-            printf("Output name -- %s \n", *(output_node_names.data()));
+            LOG_INFO("Output name -- %s \n", *(output_node_names.data()));
 
             auto memory_info = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
-            printf("create cpu done\n");
+            LOG_INFO("create cpu done\n");
 
             void *outData = TIDLRT_allocSharedMem(16, output_tensor_size * sizeof(float));
             if (outData == NULL)
             {
-                printf("Could not allocate memory for outData \n ");
-                exit(0);
+                LOG_INFO("Could not allocate memory for outData \n ");
+                exit(-1);
             }
 
 #if ORT_ZERO_COPY_API
@@ -191,8 +214,8 @@ namespace onnx
             /* add further input types here */
             else
             {
-                printf("in data type not supported\n");
-                exit(1);
+                LOG_INFO("in data type not supported\n");
+                exit(-1);
             }
             Ort::Value input_tensor = Ort::Value::CreateTensor(memory_info, inData, input_tensor_size_bytes, input_node_dims.data(), 4, input_tensor_type);
             assert(input_tensor.IsTensor());
@@ -202,7 +225,7 @@ namespace onnx
             std::vector<Ort::Value> output_tensors;
             if (s->loop_count >= 1)
             {
-                printf("Session.Run() - Started for warmup runs\n");
+                LOG_INFO("Session.Run() - Started for warmup runs\n");
                 for (int i = 0; i < s->number_of_warmup_runs; i++)
                 {
                     output_tensors = session.Run(run_options, input_node_names.data(), &input_tensor, num_input_nodes, output_node_names.data(), num_output_nodes);
@@ -218,18 +241,18 @@ namespace onnx
             assert(output_tensors.size() == 1 && output_tensors.front().IsTensor());
 #endif
 
-            printf("invoked\n");
-            printf("average time: %lf ms \n",
-                   (tidl::utility_functs::get_us(stop_time) - tidl::utility_functs::get_us(start_time)) / (num_iter * 1000));
+            LOG_INFO("invoked\n");
+            LOG_INFO("average time: %lf ms \n",
+                     (tidl::utility_functs::get_us(stop_time) - tidl::utility_functs::get_us(start_time)) / (num_iter * 1000));
             /* Get output tensor type */
             ONNXTensorElementDataType op_tensor_type = output_tensors.front()
                                                            .GetTypeInfo()
                                                            .GetTensorTypeAndShapeInfo()
                                                            .GetElementType();
 
-            if (!strcmp(modelInfo->m_preProcCfg.taskType.c_str(), "classification"))
+            if (modelInfo->m_preProcCfg.taskType == "classification")
             {
-                printf("preparing classification result \n");
+                LOG_INFO("preparing classification result \n");
                 /* Get pointer to output tensor float values*/
                 std::vector<std::pair<float, int>> top_results;
                 const float threshold = 0.001f;
@@ -240,7 +263,7 @@ namespace onnx
                     outputoffset = 0;
                 else
                     outputoffset = 1;
-                // Determine most common index
+                /* Determine most common index */
                 float max_val = 0.0;
                 int max_index = 0;
                 if (op_tensor_type == ONNX_TENSOR_ELEMENT_DATA_TYPE_INT64)
@@ -275,55 +298,59 @@ namespace onnx
                 }
                 else
                 {
-                    printf("out data type not supported yet \n ");
-                    exit(0);
+                    LOG_ERROR("out data type not supported yet \n ");
+                    exit(-1);
                 }
 
                 std::vector<std::string> labels;
                 size_t label_count;
                 if (tidl::postprocess::ReadLabelsFile(s->labels_file_path, &labels, &label_count) != 0)
+                {
+                    LOG_ERROR("failed to read label file");
                     exit(-1);
-                printf("MAX: class [%d] = class Name  %s Max val: %lf\n", max_index, labels[max_index + outputoffset].c_str(), max_val);
+                }
+                LOG_INFO("MAX: class [%d] = class Name  %s Max val: %lf\n", max_index, labels[max_index + outputoffset].c_str(), max_val);
                 for (const auto &result : top_results)
                 {
                     const float confidence = result.first;
                     const int index = result.second;
-                    std::cout << confidence << ": " << index << " " << labels[index + 1] << "\n";
+                    LOG_INFO("%f: %d %s\n", confidence, index, labels[index + outputoffset].c_str());
                 }
                 int num_results = 5;
                 img.data = tidl::postprocess::overlayTopNClasses(img.data, top_results, &labels, img.cols, img.rows, num_results);
             }
-            else if (!strcmp(modelInfo->m_preProcCfg.taskType.c_str(), "segmentation"))
+            else if (modelInfo->m_preProcCfg.taskType == "segmentation")
             {
-                printf("preparing segmentation result \n");
+                LOG_INFO("preparing segmentation result \n");
                 /* if indata and out data is diff resize the image 
                 check whether img need to be resized based on out data
                 asssuming out put format [1,1,,width,height]*/
                 wanted_height = output_tensors.front().GetTensorTypeAndShapeInfo().GetShape()[2];
                 wanted_width = output_tensors.front().GetTensorTypeAndShapeInfo().GetShape()[3];
                 cv::resize(img, img, cv::Size(wanted_width, wanted_height), 0, 0, cv::INTER_AREA);
-                void *tensor_op_array = output_tensors.front().GetTensorMutableData<void>();
                 float alpha = modelInfo->m_postProcCfg.alpha;
                 if (op_tensor_type == ONNX_TENSOR_ELEMENT_DATA_TYPE_INT64)
                 {
-                    img.data = tidl::postprocess::blendSegMask(img.data, tensor_op_array, tidl::modelInfo::DlInferType_Int64, img.cols, img.rows, wanted_width, wanted_height, alpha);
+                    int64_t *tensor_op_array = output_tensors.front().GetTensorMutableData<int64_t>();
+                    img.data = tidl::postprocess::blendSegMask<int64_t>(img.data, tensor_op_array, img.cols, img.rows, wanted_width, wanted_height, alpha);
                 }
                 else if (op_tensor_type == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT)
                 {
-                    img.data = tidl::postprocess::blendSegMask(img.data, tensor_op_array, tidl::modelInfo::DlInferType_Float32, img.cols, img.rows, wanted_width, wanted_height, alpha);
+                    float *tensor_op_array = output_tensors.front().GetTensorMutableData<float>();
+                    img.data = tidl::postprocess::blendSegMask<float>(img.data, tensor_op_array, img.cols, img.rows, wanted_width, wanted_height, alpha);
                 }
-                else{
-                    printf("output data type not supported\n");
-                    exit(1);
+                else
+                {
+                    LOG_INFO("output data type not supported\n");
+                    exit(-1);
                 }
-                
             }
-            else if (!strcmp(modelInfo->m_preProcCfg.taskType.c_str(), "detection"))
+            else if (modelInfo->m_preProcCfg.taskType == "detection")
             {
-                printf("preparing detection result \n");
+                LOG_INFO("preparing detection result \n");
                 std::vector<int32_t> format = {0, 1, 2, 3, 4, 5};
                 float threshold = modelInfo->m_vizThreshold;
-                //verify this condition TODO
+                /*verify this condition TODO */
                 if (output_tensors.size() == 3 && tidl::utility_functs::is_same_format(format, modelInfo->m_postProcCfg.formatter))
                 {
                     /* assuming three outputs: bboxes [1,nboxes,4] , labels [1,nboxes], score[1,nboxes] */
@@ -355,13 +382,13 @@ namespace onnx
                     std::copy(detection_class_list.begin(), detection_class_list.end(), detection_class);
                     std::copy(detectection_location_list.begin(), detectection_location_list.end(), detectection_location);
 
-                    printf("results %d\n", num_detections);
+                    LOG_INFO("results %d\n", num_detections);
                     tidl::postprocess::overlayBoundingBox(img, num_detections, detectection_location, detectection_scores, threshold);
                     for (int i = 0; i < num_detections; i++)
                     {
-                        printf("class %lf\n", detection_class[i]);
-                        printf("cordinates %lf %lf %lf %lf\n", detectection_location[i * 4], detectection_location[i * 4 + 1], detectection_location[i * 4 + 2], detectection_location[i * 4 + 3]);
-                        printf("score %lf\n", detectection_scores[i]);
+                        LOG_INFO("class %lf\n", detection_class[i]);
+                        LOG_INFO("cordinates %lf %lf %lf %lf\n", detectection_location[i * 4], detectection_location[i * 4 + 1], detectection_location[i * 4 + 2], detectection_location[i * 4 + 3]);
+                        LOG_INFO("score %lf\n", detectection_scores[i]);
                     }
                 }
                 format = {0, 1, 2, 3, 5, 4};
@@ -377,14 +404,14 @@ namespace onnx
                         int64_t *labels = output_tensors.at(1).GetTensorMutableData<int64_t>();
                         int nboxes = output_tensors.at(0).GetTensorTypeAndShapeInfo().GetShape()[0];
                         int elem_per_box = output_tensors.at(0).GetTensorTypeAndShapeInfo().GetShape()[1];
-                        //parsing
-                        for (int i = elem_per_box -1; i < nboxes * elem_per_box ;  i = i+elem_per_box)
+                        /*parsing */
+                        for (int i = elem_per_box - 1; i < nboxes * elem_per_box; i = i + elem_per_box)
                         {
                             if (int64arr[i] > threshold)
                             {
                                 num_detections++;
                                 detectection_scores_list.push_back(int64arr[i]);
-                                detection_class_list.push_back(labels[i/elem_per_box]);
+                                detection_class_list.push_back(labels[i / elem_per_box]);
                                 detectection_location_list.push_back(int64arr[i - 1] / img.cols);
                                 detectection_location_list.push_back(int64arr[i - 2] / img.cols);
                                 detectection_location_list.push_back(int64arr[i - 3] / img.cols);
@@ -398,15 +425,15 @@ namespace onnx
                         int64_t *labels = output_tensors.at(1).GetTensorMutableData<int64_t>();
                         int nboxes = output_tensors.at(0).GetTensorTypeAndShapeInfo().GetShape()[0];
                         int elem_per_box = output_tensors.at(0).GetTensorTypeAndShapeInfo().GetShape()[1];
-                        //parsing
-                        for (int i = elem_per_box -1; i < nboxes * elem_per_box ;  i = i+elem_per_box)
+                        /*parsing */
+                        for (int i = elem_per_box - 1; i < nboxes * elem_per_box; i = i + elem_per_box)
                         {
                             /*assuming last element is score */
                             if (floatarr[i] > threshold)
                             {
                                 num_detections++;
                                 detectection_scores_list.push_back(floatarr[i]);
-                                detection_class_list.push_back(labels[i/elem_per_box]);
+                                detection_class_list.push_back(labels[i / elem_per_box]);
                                 detectection_location_list.push_back(floatarr[i - 1] / img.cols);
                                 detectection_location_list.push_back(floatarr[i - 2] / img.cols);
                                 detectection_location_list.push_back(floatarr[i - 3] / img.cols);
@@ -416,8 +443,8 @@ namespace onnx
                     }
                     else
                     {
-                        printf("out data type not supported\n");
-                        exit(1);
+                        LOG_INFO("out data type not supported\n");
+                        exit(-1);
                     }
                     float detectection_scores[detectection_scores_list.size()];
                     float detection_class[detection_class_list.size()];
@@ -426,28 +453,28 @@ namespace onnx
                     std::copy(detection_class_list.begin(), detection_class_list.end(), detection_class);
                     std::copy(detectection_location_list.begin(), detectection_location_list.end(), detectection_location);
 
-                    printf("results %d\n", num_detections);
+                    LOG_INFO("results %d\n", num_detections);
                     tidl::postprocess::overlayBoundingBox(img, num_detections, detectection_location, detectection_scores, threshold);
                     for (int i = 0; i < num_detections; i++)
                     {
-                        printf("class %lf\n", detection_class[i]);
-                        printf("cordinates %lf %lf %lf %lf\n", detectection_location[i * 4], detectection_location[i * 4 + 1], detectection_location[i * 4 + 2], detectection_location[i * 4 + 3]);
-                        printf("score %lf\n", detectection_scores[i]);
+                        LOG_INFO("class %lf\n", detection_class[i]);
+                        LOG_INFO("cordinates %lf %lf %lf %lf\n", detectection_location[i * 4], detectection_location[i * 4 + 1], detectection_location[i * 4 + 2], detectection_location[i * 4 + 3]);
+                        LOG_INFO("score %lf\n", detectection_scores[i]);
                     }
                 }
             }
             cv::cvtColor(img, img, cv::COLOR_RGB2BGR);
-            char filename[100];
+            char filename[500];
             strcpy(filename, "test_data/");
             strcat(filename, "cpp_inference_out");
-            strncat(filename, modelInfo->m_preProcCfg.modelName.c_str(), 7);
+            strcat(filename, modelInfo->m_preProcCfg.modelName.c_str());
             strcat(filename, ".jpg");
             bool check = cv::imwrite(filename, img);
             if (check == false)
             {
-                std::cout << "Saving the image, FAILED" << std::endl;
+                LOG_ERROR("Saving the image, FAILED\n");
             }
-            LOG(INFO) << "Done!\n";
+            LOG_INFO("Done!\n");
             return 0;
         }
 
@@ -460,7 +487,7 @@ int main(int argc, char *argv[])
     tidl::arg_parsing::parse_args(argc, argv, &s);
     tidl::arg_parsing::dump_args(&s);
     tidl::utils::logSetLevel((tidl::utils::LogLevel)s.log_level);
-    // Parse the input configuration file
+    /* Parse the input configuration file */
     tidl::modelInfo::ModelInfo model(s.model_zoo_path);
     int status = model.initialize();
     onnx::main::RunInference(&model, &s);
