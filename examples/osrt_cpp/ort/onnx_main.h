@@ -56,23 +56,4 @@ THIS SOFTWARE IS PROVIDED BY TI AND TI’S LICENSORS "AS IS" AND ANY EXPRESS OR 
 #include "utils/include/model_info.h"
 
 
-namespace onnx
-{
-    namespace main
-    {
-        /*
-        * Case Sensitive Implementation of endsWith()
-        * It checks if the string 'mainStr' ends with given string 'toMatch'
-        */
-        bool endsWith(const std::string &mainStr, const std::string &toMatch)
-        {
-            if (mainStr.size() >= toMatch.size() &&
-                mainStr.compare(mainStr.size() - toMatch.size(), toMatch.size(), toMatch) == 0)
-                return true;
-            else
-                return false;
-        }
-    } /*namespace onnx::main */
-} /*namespace onnx */
-
 #endif /* ONNX_EXAMPLES_MAIN_H_*/

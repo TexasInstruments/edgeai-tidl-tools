@@ -36,6 +36,7 @@ namespace tidl
                 << "--artifact_path, -f: [0|1], Path for Delegate artifacts folder \n"
                 << "--model, -m: model path\n"
                 << "--image, -i: input_bmp_name with full path\n"
+                << "--device_type, -y: device_type for dlr models can be cpu,gpu\n"
                 << "--labels, -l: labels for the model\n"
                 << "--zoo, -z: tidl model-zoo path\n"
                 << "--threads, -t: number of threads\n"
@@ -68,7 +69,7 @@ namespace tidl
                     {"artifact_path", required_argument, nullptr, 'f'},
                     {"model", required_argument, nullptr, 'm'},
                     {"image", required_argument, nullptr, 'i'},
-                    {"nodle_name", required_argument, nullptr, 'n'},
+                    {"device_type", required_argument, nullptr, 'y'},
                     {"labels", required_argument, nullptr, 'l'},
                     {"zoo", required_argument, nullptr, 'z'},
                     {"threads", required_argument, nullptr, 't'},
@@ -80,7 +81,7 @@ namespace tidl
                 int option_index = 0;
 
                 c = getopt_long(argc, argv,
-                                "v:a:d:c:f:m:i:n:l:t:r:w:z:", long_options,
+                                "v:a:d:c:f:m:i:y:l:t:r:w:z:", long_options,
                                 &option_index);
 
                 /* Detect the end of the options. */
@@ -110,8 +111,8 @@ namespace tidl
                 case 'i':
                     s->input_bmp_path = optarg;
                     break;
-                case 'n':
-                    s->input_node_name = optarg;
+                case 'y':
+                    s->device_type = optarg;
                     break;
                 case 'l':
                     s->labels_file_path = optarg;
@@ -163,7 +164,7 @@ namespace tidl
             std::cout << "artifacts path set to: " << s->artifact_path << "\n";
             std::cout << "model path set to: " << s->model_path << "\n";
             std::cout << "image path set to: " << s->input_bmp_path << "\n";
-            std::cout << "input node name set to: " << s->input_node_name << "\n";
+            std::cout << "device_type set to: " << s->device_type << "\n";
             std::cout << "labels path set to: " << s->labels_file_path << "\n";
             std::cout << "model zoo path set to: " << s->model_zoo_path << "\n";
             std::cout << "num of threads set to: " << s->number_of_threads << "\n";
