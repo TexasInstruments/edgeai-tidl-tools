@@ -44,8 +44,8 @@ namespace onnx
             std::string labels_path = s->labels_file_path;
             std::string artifacts_path;
             /*check artifacts path need to be overwritten from cmd line args */
-            if (s->artifact_path == "")
-                artifacts_path = s->artifact_path;
+            if (s->artifact_path != "")
+                artifacts_path = s->artifact_path;            
             else
                 artifacts_path = modelInfo->m_infConfig.artifactsPath;
             cv::Mat img;
@@ -68,6 +68,7 @@ namespace onnx
             {
                 LOG_INFO("accelerated mode\n");
                 c_api_tidl_options *options = (c_api_tidl_options *)malloc(sizeof(c_api_tidl_options));
+                LOG_INFO("artifacts: %s",artifacts_path.c_str());
                 strcpy(options->artifacts_folder, artifacts_path.c_str());
                 options->debug_level = 0;
                 if (options == NULL)

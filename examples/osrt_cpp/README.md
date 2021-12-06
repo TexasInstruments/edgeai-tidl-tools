@@ -29,9 +29,10 @@
 ## Run 
   - Run the CPP examples using the below commands
     ```
-    ./bin/Release/tfl_clasification -m models/public/tflite/mobilenet_v1_1.0_224.tflite -l test_data/labels.txt -i test_data/airshow.jpg  -f model-artifacts/tfl/mobilenet_v1_1.0_224/ -a 1 -d 1 -c 100
-    ./bin/Release/ort_clasification  test_data/airshow.jpg models/public/onnx/resnet18_opset9.onnx model-artifacts/ort/resnet18-v1/ test_data/labels.txt -t
-    ./bin/Release/dlr_clasification  -m model-artifacts/dlr/onnx_mobilenetv2/ -i test_data/airshow.jpg -n input.1
+    ./bin/Release/ort_main -z "/path/to/artifacts/folder/od-8030_onnxrt_edgeai-mmdet_ssd-lite_mobilenetv2_fpn_512x512_20201110_model_onnx/" -v 1 -i "test_data/ADE_val_00001801.jpg" -l "test_data/labels.txt"
+    ./bin/Release/dlr_main -z "/path/to/artifacts/folder/
+    od-5020_tvmdlr_gluoncv-mxnet_yolo3_mobilenet1.0_coco-symbol_json/" -v 1 -i "test_data/ADE_val_00001801.jpg"  -l "test_data/labels.txt" -a 1 -d 1 -y "cpu"
+    ./bin/Release/tfl_main -z "/path/to/artifacts/folder/od-2010_tflitert_mlperf_ssd_mobilenet_v2_300_float_tflite/" -v 1 -i "test_data/ADE_val_00001801.jpg" -l "test_data/labels.txt" -a 1 -d 1
     ```
 ## Validation on Target
 - Build and runt steps remains same for PC emaultionn and target. Copy the below folders from PC to the EVM where this repo is cloned before ruunning the examples

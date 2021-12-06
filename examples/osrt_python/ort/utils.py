@@ -2,6 +2,7 @@ import os
 import platform
 import numpy as np
 from PIL import Image, ImageFont, ImageDraw, ImageEnhance
+import yaml
 
 if platform.machine() == 'aarch64':
     numImages = 100
@@ -78,6 +79,43 @@ models = {
     'ssd-lite_mobilenetv2_fpn': {'model_url': 'https://git.ti.com/cgit/jacinto-ai/jacinto-ai-modelzoo/plain/models/vision/detection/coco/edgeai-mmdet/ssd-lite_mobilenetv2_fpn_512x512_20201110_model.onnx', 'dir': '../testvecs/models/public/onnx/', 
                                       'model_prototxt' : 'https://git.ti.com/cgit/jacinto-ai/jacinto-ai-modelzoo/plain/models/vision/detection/coco/edgeai-mmdet/ssd-lite_mobilenetv2_fpn_512x512_20201110_model.prototxt'},
 }
+
+def gen_param_yaml(delegate_options, config, new_height, new_width):
+    resize = []
+    crop = []
+    resize.append(new_width)
+    resize.append(new_height)
+    crop.append(new_width)
+    crop.append(new_height)
+    if(config['model_type'] == "classification"):
+        model_type = "classification"
+    elif(config['model_type'] == "od"):
+        model_type = "detection"
+    elif(config['model_type'] == "seg"):
+        model_type = "segmentation"
+    model_file = config['model_path'].split("/")[0]
+    dict_file =[]
+    dict_file.append( {'session' :  {'artifacts_folder': '',
+                                     'model_folder': 'model',
+                                     'model_path': config['model_path'],
+                                     'session_name': 'onnxrt'} ,
+                      'task_type' : model_type,
+                      'target_device': 'pc',
+                      'postprocess':{'data_layout' : 'NCHW'},
+                      'preprocess' :{'data_layout' : 'NCHW',
+                                    'mean':config['mean'],
+                                    'scale':config['std'],
+                                    'resize':resize,
+                                    'crop':crop
+                                     } })
+    
+    if(config['model_type'] == "od"):
+        if(config['od_type'] == "SSD"):
+            dict_file[0]['postprocess']['formatter'] = {'src_indices' : [5,4]}
+            dict_file[0]['postprocess']['detection_thr'] = 0.3
+    with open(delegate_options['artifacts_folder']+"param.yaml", 'w') as file:
+        documents = yaml.dump(dict_file[0], file)
+
 def download(mpath, model_name, suffix, type):
     headers = {
     'User-Agent': 'My User Agent 1.0',

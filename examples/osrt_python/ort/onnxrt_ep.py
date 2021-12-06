@@ -84,7 +84,7 @@ def infer_image(sess, image_file, config):
   copy_time, sub_graphs_proc_time, totaltime = get_benchmark_output(sess)
   proc_time = totaltime - copy_time
 
-  return img, output, proc_time, sub_graphs_proc_time
+  return img, output, proc_time, sub_graphs_proc_time, height, width
 
 def run_model(model, mIdx):
     print("\nRunning_Model : ", model, " \n")
@@ -147,7 +147,7 @@ def run_model(model, mIdx):
     # run session
     for i in range(numFrames):
         #img, output, proc_time, sub_graph_time = infer_image(sess, input_image[i%len(input_image)], config)
-        img, output, proc_time, sub_graph_time = infer_image(sess, input_image[i%len(input_image)], config)
+        img, output, proc_time, sub_graph_time, height, width = infer_image(sess, input_image[i%len(input_image)], config)
         total_proc_time = total_proc_time + proc_time if ('total_proc_time' in locals()) else proc_time
         sub_graphs_time = sub_graphs_time + sub_graph_time if ('sub_graphs_time' in locals()) else sub_graph_time
     
@@ -169,7 +169,7 @@ def run_model(model, mIdx):
 
         print("\nSaving image to ", delegate_options['artifacts_folder'])
         image.save(delegate_options['artifacts_folder'] + output_file_name, "JPEG") 
-    
+    gen_param_yaml(delegate_options, config, int(height), int(width))
     log = f'\n \nCompleted_Model : {mIdx+1:5d}, Name : {model:50s}, Total time : {total_proc_time/(i+1):10.1f}, Offload Time : {sub_graphs_time/(i+1):10.1f} , DDR RW MBs : 0, Output File : {output_file_name} \n \n ' #{classes} \n \n'
     print(log) 
     if ncpus > 1:
