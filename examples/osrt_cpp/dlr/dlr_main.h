@@ -65,38 +65,3 @@ THIS SOFTWARE IS PROVIDED BY TI AND TI’S LICENSORS "AS IS" AND ANY EXPRESS OR 
 #include "utils/include/ti_logger.h"
 #include "utils/include/model_info.h"
 
-#define LOG(x) std::cerr
-
-namespace dlr
-{
-  namespace main
-  {
-    std::vector<std::string> vecOfLabels;
-
-    /**
-          *  \brief display usage string for application
-  * @returns void
-  */
-    void display_usage()
-    {
-      LOG(INFO)
-          << "label_image\n"
-          << "--accelerated, -a: [0|1], use Android NNAPI or not\n"
-          << "--old_accelerated, -d: [0|1], use old Android NNAPI delegate or not\n"
-          << "--artifact_path, -f: [0|1], Path for Delegate artifacts folder \n"
-          << "--count, -c: loop interpreter->Invoke() for certain times\n"
-          << "--gl_backend, -g: use GL GPU Delegate on Android\n"
-          << "--input_mean, -b: input mean\n"
-          << "--input_std, -s: input standard deviation\n"
-          << "--image, -i: image_name.bmp\n"
-          << "--labels, -l: labels for the model\n"
-          << "--tflite_model, -m: model_name.tflite\n"
-          << "--profiling, -p: [0|1], profiling or not\n"
-          << "--num_results, -r: number of results to show\n"
-          << "--threads, -t: number of threads\n"
-          << "--verbose, -v: [0|1] print more information\n"
-          << "--warmup_runs, -w: number of warmup runs\n"
-          << "\n";
-    }
-  }
-}

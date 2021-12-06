@@ -84,7 +84,7 @@ def infer_image(interpreter, image_file, config):
   proc_time = proc_time - copy_time
 
   outputs = [interpreter.get_tensor(output_detail['index']) for output_detail in output_details]
-  return img, outputs, proc_time, sub_graphs_proc_time, ddr_write, ddr_read 
+  return img, outputs, proc_time, sub_graphs_proc_time, ddr_write, ddr_read, new_height, new_width
 
 def run_model(model, mIdx):
     print("\nRunning_Model : ", model)
@@ -137,7 +137,7 @@ def run_model(model, mIdx):
     
     # run interpreter
     for i in range(numFrames):
-        img, output, proc_time, sub_graph_time, ddr_write, ddr_read  = infer_image(interpreter, input_image[i%len(input_image)], config)
+        img, output, proc_time, sub_graph_time, ddr_write, ddr_read, new_height, new_width  = infer_image(interpreter, input_image[i%len(input_image)], config)
         total_proc_time = total_proc_time + proc_time if ('total_proc_time' in locals()) else proc_time
         sub_graphs_time = sub_graphs_time + sub_graph_time if ('sub_graphs_time' in locals()) else sub_graph_time
         total_ddr_write = total_ddr_write + ddr_write if ('total_ddr_write' in locals()) else ddr_write
@@ -161,7 +161,7 @@ def run_model(model, mIdx):
 
         print("Saving image to ", delegate_options['artifacts_folder'])
         image.save(delegate_options['artifacts_folder'] + output_file_name, "JPEG") 
-
+    gen_param_yaml(delegate_options, config, int(new_height), int(new_width))
     log = f'\n \nCompleted_Model : {mIdx+1:5d}, Name : {model:50s}, Total time : {total_proc_time/(i+1):10.2f}, Offload Time : {sub_graphs_time/(i+1):10.2f} , DDR RW MBs : {(total_ddr_write+total_ddr_read)/(i+1):10.2f}, Output File : {output_file_name}\n \n ' #{classes} \n \n'
     print(log) 
     if ncpus > 1:

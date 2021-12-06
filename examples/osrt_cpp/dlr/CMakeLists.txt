@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.0.2)
 
-set(PROJ_NAME dlr_clasification)
+set(PROJ_NAME dlr_main)
 
 project(${PROJ_NAME})
 

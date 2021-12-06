@@ -2,6 +2,7 @@ import os
 import platform
 import numpy as np
 from PIL import Image, ImageFont, ImageDraw, ImageEnhance
+import yaml
 
 if platform.machine() == 'aarch64':
     numImages = 100
@@ -76,6 +77,46 @@ optional_options = {
 
 lables = '../../../test_data/labels.txt'
 models_base_path = '../../../models/public/tflite/'
+
+def gen_param_yaml(delegate_options, config, new_height, new_width):
+    print()
+    print(config)
+    resize = []
+    crop = []
+    resize.append(new_width)
+    resize.append(new_height)
+    crop.append(new_width)
+    crop.append(new_height)
+    if(config['model_type'] == "classification"):
+        model_type = "classification"
+    elif(config['model_type'] == "od"):
+        model_type = "detection"
+    elif(config['model_type'] == "seg"):
+        model_type = "segmentation"
+    # dict_file = [{'sports' : ['soccer', 'football', 'basketball', 'cricket', 'hockey', 'table tennis']},{'countries' : ['Pakistan', 'USA', 'India', 'China', 'Germany', 'France', 'Spain']}]
+    model_file = config['model_path'].split("/")[0]
+    dict_file =[]
+    dict_file.append( {'session' :  {'artifacts_folder': '',
+                                     'model_folder': 'model',
+                                    #  'model_path': 'model/'+ config['model_path'].split("/")[-1],
+                                     'model_path': config['model_path'],
+                                     'session_name': 'tflitert'} ,
+                      'task_type' : model_type,
+                      'target_device': 'pc',
+                      'postprocess':{'data_layout' : 'NHWC'},
+                      'preprocess' :{'data_layout' : 'NHWC',
+                                    'mean':config['mean'],
+                                    'scale':config['std'],
+                                    'resize':resize,
+                                    'crop':crop
+                                     } })
+    
+    if(config['model_type'] == "od"):
+        if(config['od_type'] == "HasDetectionPostProcLayer"):
+            dict_file[0]['postprocess']['formatter'] = {'src_indices' : [1,0,3,2]}
+          
+    with open(delegate_options['artifacts_folder']+"param.yaml", 'w') as file:
+        documents = yaml.dump(dict_file[0], file)
 
 def download_models(mpath = models_base_path):
     headers = {
