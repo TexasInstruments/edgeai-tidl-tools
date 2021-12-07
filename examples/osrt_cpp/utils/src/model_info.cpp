@@ -3,31 +3,60 @@ Copyright (c) 2020 – 2021 Texas Instruments Incorporated
 
 All rights reserved not granted herein.
 
-Limited License.  
+Limited License.
 
-Texas Instruments Incorporated grants a world-wide, royalty-free, non-exclusive license under copyrights and patents it now or hereafter owns or controls to make, have made, use, import, offer to sell and sell ("Utilize") this software subject to the terms herein.  With respect to the foregoing patent license, such license is granted  solely to the extent that any such patent is necessary to Utilize the software alone.  The patent license shall not apply to any combinations which include this software, other than combinations with devices manufactured by or for TI (“TI Devices”).  No hardware patent is licensed hereunder.
+Texas Instruments Incorporated grants a world-wide, royalty-free, non-exclusive
+license under copyrights and patents it now or hereafter owns or controls to
+make, have made, use, import, offer to sell and sell ("Utilize") this software
+subject to the terms herein.  With respect to the foregoing patent license,
+such license is granted  solely to the extent that any such patent is necessary
+to Utilize the software alone.  The patent license shall not apply to any
+combinations which include this software, other than combinations with devices
+manufactured by or for TI (“TI Devices”).  No hardware patent is licensed
+hereunder.
 
-Redistributions must preserve existing copyright notices and reproduce this license (including the above copyright notice and the disclaimer and (if applicable) source code license limitations below) in the documentation and/or other materials provided with the distribution
+Redistributions must preserve existing copyright notices and reproduce this
+license (including the above copyright notice and the disclaimer and
+(if applicable) source code license limitations below) in the documentation
+and/or other materials provided with the distribution
 
-Redistribution and use in binary form, without modification, are permitted provided that the following conditions are met:
+Redistribution and use in binary form, without modification, are permitted
+provided that the following conditions are met:
 
-*	No reverse engineering, decompilation, or disassembly of this software is permitted with respect to any software provided in binary form.
+*	No reverse engineering, decompilation, or disassembly of this software is
+    permitted with respect to any software provided in binary form.
 
 *	any redistribution and use are licensed by TI for use only with TI Devices.
 
-*	Nothing shall obligate TI to provide you with source code for the software licensed and provided to you in object code.
+*	Nothing shall obligate TI to provide you with source code for the software
+    licensed and provided to you in object code.
 
-If software source code is provided to you, modification and redistribution of the source code are permitted provided that the following conditions are met:
+If software source code is provided to you, modification and redistribution of
+the source code are permitted provided that the following conditions are met:
 
-*	any redistribution and use of the source code, including any resulting derivative works, are licensed by TI for use only with TI Devices.
+*	any redistribution and use of the source code, including any resulting
+    derivative works, are licensed by TI for use only with TI Devices.
 
-*	any redistribution and use of any object code compiled from the source code and any resulting derivative works, are licensed by TI for use only with TI Devices.
+*	any redistribution and use of any object code compiled from the source code
+    and any resulting derivative works, are licensed by TI for use only with TI
+    Devices.
 
-Neither the name of Texas Instruments Incorporated nor the names of its suppliers may be used to endorse or promote products derived from this software without specific prior written permission.
+Neither the name of Texas Instruments Incorporated nor the names of its
+suppliers may be used to endorse or promote products derived from this software
+without specific prior written permission.
 
 DISCLAIMER.
 
-THIS SOFTWARE IS PROVIDED BY TI AND TI’S LICENSORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL TI AND TI’S LICENSORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+THIS SOFTWARE IS PROVIDED BY TI AND TI’S LICENSORS "AS IS" AND ANY EXPRESS OR
+IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
+EVENT SHALL TI AND TI’S LICENSORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
@@ -54,8 +83,8 @@ namespace tidl
             const YAML::Node &n = appConfig["session"];
             int32_t status = 0;
 
-            /* Validate the parsed yaml configuration and create the configuration
-            for the inference object creation. */
+            /* Validate the parsed yaml configuration and create the
+            configuration for the inference object creation. */
             if (!n)
             {
                 LOG_ERROR("Inference configuration parameters  missing.\n");
@@ -125,8 +154,8 @@ namespace tidl
             const YAML::Node &preProc = yaml["preprocess"];
             int32_t status = 0;
 
-            /*Validate the parsed yaml configuration and create the configuration 
-            for the inference object creation.*/
+            /*Validate the parsed yaml configuration and create the
+            configuration for the inference object creation.*/
             if (!preProc)
             {
                 LOG_ERROR("Preprocess configuration parameters missing.\n");
@@ -234,7 +263,7 @@ namespace tidl
             int32_t status = 0;
 
             /* Validate the parsed yaml configuration and create the configuration
-            for the inference object creation. */
+            configuration for the inference object creation. */
             if (!session)
             {
                 LOG_ERROR("Inference configuration parameters  missing.\n");
@@ -267,18 +296,20 @@ namespace tidl
                     const YAML::Node &formatterNode = postProc["formatter"]["src_indices"];
 
                     /* default is assumed to be [0 1 2 3 4 5] which means
-                    * [x1y1 x2y2 label score].
-                    *
-                    * CASE 1: Only 2 values are specified. These are assumed to
-                    *         be "label" and "score". Keep [0..3] same as the default
-                    *         values but overwrite [4,5] with these two values.
-                    *
-                    * CASE 2: Only 4 values are specified. These are assumed to
-                    *         be "x1y1" and "x2y2". Keep [4,5] same as the default
-                    *         values but overwrite [0..3] with these four values.
-                    *
-                    * CASE 3: All 6 values are specified. Overwrite the defaults.
-                    * */
+                     * [x1y1 x2y2 label score].
+                     *
+                     * CASE 1: Only 2 values are specified. These are assumed to
+                     *         be "label" and "score". Keep [0..3] same as the
+                     *         default values but overwrite [4,5] with these two
+                     *         values.
+                     *
+                     * CASE 2: Only 4 values are specified. These are assumed to
+                     *         be "x1y1" and "x2y2". Keep [4,5] same as the
+                     *         default values but overwrite [0..3] with these
+                     *         four values.
+                     *
+                     * CASE 3: All 6 values are specified. Overwrite the defaults.
+                     * */
                     if (formatterNode.size() == 2)
                     {
                         config.formatter[4] = formatterNode[0].as<int32_t>();
@@ -419,23 +450,23 @@ namespace tidl
             if (status == 0)
             {
                 /* Set input data width and height based on the infererence engine
-                * information. This is only used for semantic segmentation models
-                * which have 4 dimensions. The logic is extended to any models that
-                * have atleast three dimensions which has the following
-                * - Num channels (C)
-                * - Height (H)
-                * - Width (W)
-                *
-                * The semantic segmentation model output will have one extra dimension
-                * which leads to NCHW dimensions in the output.
-                * - Batch (N)
-                *
-                * For all other cases, the default values (set in the post-process
-                * obhect are used.
-                */
+                 * information. This is only used for semantic segmentation models
+                 * which have 4 dimensions. The logic is extended to any models that
+                 * have atleast three dimensions which has the following
+                 * - Num channels (C)
+                 * - Height (H)
+                 * - Width (W)
+                 *
+                 * The semantic segmentation model output will have one extra dimension
+                 * which leads to NCHW dimensions in the output.
+                 * - Batch (N)
+                 *
+                 * For all other cases, the default values (set in the post-process
+                 * obhect are used.
+                 */
                 if (m_postProcCfg.taskType == "segmentation")
                 {
-                    /* Either NCHW or CHW. Width is the last dimention and the height 
+                    /* Either NCHW or CHW. Width is the last dimention and the height
                     is the previous to last. */
                     m_postProcCfg.classnames = nullptr;
                     m_postProcCfg.alpha = m_alpha;
