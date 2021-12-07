@@ -20,6 +20,8 @@ This repository contains examples developed for Deep learning runtime (DLRT) off
 
 ## Setup
   - This repository is validated on Ubuntu 18.04 in PC emulation mode and TDA4VM EVM using PSDK-RTOS release
+  - This repository works only with python 3.6 on PC (Which is default in Ubuntu 18.04)
+  - We have also validated under docker container in PC. Refer [Dockerfile](./Dockerfile) for the list of dependencies installed on top of ubuntu 18.04 base line
   - Run the below script to install the dependent components on your machine and set all the required environments
  ```
  git clone https://github.com/TexasInstruments/edgeai-tidl-tools.git
