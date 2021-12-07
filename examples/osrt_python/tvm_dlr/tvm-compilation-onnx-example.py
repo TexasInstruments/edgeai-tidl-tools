@@ -84,7 +84,16 @@ def preprocess_for_onnx_mobilenetv2(image_path):
      
     # convert HWC to NCHW
     img = np.expand_dims(np.transpose(img, (2,0,1)),axis=0)
+    # hard coding config values 
+    config = {
+            'mean': [123.675, 116.28, 103.53],
+            'std' :[0.017125, 0.017507, 0.017429],
+            'data_layout': 'NCHW',
+            'resize' : [256, 256],
+            'crop' : [224, 224],
+            'model_type': 'classification'}
     
+    gen_param_yaml(model_output_directory, config, new_height, new_width)
     return img
 
 # create the directory if not present

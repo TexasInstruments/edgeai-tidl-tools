@@ -5,6 +5,7 @@
   - [Build](#build)
   - [Run](#run)
   - [Validation on Target](#validation-on-target)
+  - [Running pre-compiled model from modelzoo](#running-pre-compiled-model-from-modelzoo)
 
 
 ## Introduction
@@ -29,10 +30,9 @@
 ## Run 
   - Run the CPP examples using the below commands
     ```
-    ./bin/Release/ort_main -z "/path/to/artifacts/folder/od-8030_onnxrt_edgeai-mmdet_ssd-lite_mobilenetv2_fpn_512x512_20201110_model_onnx/" -v 1 -i "test_data/ADE_val_00001801.jpg" -l "test_data/labels.txt"
-    ./bin/Release/dlr_main -z "/path/to/artifacts/folder/
-    od-5020_tvmdlr_gluoncv-mxnet_yolo3_mobilenet1.0_coco-symbol_json/" -v 1 -i "test_data/ADE_val_00001801.jpg"  -l "test_data/labels.txt" -a 1 -d 1 -y "cpu"
-    ./bin/Release/tfl_main -z "/path/to/artifacts/folder/od-2010_tflitert_mlperf_ssd_mobilenet_v2_300_float_tflite/" -v 1 -i "test_data/ADE_val_00001801.jpg" -l "test_data/labels.txt" -a 1 -d 1
+    ./bin/Release/ort_main -z "model-artifacts/ort/resnet18-v1/" -v 1 -i "test_data/airshow.jpg" -l "test_data/labels.txt" -a 1
+    ./bin/Release/tfl_main -z "model-artifacts/tfl/mobilenet_v1_1.0_224/" -v 1 -i "test_data/airshow.jpg" -l "test_data/labels.txt" -a 1
+    ./bin/Release/dlr_main -z "model-artifacts/dlr/tflite_inceptionnetv3" -v 1 -i "test_data/airshow.jpg"  -l "test_data/labels.txt"  -y "cpu"
     ```
 ## Validation on Target
 - Build and runt steps remains same for PC emaultionn and target. Copy the below folders from PC to the EVM where this repo is cloned before ruunning the examples
@@ -41,6 +41,21 @@
     ./model-artifacts
     ./models
     ```
-
+## Running pre-compiled model from modelzoo
+- To run precomiled model from model zoo run the follwoing commands( as an example: cl-0000_tflitert_mlperf_mobilenet_v1_1.0_224_tflite)
+- Fetch the tar link from model zoo and wget the file
+- create a dir for untarring the files
+- move the downloaded tar to created folder and then untar
+- run the model 
+  
+    ```
+    wget http://software-dl.ti.com/jacinto7/esd/modelzoo/08_00_00_05/modelartifacts/8bits/cl-0000_tflitert_mlperf_mobilenet_v1_1.0_224_tflite.tar.gz
+    mkdir cl-0000_tflitert_mlperf_mobilenet_v1_1.0_224_tflite
+    mv cl-0000_tflitert_mlperf_mobilenet_v1_1.0_224_tflite.tar.gz cl-0000_tflitert_mlperf_mobilenet_v1_1.0_224_tflite
+    cd cl-0000_tflitert_mlperf_mobilenet_v1_1.0_224_tflite
+    tar -xvf cl-0000_tflitert_mlperf_mobilenet_v1_1.0_224_tflite
+    cd ../
+    ./bin/Release/tfl_main -z "cl-0000_tflitert_mlperf_mobilenet_v1_1.0_224_tflite/" -v 1 -i "test_data/airshow.jpg" -l "test_data/labels.txt" -a 1 -d 1
+    ```
 
 

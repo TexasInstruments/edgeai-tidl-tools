@@ -86,7 +86,15 @@ def preprocess_for_tflite_inceptionnetv3(image_path):
      
     # convert HWC to NHWC
     img = np.expand_dims(img, axis=0)
-    
+    # hard coding config values 
+    config = {
+            'mean': [123.675, 116.28, 103.53],
+            'std' :[0.017125, 0.017507, 0.017429],
+            'data_layout': 'NHWC',
+            'resize' : [256, 256],
+            'crop' : [299, 299],
+            'model_type': 'classification'}
+    gen_param_yaml(model_output_directory, config, new_height, new_width)
     return img
 
 # create the directory if not present

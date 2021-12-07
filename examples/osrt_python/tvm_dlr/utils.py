@@ -1,6 +1,37 @@
 import os
 import requests
+import yaml
 
+def gen_param_yaml(model_dir, config, new_height, new_width):
+    resize = []
+    crop = []
+    resize.append(new_width)
+    resize.append(new_height)
+    crop.append(new_width)
+    crop.append(new_height)
+    if(config['model_type'] == "classification"):
+        model_type = "classification"
+    elif(config['model_type'] == "od"):
+        model_type = "detection"
+    elif(config['model_type'] == "seg"):
+        model_type = "segmentation"
+    dict_file =[]
+    dict_file.append( {'session' :  {'artifacts_folder': '',
+                                     'model_path': '',
+                                     'session_name': 'tvmdlr'} ,
+                      'task_type' : model_type,
+                      'target_device': 'pc',
+                      'postprocess':{'data_layout' : config['data_layout']},
+                      'preprocess' :{'data_layout' : config['data_layout'],
+                                    'mean':config['mean'],
+                                    'scale':config['std'],
+                                    'resize':config['resize'],
+                                    'crop':config['crop']
+                                     } })
+    
+
+    with open(model_dir+"/param.yaml", 'w') as file:
+        documents = yaml.dump(dict_file[0], file)
 
 def download_models(mpath, models):
     headers = {

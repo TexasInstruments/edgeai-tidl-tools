@@ -121,7 +121,7 @@ namespace dlr
             }
             else
             {
-                LOG_ERROR("device type not supported: %s", s->device_type);
+                LOG_ERROR("device type not supported: %s", s->device_type.c_str());
                 exit(-1);
             }
             if (CreateDLRModel(&model, modelInfo->m_infConfig.artifactsPath.c_str(), device_type, 0) != 0)
@@ -149,7 +149,7 @@ namespace dlr
                            DLRGetLastError());
                 exit(-1);
             }
-            LOG_INFO("%s :input names",input_name);
+            LOG_INFO("%s :input name\n",input_name);
             int64_t input_size = 0;
             int input_dim = 0;
             GetDLRInputSizeDim(&model, 0, &input_size, &input_dim);
