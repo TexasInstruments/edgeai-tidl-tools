@@ -93,7 +93,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <tensorflow/lite/tools/evaluation/utils.h>
 
 #include "itidl_rt.h"
-#include "../cpp_config.h"
 #include "post_process/post_process.h"
 #include "pre_process/pre_process.h"
 #include "utils/include/arg_parsing.h"

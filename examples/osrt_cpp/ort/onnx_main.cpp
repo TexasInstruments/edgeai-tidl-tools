@@ -97,7 +97,7 @@ namespace onnx
             {
                 LOG_INFO("accelerated mode\n");
                 c_api_tidl_options *options = (c_api_tidl_options *)malloc(sizeof(c_api_tidl_options));
-                LOG_INFO("artifacts: %s", artifacts_path.c_str());
+                LOG_INFO("artifacts: %s\n", artifacts_path.c_str());
                 strcpy(options->artifacts_folder, artifacts_path.c_str());
                 options->debug_level = 0;
                 if (options == NULL)
