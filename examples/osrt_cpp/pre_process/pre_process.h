@@ -74,6 +74,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /* module headers. */
 #include "../utils/include/model_info.h"
+#include "../utils/include/utility_functs.h"
 
 namespace tidl
 {

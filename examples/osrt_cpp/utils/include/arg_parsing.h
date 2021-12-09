@@ -68,6 +68,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <getopt.h>
 
 #include "ti_logger.h"
+#include "utility_functs.h"
 namespace tidl
 {
     namespace arg_parsing
@@ -106,7 +107,7 @@ namespace tidl
          *
          * @returns null
          */
-        void *parse_args(int argc, char **argv, Settings *s);
+        int parseArgs(int argc, char **argv, Settings *s);
         /**
          * Dumps the args set by parsing the arguments use this fnction to display
          * the contents of settings structure. Can be used after parsing the YAML for
@@ -116,7 +117,7 @@ namespace tidl
          *
          * @returns null
          */
-        void *dump_args(Settings *s);
+        void *dumpArgs(Settings *s);
 
     } // arg_parsing
 } // tidl

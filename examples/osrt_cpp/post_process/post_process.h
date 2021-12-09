@@ -80,6 +80,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <tensorflow/lite/string_util.h>
 
 #include "../utils/include/model_info.h"
+#include "../utils/include/utility_functs.h"
 
 #define TI_POSTPROC_DEFAULT_WIDTH 1280
 
@@ -136,48 +137,9 @@ namespace tidl
          * @returns top resultls
          */
         template <class T>
-        void get_top_n(T *prediction, int prediction_size, size_t num_results,
-                       float threshold, std::vector<std::pair<float, int>> *top_results,
-                       bool input_floating)
-        {
-            /* Will contain top N results in ascending order.*/
-            std::priority_queue<std::pair<float, int>, std::vector<std::pair<float, int>>,
-                                std::greater<std::pair<float, int>>>
-                top_result_pq;
-            /* NOLINT(runtime/int) */
-            const long count = prediction_size;
-            for (int i = 0; i < count; ++i)
-            {
-                float value;
-                if (input_floating)
-                    value = prediction[i];
-                else
-                    value = prediction[i] / 255.0;
-                /* Only add it if it beats the threshold and has a chance at
-                being in the top N. */
-                if (value < threshold)
-                {
-                    continue;
-                }
-
-                top_result_pq.push(std::pair<float, int>(value, i));
-
-                /* If at capacity, kick the smallest value out. */
-                if (top_result_pq.size() > num_results)
-                {
-                    top_result_pq.pop();
-                }
-            }
-
-            /* Copy to output vector and reverse into descending order. */
-            while (!top_result_pq.empty())
-            {
-                top_results->push_back(top_result_pq.top());
-                top_result_pq.pop();
-            }
-
-            std::reverse(top_results->begin(), top_results->end());
-        }
+        void getTopN(T *prediction, int prediction_size, size_t num_results,
+                     float threshold, std::vector<std::pair<float, int>> *top_results,
+                     bool input_floating);
 
         /**
          *  \brief Takes a file name, and loads a list of labels from it, one per line,
@@ -191,7 +153,7 @@ namespace tidl
          *  \return int :0?Success:Failure
          */
 
-        int ReadLabelsFile(const string &file_name,
+        int readLabelsFile(const string &file_name,
                            std::vector<string> *result,
                            size_t *found_label_count);
         /**

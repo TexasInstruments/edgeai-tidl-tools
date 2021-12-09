@@ -67,6 +67,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <getopt.h>
 
+#define RETURN_SUCCESS          (0)
+#define RETURN_FAIL             (-1)
+
 namespace tidl
 {
     namespace utility_functs
@@ -75,13 +78,13 @@ namespace tidl
          *  \brief returns time in micro sec
          * @returns void
          */
-        double get_us(struct timeval t);
+        double getUs(struct timeval t);
 
         /**
          *  \brief returns bool to check whether two array are same
          * @returns bool
          */
-        bool is_same_format(std::vector<int32_t> format1, std::vector<int32_t> format2);
+        bool isSameFormat(std::vector<int32_t> format1, std::vector<int32_t> format2);
 
     } // namespace utility_functs
 } // namespace tidl

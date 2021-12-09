@@ -84,5 +84,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "utils/include/ti_logger.h"
 #include "utils/include/model_info.h"
 
+using namespace tidl::arg_parsing;
+using namespace tidl::modelInfo;
+using namespace tidl::utility_functs;
+using namespace tidl::utils;
+using namespace tidl::postprocess;
+using namespace tidl::preprocess;
 
 #endif /* ONNX_EXAMPLES_MAIN_H_*/

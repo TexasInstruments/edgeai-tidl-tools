@@ -223,7 +223,7 @@ namespace tidl
          *
          *  \return int :0?Success:Failure
          */
-        int ReadLabelsFile(const string &file_name,
+        int readLabelsFile(const string &file_name,
                            std::vector<string> *result,
                            size_t *found_label_count)
         {
@@ -231,7 +231,7 @@ namespace tidl
             if (!file)
             {
                 LOG_ERROR("Labels file  %s not found\n", file_name.c_str());
-                return -1;
+                return RETURN_FAIL;
             }
             result->clear();
             string line;
@@ -245,7 +245,7 @@ namespace tidl
             {
                 result->emplace_back();
             }
-            return 0;
+            return RETURN_SUCCESS;
         }
 
         /**
@@ -298,6 +298,63 @@ namespace tidl
             }
             return frame;
         }
+
+        /**
+         *  Returns the top N confidence values over threshold in the provided vector,
+         * sorted by confidence in descending order.
+         * @returns top resultls
+         */
+        template <class T>
+        void getTopN(T *prediction, int prediction_size, size_t num_results,
+                     float threshold, std::vector<std::pair<float, int>> *top_results,
+                     bool input_floating)
+        {
+            /* Will contain top N results in ascending order.*/
+            std::priority_queue<std::pair<float, int>, std::vector<std::pair<float, int>>,
+                                std::greater<std::pair<float, int>>>
+                top_result_pq;
+            /* NOLINT(runtime/int) */
+            const long count = prediction_size;
+            for (int i = 0; i < count; ++i)
+            {
+                float value;
+                if (input_floating)
+                    value = prediction[i];
+                else
+                    value = prediction[i] / 255.0;
+                /* Only add it if it beats the threshold and has a chance at
+                being in the top N. */
+                if (value < threshold)
+                {
+                    continue;
+                }
+
+                top_result_pq.push(std::pair<float, int>(value, i));
+
+                /* If at capacity, kick the smallest value out. */
+                if (top_result_pq.size() > num_results)
+                {
+                    top_result_pq.pop();
+                }
+            }
+
+            /* Copy to output vector and reverse into descending order. */
+            while (!top_result_pq.empty())
+            {
+                top_results->push_back(top_result_pq.top());
+                top_result_pq.pop();
+            }
+
+            std::reverse(top_results->begin(), top_results->end());
+        }
+
+        template void getTopN<float>(float *prediction, int prediction_size, size_t num_results,
+                                     float threshold, std::vector<std::pair<float, int>> *top_results,
+                                     bool input_floating);
+
+        template void getTopN<int64_t>(int64_t *prediction, int prediction_size, size_t num_results,
+                                       float threshold, std::vector<std::pair<float, int>> *top_results,
+                                       bool input_floating);
 
     } // namespace tidl::postprocess
 }

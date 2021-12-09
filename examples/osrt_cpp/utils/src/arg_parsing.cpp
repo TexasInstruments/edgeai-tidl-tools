@@ -71,7 +71,7 @@ namespace tidl
   *  \brief display usage string for application
   * @returns void
   */
-        void display_usage()
+        void displayUsage()
         {
             std::cout
                 << "--verbose, -v: [0|1] print more information\n"
@@ -103,7 +103,7 @@ namespace tidl
  *
  * @returns null
  */
-        void *parse_args(int argc, char **argv, Settings *s)
+        int parseArgs(int argc, char **argv, Settings *s)
         {
             int c;
             while (1)
@@ -179,13 +179,13 @@ namespace tidl
                 case 'h':
                 case '?':
                     /* getopt_long already printed an error message. */
-                    display_usage();
-                    exit(-1);
+                    displayUsage();
+                    return RETURN_FAIL;;
                 default:
-                    exit(-1);
+                    return RETURN_FAIL;;
                 }
             }
-            return s;
+            return RETURN_SUCCESS;
         }
 
         /**
@@ -197,7 +197,7 @@ namespace tidl
  *
  * @returns null
  */
-        void *dump_args(Settings *s)
+        void *dumpArgs(Settings *s)
         {
             std::cout << "\n***** Display run Config: start *****\n";
 
