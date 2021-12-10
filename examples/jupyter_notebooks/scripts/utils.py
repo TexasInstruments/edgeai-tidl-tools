@@ -10,7 +10,7 @@ from munkres import Munkres
 from numpy.lib.stride_tricks import as_strided
 from PIL import Image, ImageFont, ImageDraw, ImageEnhance
 """
-jai_benchmark from edgeai-benchmark for getting preprocessing configurations
+Jacinto_ai_benchmark for getting preprocessing configurations
 for all supported prebuilt models 
 """
 from jai_benchmark.config_settings import ConfigSettings
@@ -38,6 +38,12 @@ models = {
 }
 
 def download_model(mpath):
+        
+    headers = {
+    'User-Agent': 'My User Agent 1.0',
+    'From': 'aid@ti.com'  # This is another valid field
+    }
+    
     if(not os.path.isfile(mpath)):
         # Check whether the specified path exists or not
         isExist = os.path.exists(os.path.dirname(mpath))
@@ -48,7 +54,7 @@ def download_model(mpath):
             model_info = models[mpath]
             print("Downloading  ", mpath)
             url = model_info['model_url']
-            r = requests.get(url, allow_redirects=True)
+            r = requests.get(url, allow_redirects=True, headers=headers)
             open(mpath, 'wb').write(r.content)
             #run shape inference
             if model_info['type'] is 'onnx':
