@@ -355,6 +355,9 @@ namespace tidl
         template void getTopN<int64_t>(int64_t *prediction, int prediction_size, size_t num_results,
                                        float threshold, std::vector<std::pair<float, int>> *top_results,
                                        bool input_floating);
+        template void getTopN<uint8_t>(uint8_t *prediction, int prediction_size, size_t num_results,
+                                       float threshold, std::vector<std::pair<float, int>> *top_results,
+                                       bool input_floating);
 
     } // namespace tidl::postprocess
 }

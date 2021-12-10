@@ -3,10 +3,10 @@ Copyright (c) 2020 – 2021 Texas Instruments Incorporated
 
 All rights reserved not granted herein.
 
-Limited License.  
+Limited License.
 
 Texas Instruments Incorporated grants a world-wide, royalty-free, non-exclusive
-license under copyrights and patents it now or hereafter owns or controls to 
+license under copyrights and patents it now or hereafter owns or controls to
 make, have made, use, import, offer to sell and sell ("Utilize") this software
 subject to the terms herein.  With respect to the foregoing patent license,
 such license is granted  solely to the extent that any such patent is necessary
@@ -31,14 +31,14 @@ provided that the following conditions are met:
 *	Nothing shall obligate TI to provide you with source code for the software
     licensed and provided to you in object code.
 
-If software source code is provided to you, modification and redistribution of 
+If software source code is provided to you, modification and redistribution of
 the source code are permitted provided that the following conditions are met:
 
 *	any redistribution and use of the source code, including any resulting
     derivative works, are licensed by TI for use only with TI Devices.
 
 *	any redistribution and use of any object code compiled from the source code
-    and any resulting derivative works, are licensed by TI for use only with TI 
+    and any resulting derivative works, are licensed by TI for use only with TI
     Devices.
 
 Neither the name of Texas Instruments Incorporated nor the names of its
@@ -70,19 +70,163 @@ namespace tflite
     void *in_ptrs[16] = {NULL};
     void *out_ptrs[16] = {NULL};
 
+    int prepSegResult(cv::Mat *img, int wanted_width, int wanted_height, float alpha,
+                      std::unique_ptr<tflite::Interpreter> *interpreter, const std::vector<int> *outputs)
+    {
+      LOG_INFO("preparing segmentation result \n");
+      TfLiteType type = (*interpreter)->tensor((*outputs)[0])->type;
+      if (type == TfLiteType::kTfLiteInt32)
+      {
+        int32_t *outputTensor = (*interpreter)->tensor((*outputs)[0])->data.i32;
+        (*img).data = blendSegMask<int32_t>((*img).data, outputTensor, (*img).cols, (*img).rows, wanted_width, wanted_height, alpha);
+      }
+      else if (type == TfLiteType::kTfLiteInt64)
+      {
+        int64_t *outputTensor = (*interpreter)->tensor((*outputs)[0])->data.i64;
+        (*img).data = blendSegMask<int64_t>((*img).data, outputTensor, (*img).cols, (*img).rows, wanted_width, wanted_height, alpha);
+      }
+      else if (type == TfLiteType::kTfLiteFloat32)
+      {
+        float *outputTensor = (*interpreter)->tensor((*outputs)[0])->data.f;
+        (*img).data = blendSegMask<float>((*img).data, outputTensor, (*img).cols, (*img).rows, wanted_width, wanted_height, alpha);
+      }else{
+        LOG_ERROR("op tensor tyrp not supprted\n");
+        return RETURN_FAIL;
+      }
+      return RETURN_SUCCESS;
+    }
+
+    int prepClassificationResult(cv::Mat *img, std::unique_ptr<tflite::Interpreter> *interpreter,
+                                 const std::vector<int> *outputs, Settings *s)
+    {
+      LOG_INFO("preparing clasification result \n");
+      const float threshold = 0.001f;
+      std::vector<std::pair<float, int>> top_results;
+
+      TfLiteIntArray *output_dims = (*interpreter)->tensor((*outputs)[0])->dims;
+      /* assume output dims to be something like (1, 1, ... ,size) */
+      auto output_size = output_dims->data[output_dims->size - 1];
+      int outputoffset;
+      if (output_size == 1001)
+        outputoffset = 0;
+      else
+        outputoffset = 1;
+      switch ((*interpreter)->tensor((*outputs)[0])->type)
+      {
+      case kTfLiteFloat32:
+        getTopN<float>((*interpreter)->typed_output_tensor<float>(0), output_size,
+                       s->number_of_results, threshold, &top_results, true);
+        break;
+      case kTfLiteUInt8:
+        getTopN<uint8_t>((*interpreter)->typed_output_tensor<uint8_t>(0),
+                         output_size, s->number_of_results, threshold,
+                         &top_results, false);
+        break;
+      default:
+        LOG_ERROR("cannot handle output type %d yet", (*interpreter)->tensor((*outputs)[0])->type);
+        return RETURN_FAIL;
+      }
+
+      std::vector<string> labels;
+      size_t label_count;
+
+      if (readLabelsFile(s->labels_file_path, &labels, &label_count) != 0)
+      {
+        LOG_ERROR("label file not found!!! \n");
+        return RETURN_FAIL;
+      }
+
+      for (const auto &result : top_results)
+      {
+        const float confidence = result.first;
+        const int index = result.second;
+        LOG_INFO("%f: %d :%s\n", confidence, index, labels[index + outputoffset].c_str());
+      }
+      int num_results = 5;
+      (*img).data = overlayTopNClasses((*img).data, top_results, &labels, (*img).cols, (*img).rows, num_results);
+      return RETURN_SUCCESS;
+    }
+
+    int prepDetectionResult(cv::Mat *img, std::unique_ptr<tflite::Interpreter> *interpreter,
+                            const std::vector<int> *outputs, ModelInfo *modelInfo)
+    {
+      LOG_INFO("preparing detection result \n");
+      std::vector<int32_t> format = {1, 0, 3, 2, 4, 5};
+      float threshold = modelInfo->m_vizThreshold;
+      if (isSameFormat(format, modelInfo->m_postProcCfg.formatter))
+      {
+        float *detectection_location = (*interpreter)->tensor((*outputs)[0])->data.f;
+        float *detectection_classes = (*interpreter)->tensor((*outputs)[1])->data.f;
+        float *detectection_scores = (*interpreter)->tensor((*outputs)[2])->data.f;
+        int num_detections = (int)*(*interpreter)->tensor((*outputs)[3])->data.f;
+        LOG_INFO("results %d\n", num_detections);
+        overlayBoundingBox((*img), num_detections, detectection_location, detectection_scores, threshold);
+        for (int i = 0; i < num_detections; i++)
+        {
+          if (detectection_scores[i] > threshold)
+          {
+            LOG_INFO("class %f\n", detectection_classes[i]);
+            LOG_INFO("cordinates %f %f %f %f\n", detectection_location[i * 4], detectection_location[i * 4 + 1], detectection_location[i * 4 + 2], detectection_location[i * 4 + 3]);
+            LOG_INFO("score %f\n", detectection_scores[i]);
+          }
+        }
+      }
+      else
+      {
+        float *out_tensor = (*interpreter)->tensor((*outputs)[0])->data.f;
+        std::vector<float> detectection_classes, detectection_location, detectection_scores;
+        int num_detections = 0;
+        TfLiteIntArray *output_dims = (*interpreter)->tensor((*outputs)[0])->dims;
+        /*asssuming result is of format [1 x num_res x res_dim] */
+        int res_dim = output_dims->data[output_dims->size - 1];
+        int num_res = output_dims->data[output_dims->size - 2];
+        for (int i = 0; i < num_res; i++)
+        {
+          float score = out_tensor[i * res_dim + res_dim - 2];
+          float class_val = out_tensor[i * res_dim + res_dim - 1];
+          /*TODO need to verify */
+          float loc_0 = out_tensor[i * res_dim + 1] / modelInfo->m_postProcCfg.inDataHeight;
+          float loc_1 = out_tensor[i * res_dim + 2] / modelInfo->m_postProcCfg.inDataHeight;
+          float loc_2 = out_tensor[i * res_dim + 3] / modelInfo->m_postProcCfg.inDataHeight;
+          float loc_3 = out_tensor[i * res_dim + 4] / modelInfo->m_postProcCfg.inDataHeight;
+          if (score > threshold)
+          {
+            num_detections++;
+            detectection_scores.push_back(score);
+            detectection_classes.push_back(class_val);
+            detectection_location.push_back(loc_0);
+            detectection_location.push_back(loc_1);
+            detectection_location.push_back(loc_2);
+            detectection_location.push_back(loc_3);
+          }
+        }
+        LOG_INFO("results %d\n", num_detections);
+        for (int i = 0; i < num_detections; i++)
+        {
+          if (detectection_scores[i] > threshold)
+          {
+            LOG_INFO("class %f\n", detectection_classes[i]);
+            LOG_INFO("cordinates %f %f %f %f\n", detectection_location[i * 4], detectection_location[i * 4 + 1], detectection_location[i * 4 + 2], detectection_location[i * 4 + 3]);
+            LOG_INFO("score %f\n", detectection_scores[i]);
+          }
+        }
+        overlayBoundingBox((*img), num_detections, detectection_location.data(), detectection_scores.data(), threshold);
+        return RETURN_SUCCESS;
+      }
+    }
     /**
-  *  \brief  Actual infernce happening 
-  *  \param  ModelInfo YAML parsed model info
-  *  \param  Settings user input options  and default values of setting if any
-  * @returns void
-  */
-    void RunInference(tidl::modelInfo::ModelInfo *modelInfo, tidl::arg_parsing::Settings *s)
+     *  \brief  Actual infernce happening
+     *  \param  ModelInfo YAML parsed model info
+     *  \param  Settings user input options  and default values of setting if any
+     * @returns int
+     */
+    int runInference(ModelInfo *modelInfo, Settings *s)
     {
       /* checking model path present or not*/
       if (!modelInfo->m_infConfig.modelFile.c_str())
       {
         LOG_ERROR("no model file name\n");
-        exit(-1);
+        return RETURN_FAIL;
       }
       /* preparing tflite model  from file*/
       std::unique_ptr<tflite::FlatBufferModel> model;
@@ -91,7 +235,7 @@ namespace tflite
       if (!model)
       {
         LOG_ERROR("\nFailed to mmap model %s\n", modelInfo->m_infConfig.modelFile);
-        exit(-1);
+        return RETURN_FAIL;
       }
       LOG_INFO("Loaded model %s \n", modelInfo->m_infConfig.modelFile.c_str());
       model->error_reporter();
@@ -102,7 +246,7 @@ namespace tflite
       if (!interpreter)
       {
         LOG_ERROR("Failed to construct interpreter\n");
-        exit(-1);
+        return RETURN_FAIL;
       }
       const std::vector<int> inputs = interpreter->inputs();
       const std::vector<int> outputs = interpreter->outputs();
@@ -116,10 +260,10 @@ namespace tflite
       if (inputs.size() != 1)
       {
         LOG_ERROR("Supports only single input models \n");
-        exit(-1);
+        return RETURN_FAIL;
       }
 
-      if (s->log_level <= tidl::utils::DEBUG)
+      if (s->log_level <= DEBUG)
       {
         int t_size = interpreter->tensors_size();
         for (int i = 0; i < t_size; i++)
@@ -139,7 +283,7 @@ namespace tflite
       }
 
       int input = inputs[0];
-      if (s->log_level <= tidl::utils::INFO)
+      if (s->log_level <= INFO)
         LOG_INFO("input: %d\n", input);
 
       if (s->accel == 1)
@@ -160,7 +304,7 @@ namespace tflite
       if (interpreter->AllocateTensors() != kTfLiteOk)
       {
         LOG_ERROR("Failed to allocate tensors!");
-        exit(-1);
+        return RETURN_FAIL;
       }
 
       if (s->device_mem)
@@ -188,9 +332,9 @@ namespace tflite
         }
       }
 
-      if (s->log_level <= tidl::utils::DEBUG)
+      if (s->log_level <= DEBUG)
         PrintInterpreterState(interpreter.get());
-      /* get input dimension from the YAML parsed  and batch 
+      /* get input dimension from the YAML parsed  and batch
       from input tensor assuming one tensor*/
       TfLiteIntArray *dims = interpreter->tensor(input)->dims;
       int wanted_batch = dims->data[0];
@@ -215,18 +359,18 @@ namespace tflite
       {
       case kTfLiteFloat32:
       {
-        img = tidl::preprocess::preprocImage<float>(s->input_bmp_path, &interpreter->typed_tensor<float>(input)[0], modelInfo->m_preProcCfg);
+        img = preprocImage<float>(s->input_bmp_path, &interpreter->typed_tensor<float>(input)[0], modelInfo->m_preProcCfg);
         break;
       }
       case kTfLiteUInt8:
       {
-        /* if model is already quantized update the scale and mean for 
+        /* if model is already quantized update the scale and mean for
         preperocess computation */
         std::vector<float> temp_scale = modelInfo->m_preProcCfg.scale,
                            temp_mean = modelInfo->m_preProcCfg.mean;
         modelInfo->m_preProcCfg.scale = {1, 1, 1};
         modelInfo->m_preProcCfg.mean = {0, 0, 0};
-        img = tidl::preprocess::preprocImage<uint8_t>(s->input_bmp_path, &interpreter->typed_tensor<uint8_t>(input)[0], modelInfo->m_preProcCfg);
+        img = preprocImage<uint8_t>(s->input_bmp_path, &interpreter->typed_tensor<uint8_t>(input)[0], modelInfo->m_preProcCfg);
         /*restoring mean and scale to preserve the data */
         modelInfo->m_preProcCfg.scale = temp_scale;
         modelInfo->m_preProcCfg.mean = temp_mean;
@@ -234,7 +378,7 @@ namespace tflite
       }
       default:
         LOG_ERROR("cannot handle input type %d yet\n", interpreter->tensor(input)->type);
-        exit(-1);
+        return RETURN_FAIL;
       }
 
       LOG_INFO("interpreter->Invoke - Started \n");
@@ -260,142 +404,26 @@ namespace tflite
       LOG_INFO("interpreter->Invoke - Done \n");
 
       LOG_INFO("average time:%f ms\n",
-               (tidl::utility_functs::get_us(stop_time) - tidl::utility_functs::get_us(start_time)) / (s->loop_count * 1000));
+               (getUs(stop_time) - getUs(start_time)) / (s->loop_count * 1000));
 
-      if (modelInfo->m_preProcCfg.taskType == "segmentation")
+      if (modelInfo->m_preProcCfg.taskType == "classification")
       {
-        LOG_INFO("preparing segmentation result \n");
-        TfLiteType type = interpreter->tensor(outputs[0])->type;
-        float alpha = modelInfo->m_postProcCfg.alpha;
-        if (type == TfLiteType::kTfLiteInt32)
-        {
-          int32_t *outputTensor = interpreter->tensor(outputs[0])->data.i32;
-          img.data = tidl::postprocess::blendSegMask<int32_t>(img.data, outputTensor, img.cols, img.rows, wanted_width, wanted_height, alpha);
-        }
-        else if (type == TfLiteType::kTfLiteInt64)
-        {
-          int64_t *outputTensor = interpreter->tensor(outputs[0])->data.i64;
-          img.data = tidl::postprocess::blendSegMask<int64_t>(img.data, outputTensor, img.cols, img.rows, wanted_width, wanted_height, alpha);
-        }
-        else if (type == TfLiteType::kTfLiteFloat32)
-        {
-          float *outputTensor = interpreter->tensor(outputs[0])->data.f;
-          img.data = tidl::postprocess::blendSegMask<float>(img.data, outputTensor, img.cols, img.rows, wanted_width, wanted_height, alpha);
-        }
+        if (RETURN_FAIL == prepClassificationResult(&img, &interpreter, &outputs, s))
+          return RETURN_FAIL;
       }
       else if (modelInfo->m_preProcCfg.taskType == "detection")
       {
-        LOG_INFO("preparing detection result \n");
-        std::vector<int32_t> format = {1, 0, 3, 2, 4, 5};
-        float threshold = modelInfo->m_vizThreshold;
-        if (tidl::utility_functs::is_same_format(format, modelInfo->m_postProcCfg.formatter))
-        {
-          float *detectection_location = interpreter->tensor(outputs[0])->data.f;
-          float *detectection_classes = interpreter->tensor(outputs[1])->data.f;
-          float *detectection_scores = interpreter->tensor(outputs[2])->data.f;
-          int num_detections = (int)*interpreter->tensor(outputs[3])->data.f;
-          LOG_INFO("results %d\n", num_detections);
-          tidl::postprocess::overlayBoundingBox(img, num_detections, detectection_location, detectection_scores, threshold);
-          for (int i = 0; i < num_detections; i++)
-          {
-            if (detectection_scores[i] > threshold)
-            {
-              LOG_INFO("class %f\n", detectection_classes[i]);
-              LOG_INFO("cordinates %f %f %f %f\n", detectection_location[i * 4], detectection_location[i * 4 + 1], detectection_location[i * 4 + 2], detectection_location[i * 4 + 3]);
-              LOG_INFO("score %f\n", detectection_scores[i]);
-            }
-          }
-        }
-        else
-        {
-          float *out_tensor = interpreter->tensor(outputs[0])->data.f;
-          std::vector<float> detectection_classes, detectection_location, detectection_scores;
-          int num_detections = 0;
-          TfLiteIntArray *output_dims = interpreter->tensor(outputs[0])->dims;
-          /*asssuming result is of format [1 x num_res x res_dim] */
-          int res_dim = output_dims->data[output_dims->size - 1];
-          int num_res = output_dims->data[output_dims->size - 2];
-          for (int i = 0; i < num_res; i++)
-          {
-            float score = out_tensor[i * res_dim + res_dim - 2];
-            float class_val = out_tensor[i * res_dim + res_dim - 1];
-            /*TODO need to verify */
-            float loc_0 = out_tensor[i * res_dim + 1] / modelInfo->m_postProcCfg.inDataHeight;
-            float loc_1 = out_tensor[i * res_dim + 2] / modelInfo->m_postProcCfg.inDataHeight;
-            float loc_2 = out_tensor[i * res_dim + 3] / modelInfo->m_postProcCfg.inDataHeight;
-            float loc_3 = out_tensor[i * res_dim + 4] / modelInfo->m_postProcCfg.inDataHeight;
-            if (score > threshold)
-            {
-              num_detections++;
-              detectection_scores.push_back(score);
-              detectection_classes.push_back(class_val);
-              detectection_location.push_back(loc_0);
-              detectection_location.push_back(loc_1);
-              detectection_location.push_back(loc_2);
-              detectection_location.push_back(loc_3);
-            }
-          }
-          LOG_INFO("results %d\n", num_detections);
-          for (int i = 0; i < num_detections; i++)
-          {
-            if (detectection_scores[i] > threshold)
-            {
-              LOG_INFO("class %f\n", detectection_classes[i]);
-              LOG_INFO("cordinates %f %f %f %f\n", detectection_location[i * 4], detectection_location[i * 4 + 1], detectection_location[i * 4 + 2], detectection_location[i * 4 + 3]);
-              LOG_INFO("score %f\n", detectection_scores[i]);
-            }
-          }
-          tidl::postprocess::overlayBoundingBox(img, num_detections, detectection_location.data(), detectection_scores.data(), threshold);
-        }
+        if (RETURN_FAIL == prepDetectionResult(&img, &interpreter, &outputs, modelInfo))
+          return RETURN_FAIL;
       }
-      else if (modelInfo->m_preProcCfg.taskType == "classification")
+
+      else if (modelInfo->m_preProcCfg.taskType == "segmentation")
       {
-        LOG_INFO("preparing clasification result \n");
-        const float threshold = 0.001f;
-        std::vector<std::pair<float, int>> top_results;
-
-        TfLiteIntArray *output_dims = interpreter->tensor(outputs[0])->dims;
-        /* assume output dims to be something like (1, 1, ... ,size) */
-        auto output_size = output_dims->data[output_dims->size - 1];
-        int outputoffset;
-        if (output_size == 1001)
-          outputoffset = 0;
-        else
-          outputoffset = 1;
-        switch (interpreter->tensor(outputs[0])->type)
-        {
-        case kTfLiteFloat32:
-          tidl::postprocess::get_top_n<float>(interpreter->typed_output_tensor<float>(0), output_size,
-                                              s->number_of_results, threshold, &top_results, true);
-          break;
-        case kTfLiteUInt8:
-          tidl::postprocess::get_top_n<uint8_t>(interpreter->typed_output_tensor<uint8_t>(0),
-                                                output_size, s->number_of_results, threshold,
-                                                &top_results, false);
-          break;
-        default:
-          LOG_ERROR("cannot handle output type %d yet", interpreter->tensor(outputs[0])->type);
-          exit(-1);
-        }
-
-        std::vector<string> labels;
-        size_t label_count;
-
-        if (tidl::postprocess::ReadLabelsFile(s->labels_file_path, &labels, &label_count) != 0)
-        {
-          LOG_ERROR("label file not found!!! \n");
-          exit(-1);
-        }
-
-        for (const auto &result : top_results)
-        {
-          const float confidence = result.first;
-          const int index = result.second;
-          LOG_INFO("%f: %d :%s\n", confidence, index, labels[index + outputoffset].c_str());
-        }
-        int num_results = 5;
-        img.data = tidl::postprocess::overlayTopNClasses(img.data, top_results, &labels, img.cols, img.rows, num_results);
+        float alpha = modelInfo->m_postProcCfg.alpha;
+        if (RETURN_FAIL == prepSegResult(&img, wanted_width, wanted_height, alpha, &interpreter, &outputs))
+          return RETURN_FAIL;
       }
+
       LOG_INFO("saving image result file \n");
       cv::cvtColor(img, img, cv::COLOR_RGB2BGR);
       char filename[500];
@@ -426,6 +454,7 @@ namespace tflite
           }
         }
       }
+      return RETURN_SUCCESS;
     }
 
   } // namespace main
@@ -433,15 +462,25 @@ namespace tflite
 
 int main(int argc, char **argv)
 {
-  tidl::arg_parsing::Settings s;
-  tidl::arg_parsing::parse_args(argc, argv, &s);
-  tidl::arg_parsing::dump_args(&s);
-  tidl::utils::logSetLevel((tidl::utils::LogLevel)s.log_level);
+  Settings s;
+  if (parseArgs(argc, argv, &s) == RETURN_FAIL)
+  {
+    LOG_ERROR("Failed to parse the args\n");
+    return RETURN_FAIL;
+  }
+  dumpArgs(&s);
+  logSetLevel((LogLevel)s.log_level);
   /* Parse the input configuration file */
-  tidl::modelInfo::ModelInfo model(s.model_zoo_path);
-
-  int status = model.initialize();
-  tflite::main::RunInference(&model, &s);
-
-  return 0;
+  ModelInfo model(s.model_zoo_path);
+  if (model.initialize() == RETURN_FAIL)
+  {
+    LOG_ERROR("Failed to initialize model\n");
+    return RETURN_FAIL;
+  }
+  if (tflite::main::runInference(&model, &s) == RETURN_FAIL)
+  {
+    LOG_ERROR("Failed to run runInference\n");
+    return RETURN_FAIL;
+  }
+  return RETURN_SUCCESS;
 }

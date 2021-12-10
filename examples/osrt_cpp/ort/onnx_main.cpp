@@ -333,7 +333,7 @@ namespace onnx
             return RETURN_SUCCESS;
         }
 
-        int printTensorInfo(Ort::Session *session, std::vector<const char *> *input_node_names )
+        int printTensorInfo(Ort::Session *session, std::vector<const char *> *input_node_names)
         {
             size_t num_input_nodes = (*session).GetInputCount();
             size_t num_output_nodes = (*session).GetOutputCount();
@@ -370,6 +370,13 @@ namespace onnx
             }
             return RETURN_SUCCESS;
         }
+       
+        /**
+         *  \brief  Actual infernce happening
+         *  \param  ModelInfo YAML parsed model info
+         *  \param  Settings user input options  and default values of setting if any
+         * @returns int
+         */
         int runInference(ModelInfo *modelInfo, Settings *s)
         {
             std::string model_path = modelInfo->m_infConfig.modelFile;
@@ -458,7 +465,7 @@ namespace onnx
             }
             for (int i = 0; i < num_input_nodes; i++)
             {
-                input_node_names[i]= session.GetInputName(i, allocator);
+                input_node_names[i] = session.GetInputName(i, allocator);
             }
 
             type_info = session.GetOutputTypeInfo(0);
@@ -466,10 +473,10 @@ namespace onnx
             std::vector<int64_t> output_node_dims = output_tensor_info.GetShape();
             size_t output_tensor_size = output_node_dims[1];
 
-            if (RETURN_FAIL == printTensorInfo(&session, &input_node_names ))
+            if (RETURN_FAIL == printTensorInfo(&session, &input_node_names))
                 return RETURN_FAIL;
             int num_iter = s->loop_count;
-            
+
             /* simplify ... using known dim values to calculate size */
             size_t input_tensor_size = wanted_channels * wanted_height * wanted_width;
             if (input_tensor_type == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT)
@@ -593,29 +600,29 @@ namespace onnx
         }
     }
 
-    }
+}
 
-    int main(int argc, char *argv[])
+int main(int argc, char *argv[])
+{
+    Settings s;
+    if (parseArgs(argc, argv, &s) == RETURN_FAIL)
     {
-        Settings s;
-        if (parseArgs(argc, argv, &s) == RETURN_FAIL)
-        {
-            LOG_ERROR("Failed to parse the args\n");
-            return RETURN_FAIL;
-        }
-        dumpArgs(&s);
-        logSetLevel((LogLevel)s.log_level);
-        /* Parse the input configuration file */
-        ModelInfo model(s.model_zoo_path);
-        if (model.initialize() == RETURN_FAIL)
-        {
-            LOG_ERROR("Failed to initialize model\n");
-            return RETURN_FAIL;
-        }
-        if (onnx::main::runInference(&model, &s) == RETURN_FAIL)
-        {
-            LOG_ERROR("Failed to run runInference\n");
-            return RETURN_FAIL;
-        }
-        return RETURN_SUCCESS;
+        LOG_ERROR("Failed to parse the args\n");
+        return RETURN_FAIL;
     }
+    dumpArgs(&s);
+    logSetLevel((LogLevel)s.log_level);
+    /* Parse the input configuration file */
+    ModelInfo model(s.model_zoo_path);
+    if (model.initialize() == RETURN_FAIL)
+    {
+        LOG_ERROR("Failed to initialize model\n");
+        return RETURN_FAIL;
+    }
+    if (onnx::main::runInference(&model, &s) == RETURN_FAIL)
+    {
+        LOG_ERROR("Failed to run runInference\n");
+        return RETURN_FAIL;
+    }
+    return RETURN_SUCCESS;
+}
