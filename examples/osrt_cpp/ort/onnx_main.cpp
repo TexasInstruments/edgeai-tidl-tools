@@ -67,12 +67,26 @@ namespace onnx
     namespace main
     {
 
+        /**
+         *  \brief  get the tensor type
+         *  \param  index  index of tensor
+         *  \param  output_tensors pointer of tflite
+         * @returns int status
+         */
         ONNXTensorElementDataType getTensorType(int index, std::vector<Ort::Value> *output_tensors)
         {
             /* Get tensor type */
             return (*output_tensors).at(index).GetTypeInfo().GetTensorTypeAndShapeInfo().GetElementType();
         }
 
+        /**
+         *  \brief  prepare the classification result inplace
+         *  \param  img cv image to do inplace transform
+         *  \param  output_tensors pointer of tflite
+         *  \param  s settings struct pointer
+         *  \param  output_node_dims
+         * @returns int status
+         */
         int prepClassificationResult(cv::Mat *img, std::vector<Ort::Value> *output_tensors, Settings *s,
                                      std::vector<int64_t> output_node_dims)
         {
@@ -146,6 +160,14 @@ namespace onnx
             return RETURN_SUCCESS;
         }
 
+        /**
+         *  \brief  prepare the segemntataion result inplace
+         *  \param  img cv image to do inplace transform
+         *  \param  output_tensors pointer of tflite
+         *  \param  s settings struct pointer
+         *  \param  alpha for img masking
+         * @returns int status
+         */
         int prepSegResult(cv::Mat *img, std::vector<Ort::Value> *output_tensors, Settings *s, float alpha)
         {
             LOG_INFO("preparing segmentation result \n");
@@ -209,6 +231,13 @@ namespace onnx
             return RETURN_SUCCESS;
         }
 
+        /**
+         *  \brief  prepare the od result inplace
+         *  \param  img cv image to do inplace transform
+         *  \param  output_tensors pointer of tflite
+         *  \param  modelInfo
+         * @returns int status
+         */
         int prepDetectionResult(cv::Mat *img, std::vector<Ort::Value> *output_tensors, ModelInfo *modelInfo)
         {
             LOG_INFO("preparing detection result \n");
@@ -333,6 +362,12 @@ namespace onnx
             return RETURN_SUCCESS;
         }
 
+        /**
+         *  \brief  print tensor info
+         *  \param  session onnx session
+         *  \param  input_node_names input array node names
+         * @returns int status
+         */
         int printTensorInfo(Ort::Session *session, std::vector<const char *> *input_node_names)
         {
             size_t num_input_nodes = (*session).GetInputCount();
@@ -370,7 +405,7 @@ namespace onnx
             }
             return RETURN_SUCCESS;
         }
-       
+
         /**
          *  \brief  Actual infernce happening
          *  \param  ModelInfo YAML parsed model info

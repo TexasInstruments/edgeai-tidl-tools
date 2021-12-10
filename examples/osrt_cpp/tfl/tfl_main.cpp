@@ -70,6 +70,16 @@ namespace tflite
     void *in_ptrs[16] = {NULL};
     void *out_ptrs[16] = {NULL};
 
+    /**
+     *  \brief  prepare the segemntation result inplace
+     *  \param  img cv image to do inplace transform
+     *  \param  wanted_width
+     *  \param  wanted_height
+     *  \param  alpha
+     *  \param  interpreter pointer of tflite     
+     *  \param  outputs pointer of output vector
+     * @returns int status
+     */
     int prepSegResult(cv::Mat *img, int wanted_width, int wanted_height, float alpha,
                       std::unique_ptr<tflite::Interpreter> *interpreter, const std::vector<int> *outputs)
     {
@@ -96,6 +106,14 @@ namespace tflite
       return RETURN_SUCCESS;
     }
 
+    /**
+     *  \brief  prepare the classification result inplace
+     *  \param  img cv image to do inplace transform
+     *  \param  interpreter pointer of tflite     
+     *  \param  outputs pointer of output vector
+     *  \param  s settings 
+     * @returns int status
+     */
     int prepClassificationResult(cv::Mat *img, std::unique_ptr<tflite::Interpreter> *interpreter,
                                  const std::vector<int> *outputs, Settings *s)
     {
@@ -147,6 +165,14 @@ namespace tflite
       return RETURN_SUCCESS;
     }
 
+    /**
+     *  \brief  prepare the od result inplace
+     *  \param  img cv image to do inplace transform
+     *  \param  interpreter pointer of tflite
+     *  \param  outputs pointer of output vector
+     *  \param  modelInfo 
+     * @returns int status
+     */
     int prepDetectionResult(cv::Mat *img, std::unique_ptr<tflite::Interpreter> *interpreter,
                             const std::vector<int> *outputs, ModelInfo *modelInfo)
     {
