@@ -71,7 +71,7 @@ rt_base_dir = 'examples/osrt_python/'
 
 test_configs = [{'script_name':'tflrt_delegate.py', 'script_dir':'tfl', 'rt_type':'tfl'}, 
                 {'script_name':'onnxrt_ep.py', 'script_dir':'ort', 'rt_type':'ort'},
-                {'script_name':'dlr-inference-example.py', 'script_dir':'tvm_dlr', 'rt_type':'dlr'}]
+                {'script_name':'dlr_inference_example.py', 'script_dir':'tvm_dlr', 'rt_type':'dlr'}]
 currIdx = 0
 if platform.machine() == 'aarch64':
     device = 'j7es'

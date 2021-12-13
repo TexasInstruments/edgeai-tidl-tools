@@ -102,23 +102,12 @@ namespace onnx
                 outputoffset = 0;
             else
                 outputoffset = 1;
-            /* Determine most common index */
-            float max_val = 0.0;
-            int max_index = 0;
             if (op_tensor_type == ONNX_TENSOR_ELEMENT_DATA_TYPE_INT64)
             {
                 int64_t *int64arr = (*output_tensors).front().GetTensorMutableData<int64_t>();
                 getTopN<int64_t>(int64arr,
                                  output_size, s->number_of_results, threshold,
                                  &top_results, true);
-                for (int i = 0; i < output_size; i++)
-                {
-                    if (int64arr[i] > max_val)
-                    {
-                        max_val = int64arr[i];
-                        max_index = i;
-                    }
-                }
             }
             else if (op_tensor_type == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT)
             {
@@ -126,14 +115,6 @@ namespace onnx
                 getTopN<float>(floatarr,
                                output_size, s->number_of_results, threshold,
                                &top_results, true);
-                for (int i = 0; i < output_size; i++)
-                {
-                    if (floatarr[i] > max_val)
-                    {
-                        max_val = floatarr[i];
-                        max_index = i;
-                    }
-                }
             }
             else
             {
@@ -148,7 +129,6 @@ namespace onnx
                 LOG_ERROR("failed to read label file");
                 return RETURN_FAIL;
             }
-            LOG_INFO("MAX: class [%d] = class Name  %s Max val: %lf\n", max_index, labels[max_index + outputoffset].c_str(), max_val);
             for (const auto &result : top_results)
             {
                 const float confidence = result.first;
@@ -200,26 +180,9 @@ namespace onnx
                 array is not  merged by model and need to be merged */
                 else
                 {
-                    float max_val = tensor_op_array[512 * 512 * 1];
-                    int max_class;
-                    float arr[512 * 512] = {
-                        0,
-                    };
-                    /* to avoid the background class start from class 1 of nclasses */
-                    for (int i = 0; i < nwidth * nheight; i++)
-                    {
-                        float max_val = 0;
-                        int max_class = 0;
-                        for (int j = 0; j < nclasses; j++)
-                        {
-                            if (tensor_op_array[i + j * nwidth * nheight] >= max_val)
-                            {
-                                max_val = tensor_op_array[i + j * nwidth * nheight];
-                                max_class = j;
-                            }
-                        }
-                        arr[i] = max_class;
-                    }
+                    float *arr = (float *)calloc((nwidth * nheight), sizeof(float));
+                    /* get arr with argmax function calculated */
+                    argMax<float>(arr, tensor_op_array, nwidth, nheight, nclasses);
                     (*img).data = blendSegMask<float>((*img).data, arr, (*img).cols, (*img).rows, wanted_width, wanted_height, alpha);
                 }
             }
@@ -618,6 +581,9 @@ namespace onnx
                 if (RETURN_FAIL == prepSegResult(&img, &output_tensors, s, modelInfo->m_postProcCfg.alpha))
                     return RETURN_FAIL;
             }
+            /* frreing shared mem*/
+            TIDLRT_freeSharedMem(outData);
+            TIDLRT_freeSharedMem(inData);
 
             cv::cvtColor(img, img, cv::COLOR_RGB2BGR);
             char filename[500];

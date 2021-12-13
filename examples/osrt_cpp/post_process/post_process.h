@@ -183,6 +183,18 @@ namespace tidl
                                   int32_t outDataWidth,
                                   int32_t outDataHeight,
                                   int32_t N);
+
+        /**  \brief Argmax computation for seg model
+         *
+         *  \param  arr : output array of size nheight*nwidth
+         *  \param  tensor_op_array : tensor op of model
+         *  \param  nwidth
+         *  \param  nheight
+         *  \param  nclasses
+         *  \return null
+         */
+        template <class T>
+        void argMax(T *arr, T *tensor_op_array, int nwidth, int nheight, int nclasses);
     } // namespace tidl::postprocess
 
 #endif // _POST_PROCESS_H_

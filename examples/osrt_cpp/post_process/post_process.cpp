@@ -359,5 +359,37 @@ namespace tidl
                                        float threshold, std::vector<std::pair<float, int>> *top_results,
                                        bool input_floating);
 
+        /**
+         *  \brief Argmax computation for seg model
+         *
+         *  \param  arr : output array of size nheight*nwidth
+         *  \param  tensor_op_array : tensor op of model
+         *  \param  nwidth
+         *  \param  nheight
+         *  \param  nclasses
+         *  \return null
+         */
+        template <class T>
+        void argMax(T *arr, T *tensor_op_array, int nwidth, int nheight, int nclasses)
+        {
+            /* iterate through all classes of nclasses */
+            for (int i = 0; i < nwidth * nheight; i++)
+            {
+                float max_val = 0;
+                int max_class = 0;
+                for (int j = 0; j < nclasses; j++)
+                {
+                    if (tensor_op_array[i + j * nwidth * nheight] >= max_val)
+                    {
+                        max_val = tensor_op_array[i + j * nwidth * nheight];
+                        max_class = j;
+                    }
+                }
+                arr[i] = max_class;
+            }
+        }
+
+        template void argMax<float>(float *arr, float *tensor_op_array, int nwidth, int nheight, int nclasses);
+
     } // namespace tidl::postprocess
 }
