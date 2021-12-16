@@ -17,8 +17,8 @@ case $key in
     echo Usage: $0 [options]
     echo
     echo Options,
-    echo --skip_setup                      Skip Installing python dependencies. Direclty launch Notebook session   
-    echo --skip_models_download            Skip Pre-compiled models download   
+    echo --skip_setup                      Skip Installing python dependencies. Direclty launch Notebook session
+    echo --skip_models_download            Skip Pre-compiled models download
     exit 0
     ;;
 esac
@@ -102,7 +102,5 @@ echo "TIDL_RT_PERFSTATS=${TIDL_RT_PERFSTATS}"
 
 echo "# ##################################################################"
 echo "Launch notebook server"
-jupyter notebook --allow-root --no-browser --ip=0.0.0.0 
-
-
+jupyter notebook --allow-root --no-browser --ip=0.0.0.0
 

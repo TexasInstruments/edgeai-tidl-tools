@@ -103,6 +103,9 @@ def voxelization(lidar_data=[], params=[], voxel_data=[], indices=[], scale_fact
             voxel_data[0][j][i] = voxel_data[7][j][i]
             voxel_data[1][j][i] = voxel_data[8][j][i]
 
+    # Number of points in each voxel is not given to algorithm, here '-1' acts as marker position, as zero is valid entry
+    indices[num_non_empty_voxels] = -1
+
 #https://github.com/open-mmlab/mmdetection3d/
 def boxes3d_to_corners3d_lidar(boxes3d, bottom_center=True):
     """Convert kitti center boxes to corners.
@@ -171,6 +174,7 @@ def boxes3d_to_corners3d_lidar(boxes3d, bottom_center=True):
 
     return corners.astype(np.float32)
 
+#https://github.com/open-mmlab/mmdetection3d/
 def draw_lidar_bbox3d_on_img(corners_3d,
                              raw_img,
                              lidar2img_rt,
@@ -211,3 +215,87 @@ def draw_lidar_bbox3d_on_img(corners_3d,
 
     return img.astype(np.uint8)
 
+#https://github.com/dtczhl/dtc-KITTI-For-Beginners/
+def load_velodyne_points(filename):
+    points = np.fromfile(filename, dtype=np.float32).reshape(-1, 4)
+    # points = points[:, :3]  # exclude luminance
+    return points
+
+CAM = 2
+
+#https://github.com/dtczhl/dtc-KITTI-For-Beginners/
+def load_calib(calib_dir_lines):
+    # P2 * R0_rect * Tr_velo_to_cam * y
+    #lines = open(calib_dir).readlines()
+    lines = [line.split()[1:] for line in calib_dir_lines][:-1]
+    #
+    P = np.array(lines[CAM]).reshape(3, 4)
+    #
+    Tr_velo_to_cam = np.array(lines[5]).reshape(3, 4)
+    Tr_velo_to_cam = np.concatenate([Tr_velo_to_cam, np.array([0, 0, 0, 1]).reshape(1, 4)], 0)
+    #
+    R_cam_to_rect = np.eye(4)
+    R_cam_to_rect[:3, :3] = np.array(lines[4][:9]).reshape(3, 3)
+    #
+    P = P.astype('float32')
+    Tr_velo_to_cam = Tr_velo_to_cam.astype('float32')
+    R_cam_to_rect = R_cam_to_rect.astype('float32')
+    return P, Tr_velo_to_cam, R_cam_to_rect
+
+#https://github.com/dtczhl/dtc-KITTI-For-Beginners/
+def prepare_velo_points(pts3d_raw):
+    '''Replaces the reflectance value by 1, and tranposes the array, so
+        points can be directly multiplied by the camera projection matrix'''
+    pts3d = pts3d_raw
+    # Reflectance > 0
+    indices = pts3d[:, 3] > 0
+    pts3d = pts3d[indices, :]
+    pts3d[:, 3] = 1
+    return pts3d.transpose(), indices
+
+#https://github.com/dtczhl/dtc-KITTI-For-Beginners/
+def project_velo_points_in_img(pts3d, T_cam_velo, Rrect, Prect):
+    '''Project 3D points into 2D image. Expects pts3d as a 4xN
+        numpy array. Returns the 2D projection of the points that
+        are in front of the camera only an the corresponding 3D points.'''
+    # 3D points in camera reference frame.
+    pts3d_cam = Rrect.dot(T_cam_velo.dot(pts3d))
+    # Before projecting, keep only points with z>0
+    # (points that are in fronto of the camera).
+    idx = (pts3d_cam[2, :] >= 0)
+    pts2d_cam = Prect.dot(pts3d_cam[:, idx])
+    return pts3d[:, idx], pts2d_cam / pts2d_cam[2, :], idx
+
+#https://github.com/dtczhl/dtc-KITTI-For-Beginners/
+def align_img_and_pc(img, pts, calib_dir_lines):
+    #img = imageio.imread(img_dir)
+    #img = cv2.imread(img_dir)
+    #pts = load_velodyne_points(pc_dir)
+    P, Tr_velo_to_cam, R_cam_to_rect = load_calib(calib_dir_lines)
+
+    pts3d, indices = prepare_velo_points(pts)
+    # pts3d_ori = pts3d.copy()
+    reflectances = pts[indices, 3]
+    pts3d, pts2d_normed, idx = project_velo_points_in_img(pts3d, Tr_velo_to_cam, R_cam_to_rect, P)
+    # print reflectances.shape, idx.shape
+    reflectances = reflectances[idx]
+    # print reflectances.shape, pts3d.shape, pts2d_normed.shape
+    # assert reflectances.shape[0] == pts3d.shape[1] == pts2d_normed.shape[1]
+
+    rows, cols = img.shape[:2]
+
+    points = []
+    for i in range(pts2d_normed.shape[1]):
+        c = int(np.round(pts2d_normed[0, i]))
+        r = int(np.round(pts2d_normed[1, i]))
+        if c < cols and r < rows and r > 0 and c > 0:
+            #color = img[r, c, :]
+            #point = [pts3d[0, i], pts3d[1, i], pts3d[2, i], reflectances[i], color[0], color[1], color[2],
+            #         pts2d_normed[0, i], pts2d_normed[1, i]]
+            point = [pts3d[0, i], pts3d[1, i], pts3d[2, i], reflectances[i]]
+            points.append(point)
+
+    points = np.array(points)
+    lidr_2_img = P @ R_cam_to_rect @ Tr_velo_to_cam
+
+    return points, lidr_2_img

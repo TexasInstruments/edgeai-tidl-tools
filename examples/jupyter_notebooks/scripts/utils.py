@@ -11,7 +11,7 @@ from numpy.lib.stride_tricks import as_strided
 from PIL import Image, ImageFont, ImageDraw, ImageEnhance
 """
 Jacinto_ai_benchmark for getting preprocessing configurations
-for all supported prebuilt models 
+for all supported prebuilt models
 """
 from jai_benchmark.config_settings import ConfigSettings
 from jai_benchmark.utils import get_name_key_pair_list
@@ -38,12 +38,12 @@ models = {
 }
 
 def download_model(mpath):
-        
+
     headers = {
     'User-Agent': 'My User Agent 1.0',
     'From': 'aid@ti.com'  # This is another valid field
     }
-    
+
     if(not os.path.isfile(mpath)):
         # Check whether the specified path exists or not
         isExist = os.path.exists(os.path.dirname(mpath))
@@ -60,7 +60,7 @@ def download_model(mpath):
             if model_info['type'] is 'onnx':
                 print("Running shape inference for ", mpath)
                 onnx.shape_inference.infer_shapes_path(mpath, mpath)
-        else : 
+        else :
             print(f'Model infor for {mpath} Not found')
 
 
@@ -100,7 +100,7 @@ model_id_artifacts_pair = {
 
     # TFLite OD
     'vdet-12-010-0-tflitert': 'TFL-OD-200-ssd-mobV1-coco-300x300',
-    'vdet-12-011-0-tflitert': 'TFL-OD-201-ssd-mobV2-coco-300x300', 
+    'vdet-12-011-0-tflitert': 'TFL-OD-201-ssd-mobV2-coco-300x300',
     'vdet-12-400-0-tflitert': 'TFL-OD-202-ssdLite-mobDet-DSP-coco-320x320',
     'vdet-12-401-0-tflitert': 'TFL-OD-203-ssdLite-mobDet-EdgeTPU-coco-320x320',
     'vdet-12-404-0-tflitert': 'TFL-OD-204-ssd-mobV1-FPN-coco-640x640',
@@ -219,7 +219,7 @@ The next cell shows an example script to use the timestamps and display a descri
 '''
 def plot_TI_performance_data(stats, axis=None):
     do_show = False
-    
+
     if axis is None:
         import matplotlib.pyplot as plt
         fig, axis = plt.subplots()
@@ -252,7 +252,7 @@ def plot_TI_performance_data(stats, axis=None):
     # populate total runtime record
     #records.append(([(0, d['run_end'] - d['run_start'])], "total", ('tab:red')))
 
-        
+
     # Set legend
     legends = [
         #mpatches.Patch(color='red', label='total'),
@@ -269,7 +269,7 @@ def plot_TI_performance_data(stats, axis=None):
     axis.set_yticks(ticks)
     axis.set_yticklabels(names)
 
-    # plot colored bars 
+    # plot colored bars
     for i, r in enumerate(records):
         axis.broken_barh(r[0], (i + i * 0.1, 1), facecolors=r[2])
 
@@ -285,7 +285,7 @@ def plot_TI_performance_data(stats, axis=None):
 
 def plot_TI_DDRBW_data(stats, axis=None):
     do_show = False
-    
+
     if axis is None:
         import matplotlib.pyplot as plt
         fig, axis = plt.subplots()
@@ -293,21 +293,21 @@ def plot_TI_DDRBW_data(stats, axis=None):
 
     read_total = stats['ddr:read_end'] - stats['ddr:read_start']
     write_total = stats['ddr:write_end'] - stats['ddr:write_start']
-    
+
     axis.scatter(0.5, 0.5, s=read_total//100)
     axis.annotate(f'{read_total/1000000:05.2f}', (0.5, 0.5), c='white', fontsize=18, va='center', ha='center')
     axis.scatter(1.5, 0.5, s=write_total//100)
     axis.annotate(f'{write_total/1000000:05.2f}', (1.5, 0.5), c='white', fontsize=18, va='center', ha='center')
-    
+
     axis.set_yticks([])
-    
+
     axis.set_xlim([0, 2])
     axis.set_xticks([0.5, 1.5])
     axis.set_xticklabels(['DDR bytes read', 'DDR bytes written'])
-        
+
     if do_show:
         plt.show()
- 
+
 '''
 Utility function to get class names from imagenet class IDs
 
@@ -326,7 +326,7 @@ def imagenet_class_to_name(cls):
     return imagenet_dict[cls]
 
 """
-def imagenet_class_to_name(cls):  
+def imagenet_class_to_name(cls):
     # build imagenet class ID to name list dictionary
     imagenet_dict = {}
     with open('sample-images/labels.txt') as f:
@@ -334,9 +334,9 @@ def imagenet_class_to_name(cls):
             p = [name.strip() for name in l.split(',')]
             imagenet_dict[c] = p
     # return name list using dictionary lookup
-    return imagenet_dict[cls] 
+    return imagenet_dict[cls]
 """
-    
+
 def get_benchmark_output(benchmark_dict):
     proc_time = copy_time = 0
     cp_in_time = cp_out_time = 0
@@ -399,7 +399,7 @@ def det_box_overlay_onnxrt(outputs, org_image_rgb, thr):
             xmax = outputs[0][0][i][2]
             ymax = outputs[0][0][i][3]
             draw.rectangle(((int(xmin*source_img.width), int(ymin*source_img.height)), (int(xmax*source_img.width), int(ymax*source_img.height))), outline = colors_list[int(outputs[1][0][i])%len(colors_list)], width=4)
-    
+
     source_img = source_img.convert("RGB")
     return(source_img)
 
@@ -440,31 +440,31 @@ def seg_mask_overlay(output_data, org_image_rgb, layout):
   if (output_data.ndim > 2) :
     if layout == 'NCHW':
         output_data = output_data.argmax(axis=0)
-    else : 
+    else :
         output_data = output_data.argmax(axis=1)
 
   output_data = np.squeeze(output_data)
-  mask_image_rgb  = mask_transform(output_data) 
+  mask_image_rgb  = mask_transform(output_data)
   org_image  = RGB2YUV(org_image_rgb.resize(output_data.shape))
   mask_image = RGB2YUV(mask_image_rgb)
-  
+
   org_image[:,:, 1] = mask_image[:,:, 1]
   org_image[:,:, 2] = mask_image[:,:, 2]
   blend_image = YUV2RGB(org_image)
   blend_image = blend_image.astype(np.uint8)
   blend_image = Image.fromarray(blend_image).convert('RGB')
-  
+
   return(blend_image)
 
 '''
 def get_ky_name_pair(eval_list, runtime_type):
-    eval_list_pair_key       = [k+"_"+runtime_type for k in eval_list] 
+    eval_list_pair_key       = [k+"_"+runtime_type for k in eval_list]
     merged_list = [(model_id_artifacts_pair[k],k.split('_')[0]) for k in eval_list_pair_key if k in model_id_artifacts_pair.keys()]
     return merged_list
 '''
 
 
-def get_selected_artifacts_id():       
+def get_selected_artifacts_id():
     model_id = None
     result_artifacts_key = None
     try:
@@ -485,10 +485,10 @@ def get_selected_artifacts_id():
             result_artifacts_key = artifacts_key.split("_")[0]
             #print("new Found key for model id from model selection tool ", result_artifacts_key)
             break
-    return result_artifacts_key   
+    return result_artifacts_key
 
-def get_eval_configs(task_type, runtime_type, num_quant_bits, last_artifacts_id=None, model_selection = None):
-    
+def get_eval_configs(task_type, runtime_type, num_quant_bits, last_artifacts_id=None, model_selection = None, experimental_models = False):
+
     if runtime_type == 'tflitert':
         session_type = TFLiteRTSession
         session_type_dict = {'onnx': 'onnxrt', 'tflite': 'tflitert', 'mxnet': 'tvmdlr'}
@@ -509,7 +509,8 @@ def get_eval_configs(task_type, runtime_type, num_quant_bits, last_artifacts_id=
         'task_selection' : task_type,
         'session_type_dict' : session_type_dict,
         'run_import' : False,
-        'model_selection': model_selection
+        'model_selection': model_selection,
+        'experimental_models' : experimental_models
     }
     settings = ConfigSettings(settings_dict)
     prebuilt_configs = select_configs(settings,os.path.join(prebuilts_dir, f'{num_quant_bits}bits'), runtime_type)
@@ -533,10 +534,10 @@ def get_eval_configs(task_type, runtime_type, num_quant_bits, last_artifacts_id=
 def get_preproc_props(pipeline_config):
     size = pipeline_config['preprocess'].get_param('crop')
     mean = list(pipeline_config['preprocess'].get_param('mean'))
-    scale = list(pipeline_config['preprocess'].get_param('scale')) 
+    scale = list(pipeline_config['preprocess'].get_param('scale'))
     layout = pipeline_config['preprocess'].get_param('data_layout')
     reverse_channels = pipeline_config['preprocess'].get_param('reverse_channels')
-    
+
     if type(size) is tuple:
         size = list(size)
 
@@ -548,8 +549,8 @@ def task_type_to_dataset_list(task_type):
     return ['imagenet']
 
 """
-class loggerWritter():  
-    # Redirect c- stdout and stderr to a couple of files. 
+class loggerWritter():
+    # Redirect c- stdout and stderr to a couple of files.
 """
 
 class loggerWritter():
@@ -567,7 +568,7 @@ class loggerWritter():
 
         self.logfile_out = os.open(self.logpath_out, os.O_WRONLY|os.O_TRUNC|os.O_CREAT)
         self.logfile_err = os.open(self.logpath_err, os.O_WRONLY|os.O_TRUNC|os.O_CREAT)
-    
+
     def __enter__(self):
         self.orig_stdout = sys.stdout # save original stdout
         self.orig_stderr = sys.stderr # save original stderr
@@ -580,21 +581,21 @@ class loggerWritter():
 
         sys.stdout = os.fdopen(self.new_stdout, 'w')
         sys.stderr = os.fdopen(self.new_stderr, 'w')
-        
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         sys.stdout.flush()
         sys.stderr.flush()
 
         sys.stdout = self.orig_stdout # restore original stdout
         sys.stderr = self.orig_stderr # restore original stderr
-        
+
         os.close(self.logfile_out)
         os.close(self.logfile_err)
-        
+
 """
-def get_svg_path(model_dir):  
-    # Finds all *.svg inside a model artifact folder and return *.svg's files paths inside a list. 
-"""        
+def get_svg_path(model_dir):
+    # Finds all *.svg inside a model artifact folder and return *.svg's files paths inside a list.
+"""
 
 def get_svg_path(model_dir):
     inputNetFile = []
@@ -636,7 +637,7 @@ def post_dark_udp(coords, batch_heatmaps, kernel=3):
     Returns:
         res (np.ndarray[N, K, 2]): Refined coordinates.
     """
-    
+
     batch_heatmaps = copy.deepcopy(batch_heatmaps)
     B, K, H, W = batch_heatmaps.shape
     N = coords.shape[0]
@@ -806,7 +807,7 @@ def pool2d(A, kernel_size, stride, padding, pool_mode='max'):
     output_shape = ((A.shape[0] - kernel_size)//stride + 1,
                     (A.shape[1] - kernel_size)//stride + 1)
     kernel_size = (kernel_size, kernel_size)
-    A_w = as_strided(A, shape = output_shape + kernel_size, 
+    A_w = as_strided(A, shape = output_shape + kernel_size,
                         strides = (stride*A.strides[0],
                                    stride*A.strides[1]) + A.strides)
     A_w = A_w.reshape(-1, *kernel_size)
@@ -866,9 +867,9 @@ class HeatmapParser:
 
             maxm = np.equal(maxm,heatmap)
             heatmap = heatmap * maxm
-            
+
             heatmaps[0][i] = heatmap
-            
+
         return heatmaps
 
     def match(self, tag_k, loc_k, val_k):
@@ -921,13 +922,13 @@ class HeatmapParser:
         heatmaps = self.nms(heatmaps)
         N, K, H, W = heatmaps.shape
         heatmaps = np.reshape(heatmaps,[N,K,-1])
-        
+
         ind = np.zeros((N,K,self.params.max_num_people),int)
         val_k = np.zeros((N,K,self.params.max_num_people))
         for i,heatmap in enumerate(heatmaps[0]):
             ind[0][i] = heatmap.argsort()[-self.params.max_num_people:][::-1]
             val_k[0][i] = heatmap[ind[0][i]]
-            
+
         tags = np.reshape(tags,(tags.shape[0], tags.shape[1], W * H, -1))
         tag_k = np.concatenate([np.expand_dims(gather(tags[...,i],2,ind),axis=3) for i in range(tags.shape[3])],axis=3)
 
@@ -941,7 +942,7 @@ class HeatmapParser:
             'loc_k': ind_k,
             'val_k': val_k
         }
-        
+
         return ans
 
     @staticmethod
@@ -1114,7 +1115,7 @@ class HeatmapParser:
 #
 #####################################################################################################################
 def define_cfg(udp=False):
-    
+
     cfg = {}
 
     cfg['higher_hr'] = False
@@ -1123,7 +1124,7 @@ def define_cfg(udp=False):
         cfg['use_udp'] = False
     else:
         cfg['project2image'] = False
-        cfg['use_udp'] = True       
+        cfg['use_udp'] = True
 
     cfg['num_joints'] = 17
     cfg['max_num_people'] = 30
@@ -1146,7 +1147,7 @@ def define_cfg(udp=False):
 
     cfg['nms_kernel'] = 5
     cfg['nms_padding'] = 2
-    
+
     return cfg
 
 
@@ -1234,44 +1235,44 @@ def get_multi_stage_outputs(outputs,
     resize them to base sizes.
     Also to aggregate them.
     """
-    
+
     heatmaps_avg = 0
     heatmaps = []
     tags = []
-    
+
     aggregated_heatmaps = None
     tags_list = []
 
     flip_test = outputs_flip is not None
-    
+
     offset_feat = num_joints
-    
+
     heatmaps_avg += outputs[0][:, :num_joints]
     tags.append(outputs[0][:, offset_feat:])
-    
+
     heatmaps.append(heatmaps_avg)
-        
+
     if flip_test and flip_index:
         # perform flip testing
-        heatmaps_avg = 0        
+        heatmaps_avg = 0
         offset_feat = num_joints
-        
+
         heatmaps_avg += outputs_flip[0][:, :num_joints][:, flip_index, :, :]
         tags.append(outputs_flip[0][:, offset_feat:])
         if tag_per_joint:
             tags[-1] = tags[-1][:, flip_index, :, :]
-         
+
         heatmaps.append(heatmaps_avg)
 
     #align corners on the basis of udp, if udp true then align
     #remember project2image is true mostly when udp is False
     if project2image and size_projected:
-        
+
         dim = (size_projected[1], size_projected[0])
 
         final_heatmaps =[]
         final_tags = []
-        
+
         new_heatmaps = np.empty((0,dim[0],dim[1]),int)
         for hms in heatmaps[0][0]:
             new_hms = cv2.resize(
@@ -1279,9 +1280,9 @@ def get_multi_stage_outputs(outputs,
                 dim,
                 interpolation=cv2.INTER_LINEAR)
             new_heatmaps = np.append(new_heatmaps,[new_hms],axis=0)
-        
+
         final_heatmaps.append(np.expand_dims(new_heatmaps,0))
-        
+
         if flip_test:
             new_heatmaps_flipped = np.empty((0,dim[0],dim[1]),int)
             for hms in heatmaps[1][0]:
@@ -1290,9 +1291,9 @@ def get_multi_stage_outputs(outputs,
                     dim,
                     interpolation=cv2.INTER_LINEAR)
                 new_heatmaps_flipped = np.append(new_heatmaps_flipped,[new_hms],axis=0)
-                
+
             final_heatmaps.append(np.expand_dims(new_heatmaps_flipped,0))
-        
+
         new_tags = np.empty((0,dim[0],dim[1]),int)
         for tms in tags[0][0]:
             new_tms =  cv2.resize(
@@ -1300,10 +1301,10 @@ def get_multi_stage_outputs(outputs,
                 dim,
                 interpolation=cv2.INTER_LINEAR)
             new_tags = np.append(new_tags,[new_tms],axis=0)
-            
-            
+
+
         final_tags.append(np.expand_dims(new_tags,0))
-        
+
         if flip_test:
             new_tags_flipped = np.empty((0,dim[0],dim[1]),int)
             for tms in tags[1][0]:
@@ -1312,21 +1313,21 @@ def get_multi_stage_outputs(outputs,
                     dim,
                     interpolation=cv2.INTER_LINEAR)
                 new_tags_flipped = np.append(new_tags_flipped,[new_tms],axis=0)
-                
+
             final_tags.append(np.expand_dims(new_tags_flipped,0))
-            
+
     else:
         final_tags = tags
         final_heatmaps = heatmaps
-            
+
     for tms in final_tags:
         tags_list.append(np.expand_dims(tms,axis=4))
-        
+
     aggregated_heatmaps = (final_heatmaps[0] +
-                    final_heatmaps[1]) / 2.0 if flip_test else final_heatmaps[0] 
-    
+                    final_heatmaps[1]) / 2.0 if flip_test else final_heatmaps[0]
+
     tags = np.concatenate(tags_list,axis=4)
-        
+
     return aggregated_heatmaps, tags
 
 
@@ -1678,7 +1679,7 @@ def vis_pose_result(img,
                     out_file=None,
                     thickness=1,
                     radius=4):
-    
+
     palette = np.array([[255, 128, 0], [255, 153, 51], [255, 178, 102],
                         [230, 230, 0], [255, 153, 255], [153, 204, 255],
                         [255, 102, 255], [255, 51, 255], [102, 178, 255],
@@ -1696,7 +1697,7 @@ def vis_pose_result(img,
     pose_kpt_color = palette[[
         16, 16, 16, 16, 16, 9, 9, 9, 9, 9, 9, 0, 0, 0, 0, 0, 0
     ]]
-    
+
     img = show_result(
         img,
         result,
@@ -1711,24 +1712,24 @@ def vis_pose_result(img,
     return img
 
 def single_img_visualise(output, image_size, img_name, out_file, udp=False,thickness=1,radius=4):
-        
+
     cfg = define_cfg(udp)
-    
+
     if cfg['use_udp']:
         base_size = (image_size,image_size)
-        center = np.array([(image_size-1)/2.0,(image_size-1)/2.0]) 
+        center = np.array([(image_size-1)/2.0,(image_size-1)/2.0])
         scale = np.array([image_size-1,image_size-1])
     else:
         base_size = (image_size,image_size)
-        center = np.array([image_size/2,image_size/2]) 
+        center = np.array([image_size/2,image_size/2])
         scale = np.array([image_size/200,image_size/200])
-    
+
     parser = HeatmapParser(cfg)
-    
+
     result = {}
 
     outputs_flipped = None
-    
+
     aggregated_heatmaps, tags = get_multi_stage_outputs(
         output,
         outputs_flipped,
@@ -1751,7 +1752,7 @@ def single_img_visualise(output, image_size, img_name, out_file, udp=False,thick
         scale, [aggregated_heatmaps.shape[3],
                 aggregated_heatmaps.shape[2]],
         use_udp=cfg['use_udp'])
-    
+
     actual_size = cv2.imread(img_name).shape
     k = [actual_size[1],actual_size[0]]
     final_size = image_size
@@ -1771,7 +1772,7 @@ def single_img_visualise(output, image_size, img_name, out_file, udp=False,thick
             for j in range(len(preds[0])):
                 preds[i][j][1] = preds[i][j][1]/scale_it
                 preds[i][j][0] = (preds[i][j][0]-value_it)/scale_it
-                
+
     image_paths = []
     image_paths.append(img_name)
 
@@ -1781,7 +1782,7 @@ def single_img_visualise(output, image_size, img_name, out_file, udp=False,thick
     result['scores'] = scores
     result['image_paths'] = img_name
     result['output_heatmap'] = output_heatmap
-    
+
     pose_results = []
     for idx, pred in enumerate(result['preds']):
         area = (np.max(pred[:, 0]) - np.min(pred[:, 0])) * (
@@ -1795,7 +1796,7 @@ def single_img_visualise(output, image_size, img_name, out_file, udp=False,thick
     pose_nms_thr=0.9
     keep = oks_nms(pose_results, pose_nms_thr, sigmas=None)
     pose_results = [pose_results[_keep] for _keep in keep]
-    
+
     output_image = vis_pose_result(
         img_name,
         pose_results,
@@ -1804,5 +1805,5 @@ def single_img_visualise(output, image_size, img_name, out_file, udp=False,thick
         out_file=out_file,
         thickness=thickness,
         radius=radius)
-    
+
     return output_image
