@@ -314,6 +314,9 @@ namespace tidl
           * [x1y1 x2y2 label score]
           */
          std::vector<int32_t> formatter{0, 1, 2, 3, 4, 5};
+         
+         /** Formatter Name : DetectionYXYX2XYXY*/
+         std::string formatterName;
 
          /** If detections are normalized to 0-1 */
          bool normDetect{false};

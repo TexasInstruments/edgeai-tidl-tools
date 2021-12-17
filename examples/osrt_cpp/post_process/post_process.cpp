@@ -71,39 +71,46 @@ namespace tidl
         using namespace std;
 
         /**
-         * Use OpenCV to do in-place update of a buffer with post processing content
-         * like drawing bounding box around a detected object in the frame. Typically
-         * used for object classification models.
-         * Although OpenCV expects BGR data, this function adjusts the color values so
-         * that the post processing can be done on a RGB buffer without extra
-         * performance impact.
+         * Use OpenCV to do in-place update of a buffer with post processing
+         * content like drawing bounding box around a detected object in the
+         * frame. Typically used for object classification models.
+         * Although OpenCV expects BGR data, this function adjusts the color
+         * values so that the post processing can be done on a RGB buffer
+         * without extra performance impact.
+         * od_formatted_vec wil have detected obj data, process accroding to
+         * info from postprocess info
          *
-         * @param frame Original RGB data buffer, where the in-place updates will happen
-         * @param num_of_detections
-         * @param box bounding box co-ordinates.
-         * @param score scores of detection for comparing with threshold.
-         * @param threshold threshold.
-         * @returns original frame with some in-place post processing done
+         * @param img Original RGB data buffer, where the in-place updates will
+         *  happen
+         * @param od_format_vector od processed vector of vector having only
+         * detected object cordiantes and 6 float va curresponding to
+         * x1y1x2y2 score label in order of output tensor.
+         * @param modelInfo
+         * @returns status
          */
-        cv::Mat overlayBoundingBox(cv::Mat img, int num_of_detection, float *cordinates, float *scores, float threshold)
+        int overlayBoundingBox(cv::Mat *img, std::vector<std::vector<float>> *od_formatted_vec, ModelInfo *modelInfo)
         {
             cv::Scalar box_color = (20, 120, 20);
-            for (int i = 0; i < num_of_detection; i++)
+            int boxThickness = 2;
+            /* extracting index of x1x2y1y1format  [x1y1 x2y2 label score] */
+            std::vector<int32_t> format = modelInfo->m_postProcCfg.formatter;
+            int x1Index = format[0];
+            int y1Index = format[1];
+            int x2Index = format[2];
+            int y2Index = format[3];
+            /* hard coded colour of box */
+            for (auto it = (*od_formatted_vec).begin(); it != (*od_formatted_vec).end(); ++it)
             {
-                if (scores[i] > threshold)
-                {
-                    /* hard coded colour of box */
-                    int boxThickness = 2;
-                    float ymin = cordinates[i * 4 + 0];
-                    float xmin = cordinates[i * 4 + 1];
-                    float ymax = cordinates[i * 4 + 2];
-                    float xmax = cordinates[i * 4 + 3];
-                    cv::Point topleft = cv::Point(xmin * img.cols, ymax * img.rows);
-                    cv::Point bottomright = cv::Point(xmax * img.cols, ymin * img.rows);
-                    cv::rectangle(img, topleft, bottomright, box_color, boxThickness, cv::LINE_8);
-                }
+                float xmin = (*it)[x1Index];
+                float ymin = (*it)[y1Index];
+                float xmax = (*it)[x2Index];
+                float ymax = (*it)[y2Index];
+
+                cv::Point topleft = cv::Point(xmin * (*img).cols, ymax * (*img).rows);
+                cv::Point bottomright = cv::Point(xmax * (*img).cols, ymin * (*img).rows);
+                cv::rectangle((*img), topleft, bottomright, box_color, boxThickness, cv::LINE_8);
             }
-            return img;
+            return RETURN_SUCCESS;
         }
 
         /**
@@ -390,6 +397,118 @@ namespace tidl
         }
 
         template void argMax<float>(float *arr, float *tensor_op_array, int nwidth, int nheight, int nclasses);
+
+        /**
+         *  \brief create a float vec from array of type data
+         *
+         *  \param  inData : poimter to input array of data
+         *  \param  outData : pointer to output vector of float
+         *  \param  tensor_shape
+         *  \return null
+         */
+        template <class T>
+        void createFloatVec(T *inData, vector<float> *outData, vector<int64_t> tensor_shape)
+        {
+            int size = 1;
+            for (size_t i = 0; i < tensor_shape.size(); i++)
+            {
+                size = size * tensor_shape[i];
+            }
+            for (int i; i < size; i++)
+            {
+                (*outData).push_back(inData[i]);
+            }
+        }
+        template void createFloatVec<float>(float *inData, vector<float> *outData, vector<int64_t> tensor_shape);
+        template void createFloatVec<int64_t>(int64_t *inData, vector<float> *outData, vector<int64_t> tensor_shape);
+        template void createFloatVec<int32_t>(int32_t *inData, vector<float> *outData, vector<int64_t> tensor_shape);
+
+        /**
+         *  \brief  prepare the od result inplace
+         *  \param  img cv image to do inplace transform
+         *  \param  f_tensor_unformatted unformatted tensor outputs
+         *  \param tensor_shapes_vec vector containign shpe of all tensors
+         *  \param  modelInfo
+         *  \param nboxes num of detections
+         *  \param output_count num of output tensors
+         * @returns int status
+         */
+        int prepDetectionResult(cv::Mat *img, vector<vector<float>> *f_tensor_unformatted, vector<vector<int64_t>> tensor_shapes_vec,
+                                ModelInfo *modelInfo, size_t output_count, int nboxes)
+        {
+            LOG_INFO("preparing detection result \n");
+            vector<vector<float>> od_formatted_vec;
+            float threshold = modelInfo->m_vizThreshold;
+            int cols = (*img).cols;
+            /* copy the op tensors into single vector of for od post-process
+            This loop will extract the data from f_tensor_unformatted
+            in format od post process is expecting */
+            for (size_t i = 0; i < nboxes; i++)
+            {
+                vector<float> temp;
+                for (size_t j = 0; j < output_count; j++)
+                {
+                    /* shape of the ith tensor*/
+                    vector<int64_t> tensor_shape = tensor_shapes_vec[j];
+                    /* num of values in ith tensor*/
+                    int num_val_tensor = 1;
+                    /*Extract the last dimension from each of the output
+                    tensors.last dimension will give the number of values present in
+                    given tensor. Need to ignore all dimensions with value 1 since it
+                    does not actually add a dimension */
+                    auto temp_shape = tensor_shape;
+                    for (auto it = temp_shape.begin(); it < temp_shape.end(); it++)
+                    {
+                        if ((*it) == 1)
+                        {
+                            temp_shape.erase(it);
+                            it--;
+                        }
+                    }
+                    if (temp_shape.size() <= 1)
+                        num_val_tensor = 1;
+                    else
+                        num_val_tensor = temp_shape[temp_shape.size() - 1];
+
+                    /*TODO this condition is given for tflite issue*/
+                    if(temp_shape.size() == 1 && temp_shape[0] == 4)
+                        num_val_tensor = 4;
+
+                    for (size_t k = 0; k < num_val_tensor; k++)
+                    {
+                        temp.push_back((*f_tensor_unformatted)[nboxes * j + i][k]);
+                    }
+                }
+                od_formatted_vec.push_back(temp);
+            }
+    
+            vector<int32_t> format = modelInfo->m_postProcCfg.formatter;
+            string formatter_name = modelInfo->m_postProcCfg.formatterName;
+            /*format [x1y1 x2y2 label score]*/
+            int score_index = format[5];
+            /*remove all the vectors which does'nt have socre more than
+             threshold */
+            for (auto it = od_formatted_vec.begin(); it != od_formatted_vec.end(); ++it)
+            {
+                if ((*it)[score_index] < threshold)
+                {
+                    od_formatted_vec.erase(it);
+                    it--;
+                }
+                else
+                {
+                    if (formatter_name == "DetectionBoxSL2BoxLS")
+                    {
+                        (*it)[0] = ((*it)[0]) / cols;
+                        (*it)[1] = (*it)[1] / cols;
+                        (*it)[2] = (*it)[2] / cols;
+                        (*it)[3] = (*it)[3] / cols;
+                    }
+                }
+            }
+            overlayBoundingBox(img, &od_formatted_vec, modelInfo);
+            return RETURN_SUCCESS;
+        }
 
     } // namespace tidl::postprocess
 }

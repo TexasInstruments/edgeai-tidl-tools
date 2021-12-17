@@ -73,7 +73,7 @@ namespace onnx
          *  \param  output_tensors pointer of tflite
          * @returns int status
          */
-        ONNXTensorElementDataType getTensorType(int index, std::vector<Ort::Value> *output_tensors)
+        ONNXTensorElementDataType getTensorType(int index, vector<Ort::Value> *output_tensors)
         {
             /* Get tensor type */
             return (*output_tensors).at(index).GetTypeInfo().GetTensorTypeAndShapeInfo().GetElementType();
@@ -87,13 +87,13 @@ namespace onnx
          *  \param  output_node_dims
          * @returns int status
          */
-        int prepClassificationResult(cv::Mat *img, std::vector<Ort::Value> *output_tensors, Settings *s,
-                                     std::vector<int64_t> output_node_dims)
+        int prepClassificationResult(cv::Mat *img, vector<Ort::Value> *output_tensors, Settings *s,
+                                     vector<int64_t> output_node_dims)
         {
             LOG_INFO("preparing classification result \n");
             ONNXTensorElementDataType op_tensor_type = getTensorType(0, output_tensors);
             /* Get pointer to output tensor float values*/
-            std::vector<std::pair<float, int>> top_results;
+            vector<pair<float, int>> top_results;
             const float threshold = 0.001f;
             /* assuming output tensor of size [1,1000] or [1, 1001]*/
             int output_size = output_node_dims.data()[output_node_dims.size() - 1];
@@ -122,7 +122,7 @@ namespace onnx
                 return RETURN_FAIL;
             }
 
-            std::vector<std::string> labels;
+            vector<string> labels;
             size_t label_count;
             if (RETURN_FAIL == readLabelsFile(s->labels_file_path, &labels, &label_count) != 0)
             {
@@ -148,7 +148,7 @@ namespace onnx
          *  \param  alpha for img masking
          * @returns int status
          */
-        int prepSegResult(cv::Mat *img, std::vector<Ort::Value> *output_tensors, Settings *s, float alpha)
+        int prepSegResult(cv::Mat *img, vector<Ort::Value> *output_tensors, Settings *s, float alpha)
         {
             LOG_INFO("preparing segmentation result \n");
             ONNXTensorElementDataType op_tensor_type = getTensorType(0, output_tensors);
@@ -194,136 +194,6 @@ namespace onnx
             return RETURN_SUCCESS;
         }
 
-        /**
-         *  \brief  prepare the od result inplace
-         *  \param  img cv image to do inplace transform
-         *  \param  output_tensors pointer of tflite
-         *  \param  modelInfo
-         * @returns int status
-         */
-        int prepDetectionResult(cv::Mat *img, std::vector<Ort::Value> *output_tensors, ModelInfo *modelInfo)
-        {
-            LOG_INFO("preparing detection result \n");
-            ONNXTensorElementDataType op_tensor_type = getTensorType(0, output_tensors);
-            std::vector<int32_t> format = {0, 1, 2, 3, 4, 5};
-            float threshold = modelInfo->m_vizThreshold;
-            /*verify this condition TODO */
-            if ((*output_tensors).size() == 3 && isSameFormat(format, modelInfo->m_postProcCfg.formatter))
-            {
-                /* assuming three outputs:
-                bboxes [1,nboxes,4] , labels [1,nboxes], score[1,nboxes] */
-                /* How to confirm the type TODO auto var??
-                output_tensors.at(0).GetTypeInfo().GetTensorTypeAndShapeInfo()
-                .GetElementType() == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT */
-                float *bboxes = (*output_tensors).at(0).GetTensorMutableData<float>();
-                int64_t *labels = (*output_tensors).at(1).GetTensorMutableData<int64_t>();
-                float *scores = (*output_tensors).at(2).GetTensorMutableData<float>();
-
-                std::list<float> detection_class_list, detectection_location_list, detectection_scores_list;
-                int num_detections = 0;
-                int nboxes = (*output_tensors).front().GetTensorTypeAndShapeInfo().GetShape()[1];
-                for (int i = 0; i < nboxes; i = i + 4)
-                {
-                    if (scores[i] >= threshold)
-                    {
-                        num_detections++;
-                        detectection_scores_list.push_back(scores[i]);
-                        detection_class_list.push_back(labels[i]);
-                        detectection_location_list.push_back(bboxes[i + 3]);
-                        detectection_location_list.push_back(bboxes[i + 2]);
-                        detectection_location_list.push_back(bboxes[i + 1]);
-                        detectection_location_list.push_back(bboxes[i]);
-                    }
-                }
-                float detectection_scores[detectection_scores_list.size()];
-                float detection_class[detection_class_list.size()];
-                float detectection_location[detectection_location_list.size()];
-                std::copy(detectection_scores_list.begin(), detectection_scores_list.end(), detectection_scores);
-                std::copy(detection_class_list.begin(), detection_class_list.end(), detection_class);
-                std::copy(detectection_location_list.begin(), detectection_location_list.end(), detectection_location);
-
-                LOG_INFO("results %d\n", num_detections);
-                overlayBoundingBox((*img), num_detections, detectection_location, detectection_scores, threshold);
-                for (int i = 0; i < num_detections; i++)
-                {
-                    LOG_INFO("class %lf\n", detection_class[i]);
-                    LOG_INFO("cordinates %lf %lf %lf %lf\n", detectection_location[i * 4], detectection_location[i * 4 + 1], detectection_location[i * 4 + 2], detectection_location[i * 4 + 3]);
-                    LOG_INFO("score %lf\n", detectection_scores[i]);
-                }
-            }
-            format = {0, 1, 2, 3, 5, 4};
-            if ((*output_tensors).size() == 2 && isSameFormat(format, modelInfo->m_postProcCfg.formatter))
-            {
-
-                int num_detections = 0;
-                float threshold = modelInfo->m_vizThreshold;
-                std::list<float> detection_class_list, detectection_location_list, detectection_scores_list;
-                if (op_tensor_type == ONNX_TENSOR_ELEMENT_DATA_TYPE_INT64)
-                {
-                    int64_t *int64arr = (*output_tensors).front().GetTensorMutableData<int64_t>();
-                    int64_t *labels = (*output_tensors).at(1).GetTensorMutableData<int64_t>();
-                    int nboxes = (*output_tensors).at(0).GetTensorTypeAndShapeInfo().GetShape()[0];
-                    int elem_per_box = (*output_tensors).at(0).GetTensorTypeAndShapeInfo().GetShape()[1];
-                    /*parsing */
-                    for (int i = elem_per_box - 1; i < nboxes * elem_per_box; i = i + elem_per_box)
-                    {
-                        if (int64arr[i] > threshold)
-                        {
-                            num_detections++;
-                            detectection_scores_list.push_back(int64arr[i]);
-                            detection_class_list.push_back(labels[i / elem_per_box]);
-                            detectection_location_list.push_back(int64arr[i - 1] / (*img).cols);
-                            detectection_location_list.push_back(int64arr[i - 2] / (*img).cols);
-                            detectection_location_list.push_back(int64arr[i - 3] / (*img).cols);
-                            detectection_location_list.push_back(int64arr[i - 4] / (*img).cols);
-                        }
-                    }
-                }
-                else if (op_tensor_type == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT)
-                {
-                    float *floatarr = (*output_tensors).at(0).GetTensorMutableData<float>();
-                    int64_t *labels = (*output_tensors).at(1).GetTensorMutableData<int64_t>();
-                    int nboxes = (*output_tensors).at(0).GetTensorTypeAndShapeInfo().GetShape()[0];
-                    int elem_per_box = (*output_tensors).at(0).GetTensorTypeAndShapeInfo().GetShape()[1];
-                    /*parsing */
-                    for (int i = elem_per_box - 1; i < nboxes * elem_per_box; i = i + elem_per_box)
-                    {
-                        /*assuming last element is score */
-                        if (floatarr[i] > threshold)
-                        {
-                            num_detections++;
-                            detectection_scores_list.push_back(floatarr[i]);
-                            detection_class_list.push_back(labels[i / elem_per_box]);
-                            detectection_location_list.push_back(floatarr[i - 1] / (*img).cols);
-                            detectection_location_list.push_back(floatarr[i - 2] / (*img).cols);
-                            detectection_location_list.push_back(floatarr[i - 3] / (*img).cols);
-                            detectection_location_list.push_back(floatarr[i - 4] / (*img).cols);
-                        }
-                    }
-                }
-                else
-                {
-                    LOG_INFO("out data type not supported\n");
-                    return RETURN_FAIL;
-                }
-                float detectection_scores[detectection_scores_list.size()];
-                float detection_class[detection_class_list.size()];
-                float detectection_location[detectection_location_list.size()];
-                std::copy(detectection_scores_list.begin(), detectection_scores_list.end(), detectection_scores);
-                std::copy(detection_class_list.begin(), detection_class_list.end(), detection_class);
-                std::copy(detectection_location_list.begin(), detectection_location_list.end(), detectection_location);
-
-                LOG_INFO("results %d\n", num_detections);
-                overlayBoundingBox((*img), num_detections, detectection_location, detectection_scores, threshold);
-                for (int i = 0; i < num_detections; i++)
-                {
-                    LOG_INFO("class %lf\n", detection_class[i]);
-                    LOG_INFO("cordinates %lf %lf %lf %lf\n", detectection_location[i * 4], detectection_location[i * 4 + 1], detectection_location[i * 4 + 2], detectection_location[i * 4 + 3]);
-                    LOG_INFO("score %lf\n", detectection_scores[i]);
-                }
-            }
-            return RETURN_SUCCESS;
-        }
 
         /**
          *  \brief  print tensor info
@@ -331,13 +201,13 @@ namespace onnx
          *  \param  input_node_names input array node names
          * @returns int status
          */
-        int printTensorInfo(Ort::Session *session, std::vector<const char *> *input_node_names)
+        int printTensorInfo(Ort::Session *session, vector<const char *> *input_node_names)
         {
             size_t num_input_nodes = (*session).GetInputCount();
             size_t num_output_nodes = (*session).GetOutputCount();
             Ort::TypeInfo type_info = (*session).GetInputTypeInfo(0);
             auto tensor_info = type_info.GetTensorTypeAndShapeInfo();
-            std::vector<int64_t> input_node_dims = tensor_info.GetShape();
+            vector<int64_t> input_node_dims = tensor_info.GetShape();
             LOG_INFO("number of inputs:%d \n", num_input_nodes);
             LOG_INFO("number of outputs: ", num_output_nodes);
             LOG_INFO("input(0) name: ", (*input_node_names)[0]);
@@ -377,10 +247,10 @@ namespace onnx
          */
         int runInference(ModelInfo *modelInfo, Settings *s)
         {
-            std::string model_path = modelInfo->m_infConfig.modelFile;
-            std::string image_path = s->input_bmp_path;
-            std::string labels_path = s->labels_file_path;
-            std::string artifacts_path;
+            string model_path = modelInfo->m_infConfig.modelFile;
+            string image_path = s->input_bmp_path;
+            string labels_path = s->labels_file_path;
+            string artifacts_path;
 
             /*check artifacts path need to be overwritten from cmd line args */
             if (s->artifact_path != "")
@@ -430,10 +300,10 @@ namespace onnx
 
             /* Input information */
             size_t num_input_nodes = session.GetInputCount();
-            std::vector<const char *> input_node_names(num_input_nodes);
+            vector<const char *> input_node_names(num_input_nodes);
             Ort::TypeInfo type_info = session.GetInputTypeInfo(0);
             auto tensor_info = type_info.GetTensorTypeAndShapeInfo();
-            std::vector<int64_t> input_node_dims = tensor_info.GetShape();
+            vector<int64_t> input_node_dims = tensor_info.GetShape();
             ONNXTensorElementDataType input_tensor_type = tensor_info.GetElementType();
             int wanted_height = input_node_dims[2];
             int wanted_width = input_node_dims[3];
@@ -456,7 +326,7 @@ namespace onnx
 
             /* output information */
             size_t num_output_nodes = session.GetOutputCount();
-            std::vector<const char *> output_node_names(num_output_nodes);
+            vector<const char *> output_node_names(num_output_nodes);
             for (int i = 0; i < num_output_nodes; i++)
             {
                 output_node_names[i] = session.GetOutputName(i, allocator);
@@ -468,7 +338,7 @@ namespace onnx
 
             type_info = session.GetOutputTypeInfo(0);
             auto output_tensor_info = type_info.GetTensorTypeAndShapeInfo();
-            std::vector<int64_t> output_node_dims = output_tensor_info.GetShape();
+            vector<int64_t> output_node_dims = output_tensor_info.GetShape();
             size_t output_tensor_size = output_node_dims[1];
 
             if (RETURN_FAIL == printTensorInfo(&session, &input_node_names))
@@ -509,7 +379,7 @@ namespace onnx
             const Ort::RunOptions &runOpts = Ort::RunOptions();
             Ort::Value input_tensor = Ort::Value::CreateTensor<float>(memory_info, (float *)inData, input_tensor_size, _input_node_dims.data(), 4);
             assert(input_tensor.IsTensor());
-            std::vector<int64_t> _output_node_dims = {1, 1, 1, 1000};
+            vector<int64_t> _output_node_dims = {1, 1, 1, 1000};
 
             Ort::Value output_tensors = Ort::Value::CreateTensor<float>(memory_info, (float *)outData, output_tensor_size, _output_node_dims.data(), 4);
             assert(output_tensors.IsTensor());
@@ -543,7 +413,7 @@ namespace onnx
             /* score model & input tensor, get back output tensor */
             auto run_options = Ort::RunOptions();
             run_options.SetRunLogVerbosityLevel(2);
-            std::vector<Ort::Value> output_tensors;
+            vector<Ort::Value> output_tensors;
             if (s->loop_count >= 1)
             {
                 LOG_INFO("Session.Run() - Started for warmup runs\n");
@@ -573,7 +443,78 @@ namespace onnx
             }
             else if (modelInfo->m_preProcCfg.taskType == "detection")
             {
-                if (RETURN_FAIL == prepDetectionResult(&img, &output_tensors, modelInfo))
+
+                /*store tensor_shape info of op tensors in arr
+                to avaoid recalculation*/
+                vector<vector<int64_t>> tensor_shapes_vec;
+                vector<vector<float>> f_tensor_unformatted;
+                for (size_t i = 0; i < output_tensors.size(); i++)
+                {
+                    vector<int64_t> tensor_shape = output_tensors.at(i).GetTensorTypeAndShapeInfo().GetShape();
+                    tensor_shapes_vec.push_back(tensor_shape);
+                }
+
+                /* num of detection in op tensor  assumes the lastbut one of
+                1st op tensor*/
+                vector<int64_t> tensor_shape = tensor_shapes_vec[0];
+                int nboxes = tensor_shape[tensor_shape.size() - 2];
+
+                for (size_t i = 0; i < output_tensors.size(); i++)
+                {
+                    /* temp vector to store converted ith tensor */
+                    vector<float> f_tensor;
+                    /* shape of the ith tensor*/
+                    vector<int64_t> tensor_shape = tensor_shapes_vec[i];
+                    /* type of the ith tensor*/
+                    ONNXTensorElementDataType tensor_type = output_tensors.at(i).GetTypeInfo().GetTensorTypeAndShapeInfo().GetElementType();
+                    /* num of values in ith tensor*/
+                    int num_val_tensor;
+                    /*Extract the last dimension from each of the output
+                    tensors.last dimension will give the number of values present in
+                    given tensor. Need to ignore all dimensions with value 1 since it
+                    does not actually add a dimension */
+                    auto temp = tensor_shape;
+                    for(auto it = temp.begin() ; it < temp.end();it++)
+                    {
+                        if((*it) == 1){
+                            temp.erase(it);
+                            it--;
+                        }
+                    }
+                    if (temp.size() == 1)
+                        num_val_tensor = 1;
+                    else{
+                        num_val_tensor = temp[temp.size() - 1];
+                    }
+
+                    /*convert tensor to float vector*/
+                    if (tensor_type == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT)
+                    {
+                        float *inDdata = output_tensors.at(i).GetTensorMutableData<float>();
+                        createFloatVec<float>(inDdata, &f_tensor, tensor_shape);
+                    }
+                    else if (tensor_type == ONNX_TENSOR_ELEMENT_DATA_TYPE_INT64)
+                    {
+                        int64_t *inDdata = output_tensors.at(i).GetTensorMutableData<int64_t>();
+                        createFloatVec<int64_t>(inDdata, &f_tensor, tensor_shape);
+                    }
+                    else
+                    {
+                        LOG_ERROR("out tensor data type not supported\n");
+                        return RETURN_FAIL;
+                    }
+                    /*append all output tensors in to single vector<vector<float>*/
+                    for (size_t j = 0; j < nboxes; j++)
+                    {
+                        vector<float> temp;
+                        for (size_t k = 0; k < num_val_tensor; k++)
+                        {
+                            temp.push_back(f_tensor[j * num_val_tensor + k]);
+                        }
+                        f_tensor_unformatted.push_back(temp);
+                    }
+                }
+                if (RETURN_FAIL == prepDetectionResult(&img, &f_tensor_unformatted, tensor_shapes_vec, modelInfo, num_output_nodes,nboxes))
                     return RETURN_FAIL;
             }
             else if (modelInfo->m_preProcCfg.taskType == "segmentation")

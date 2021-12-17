@@ -254,7 +254,7 @@ namespace dlr
                     std::copy(detectection_location_list.begin(), detectection_location_list.end(), detectection_location);
 
                     LOG_INFO("results %d\n", num_detections);
-                    overlayBoundingBox((*img), num_detections, detectection_location, detectection_scores, threshold);
+                    //overlayBoundingBox((*img), num_detections, detectection_location, detectection_scores, threshold);
                     for (int i = 0; i < num_detections; i++)
                     {
                         LOG_INFO("class %lf\n", detection_class[i]);

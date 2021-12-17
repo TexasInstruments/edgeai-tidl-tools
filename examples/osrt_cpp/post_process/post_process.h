@@ -89,23 +89,27 @@ namespace tidl
     namespace postprocess
     {
         using namespace std;
+        using namespace tidl::modelInfo;
 
         /**
-         * Use OpenCV to do in-place update of a buffer with post processing content
-         * like drawing bounding box around a detected object in the frame. Typically
-         * sed for object classification models.
-         * Although OpenCV expects BGR data, this function adjusts the color values so
-         * that the post processing can be done on a RGB buffer without extra
-         * performance impact.
+         * Use OpenCV to do in-place update of a buffer with post processing
+         * content like drawing bounding box around a detected object in the
+         * frame. Typically used for object classification models.
+         * Although OpenCV expects BGR data, this function adjusts the color
+         * values so that the post processing can be done on a RGB buffer
+         * without extra performance impact.
+         * od_formatted_vec wil have detected obj data, process accroding to
+         * info from postprocess info
          *
-         * @param frame Original RGB data buffer, where the in-place updates will happen
-         * @param num_of_detections
-         * @param box bounding box co-ordinates.
-         * @param score scores of detection for comparing with threshold.
-         * @param threshold threshold.
-         * @returns original frame with some in-place post processing done
+         * @param img Original RGB data buffer, where the in-place updates will
+         *  happen
+         * @param od_format_vector od processed vector of vector having only
+         * detected object cordiantes and 6 float va curresponding to
+         * x1y1x2y2 score label in order of output tensor.
+         * @param modelInfo
+         * @returns status
          */
-        cv::Mat overlayBoundingBox(cv::Mat img, int num_of_detection, float *cordinates, float *scores, float threshold);
+        int overlayBoundingBox(cv::Mat *img, std::vector<std::vector<float>> *od_formatted_vec, ModelInfo *modelInfo);
 
         /**
          * Use OpenCV to do in-place update of a buffer with post processing content
@@ -195,6 +199,43 @@ namespace tidl
          */
         template <class T>
         void argMax(T *arr, T *tensor_op_array, int nwidth, int nheight, int nclasses);
+
+        /**
+         *  \brief create a float vec from array of type data
+         *
+         *  \param  inData : poimter to input array of data
+         *  \param  outData : pointer to output vector of float
+         *  \param  tensor_shape
+         *  \return null
+         */
+        template <class T>
+        void createFloatVec(T *inData, vector<float> *outData, vector<int64_t> tensor_shape);
+
+        /**
+         *  \brief  create a vector which is in format for od post process
+         * eg: [{x1,y1,x2,y2,score,label},{x1,y1,x2,y2,score,label}...]
+         * from  unformatted  vec<vec<float>>
+         *  \param f_tensor_unformatted onnx model output tensor
+         *  \param tensor_shapes_vec vec comntainig shape of all op tensors
+         *  \param  od_formatted_vec pointer to final formatted vec
+         *  \param  num_op_tensors
+         * @returns int status
+         */
+        int createOdFormatVec(vector<vector<float>> *f_tensor_unformatted, vector<vector<int64_t>> tensor_shapes_vec,
+                              vector<vector<float>> *od_formatted_vec, int num_op_tensors);
+
+      /**
+         *  \brief  prepare the od result inplace
+         *  \param  img cv image to do inplace transform
+         *  \param  f_tensor_unformatted unformatted tensor outputs
+         *  \param tensor_shapes_vec vector containign shpe of all tensors
+         *  \param  modelInfo
+         *  \param nboxes num of detections
+         *  \param output_count num of output tensors
+         * @returns int status
+         */
+        int prepDetectionResult(cv::Mat *img, vector<vector<float>> *f_tensor_unformatted, vector<vector<int64_t>> tensor_shapes_vec,
+                                ModelInfo *modelInfo, size_t output_count, int nboxes);
     } // namespace tidl::postprocess
 
 #endif // _POST_PROCESS_H_

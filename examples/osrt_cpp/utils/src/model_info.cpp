@@ -290,7 +290,10 @@ namespace tidl
                 {
                     config.dataLayout = postProc["data_layout"].as<std::string>();
                 }
+                if (postProc["formatter"] && postProc["formatter"]["name"]){
 
+                    config.formatterName = postProc["formatter"]["name"].as<std::string>();
+                }
                 if (postProc["formatter"] && postProc["formatter"]["src_indices"])
                 {
                     const YAML::Node &formatterNode = postProc["formatter"]["src_indices"];

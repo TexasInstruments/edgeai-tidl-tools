@@ -76,7 +76,7 @@ namespace tflite
      *  \param  wanted_width
      *  \param  wanted_height
      *  \param  alpha
-     *  \param  interpreter pointer of tflite     
+     *  \param  interpreter pointer of tflite
      *  \param  outputs pointer of output vector
      * @returns int status
      */
@@ -109,9 +109,9 @@ namespace tflite
     /**
      *  \brief  prepare the classification result inplace
      *  \param  img cv image to do inplace transform
-     *  \param  interpreter pointer of tflite     
+     *  \param  interpreter pointer of tflite
      *  \param  outputs pointer of output vector
-     *  \param  s settings 
+     *  \param  s settings
      * @returns int status
      */
     int prepClassificationResult(cv::Mat *img, std::unique_ptr<tflite::Interpreter> *interpreter,
@@ -165,81 +165,6 @@ namespace tflite
       return RETURN_SUCCESS;
     }
 
-    /**
-     *  \brief  prepare the od result inplace
-     *  \param  img cv image to do inplace transform
-     *  \param  interpreter pointer of tflite
-     *  \param  outputs pointer of output vector
-     *  \param  modelInfo 
-     * @returns int status
-     */
-    int prepDetectionResult(cv::Mat *img, std::unique_ptr<tflite::Interpreter> *interpreter,
-                            const std::vector<int> *outputs, ModelInfo *modelInfo)
-    {
-      LOG_INFO("preparing detection result \n");
-      std::vector<int32_t> format = {1, 0, 3, 2, 4, 5};
-      float threshold = modelInfo->m_vizThreshold;
-      if (isSameFormat(format, modelInfo->m_postProcCfg.formatter))
-      {
-        float *detectection_location = (*interpreter)->tensor((*outputs)[0])->data.f;
-        float *detectection_classes = (*interpreter)->tensor((*outputs)[1])->data.f;
-        float *detectection_scores = (*interpreter)->tensor((*outputs)[2])->data.f;
-        int num_detections = (int)*(*interpreter)->tensor((*outputs)[3])->data.f;
-        LOG_INFO("results %d\n", num_detections);
-        overlayBoundingBox((*img), num_detections, detectection_location, detectection_scores, threshold);
-        for (int i = 0; i < num_detections; i++)
-        {
-          if (detectection_scores[i] > threshold)
-          {
-            LOG_INFO("class %f\n", detectection_classes[i]);
-            LOG_INFO("cordinates %f %f %f %f\n", detectection_location[i * 4], detectection_location[i * 4 + 1], detectection_location[i * 4 + 2], detectection_location[i * 4 + 3]);
-            LOG_INFO("score %f\n", detectection_scores[i]);
-          }
-        }
-      }
-      else
-      {
-        float *out_tensor = (*interpreter)->tensor((*outputs)[0])->data.f;
-        std::vector<float> detectection_classes, detectection_location, detectection_scores;
-        int num_detections = 0;
-        TfLiteIntArray *output_dims = (*interpreter)->tensor((*outputs)[0])->dims;
-        /*asssuming result is of format [1 x num_res x res_dim] */
-        int res_dim = output_dims->data[output_dims->size - 1];
-        int num_res = output_dims->data[output_dims->size - 2];
-        for (int i = 0; i < num_res; i++)
-        {
-          float score = out_tensor[i * res_dim + res_dim - 2];
-          float class_val = out_tensor[i * res_dim + res_dim - 1];
-          /*TODO need to verify */
-          float loc_0 = out_tensor[i * res_dim + 1] / modelInfo->m_postProcCfg.inDataHeight;
-          float loc_1 = out_tensor[i * res_dim + 2] / modelInfo->m_postProcCfg.inDataHeight;
-          float loc_2 = out_tensor[i * res_dim + 3] / modelInfo->m_postProcCfg.inDataHeight;
-          float loc_3 = out_tensor[i * res_dim + 4] / modelInfo->m_postProcCfg.inDataHeight;
-          if (score > threshold)
-          {
-            num_detections++;
-            detectection_scores.push_back(score);
-            detectection_classes.push_back(class_val);
-            detectection_location.push_back(loc_0);
-            detectection_location.push_back(loc_1);
-            detectection_location.push_back(loc_2);
-            detectection_location.push_back(loc_3);
-          }
-        }
-        LOG_INFO("results %d\n", num_detections);
-        for (int i = 0; i < num_detections; i++)
-        {
-          if (detectection_scores[i] > threshold)
-          {
-            LOG_INFO("class %f\n", detectection_classes[i]);
-            LOG_INFO("cordinates %f %f %f %f\n", detectection_location[i * 4], detectection_location[i * 4 + 1], detectection_location[i * 4 + 2], detectection_location[i * 4 + 3]);
-            LOG_INFO("score %f\n", detectection_scores[i]);
-          }
-        }
-        overlayBoundingBox((*img), num_detections, detectection_location.data(), detectection_scores.data(), threshold);
-        return RETURN_SUCCESS;
-      }
-    }
     /**
      *  \brief  Actual infernce happening
      *  \param  ModelInfo YAML parsed model info
@@ -439,7 +364,73 @@ namespace tflite
       }
       else if (modelInfo->m_preProcCfg.taskType == "detection")
       {
-        if (RETURN_FAIL == prepDetectionResult(&img, &interpreter, &outputs, modelInfo))
+        /*store tensor_shape info of op tensors in arr
+               to avaoid recalculation*/
+        int num_ops = outputs.size();
+        vector<vector<float>> f_tensor_unformatted;
+        /*num of detection in op tensor is assumed to be given by last tensor*/
+        int nboxes;
+        if(interpreter->tensor(outputs[num_ops-1])->type == kTfLiteFloat32)
+          nboxes = (int)*interpreter->tensor(outputs[num_ops-1])->data.f;
+        else if(interpreter->tensor(outputs[num_ops-1])->type == kTfLiteInt64)
+          nboxes = (int)*interpreter->tensor(outputs[num_ops-1])->data.i64;
+        else{
+          LOG_ERROR("unknown type for op tensor:%d\n",num_ops-1);
+          return RETURN_FAIL;
+        }
+        LOG_INFO("detected objects:%d \n",nboxes);
+        /* TODO verify this holds true for every tfl model*/
+        vector<vector<int64_t>> tensor_shapes_vec = {{nboxes,4},{nboxes,1},{nboxes,1},{nboxes,1}};
+        /* TODO Incase of only single tensor op od-2110 above tensor shape is 
+        invalid*/
+
+        /* run through all tensors excpet last one which contain
+        num_of detected boxes */
+        for (size_t i = 0; i < num_ops-1; i++)
+        {
+          /* temp vector to store converted ith tensor */
+          vector<float> f_tensor;
+          /* shape of the ith tensor*/
+          vector<int64_t> tensor_shape = tensor_shapes_vec[i];
+          
+          /* type of the ith tensor*/
+          TfLiteType tensor_type = interpreter->tensor(outputs[i])->type;
+          /* num of values in ith tensor is assumed to be the tensor's 
+          shape in tflite*/
+          int num_val_tensor = tensor_shape[tensor_shape.size()-1];
+          /*convert tensor to float vector*/
+          if (tensor_type == kTfLiteFloat32)
+          {
+            float *inDdata = interpreter->tensor(outputs[i])->data.f;
+            createFloatVec<float>(inDdata, &f_tensor, tensor_shape);
+          }
+          else if (tensor_type == kTfLiteInt64)
+          {
+            int64_t *inDdata = interpreter->tensor(outputs[i])->data.i64;
+            createFloatVec<int64_t>(inDdata, &f_tensor, tensor_shape);
+          }
+          else if (tensor_type == kTfLiteInt32)
+          {
+            int32_t *inDdata = (int32_t*)interpreter->tensor(outputs[i])->data.data;
+            createFloatVec<int32_t>(inDdata, &f_tensor, tensor_shape);
+          }
+          else
+          {
+            LOG_ERROR("out tensor data type not supported %d\n", tensor_type);
+            return RETURN_FAIL;
+          }
+          /*append all output tensors in to single vector<vector<float>*/
+          for (size_t j = 0; j < nboxes; j++)
+          {
+            vector<float> temp;
+            for (size_t k = 0; k < num_val_tensor; k++)
+            {
+              temp.push_back(f_tensor[j * num_val_tensor + k]);
+            }
+            f_tensor_unformatted.push_back(temp);
+          }
+        }
+        if (RETURN_FAIL == prepDetectionResult(&img, &f_tensor_unformatted, tensor_shapes_vec, modelInfo, num_ops-1,nboxes))
           return RETURN_FAIL;
       }
 
@@ -480,6 +471,8 @@ namespace tflite
           }
         }
       }
+      LOG_INFO("\n Completed_Model : , Name : %s, Total time : %f, Offload Time : 0 , DDR RW MBs : 0, Output File : tes.txr \n \n",\
+       modelInfo->m_postProcCfg.modelName.c_str(), (getUs(stop_time) - getUs(start_time)/ (s->loop_count * 1000)));
       return RETURN_SUCCESS;
     }
 
