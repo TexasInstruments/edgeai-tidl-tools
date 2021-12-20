@@ -89,7 +89,7 @@ namespace tidl
             std::string model_path = "";
             std::string input_bmp_path = "";
             std::string device_type = "cpu";
-            std::string labels_file_path = "";
+            std::string labels_file_path = "test_data/labels.txt";
             std::string model_zoo_path = "";
             int number_of_threads = 4;
             int number_of_results = 5;

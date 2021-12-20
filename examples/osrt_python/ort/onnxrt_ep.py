@@ -2,6 +2,7 @@ import onnxruntime as rt
 import time
 import os
 import numpy as np
+import PIL
 from PIL import Image, ImageFont, ImageDraw, ImageEnhance
 from utils import *
 import argparse
@@ -64,7 +65,7 @@ def infer_image(sess, image_file, config):
   floating_model = (input_details[0].type == 'tensor(float)')
   height = input_details[0].shape[2]
   width  = input_details[0].shape[3]
-  img    = Image.open(image_file).convert('RGB').resize((width, height))
+  img    = Image.open(image_file).convert('RGB').resize((width, height), PIL.Image.LANCZOS)
   #img    = Image.open(image_file).convert('RGB').resize((416,416))
   input_data = np.expand_dims(img, axis=0)
   input_data = np.transpose(input_data, (0, 3, 1, 2))

@@ -2,6 +2,7 @@ import tflite_runtime.interpreter as tflite
 import time
 import os
 import numpy as np
+import PIL
 from PIL import Image, ImageFont, ImageDraw, ImageEnhance
 from utils import *
 import argparse
@@ -63,7 +64,7 @@ def infer_image(interpreter, image_file, config):
   width  = input_details[0]['shape'][2]
   new_height = height  #valid height for modified resolution for given network
   new_width = width  #valid width for modified resolution for given network
-  img    = Image.open(image_file).convert('RGB').resize((new_width, new_height))
+  img    = Image.open(image_file).convert('RGB').resize((new_width, new_height), PIL.Image.LANCZOS)
   input_data = np.expand_dims(img, axis=0)
 
   if floating_model:

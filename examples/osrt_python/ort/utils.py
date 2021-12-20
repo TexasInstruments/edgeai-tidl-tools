@@ -61,7 +61,7 @@ optional_options = {
 "advanced_options:activation_clipping" : activation_clipping,
 "advanced_options:weight_clipping" : weight_clipping,
 "advanced_options:bias_calibration" : bias_calibration,
-"advanced_options:add_data_convert_ops" : 0,
+"advanced_options:add_data_convert_ops" : 3,
 "advanced_options:channel_wise_quantization" : channel_wise_quantization
 }
 
@@ -111,7 +111,7 @@ def gen_param_yaml(delegate_options, config, new_height, new_width):
     
     if(config['model_type'] == "od"):
         if(config['od_type'] == "SSD"):
-            dict_file[0]['postprocess']['formatter'] = {'src_indices' : [5,4]}
+            dict_file[0]['postprocess']['formatter'] = {'name' : 'DetectionBoxSL2BoxLS', 'src_indices' : [5,4]}
             dict_file[0]['postprocess']['detection_thr'] = 0.3
     with open(delegate_options['artifacts_folder']+"param.yaml", 'w') as file:
         documents = yaml.dump(dict_file[0], file)
