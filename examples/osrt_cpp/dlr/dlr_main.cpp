@@ -188,89 +188,7 @@ namespace dlr
             return RETURN_SUCCESS;
         }
 
-        /**
-         *  \brief  prepare the od result inplace
-         *  \param  img cv image to do inplace transform
-         *  \param  model DLR model Handle
-         *  \param  num_outputs
-         *  \param  mdoelInfo pointer to modelInfo
-         *  \param  wanted_width
-         *  \param  wanted_height
-         * @returns int status
-         */
-        int prepDetectionResult(cv::Mat *img, DLRModelHandle model, int num_outputs,
-                                ModelInfo *modelInfo, int wanted_width, int wanted_height)
-        {
-            LOG_INFO("preparing detection result \n");
-            float threshold = modelInfo->m_vizThreshold;
-            std::vector<int32_t> format = {0, 1, 2, 3, 4, 5};
-            if (num_outputs == 3 && isSameFormat(format, modelInfo->m_postProcCfg.formatter))
-            {
-                /* get tensor type */
-                const char *output0_type = getTensorType(0, false, model);
-                const char *output1_type = getTensorType(1, false, model);
-                const char *output2_type = getTensorType(2, false, model);
-                if (!strcmp(output0_type, "float32") && !strcmp(output1_type, "float32") && !strcmp(output2_type, "float32"))
-                {
-
-                    /* case of 3 outputs
-                    [1, nbox, 1]- for class ,
-                    [1,nbox,1] - for scores ,
-                    [1, nbox , 4] - for cordinates */
-                    std::vector<std::vector<float>> outputs;
-                    if (RETURN_FAIL == fetchOutputTensors<float>(outputs, num_outputs, model))
-                        return RETURN_FAIL;
-                    float *bboxes = outputs[2].data();
-                    float *labels = outputs[0].data();
-                    float *scores = outputs[1].data();
-
-                    /* determine output dimesion of 0th output to determine nbox */
-                    int64_t output_size = 0;
-                    int output_dim = 0;
-                    GetDLROutputSizeDim(&model, 0, &output_size, &output_dim);
-                    int64_t output_shape[output_dim];
-                    GetDLROutputShape(&model, 0, output_shape);
-                    int nboxes = output_shape[1];
-                    std::list<float> detection_class_list, detectection_location_list, detectection_scores_list;
-                    int num_detections = 0;
-                    for (int i = 0; i < nboxes; i = i + 3)
-                    {
-                        if (scores[i] >= threshold)
-                        {
-                            num_detections++;
-                            detectection_scores_list.push_back(scores[i]);
-                            detection_class_list.push_back(labels[i]);
-                            detectection_location_list.push_back(bboxes[i + 3] / wanted_width);
-                            detectection_location_list.push_back(bboxes[i + 2] / wanted_width);
-                            detectection_location_list.push_back(bboxes[i + 1] / wanted_width);
-                            detectection_location_list.push_back(bboxes[i] / wanted_width);
-                        }
-                    }
-                    float detectection_scores[detectection_scores_list.size()];
-                    float detection_class[detection_class_list.size()];
-                    float detectection_location[detectection_location_list.size()];
-                    std::copy(detectection_scores_list.begin(), detectection_scores_list.end(), detectection_scores);
-                    std::copy(detection_class_list.begin(), detection_class_list.end(), detection_class);
-                    std::copy(detectection_location_list.begin(), detectection_location_list.end(), detectection_location);
-
-                    LOG_INFO("results %d\n", num_detections);
-                    //overlayBoundingBox((*img), num_detections, detectection_location, detectection_scores, threshold);
-                    for (int i = 0; i < num_detections; i++)
-                    {
-                        LOG_INFO("class %lf\n", detection_class[i]);
-                        LOG_INFO("cordinates %lf %lf %lf %lf\n", detectection_location[i * 4], detectection_location[i * 4 + 1], detectection_location[i * 4 + 2], detectection_location[i * 4 + 3]);
-                        LOG_INFO("score %lf\n", detectection_scores[i]);
-                    }
-                }
-                else
-                {
-                    LOG_ERROR("out put format not yet supported\n");
-                    return RETURN_FAIL;
-                }
-            }
-            return RETURN_SUCCESS;
-        }
-
+    
         /**
          *  \brief  prepare the segmentation result inplace
          *  \param  img cv image to do inplace transform
@@ -425,7 +343,6 @@ namespace dlr
 
             LOG_INFO("Inference call started...\n");
             cv::Mat img;
-            // float image_data[wanted_height * wanted_width * wanted_channels];
             float *image_data = (float *)malloc(sizeof(float) * wanted_height * wanted_width * wanted_channels);
             if (image_data == NULL)
             {
@@ -466,7 +383,109 @@ namespace dlr
             }
             else if (modelInfo->m_preProcCfg.taskType == "detection")
             {
-                if (RETURN_FAIL == prepDetectionResult(&img, model, num_outputs, modelInfo, wanted_width, wanted_height))
+
+                /*store tensor_shape info of op tensors in arr
+               to avaoid recalculation*/
+                vector<vector<int64_t>> tensor_shapes_vec;
+                vector<int64_t> tensor_size_vec;
+                vector<vector<float>> f_tensor_unformatted;
+
+                for (size_t i = 0; i < num_outputs; i++)
+                {
+                    int64_t output_size = 0;
+                    int output_dim = 0;
+                    int64_t output_shape[output_dim];
+                    GetDLROutputSizeDim(&model, i, &output_size, &output_dim);
+                    GetDLROutputShape(&model, i, output_shape);
+                    vector<int64_t> tensor_shape;
+                    tensor_size_vec.push_back(output_size);
+                    for (size_t k = 0; k < output_dim; k++)
+                    {
+                        tensor_shape.push_back(output_shape[k]);
+                    }
+
+                    tensor_shapes_vec.push_back(tensor_shape);
+                }
+                /* num of detection in op tensor  assumes the size of
+                1st tensor*/
+                int64_t nboxes;
+                int output_dim = 0;
+                GetDLROutputSizeDim(&model, 0, &nboxes, &output_dim);
+
+                for (size_t i = 0; i < num_outputs; i++)
+                {
+                    /* temp vector to store converted ith tensor */
+                    vector<float> f_tensor;
+                    /* shape of the ith tensor*/
+                    vector<int64_t> tensor_shape = tensor_shapes_vec[i];
+                    /* type of the ith tensor*/
+                    const char *tensor_type = getTensorType(i, false, model);
+                    /* num of values in ith tensor*/
+                    int num_val_tensor;
+                     /*Extract the last dimension from each of the output
+                    tensors.last dimension will give the number of values present in
+                    given tensor. Need to ignore all dimensions with value 1 since it
+                    does not actually add a dimension */
+                    auto temp = tensor_shape;
+                    for(auto it = temp.begin() ; it < temp.end();it++)
+                    {
+                        if((*it) == 1){
+                            temp.erase(it);
+                            it--;
+                        }
+                    }
+                    if (temp.size() == 1)
+                        num_val_tensor = 1;
+                    else{
+                        num_val_tensor = temp[temp.size() - 1];
+                    }
+
+                    /*convert tensor to float vector*/
+                    if (!strcmp(tensor_type, "float32"))
+                    {
+                        
+                        std::vector<float> output(nboxes*num_val_tensor,0);
+                        if (GetDLROutput(&model, i, output.data()) != 0)
+                        {
+                            LOG_ERROR("Could not get output:%d", i);
+                            return RETURN_FAIL;
+                        }
+                        /* already in float vec no need to convert */
+                    std::copy(output.begin(), output.end(),back_inserter(f_tensor));
+                        
+                    }
+                    else if (tensor_type == "int64")
+                    {
+                        std::vector<int64_t> output(nboxes*num_val_tensor,0);
+                        if (GetDLROutput(&model, i, output.data()) != 0)
+                        {
+                            LOG_ERROR("Could not get output:%d", i);
+                            return RETURN_FAIL;
+                        }
+                        std::copy(output.begin(), output.end(),back_inserter(f_tensor));
+                    }
+                    else
+                    {
+                        LOG_ERROR("out tensor data type not supported: %s\n",tensor_type );
+                        return RETURN_FAIL;
+                    }
+                    /*append all output tensors in to single vector<vector<float>*/
+                    for (size_t j = 0; j < nboxes; j++)
+                    {
+                        vector<float> temp;
+                        for (size_t k = 0; k < num_val_tensor; k++)
+                        {
+                            temp.push_back(f_tensor[j * num_val_tensor + k]);
+                        }
+                        f_tensor_unformatted.push_back(temp);
+                    }
+                }
+                /* Updating the format coz format is NULL in param.yaml
+                format [x1y1 x2y2 label score]*/
+                modelInfo->m_postProcCfg.formatter = {2,3,4,5,0,1};
+                modelInfo->m_postProcCfg.formatterName = "DetectionBoxSL2BoxLS";
+                
+                if (RETURN_FAIL == prepDetectionResult(&img, &f_tensor_unformatted, tensor_shapes_vec, modelInfo, num_outputs,nboxes))
                     return RETURN_FAIL;
             }
             else if (modelInfo->m_preProcCfg.taskType == "segmentation")

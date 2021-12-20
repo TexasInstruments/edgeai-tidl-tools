@@ -488,6 +488,10 @@ namespace tidl
             int score_index = format[5];
             /*remove all the vectors which does'nt have socre more than
              threshold */
+            int x1Index = format[0];
+            int y1Index = format[1];
+            int x2Index = format[2];
+            int y2Index = format[3];
             for (auto it = od_formatted_vec.begin(); it != od_formatted_vec.end(); ++it)
             {
                 if ((*it)[score_index] < threshold)
@@ -499,10 +503,10 @@ namespace tidl
                 {
                     if (formatter_name == "DetectionBoxSL2BoxLS")
                     {
-                        (*it)[0] = ((*it)[0]) / cols;
-                        (*it)[1] = (*it)[1] / cols;
-                        (*it)[2] = (*it)[2] / cols;
-                        (*it)[3] = (*it)[3] / cols;
+                        (*it)[x1Index] = ((*it)[x1Index]) / cols;
+                        (*it)[x2Index] = (*it)[x2Index] / cols;
+                        (*it)[y1Index] = (*it)[y1Index] / cols;
+                        (*it)[y2Index] = (*it)[y2Index] / cols;
                     }
                 }
             }
