@@ -487,7 +487,7 @@ def get_selected_artifacts_id():
             break
     return result_artifacts_key   
 
-def get_eval_configs(task_type, runtime_type, num_quant_bits, last_artifacts_id=None, high_resolution = False):
+def get_eval_configs(task_type, runtime_type, num_quant_bits, last_artifacts_id=None, model_selection = None):
     
     if runtime_type == 'tflitert':
         session_type = TFLiteRTSession
@@ -508,35 +508,9 @@ def get_eval_configs(task_type, runtime_type, num_quant_bits, last_artifacts_id=
         'tidl_tensor_bits' : num_quant_bits,
         'task_selection' : task_type,
         'session_type_dict' : session_type_dict,
-        'run_import' : False
+        'run_import' : False,
+        'model_selection': model_selection
     }
-
-    # This option changes the input sizes of these selected models to high resolution
-    # This is only used for performance measurement. For more details, refer to:
-    # https://github.com/TexasInstruments/edgeai-benchmark/blob/master/scripts/benchmark_resolution.py
-    if high_resolution:
-        # only these models are supported in high_resolution setting
-        model_selection_high_resolution = [
-                           'edgeai-tv/mobilenet_v1_20190906.onnx',
-                           'edgeai-tv/mobilenet_v2_20191224.onnx',
-                           'edgeai-tv/mobilenet_v2_1p4_qat-p2_20210112.onnx',
-                           'torchvision/resnet18.onnx',
-                           'torchvision/resnet50.onnx',
-                           'fbr-pycls/regnetx-400mf.onnx',
-                           'fbr-pycls/regnetx-800mf.onnx',
-                           'fbr-pycls/regnetx-1.6gf.onnx'
-                          ]
-        # these artifacts are meant for only performance measurement - just do a quick import with simple calibration
-        # also set the high_resolution_optimization flag for improved performance at high resolution
-        runtime_options = {'accuracy_level': 0, 'advanced_options:high_resolution_optimization': 1}
-        # the transformations that needs to be applied to the model itself. Note: this is different from pre-processing transforms
-        high_resolution_input_sizes = [512, 1024]
-        model_transformation_dict = {'input_sizes': high_resolution_input_sizes}
-        settings_update_high_resolution = dict(model_selection=model_selection_high_resolution,
-            num_frames=100, calibration_iterations=1, runtime_options=runtime_options,
-            model_transformation_dict=model_transformation_dict)
-        settings_dict.update(settings_update_high_resolution)
-    #
     settings = ConfigSettings(settings_dict)
     prebuilt_configs = select_configs(settings,os.path.join(prebuilts_dir, f'{num_quant_bits}bits'), runtime_type)
     merged_list = get_name_key_pair_list(prebuilt_configs.keys(), runtime_type)
