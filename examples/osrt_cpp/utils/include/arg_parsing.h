@@ -117,7 +117,7 @@ namespace tidl
          *
          * @returns null
          */
-        void *dumpArgs(Settings *s);
+        void dumpArgs(Settings *s);
 
     } // arg_parsing
 } // tidl

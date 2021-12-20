@@ -197,7 +197,7 @@ namespace tidl
  *
  * @returns null
  */
-        void *dumpArgs(Settings *s)
+        void dumpArgs(Settings *s)
         {
             std::cout << "\n***** Display run Config: start *****\n";
 

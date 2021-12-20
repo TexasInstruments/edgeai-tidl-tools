@@ -157,6 +157,7 @@ set(SYSTEM_LINK_LIBS
     vx_tidl_rt
     pthread
     dl
+    yaml-cpp
     )
 endif()  
 

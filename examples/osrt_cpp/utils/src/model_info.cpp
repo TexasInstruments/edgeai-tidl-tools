@@ -499,7 +499,10 @@ namespace tidl
                     modelName.pop_back();
                 }
 
-                modelName = std::experimental::filesystem::path(modelName).filename();
+                //modelName = std::experimental::filesystem::path(modelName).filename();
+                size_t sep = modelName.find_last_of("\\/");
+                if (sep != std::string::npos)
+                    modelName = modelName.substr(sep + 1, modelName.size() - sep - 1);
 
                 m_preProcCfg.modelName = modelName;
                 m_postProcCfg.modelName = modelName;
