@@ -353,9 +353,8 @@ namespace tflite
       }
       gettimeofday(&stop_time, nullptr);
       LOG_INFO("interpreter->Invoke - Done \n");
-
-      LOG_INFO("average time:%f ms\n",
-               (getUs(stop_time) - getUs(start_time)) / (s->loop_count * 1000));
+      float avg_time = (getUs(stop_time) - getUs(start_time)) / (s->loop_count * 1000);
+      LOG_INFO("average time:%f ms\n",avg_time);
 
       if (modelInfo->m_preProcCfg.taskType == "classification")
       {
@@ -443,15 +442,26 @@ namespace tflite
 
       LOG_INFO("saving image result file \n");
       cv::cvtColor(img, img, cv::COLOR_RGB2BGR);
-      char filename[500];
-      strcpy(filename, "test_data/");
-      strcat(filename, "cpp_inference_out");
+      char filename[200];
+      char foldername[600];
+      strcpy(foldername, "model-artifacts/tfl/");
+      strcat(foldername,modelInfo->m_postProcCfg.modelName.c_str());
+      strcat(foldername, "/");
+      struct stat buffer;
+      if (stat(foldername, &buffer) != 0) {
+        if (mkdir(foldername, 0777) == -1){
+          LOG_ERROR("failed to create folder %s:%s\n", foldername,strerror(errno));
+          return RETURN_FAIL;
+        }
+      } 
+      strcpy(filename, "post_proc_out_");
       strcat(filename, modelInfo->m_preProcCfg.modelName.c_str());
       strcat(filename, ".jpg");
-      bool check = cv::imwrite(filename, img);
-      if (check == false)
+      strcat(foldername,filename);
+      if (false == cv::imwrite(foldername, img))
       {
         LOG_INFO("Saving the image, FAILED\n");
+        return RETURN_FAIL;
       }
 
       if (s->device_mem)
@@ -471,8 +481,8 @@ namespace tflite
           }
         }
       }
-      LOG_INFO("\n Completed_Model : , Name : %s, Total time : %f, Offload Time : 0 , DDR RW MBs : 0, Output File : tes.txr \n \n",\
-       modelInfo->m_postProcCfg.modelName.c_str(), (getUs(stop_time) - getUs(start_time)/ (s->loop_count * 1000)));
+      LOG_INFO("\nCompleted_Model : 0, Name : %s, Total time : %f, Offload Time : 0 , DDR RW MBs : 0, Output File : %s \n \n",\
+       modelInfo->m_postProcCfg.modelName.c_str(), avg_time,filename);
       return RETURN_SUCCESS;
     }
 

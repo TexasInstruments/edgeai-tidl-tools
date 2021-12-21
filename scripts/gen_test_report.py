@@ -67,11 +67,15 @@ final_report = []
 enable_debug = True
 
 ref_outputs_base_dir = 'test_data' 
-rt_base_dir = 'examples/osrt_python/'
+rt_base_dir_py = 'examples/osrt_python/'
+rt_base_dir_bash = 'scripts'
 
-test_configs = [{'script_name':'tflrt_delegate.py', 'script_dir':'tfl', 'rt_type':'tfl'}, 
-                {'script_name':'onnxrt_ep.py', 'script_dir':'ort', 'rt_type':'ort'},
-                {'script_name':'dlr_inference_example.py', 'script_dir':'tvm_dlr', 'rt_type':'dlr'}]
+test_configs = [
+                {'script_name':'tflrt_delegate.py', 'script_dir':'tfl','lang':'py', 'rt_type':'tfl'},
+                {'script_name':'onnxrt_ep.py', 'script_dir':'ort','lang':'py', 'rt_type':'ort'},
+                {'script_name':'dlr_inference_example.py', 'script_dir':'tvm_dlr','lang':'py', 'rt_type':'dlr'},
+                {'script_name':'run_tfl_models.sh', 'script_dir':'osrt_cpp_scripts/','lang':'bash','rt_type':'tfl'}
+    ]
 currIdx = 0
 if platform.machine() == 'aarch64':
     device = 'j7es'
@@ -104,11 +108,18 @@ def run_cmd(cmd, dir):
 for test_config in test_configs:
     script_name = test_config['script_name']
     rt_type = test_config['rt_type']
+    if(test_config['lang'] == 'bash'):
+        rt_base_dir = rt_base_dir_bash
+        curr_rt_base_dir= os.path.join(rt_base_dir,test_config['script_dir'])
+        curr_ref_outputs_base_dir = ref_outputs_base_dir+'/'+rt_type+'-refs-'+device+'/'
+        cmd = ('bash '+ script_name)
 
-    curr_rt_base_dir= os.path.join(rt_base_dir,test_config['script_dir'])
-    curr_ref_outputs_base_dir = ref_outputs_base_dir+'/'+rt_type+'-refs-'+device+'/'
-    
-    cmd = ('python3 '+ script_name)
+    elif(test_config['lang'] == 'py'):
+        rt_base_dir = rt_base_dir_py
+
+        curr_rt_base_dir= os.path.join(rt_base_dir,test_config['script_dir'])
+        curr_ref_outputs_base_dir = ref_outputs_base_dir+'/'+rt_type+'-refs-'+device+'/'
+        cmd = ('python3 '+ script_name)
     msg = f'Command : {cmd} in Dir : {curr_rt_base_dir} Started'
     print(msg)
 
@@ -122,7 +133,13 @@ for test_config in test_configs:
             print(i)
 
     rt_report = []
-    with open(curr_ref_outputs_base_dir+'/golden_ref.csv', 'r') as f:
+    golden_ref_file= ""
+    if(test_config['lang'] == 'py'):
+        golden_ref_file = curr_ref_outputs_base_dir+'/golden_ref.csv'
+    
+    elif(test_config['lang'] == 'bash'):
+        golden_ref_file = curr_ref_outputs_base_dir+'/golden_ref_cpp.csv'
+    with open(golden_ref_file, 'r') as f:
         ref_report = [{k:v for k, v in row.items()} for row in csv.DictReader(f, skipinitialspace=True)]
     if enable_debug:
         print(ref_report)
@@ -138,12 +155,10 @@ for test_config in test_configs:
             rt_report.append(tc_dict)
     if enable_debug:
         print(rt_report)
-
     for r in ref_report:
         curr = [item for item in rt_report if item["Name"] == r['Name']]
         if enable_debug:
             print(curr)
-        
         if len(curr) == 0:
             r['Offload Time'] = '0'
             r['Functional'] = 'FAIL'
