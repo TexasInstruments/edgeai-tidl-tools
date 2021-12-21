@@ -91,7 +91,7 @@ fi
 
 if [[ -z "$TIDL_TOOLS_PATH" ]]
 then
-wget https://github.com/TexasInstruments/edgeai-tidl-tools/releases/download/08.00.01.10/tidl_tools.tar.gz
+wget https://github.com/TexasInstruments/edgeai-tidl-tools/releases/download/08_01_00_09-rc1/tidl_tools.tar.gz
 tar -xzf tidl_tools.tar.gz
 rm tidl_tools.tar.gz
 cd  tidl_tools
@@ -103,7 +103,7 @@ if [ $skip_cpp_deps -eq 0 ]
 then
 if [[ $arch == x86_64 ]]; then
     cd  $TIDL_TOOLS_PATH
-    wget https://github.com/TexasInstruments/edgeai-tidl-tools/releases/download/08.00.00-rc2/libonnxruntime.so.1.7.0
+    wget https://github.com/TexasInstruments/edgeai-tidl-tools/releases/download/08_01_00_09-rc1/libonnxruntime.so.1.7.0
     wget https://github.com/TexasInstruments/edgeai-tidl-tools/releases/download/08.00.00-rc2/libtensorflow-lite.a
     ln -s libonnxruntime.so.1.7.0 libonnxruntime.so
     cd -
