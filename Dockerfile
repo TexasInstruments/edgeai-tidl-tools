@@ -16,7 +16,7 @@ RUN apt-get install -y python3 python3-pip python3-setuptools
 # graphviz : needed by tvm
 # swig : needed by model selection tool
 # curl vim git wget gdb : needeed by baseline dev
-RUN apt install -y libsm6 libxext6 libxrender1 cmake libprotobuf-dev protobuf-compiler libprotoc-dev graphviz swig curl vim git wget gdb nano zip gcc-5 g++-5 pkg-config libgtk-3-dev
+RUN apt install -y libsm6 libxext6 libxrender1 cmake libprotobuf-dev protobuf-compiler libprotoc-dev graphviz swig curl vim git wget gdb nano zip gcc-5 g++-5 pkg-config libgtk-3-dev libyaml-cpp-dev
 
 # Copies your code file from your action repository to the filesystem path `/` of the container
 COPY entrypoint.sh /entrypoint.sh
