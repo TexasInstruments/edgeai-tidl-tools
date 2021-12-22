@@ -71,6 +71,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <sys/time.h>
 #include <list>
+#include <sys/stat.h>
 
 #include <onnxruntime/core/session/onnxruntime_cxx_api.h>
 #include <onnxruntime/core/providers/tidl/tidl_provider_factory.h>

@@ -79,6 +79,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <chrono>
 #include <mutex>
 #include <pthread.h>
+#include <sys/time.h>
+#include <sys/stat.h>
 
 #include <memory.h>
 #include <unistd.h>

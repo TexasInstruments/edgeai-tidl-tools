@@ -272,6 +272,7 @@ namespace tidl
          * @param outDataWidth
          * @param outDataHeight
          * @param N Number of results to be displayed
+         * @param outputoffset offset in top_result vector coz of bg class
          * @returns original frame with some in-place post processing done
          */
         uchar *overlayTopNClasses(uchar *frame,
@@ -279,12 +280,13 @@ namespace tidl
                                   std::vector<string> *labels,
                                   int32_t outDataWidth,
                                   int32_t outDataHeight,
-                                  int32_t N)
+                                  int32_t N,
+                                  int outputoffset)
         {
 
-            float txtSize = static_cast<float>(outDataWidth) / TI_POSTPROC_DEFAULT_WIDTH;
+            float txtSize = .4f;
             int rowSize = 40 * outDataWidth / 500;
-            Scalar text_color(200, 0, 0);
+            Scalar text_color(0, 0, 255);
 
             Mat img = Mat(outDataHeight, outDataWidth, CV_8UC3, frame);
 
@@ -297,8 +299,8 @@ namespace tidl
                 const float confidence = result.first;
                 int index = result.second;
                 int32_t row = i + 3;
-                string str = std::to_string(confidence);
-                str.append((*labels)[index]);
+                string str;
+                str.append((*labels)[index+ outputoffset]);
                 putText(img, str, Point(5, row * rowSize),
                         FONT_HERSHEY_SIMPLEX, txtSize, text_color, 1);
                 i++;

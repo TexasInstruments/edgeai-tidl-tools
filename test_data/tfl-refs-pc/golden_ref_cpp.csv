@@ -25,3 +25,6 @@ od-2090_tflitert_tf2-models_ssd_mobilenet_v2_fpnlite_640x640_coco17_tpu-8_tflite
 od-2110_tflitert_google-automl_efficientdet-lite0_bifpn_maxpool2x2_relu_ti-lite_tflite,214.4,0,0
 od-2130_tflitert_tf2-models_ssd_mobilenet_v2_320x320_coco17_tpu-8_tflite,214.4,0,0
 ss-2580_tflitert_mlperf_deeplabv3_mnv2_ade20k32_float_tflite,214.4,0,0
+deeplabv3_mnv2_ade20k_float,214.4,0,0
+mobilenet_v1_1.0_224,214.4,0,0
+ssd_mobilenet_v2_300_float,214.4,0,0

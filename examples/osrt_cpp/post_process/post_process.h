@@ -179,6 +179,7 @@ namespace tidl
          * @param outDataWidth
          * @param outDataHeight
          * @param N Number of results to be displayed
+         * * @param outputoffset offset in top_result vector coz of bg class
          * @returns original frame with some in-place post processing done
          */
         uchar *overlayTopNClasses(uchar *frame,
@@ -186,7 +187,8 @@ namespace tidl
                                   std::vector<string> *labels,
                                   int32_t outDataWidth,
                                   int32_t outDataHeight,
-                                  int32_t N);
+                                  int32_t N,
+                                  int outputoffset);
 
         /**  \brief Argmax computation for seg model
          *

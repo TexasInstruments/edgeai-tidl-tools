@@ -2,6 +2,7 @@ import time
 import platform
 import os
 
+output_images_folder = '../../../output_images/dlr/'
 def load_labels():
   with open('../../../test_data/labels.txt', 'r') as f:
     return [line.strip() for line in f.readlines()]
@@ -120,7 +121,12 @@ def model_create_and_run(model_dir,
     print(f'\n Processing time in ms : {proc_time/numImages:10.1f}\n')
 
     res = postprocess_func(res)
-    numpy.savetxt(os.path.join(model_dir,"output.txt"), res)
+
+    output_file_name = "post_proc_out_" + model_dir.split("/")[-1] + '.txt'
+    print("\nSaving op to ", output_images_folder)
+    if not os.path.exists(output_images_folder):
+        os.makedirs(output_images_folder)
+    numpy.savetxt(os.path.join(output_images_folder,output_file_name), res)
 
     #get TOP-5, TOP-1 results
     classes = res.argsort()[-5:][::-1]
@@ -131,7 +137,7 @@ def model_create_and_run(model_dir,
     for idx, (id, name) in enumerate(zip(classes, names)):
         print(f'[{idx}] {id:03d}, {name}')
     
-    log = f'\n \nCompleted_Model : {mIdx+1:5d}, Name : {os.path.basename(model_dir):50s}, Total time : {proc_time/numImages:10.2f}, Offload Time : {proc_time/numImages:10.2f} , DDR RW MBs : 0, Output File : output.txt\n \n ' #{classes} \n \n'
+    log = f'\n \nCompleted_Model : {mIdx+1:5d}, Name : {os.path.basename(model_dir):50s}, Total time : {proc_time/numImages:10.2f}, Offload Time : {proc_time/numImages:10.2f} , DDR RW MBs : 0, Output File : {output_file_name}\n \n ' #{classes} \n \n'
     print(log) 
 
 

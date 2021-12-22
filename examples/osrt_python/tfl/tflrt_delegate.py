@@ -160,8 +160,10 @@ def run_model(model, mIdx):
         else:
             print("Not a valid model type")
 
-        print("Saving image to ", delegate_options['artifacts_folder'])
-        image.save(delegate_options['artifacts_folder'] + output_file_name, "JPEG") 
+        print("\nSaving image to ", output_images_folder)
+        if not os.path.exists(output_images_folder):
+            os.makedirs(output_images_folder)
+        image.save(output_images_folder + output_file_name, "JPEG") 
     gen_param_yaml(delegate_options, config, int(new_height), int(new_width))
     log = f'\n \nCompleted_Model : {mIdx+1:5d}, Name : {model:50s}, Total time : {total_proc_time/(i+1):10.2f}, Offload Time : {sub_graphs_time/(i+1):10.2f} , DDR RW MBs : {(total_ddr_write+total_ddr_read)/(i+1):10.2f}, Output File : {output_file_name}\n \n ' #{classes} \n \n'
     print(log) 

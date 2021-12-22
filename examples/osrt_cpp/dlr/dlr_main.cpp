@@ -178,7 +178,7 @@ namespace dlr
                     LOG_INFO("%f: %d %s\n", confidence, index, labels[index + outputoffset].c_str());
                 }
                 int num_results = s->number_of_results;
-                (*img).data = overlayTopNClasses((*img).data, top_results, &labels, (*img).cols, (*img).rows, num_results);
+                (*img).data = overlayTopNClasses((*img).data, top_results, &labels, (*img).cols, (*img).rows, num_results, outputoffset);
             }
             else
             {
@@ -188,7 +188,6 @@ namespace dlr
             return RETURN_SUCCESS;
         }
 
-    
         /**
          *  \brief  prepare the segmentation result inplace
          *  \param  img cv image to do inplace transform
@@ -370,10 +369,31 @@ namespace dlr
                 LOG_ERROR("Could not set input:%s\n", input_name);
                 return RETURN_FAIL;
             }
-            if (RunDLRModel(&model) != 0)
+            int num_iter = s->loop_count;
+            if (s->loop_count >= 1)
             {
-                LOG_ERROR("Could not run\n");
+                LOG_INFO("Session.Run() - Started for warmup runs\n");
+                for (int i = 0; i < s->number_of_warmup_runs; i++)
+                {
+                    if (RunDLRModel(&model) != 0)
+                    {
+                        LOG_ERROR("Could not run\n");
+                    }
+                }
             }
+            struct timeval start_time, stop_time;
+            gettimeofday(&start_time, nullptr);
+            for (int i = 0; i < num_iter; i++)
+            {
+                if (RunDLRModel(&model) != 0)
+                {
+                    LOG_ERROR("Could not run\n");
+                }
+            }
+            gettimeofday(&stop_time, nullptr);
+            float avg_time = (getUs(stop_time) - getUs(start_time)) / (num_iter * 1000);
+            LOG_INFO("average time: %lf ms \n", avg_time);
+
             /*output vector infering*/
             GetDLRNumOutputs(&model, &num_outputs);
             if (modelInfo->m_preProcCfg.taskType == "classification")
@@ -422,51 +442,52 @@ namespace dlr
                     const char *tensor_type = getTensorType(i, false, model);
                     /* num of values in ith tensor*/
                     int num_val_tensor;
-                     /*Extract the last dimension from each of the output
-                    tensors.last dimension will give the number of values present in
-                    given tensor. Need to ignore all dimensions with value 1 since it
-                    does not actually add a dimension */
+                    /*Extract the last dimension from each of the output
+                   tensors.last dimension will give the number of values present in
+                   given tensor. Need to ignore all dimensions with value 1 since it
+                   does not actually add a dimension */
                     auto temp = tensor_shape;
-                    for(auto it = temp.begin() ; it < temp.end();it++)
+                    for (auto it = temp.begin(); it < temp.end(); it++)
                     {
-                        if((*it) == 1){
+                        if ((*it) == 1)
+                        {
                             temp.erase(it);
                             it--;
                         }
                     }
                     if (temp.size() == 1)
                         num_val_tensor = 1;
-                    else{
+                    else
+                    {
                         num_val_tensor = temp[temp.size() - 1];
                     }
 
                     /*convert tensor to float vector*/
                     if (!strcmp(tensor_type, "float32"))
                     {
-                        
-                        std::vector<float> output(nboxes*num_val_tensor,0);
+
+                        std::vector<float> output(nboxes * num_val_tensor, 0);
                         if (GetDLROutput(&model, i, output.data()) != 0)
                         {
                             LOG_ERROR("Could not get output:%d", i);
                             return RETURN_FAIL;
                         }
                         /* already in float vec no need to convert */
-                    std::copy(output.begin(), output.end(),back_inserter(f_tensor));
-                        
+                        std::copy(output.begin(), output.end(), back_inserter(f_tensor));
                     }
                     else if (tensor_type == "int64")
                     {
-                        std::vector<int64_t> output(nboxes*num_val_tensor,0);
+                        std::vector<int64_t> output(nboxes * num_val_tensor, 0);
                         if (GetDLROutput(&model, i, output.data()) != 0)
                         {
                             LOG_ERROR("Could not get output:%d", i);
                             return RETURN_FAIL;
                         }
-                        std::copy(output.begin(), output.end(),back_inserter(f_tensor));
+                        std::copy(output.begin(), output.end(), back_inserter(f_tensor));
                     }
                     else
                     {
-                        LOG_ERROR("out tensor data type not supported: %s\n",tensor_type );
+                        LOG_ERROR("out tensor data type not supported: %s\n", tensor_type);
                         return RETURN_FAIL;
                     }
                     /*append all output tensors in to single vector<vector<float>*/
@@ -482,10 +503,10 @@ namespace dlr
                 }
                 /* Updating the format coz format is NULL in param.yaml
                 format [x1y1 x2y2 label score]*/
-                modelInfo->m_postProcCfg.formatter = {2,3,4,5,0,1};
+                modelInfo->m_postProcCfg.formatter = {2, 3, 4, 5, 0, 1};
                 modelInfo->m_postProcCfg.formatterName = "DetectionBoxSL2BoxLS";
-                
-                if (RETURN_FAIL == prepDetectionResult(&img, &f_tensor_unformatted, tensor_shapes_vec, modelInfo, num_outputs,nboxes))
+
+                if (RETURN_FAIL == prepDetectionResult(&img, &f_tensor_unformatted, tensor_shapes_vec, modelInfo, num_outputs, nboxes))
                     return RETURN_FAIL;
             }
             else if (modelInfo->m_preProcCfg.taskType == "segmentation")
@@ -494,17 +515,40 @@ namespace dlr
                     return RETURN_FAIL;
             }
             cv::cvtColor(img, img, cv::COLOR_RGB2BGR);
-            char filename[500];
-            strcpy(filename, "test_data/");
-            strcat(filename, "cpp_inference_out");
+            char filename[200];
+            char foldername[600];
+            strcpy(foldername, "output_images/");
+            struct stat buffer;
+            if (stat(foldername, &buffer) != 0)
+            {
+                if (mkdir(foldername, 0777) == -1)
+                {
+                    LOG_ERROR("failed to create folder %s:%s\n", foldername, strerror(errno));
+                    return RETURN_FAIL;
+                }
+            }
+            strcat(foldername, "dlr/");
+            if (stat(foldername, &buffer) != 0)
+            {
+                if (mkdir(foldername, 0777) == -1)
+                {
+                    LOG_ERROR("failed to create folder %s:%s\n", foldername, strerror(errno));
+                    return RETURN_FAIL;
+                }
+            }
+            strcpy(filename, "post_proc_out_");
             strcat(filename, modelInfo->m_preProcCfg.modelName.c_str());
             strcat(filename, ".jpg");
-            bool check = cv::imwrite(filename, img);
-            if (check == false)
+            strcat(foldername, filename);
+            if (false == cv::imwrite(foldername, img))
             {
-                LOG_ERROR("Saving the image, FAILED\n");
+                LOG_INFO("Saving the image, FAILED\n");
+                return RETURN_FAIL;
             }
-            LOG_INFO("Done\n");
+
+            LOG_INFO("\nCompleted_Model : 0, Name : %s, Total time : %f, Offload Time : 0 , DDR RW MBs : 0, Output File : %s \n \n",
+                     modelInfo->m_postProcCfg.modelName.c_str(), avg_time, filename);
+            return RETURN_SUCCESS;
         }
     } // namespace main
 } // namespace dlr

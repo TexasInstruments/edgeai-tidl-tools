@@ -34,6 +34,7 @@ channel_wise_quantization = 0
 tidl_tools_path = os.environ["TIDL_TOOLS_PATH"]
 
 artifacts_folder = '../../../model-artifacts/ort/'
+output_images_folder = '../../../output_images/ort/'
 
 required_options = {
 "tidl_tools_path":tidl_tools_path,

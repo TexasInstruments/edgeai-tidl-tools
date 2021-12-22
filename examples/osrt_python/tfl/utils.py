@@ -39,6 +39,7 @@ channel_wise_quantization = 0
 tidl_tools_path = os.environ["TIDL_TOOLS_PATH"]
 
 artifacts_folder = '../../../model-artifacts/tfl/'
+output_images_folder = '../../../output_images/tfl/'
 
 required_options = {
 "tidl_tools_path":tidl_tools_path,
@@ -110,7 +111,7 @@ def gen_param_yaml(delegate_options, config, new_height, new_width):
     
     if(config['model_type'] == "od"):
         if(config['od_type'] == "HasDetectionPostProcLayer"):
-            dict_file[0]['postprocess']['formatter'] = {'src_indices' : [1,0,3,2]}
+            dict_file[0]['postprocess']['formatter'] = {'name' : 'DetectionYXYX2XYXY','src_indices' : [1,0,3,2]}
             dict_file[0]['postprocess']['detection_thr'] = 0.3
           
     with open(delegate_options['artifacts_folder']+"param.yaml", 'w') as file:

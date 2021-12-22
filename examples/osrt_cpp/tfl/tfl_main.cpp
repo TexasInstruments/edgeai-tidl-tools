@@ -99,7 +99,9 @@ namespace tflite
       {
         float *outputTensor = (*interpreter)->tensor((*outputs)[0])->data.f;
         (*img).data = blendSegMask<float>((*img).data, outputTensor, (*img).cols, (*img).rows, wanted_width, wanted_height, alpha);
-      }else{
+      }
+      else
+      {
         LOG_ERROR("op tensor tyrp not supprted\n");
         return RETURN_FAIL;
       }
@@ -161,7 +163,7 @@ namespace tflite
         LOG_INFO("%f: %d :%s\n", confidence, index, labels[index + outputoffset].c_str());
       }
       int num_results = 5;
-      (*img).data = overlayTopNClasses((*img).data, top_results, &labels, (*img).cols, (*img).rows, num_results);
+      (*img).data = overlayTopNClasses((*img).data, top_results, &labels, (*img).cols, (*img).rows, num_results, outputoffset);
       return RETURN_SUCCESS;
     }
 
@@ -354,7 +356,7 @@ namespace tflite
       gettimeofday(&stop_time, nullptr);
       LOG_INFO("interpreter->Invoke - Done \n");
       float avg_time = (getUs(stop_time) - getUs(start_time)) / (s->loop_count * 1000);
-      LOG_INFO("average time:%f ms\n",avg_time);
+      LOG_INFO("average time:%f ms\n", avg_time);
 
       if (modelInfo->m_preProcCfg.taskType == "classification")
       {
@@ -369,34 +371,35 @@ namespace tflite
         vector<vector<float>> f_tensor_unformatted;
         /*num of detection in op tensor is assumed to be given by last tensor*/
         int nboxes;
-        if(interpreter->tensor(outputs[num_ops-1])->type == kTfLiteFloat32)
-          nboxes = (int)*interpreter->tensor(outputs[num_ops-1])->data.f;
-        else if(interpreter->tensor(outputs[num_ops-1])->type == kTfLiteInt64)
-          nboxes = (int)*interpreter->tensor(outputs[num_ops-1])->data.i64;
-        else{
-          LOG_ERROR("unknown type for op tensor:%d\n",num_ops-1);
+        if (interpreter->tensor(outputs[num_ops - 1])->type == kTfLiteFloat32)
+          nboxes = (int)*interpreter->tensor(outputs[num_ops - 1])->data.f;
+        else if (interpreter->tensor(outputs[num_ops - 1])->type == kTfLiteInt64)
+          nboxes = (int)*interpreter->tensor(outputs[num_ops - 1])->data.i64;
+        else
+        {
+          LOG_ERROR("unknown type for op tensor:%d\n", num_ops - 1);
           return RETURN_FAIL;
         }
-        LOG_INFO("detected objects:%d \n",nboxes);
+        LOG_INFO("detected objects:%d \n", nboxes);
         /* TODO verify this holds true for every tfl model*/
-        vector<vector<int64_t>> tensor_shapes_vec = {{nboxes,4},{nboxes,1},{nboxes,1},{nboxes,1}};
-        /* TODO Incase of only single tensor op od-2110 above tensor shape is 
+        vector<vector<int64_t>> tensor_shapes_vec = {{nboxes, 4}, {nboxes, 1}, {nboxes, 1}, {nboxes, 1}};
+        /* TODO Incase of only single tensor op od-2110 above tensor shape is
         invalid*/
 
         /* run through all tensors excpet last one which contain
         num_of detected boxes */
-        for (size_t i = 0; i < num_ops-1; i++)
+        for (size_t i = 0; i < num_ops - 1; i++)
         {
           /* temp vector to store converted ith tensor */
           vector<float> f_tensor;
           /* shape of the ith tensor*/
           vector<int64_t> tensor_shape = tensor_shapes_vec[i];
-          
+
           /* type of the ith tensor*/
           TfLiteType tensor_type = interpreter->tensor(outputs[i])->type;
-          /* num of values in ith tensor is assumed to be the tensor's 
+          /* num of values in ith tensor is assumed to be the tensor's
           shape in tflite*/
-          int num_val_tensor = tensor_shape[tensor_shape.size()-1];
+          int num_val_tensor = tensor_shape[tensor_shape.size() - 1];
           /*convert tensor to float vector*/
           if (tensor_type == kTfLiteFloat32)
           {
@@ -410,7 +413,7 @@ namespace tflite
           }
           else if (tensor_type == kTfLiteInt32)
           {
-            int32_t *inDdata = (int32_t*)interpreter->tensor(outputs[i])->data.data;
+            int32_t *inDdata = (int32_t *)interpreter->tensor(outputs[i])->data.data;
             createFloatVec<int32_t>(inDdata, &f_tensor, tensor_shape);
           }
           else
@@ -429,7 +432,7 @@ namespace tflite
             f_tensor_unformatted.push_back(temp);
           }
         }
-        if (RETURN_FAIL == prepDetectionResult(&img, &f_tensor_unformatted, tensor_shapes_vec, modelInfo, num_ops-1,nboxes))
+        if (RETURN_FAIL == prepDetectionResult(&img, &f_tensor_unformatted, tensor_shapes_vec, modelInfo, num_ops - 1, nboxes))
           return RETURN_FAIL;
       }
 
@@ -444,20 +447,29 @@ namespace tflite
       cv::cvtColor(img, img, cv::COLOR_RGB2BGR);
       char filename[200];
       char foldername[600];
-      strcpy(foldername, "model-artifacts/tfl/");
-      strcat(foldername,modelInfo->m_postProcCfg.modelName.c_str());
-      strcat(foldername, "/");
+      strcpy(foldername, "output_images/");
       struct stat buffer;
-      if (stat(foldername, &buffer) != 0) {
-        if (mkdir(foldername, 0777) == -1){
-          LOG_ERROR("failed to create folder %s:%s\n", foldername,strerror(errno));
+      if (stat(foldername, &buffer) != 0)
+      {
+        if (mkdir(foldername, 0777) == -1)
+        {
+          LOG_ERROR("failed to create folder %s:%s\n", foldername, strerror(errno));
           return RETURN_FAIL;
         }
-      } 
+      }
+      strcat(foldername, "tfl/");
+      if (stat(foldername, &buffer) != 0)
+      {
+        if (mkdir(foldername, 0777) == -1)
+        {
+          LOG_ERROR("failed to create folder %s:%s\n", foldername, strerror(errno));
+          return RETURN_FAIL;
+        }
+      }
       strcpy(filename, "post_proc_out_");
       strcat(filename, modelInfo->m_preProcCfg.modelName.c_str());
       strcat(filename, ".jpg");
-      strcat(foldername,filename);
+      strcat(foldername, filename);
       if (false == cv::imwrite(foldername, img))
       {
         LOG_INFO("Saving the image, FAILED\n");
@@ -481,8 +493,8 @@ namespace tflite
           }
         }
       }
-      LOG_INFO("\nCompleted_Model : 0, Name : %s, Total time : %f, Offload Time : 0 , DDR RW MBs : 0, Output File : %s \n \n",\
-       modelInfo->m_postProcCfg.modelName.c_str(), avg_time,filename);
+      LOG_INFO("\nCompleted_Model : 0, Name : %s, Total time : %f, Offload Time : 0 , DDR RW MBs : 0, Output File : %s \n \n",
+               modelInfo->m_postProcCfg.modelName.c_str(), avg_time, filename);
       return RETURN_SUCCESS;
     }
 

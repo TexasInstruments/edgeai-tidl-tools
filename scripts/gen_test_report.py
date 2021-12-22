@@ -74,7 +74,9 @@ test_configs = [
                 {'script_name':'tflrt_delegate.py', 'script_dir':'tfl','lang':'py', 'rt_type':'tfl'},
                 {'script_name':'onnxrt_ep.py', 'script_dir':'ort','lang':'py', 'rt_type':'ort'},
                 {'script_name':'dlr_inference_example.py', 'script_dir':'tvm_dlr','lang':'py', 'rt_type':'dlr'},
-                {'script_name':'run_tfl_models.sh', 'script_dir':'osrt_cpp_scripts/','lang':'bash','rt_type':'tfl'}
+                {'script_name':'run_tfl_models.sh', 'script_dir':'osrt_cpp_scripts/','lang':'bash','rt_type':'tfl'},
+                {'script_name':'run_onnx_models.sh', 'script_dir':'osrt_cpp_scripts/','lang':'bash','rt_type':'ort'},
+                {'script_name':'run_dlr_models.sh', 'script_dir':'osrt_cpp_scripts/','lang':'bash','rt_type':'dlr'},
     ]
 currIdx = 0
 if platform.machine() == 'aarch64':
@@ -120,8 +122,6 @@ for test_config in test_configs:
         curr_rt_base_dir= os.path.join(rt_base_dir,test_config['script_dir'])
         curr_ref_outputs_base_dir = ref_outputs_base_dir+'/'+rt_type+'-refs-'+device+'/'
         cmd = ('python3 '+ script_name)
-    msg = f'Command : {cmd} in Dir : {curr_rt_base_dir} Started'
-    print(msg)
 
     #result = subprocess.run(cmd, cwd=curr_rt_base_dir, shell=True, stdout=subprocess.PIPE, check=True, universal_newlines=True)
     #lines = result.stdout.splitlines()
@@ -165,8 +165,8 @@ for test_config in test_configs:
             final_report.append(r)
         else:
             final_report.append(curr[0])
-            out_file_name = os.path.join(os.path.join('./model-artifacts/'+rt_type+'/', r['Name']),final_report[-1]['Output File'])
-            ref_file_name = os.path.join(os.path.join(curr_ref_outputs_base_dir, r['Name']),final_report[-1]['Output File'])
+            out_file_name = os.path.join(os.path.join('./output_images/'+rt_type+'/'),final_report[-1]['Output File'])
+            ref_file_name = os.path.join(os.path.join(curr_ref_outputs_base_dir+'/'),final_report[-1]['Output File'])
             if filecmp.cmp(out_file_name, ref_file_name) == True:
                 final_report[-1]['Functional'] = 'PASS'
             else:
