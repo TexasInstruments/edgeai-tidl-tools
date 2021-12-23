@@ -599,7 +599,7 @@ def get_svg_path(model_dir):
 
 def get_svg_path(model_dir):
     inputNetFile = []
-    artifacts_root = os.path.join(Path('/home/root'), model_dir)
+    artifacts_root = os.path.abspath(model_dir)
     for subdir, dirs, files in sorted(os.walk(artifacts_root)):
         for file in files:
             filename, file_extension = os.path.splitext(file)
