@@ -445,31 +445,30 @@ namespace tflite
 
       LOG_INFO("saving image result file \n");
       cv::cvtColor(img, img, cv::COLOR_RGB2BGR);
-      char filename[200];
-      char foldername[600];
-      strcpy(foldername, "output_images/");
+      string filename, foldername;
+      foldername = foldername + "output_images/";
       struct stat buffer;
-      if (stat(foldername, &buffer) != 0)
+      if (stat(foldername.c_str(), &buffer) != 0)
       {
-        if (mkdir(foldername, 0777) == -1)
+        if (mkdir(foldername.c_str(), 0777) == -1)
         {
           LOG_ERROR("failed to create folder %s:%s\n", foldername, strerror(errno));
           return RETURN_FAIL;
         }
       }
-      strcat(foldername, "tfl/");
-      if (stat(foldername, &buffer) != 0)
+      foldername = foldername + "tfl-cpp/";
+      if (stat(foldername.c_str(), &buffer) != 0)
       {
-        if (mkdir(foldername, 0777) == -1)
+        if (mkdir(foldername.c_str(), 0777) == -1)
         {
           LOG_ERROR("failed to create folder %s:%s\n", foldername, strerror(errno));
           return RETURN_FAIL;
         }
       }
-      strcpy(filename, "post_proc_out_");
-      strcat(filename, modelInfo->m_preProcCfg.modelName.c_str());
-      strcat(filename, ".jpg");
-      strcat(foldername, filename);
+      filename = "post_proc_out_";
+      filename = filename + modelInfo->m_preProcCfg.modelName.c_str();
+      filename = filename + ".jpg";
+      foldername = foldername + filename;
       if (false == cv::imwrite(foldername, img))
       {
         LOG_INFO("Saving the image, FAILED\n");
@@ -494,7 +493,7 @@ namespace tflite
         }
       }
       LOG_INFO("\nCompleted_Model : 0, Name : %s, Total time : %f, Offload Time : 0 , DDR RW MBs : 0, Output File : %s \n \n",
-               modelInfo->m_postProcCfg.modelName.c_str(), avg_time, filename);
+               modelInfo->m_postProcCfg.modelName.c_str(), avg_time, filename.c_str());
       return RETURN_SUCCESS;
     }
 

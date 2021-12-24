@@ -39,7 +39,7 @@ channel_wise_quantization = 0
 tidl_tools_path = os.environ["TIDL_TOOLS_PATH"]
 
 artifacts_folder = '../../../model-artifacts/tfl/'
-output_images_folder = '../../../output_images/tfl/'
+output_images_folder = '../../../output_images/tfl-py/'
 
 required_options = {
 "tidl_tools_path":tidl_tools_path,
@@ -242,7 +242,7 @@ def det_box_overlay(outputs, org_image_rgb, od_type):
 
 
 mlperf_models_configs = {
-    'mobilenet_v1_1.0_224' : {
+    'cl-tfl-mobilenet_v1_1.0_224' : {
         'model_path' : os.path.join(models_base_path, 'mobilenet_v1_1.0_224.tflite'),
         'mean': [127.5, 127.5, 127.5],
         'std' : [1/127.5, 1/127.5, 1/127.5],
@@ -250,7 +250,7 @@ mlperf_models_configs = {
         'num_classes': 1001,
         'model_type': 'classification'
     },
-    'resnet50_v1_5' : {
+    'cl-tfl-resnet50_v1_5' : {
         'model_path' : os.path.join(models_base_path, 'resnet50_v1_5.tflite'),
         'mean': [123.68, 116.78,  103.94],
         'std' : [1, 1, 1],
@@ -258,7 +258,7 @@ mlperf_models_configs = {
         'num_classes': 1000,
         'model_type': 'classification'
     },
-    'mobilenet_edgetpu_224_1.0' : {
+    'cl-tfl-mobilenet_edgetpu_224_1.0' : {
         'model_path' : os.path.join(models_base_path, 'mobilenet_edgetpu_224_1.0_float.tflite'),
         'mean': [127.5, 127.5, 127.5],
         'std' : [1/127.5, 1/127.5, 1/127.5],
@@ -266,7 +266,7 @@ mlperf_models_configs = {
         'num_classes': 1001,
         'model_type': 'classification'
    },
-    'deeplabv3_mnv2_ade20k_float' : {
+    'ss-tfl-deeplabv3_mnv2_ade20k_float' : {
         'model_path' : os.path.join(models_base_path,'deeplabv3_mnv2_ade20k_float.tflite'),
         'mean': [127.5, 127.5, 127.5],
         'std' : [1/127.5, 1/127.5, 1/127.5],
@@ -274,7 +274,7 @@ mlperf_models_configs = {
         'num_classes': 32,
         'model_type': 'seg'
     },
-    'ssd_mobilenet_v1_coco_2018_01_28' : {
+    'od-tfl-ssd_mobilenet_v1_coco_2018_01_28' : {
         'model_path' : os.path.join(models_base_path,'ssd_mobilenet_v1_coco_2018_01_28_th_0p3.tflite'),
         'mean': [127.5, 127.5, 127.5],
         'std' : [1/127.5, 1/127.5, 1/127.5],
@@ -283,7 +283,7 @@ mlperf_models_configs = {
         'model_type': 'od',
         'od_type' : 'HasDetectionPostProcLayer'
     },
-    'ssd_mobilenet_v2_coco_2018_03_29' : {
+    'od-tfl-ssd_mobilenet_v2_coco_2018_03_29' : {
         'model_path' : os.path.join(models_base_path,'ssd_mobilenet_v2_coco_2018_03_29.tflite'),
         'mean': [127.5, 127.5, 127.5],
         'std' : [1/127.5, 1/127.5, 1/127.5],
@@ -292,7 +292,7 @@ mlperf_models_configs = {
         'model_type': 'od',
         'od_type' : 'HasDetectionPostProcLayer'
     },
-    'ssd_mobilenet_v2_300_float' : {
+    'od-tfl-ssd_mobilenet_v2_300_float' : {
         'model_path' : os.path.join(models_base_path,'ssd_mobilenet_v2_300_float.tflite'),
         'mean': [127.5, 127.5, 127.5],
         'std' : [1/127.5, 1/127.5, 1/127.5],
@@ -301,7 +301,7 @@ mlperf_models_configs = {
         'model_type': 'od',
         'od_type' : 'HasDetectionPostProcLayer'
     },
-    'ssd_mobilenet_v1_fpn_640x640_coco17_tpu-8' : {
+    'od-tfl-ssd_mobilenet_v1_fpn_640x640_coco17_tpu-8' : {
         'model_path' : os.path.join(models_base_path,'ssd_mobilenet_v1_fpn_640x640_coco17_tpu-8.tflite'),
         'mean': [127.5, 127.5, 127.5],
         'std' : [1/127.5, 1/127.5, 1/127.5],
@@ -310,7 +310,7 @@ mlperf_models_configs = {
         'model_type': 'od',
         'od_type' : 'HasDetectionPostProcLayer'
     },
-    'ssd_mobilenet_v2_320x320_coco17_tpu-8' : {
+    'od-tfl-ssd_mobilenet_v2_320x320_coco17_tpu-8' : {
         'model_path' : os.path.join(models_base_path,'ssd_mobilenet_v2_320x320_coco17_tpu-8.tflite'),
         'mean': [127.5, 127.5, 127.5],
         'std' : [1/127.5, 1/127.5, 1/127.5],
@@ -319,7 +319,7 @@ mlperf_models_configs = {
         'model_type': 'od',
         'od_type' : 'HasDetectionPostProcLayer'
     },
-    'ssd_mobilenet_v2_fpnlite_320x320_coco17_tpu-8' : {
+    'od-tfl-ssd_mobilenet_v2_fpnlite_320x320_coco17_tpu-8' : {
         'model_path' : os.path.join(models_base_path,'ssd_mobilenet_v2_fpnlite_320x320_coco17_tpu-8.tflite'),
         'mean': [127.5, 127.5, 127.5],
         'std' : [1/127.5, 1/127.5, 1/127.5],
@@ -328,7 +328,7 @@ mlperf_models_configs = {
         'model_type': 'od',
         'od_type' : 'HasDetectionPostProcLayer'
     },
-    'efficientdet-ti-lite0_k5s1_k3s2' : {
+    'od-tfl-efficientdet-ti-lite0_k5s1_k3s2' : {
         'model_path' : os.path.join(models_base_path,'efficientdet-ti-lite0_k5s1_k3s2.tflite'),
         'mean': [123.675, 116.28, 103.53],
         'std' : [0.01712475, 0.017507, 0.01742919],

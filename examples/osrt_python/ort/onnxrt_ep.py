@@ -109,7 +109,9 @@ def run_model(model, mIdx):
     delegate_options.update(required_options)
     delegate_options.update(optional_options)   
 
-    delegate_options['artifacts_folder'] = delegate_options['artifacts_folder'] + '/' + model + '/' #+ 'tempDir/' 
+    # stripping off the ss-ort- from model namne
+    model_name = model[7:]
+    delegate_options['artifacts_folder'] = delegate_options['artifacts_folder'] + '/' + model_name + '/' #+ 'tempDir/' 
 
     if config['model_type'] == 'od':
         delegate_options['object_detection:meta_layers_names_list'] = config['meta_layers_names_list'] if ('meta_layers_names_list' in config) else ''
@@ -156,7 +158,7 @@ def run_model(model, mIdx):
     sub_graphs_time = sub_graphs_time/1000000
 
     # output post processing
-    output_file_name = "post_proc_out_"+os.path.basename(config['model_path'])+'_'+os.path.basename(input_image[i%len(input_image)])
+    output_file_name = "post_proc_out_"+model+'_'+os.path.basename(input_image[i%len(input_image)])
     if(args.compile == False):  # post processing enabled only for inference
         if config['model_type'] == 'classification':
             classes, image = get_class_labels(output[0],img)
@@ -181,7 +183,7 @@ def run_model(model, mIdx):
 
 #models = models_configs.keys()
 
-models = ['resnet18-v1', 'deeplabv3lite_mobilenetv2', 'ssd-lite_mobilenetv2_fpn']
+models = ['cl-ort-resnet18-v1', 'ss-ort-deeplabv3lite_mobilenetv2', 'od-ort-ssd-lite_mobilenetv2_fpn']
 if platform.machine() != 'aarch64':
     download_models()
 

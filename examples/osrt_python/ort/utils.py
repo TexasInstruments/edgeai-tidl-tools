@@ -34,7 +34,7 @@ channel_wise_quantization = 0
 tidl_tools_path = os.environ["TIDL_TOOLS_PATH"]
 
 artifacts_folder = '../../../model-artifacts/ort/'
-output_images_folder = '../../../output_images/ort/'
+output_images_folder = '../../../output_images/ort-py/'
 
 required_options = {
 "tidl_tools_path":tidl_tools_path,
@@ -269,7 +269,7 @@ def det_box_overlay(outputs, org_image_rgb, disable_offload, od_type, framework)
 
 
 models_configs = {
-    'resnet18-v1' : {
+    'cl-ort-resnet18-v1' : {
         'model_path' : os.path.join(models_base_path, 'resnet18_opset9.onnx'),
         'mean': [123.675, 116.28, 103.53],
         'std' : [0.017125, 0.017507, 0.017429],
@@ -277,7 +277,7 @@ models_configs = {
         'num_classes': 1000,
         'model_type': 'classification'
     },
-    'mobilenetv2-1.0' : {
+    'cl-ort-mobilenetv2-1.0' : {
         'model_path' : os.path.join(models_base_path, 'mobilenetv2-7.onnx'),
         'mean': [123.675, 116.28, 103.53],
         'std' : [0.017125, 0.017507, 0.017429],
@@ -285,7 +285,7 @@ models_configs = {
         'num_classes': 1000,
         'model_type': 'classification'
     },
-    'bisenetv2' : {
+    'ss-ort-bisenetv2' : {
         'model_path' : os.path.join(models_base_path, 'bisenetv2.onnx'),
         'mean': [123.675, 116.28, 103.53],
         'std' : [0.017125, 0.017507, 0.017429],
@@ -293,7 +293,7 @@ models_configs = {
         'num_classes': 1000,
         'model_type': 'seg'
     },
-    'shufflenet_v2_x1.0_opset9' : {
+    'cl-ort-shufflenet_v2_x1.0_opset9' : {
         'model_path' : os.path.join(modelzoo_path, 'vision/classification/imagenet1k/torchvision/shufflenet_v2_x1.0_opset9.onnx'),
         'mean': [123.675, 116.28, 103.53],
         'std' : [0.017125, 0.017507, 0.017429],
@@ -301,7 +301,7 @@ models_configs = {
         'num_classes': 1000,
         'model_type': 'classification'
     },
-    'RegNetX-800MF_dds_8gpu_opset9' : {
+    'cl-ort-RegNetX-800MF_dds_8gpu_opset9' : {
         'model_path' : os.path.join(modelzoo_path, 'vision/classification/imagenet1k/pycls/RegNetX-800MF_dds_8gpu_opset9.onnx'),
         'mean': [123.675, 116.28, 103.53],
         'std' : [0.017125, 0.017507, 0.017429],
@@ -309,7 +309,7 @@ models_configs = {
         'num_classes': 1000,
         'model_type': 'classification'
     },
-    'mlperf_ssd_resnet34-ssd1200' : {
+    'od-ort-mlperf_ssd_resnet34-ssd1200' : {
         'model_path' : '../../../../../../models/public/onnx/mlperf_resnet34_ssd/ssd_shape.onnx',
         'mean': [123.675, 116.28, 103.53],
         'std' : [0.017125, 0.017507, 0.017429],
@@ -321,7 +321,7 @@ models_configs = {
         'meta_layers_names_list' : '../testvecs/models/public/onnx/mlperf_resnet34_ssd/resnet34-ssd1200.prototxt',
         'meta_arch_type' : 3
     },
-    'retinanet-lite_regnetx-800mf_fpn_bgr_512x512_20200908_model' : {
+    'od-ort-retinanet-lite_regnetx-800mf_fpn_bgr_512x512_20200908_model' : {
         'model_path' : os.path.join(modelforest_path, 'vision/detection/coco/edgeai-mmdet/retinanet-lite_regnetx-800mf_fpn_bgr_512x512_20200908_model.onnx'),
         'mean': [0, 0, 0],
         'std' : [0.003921568627,0.003921568627,0.003921568627],
@@ -333,7 +333,7 @@ models_configs = {
         'meta_layers_names_list' : os.path.join(modelforest_path, 'vision/detection/coco/edgeai-mmdet/retinanet-lite_regnetx-800mf_fpn_bgr_512x512_20200908_model.prototxt'),
         'meta_arch_type' : 5
     },
-    'ssd-lite_mobilenetv2_512x512_20201214_220055_model' : {
+    'od-ort-ssd-lite_mobilenetv2_512x512_20201214_220055_model' : {
         'model_path' : os.path.join(modelforest_path, 'vision/detection/coco/edgeai-mmdet/ssd-lite_mobilenetv2_512x512_20201214_220055_model.onnx'),
         'mean': [0, 0, 0],
         'std' : [0.003921568627,0.003921568627,0.003921568627],
@@ -345,7 +345,7 @@ models_configs = {
         'meta_layers_names_list' : os.path.join(modelforest_path, 'vision/detection/coco/edgeai-mmdet/ssd-lite_mobilenetv2_512x512_20201214_220055_model.prototxt'),
         'meta_arch_type' : 3
     },
-    'ssd-lite_mobilenetv2_fpn' : {
+    'od-ort-ssd-lite_mobilenetv2_fpn' : {
         'model_path' : os.path.join(models_base_path, 'ssd-lite_mobilenetv2_fpn.onnx'),
         'mean': [0, 0, 0],
         'std' : [0.003921568627,0.003921568627,0.003921568627],
@@ -357,7 +357,7 @@ models_configs = {
         'meta_layers_names_list' : os.path.join(models_base_path, 'ssd-lite_mobilenetv2_fpn.prototxt'),
         'meta_arch_type' : 3
     },
-    'ssd-lite_mobilenetv2_qat-p2_512x512_20201217_model' : {
+    'od-ort-ssd-lite_mobilenetv2_qat-p2_512x512_20201217_model' : {
         'model_path' : os.path.join(modelforest_path, 'vision/detection/coco/edgeai-mmdet/ssd-lite_mobilenetv2_qat-p2_512x512_20201217_model.onnx'),
         'mean': [0, 0, 0],
         'std' : [0.003921568627,0.003921568627,0.003921568627],
@@ -369,7 +369,7 @@ models_configs = {
         'meta_layers_names_list' : os.path.join(modelforest_path, 'vision/detection/coco/edgeai-mmdet/ssd-lite_mobilenetv2_qat-p2_512x512_20201217_model.prototxt'),
         'meta_arch_type' : 3
     },
-    'ssd-lite_regnetx-1.6gf_bifpn168x4_bgr_768x768_20201026_model' : {
+    'od-ort-ssd-lite_regnetx-1.6gf_bifpn168x4_bgr_768x768_20201026_model' : {
         'model_path' : os.path.join(modelforest_path, 'vision/detection/coco/edgeai-mmdet/ssd-lite_regnetx-1.6gf_bifpn168x4_bgr_768x768_20201026_model.onnx'),
         'mean': [0, 0, 0],
         'std' : [0.003921568627,0.003921568627,0.003921568627],
@@ -381,7 +381,7 @@ models_configs = {
         'meta_layers_names_list' : os.path.join(modelforest_path, 'vision/detection/coco/edgeai-mmdet/ssd-lite_regnetx-1.6gf_bifpn168x4_bgr_768x768_20201026_model.prototxt'),
         'meta_arch_type' : 3
     },
-    'ssd-lite_regnetx-200mf_fpn_bgr_320x320_20201010_model' : {
+    'od-ort-ssd-lite_regnetx-200mf_fpn_bgr_320x320_20201010_model' : {
         'model_path' : os.path.join(modelforest_path, 'vision/detection/coco/edgeai-mmdet/ssd-lite_regnetx-200mf_fpn_bgr_320x320_20201010_model.onnx'),
         'mean': [0, 0, 0],
         'std' : [0.003921568627,0.003921568627,0.003921568627],
@@ -393,7 +393,7 @@ models_configs = {
         'meta_layers_names_list' : os.path.join(modelforest_path, 'vision/detection/coco/edgeai-mmdet/ssd-lite_regnetx-200mf_fpn_bgr_320x320_20201010_model.prototxt'),
         'meta_arch_type' : 3
     },
-    'ssd-lite_regnetx-800mf_fpn_bgr_512x512_20200919_model' : {
+    'od-ort-ssd-lite_regnetx-800mf_fpn_bgr_512x512_20200919_model' : {
         'model_path' : os.path.join(modelforest_path, 'vision/detection/coco/edgeai-mmdet/ssd-lite_regnetx-800mf_fpn_bgr_512x512_20200919_model.onnx'),
         'mean': [0, 0, 0],
         'std' : [0.003921568627,0.003921568627,0.003921568627],
@@ -405,7 +405,7 @@ models_configs = {
         'meta_layers_names_list' : os.path.join(modelforest_path, 'vision/detection/coco/edgeai-mmdet/ssd-lite_regnetx-800mf_fpn_bgr_512x512_20200919_model.prototxt'),
         'meta_arch_type' : 3
     },
-    'ssd_resnet_fpn_512x512_20200730-225222_model' : {
+    'od-ort-ssd_resnet_fpn_512x512_20200730-225222_model' : {
         'model_path' : os.path.join(modelforest_path, 'vision/detection/coco/edgeai-mmdet/ssd_resnet_fpn_512x512_20200730-225222_model.onnx'),
         'mean': [0, 0, 0],
         'std' : [0.003921568627,0.003921568627,0.003921568627],
@@ -417,7 +417,7 @@ models_configs = {
         'meta_layers_names_list' : os.path.join(modelforest_path, 'vision/detection/coco/edgeai-mmdet/ssd_resnet_fpn_512x512_20200730-225222_model.prototxt'),
         'meta_arch_type' : 3
     },
-    'yolov3-lite_regnetx-1.6gf_bgr_512x512_20210202_model' : {
+    'od-ort-yolov3-lite_regnetx-1.6gf_bgr_512x512_20210202_model' : {
         'model_path' : os.path.join(modelforest_path, 'vision/detection/coco/edgeai-mmdet/yolov3-lite_regnetx-1.6gf_bgr_512x512_20210202_model.onnx'),
         'mean': [0, 0, 0],
         'std' : [0.003921568627,0.003921568627,0.003921568627],
@@ -429,7 +429,7 @@ models_configs = {
         'meta_layers_names_list' : os.path.join(modelforest_path, 'vision/detection/coco/edgeai-mmdet/yolov3-lite_regnetx-1.6gf_bgr_512x512_20210202_model.prototxt'),
         'meta_arch_type' : 4
     },
-    'yolov5m6_640_ti_lite_44p1_62p9' : {
+    'od-ort-yolov5m6_640_ti_lite_44p1_62p9' : {
         'model_path' : os.path.join(modelforest_path, 'vision/detection/coco/ultralytics-yolov5/yolov5m6_640_ti_lite_44p1_62p9.onnx'),
         'mean': [0, 0, 0],
         'std' : [0.003921568627,0.003921568627,0.003921568627],
@@ -441,7 +441,7 @@ models_configs = {
         'meta_layers_names_list' : os.path.join(modelforest_path, 'vision/detection/coco/ultralytics-yolov5/yolov5m6_640_ti_lite_metaarch.prototxt'),
         'meta_arch_type' : 6
     },
-    'yolov5s6_640_ti_lite_37p4_56p0' : {
+    'od-ort-yolov5s6_640_ti_lite_37p4_56p0' : {
         'model_path' : os.path.join(modelforest_path, 'vision/detection/coco/ultralytics-yolov5/yolov5s6_640_ti_lite_37p4_56p0.onnx'),
         'mean': [0, 0, 0],
         'std' : [0.003921568627,0.003921568627,0.003921568627],
@@ -453,7 +453,7 @@ models_configs = {
         'meta_layers_names_list' : os.path.join(modelforest_path, 'vision/detection/coco/ultralytics-yolov5/yolov5s6_640_ti_lite_metaarch.prototxt'),
         'meta_arch_type' : 6
     },
-    'yolov3_d53_416x416_20210116_005003_model' : {
+    'od-ort-yolov3_d53_416x416_20210116_005003_model' : {
         'model_path' : os.path.join(modelforest_path, 'vision/detection/coco/edgeai-mmdet/yolov3_d53_416x416_20210116_005003_model.onnx'),
         'mean': [0, 0, 0],
         'std' : [0.003921568627,0.003921568627,0.003921568627],
@@ -465,7 +465,7 @@ models_configs = {
         'meta_layers_names_list' : os.path.join(modelforest_path, 'vision/detection/coco/edgeai-mmdet/yolov3_d53_416x416_20210116_005003_model.prototxt'),
         'meta_arch_type' : 4
     },
-    'yolov3_d53_relu_416x416_20210117_004118_model' : {
+    'od-ort-yolov3_d53_relu_416x416_20210117_004118_model' : {
         'model_path' : os.path.join(modelforest_path, 'vision/detection/coco/edgeai-mmdet/yolov3_d53_relu_416x416_20210117_004118_model.onnx'),
         'mean': [0, 0, 0],
         'std' : [0.003921568627,0.003921568627,0.003921568627],
@@ -477,7 +477,7 @@ models_configs = {
         'meta_layers_names_list' : os.path.join(modelforest_path, 'vision/detection/coco/edgeai-mmdet/yolov3_d53_relu_416x416_20210117_004118_model.prototxt'),
         'meta_arch_type' : 4
     },
-    'yolov3-10' : {
+    'od-ort-yolov3-10' : {
         'model_path' : '/home/a0230315/Downloads/yolov3-10.onnx',
         'mean': [0, 0, 0],
         'std' : [0.003921568627,0.003921568627,0.003921568627],
@@ -487,7 +487,7 @@ models_configs = {
         'od_type' : 'YoloV3',
         'framework' : ''
     },
-    'yolov5s_ti_lite_35p0_54p5' : {
+    'od-ort-yolov5s_ti_lite_35p0_54p5' : {
         'model_path' : '../../../../../../models/public/onnx/yolov5s_ti_lite_35p0_54p5.onnx',
         'mean': [0, 0, 0],
         'std' : [0.003921568627,0.003921568627,0.003921568627],
@@ -499,7 +499,7 @@ models_configs = {
         'meta_layers_names_list' : '../testvecs/config/import/public/onnx/yolov5s_ti_lite_metaarch.prototxt',
         'meta_arch_type' : 6
     },
-    'lraspp_mobilenet_v3_lite_large_512x512_20210527' : {
+    'ss-ort-lraspp_mobilenet_v3_lite_large_512x512_20210527' : {
         'model_path' : '/home/a0230315/workarea/models/public/onnx/lraspp_mobilenet_v3_lite_large_512x512_20210527.onnx',
         'mean': [123.675, 116.28, 103.53],
         'std' : [0.017125, 0.017507, 0.017429],
@@ -507,7 +507,7 @@ models_configs = {
         'num_classes': 1000,
         'model_type': 'seg'
     },
-    'deeplabv3lite_mobilenetv2' : {
+    'ss-ort-deeplabv3lite_mobilenetv2' : {
         'model_path' : os.path.join(models_base_path, 'deeplabv3lite_mobilenetv2.onnx'),
         'mean': [123.675, 116.28, 103.53],
         'std' : [0.017125, 0.017507, 0.017429],
@@ -515,7 +515,7 @@ models_configs = {
         'num_classes': 19,
         'model_type': 'seg'
     },
-    'fpnlite_aspp_mobilenetv2' : {
+    'ss-ort-fpnlite_aspp_mobilenetv2' : {
         'model_path' : os.path.join(modelforest_path, 'vision/segmentation/cityscapes/edgeai-jai/fpnlite_aspp_mobilenetv2_768x384_20200120.onnx'),
         'mean': [123.675, 116.28, 103.53],
         'std' : [0.017125, 0.017507, 0.017429],
@@ -523,7 +523,7 @@ models_configs = {
         'num_classes': 21,
         'model_type': 'seg'
     },
-    'unetlite_aspp_mobilenetv2' : {
+    'ss-ort-unetlite_aspp_mobilenetv2' : {
         'model_path' : os.path.join(modelforest_path, 'vision/segmentation/cityscapes/edgeai-jai/unetlite_aspp_mobilenetv2_768x384_20200129.onnx'),
         'mean': [123.675, 116.28, 103.53],
         'std' : [0.017125, 0.017507, 0.017429],
@@ -531,7 +531,7 @@ models_configs = {
         'num_classes': 21,
         'model_type': 'seg'
     },    
-    'fpnlite_aspp_regnetx800mf' : {
+    'ss-ort-fpnlite_aspp_regnetx800mf' : {
         'model_path' : os.path.join(modelforest_path, 'vision/segmentation/cityscapes/edgeai-jai/fpnlite_aspp_regnetx800mf_768x384_20200911.onnx'),
         'mean': [123.675, 116.28, 103.53],
         'std' : [0.017125, 0.017507, 0.017429],
@@ -539,7 +539,7 @@ models_configs = {
         'num_classes': 21,
         'model_type': 'seg'
     },    
-    'fpnlite_aspp_regnetx1.6gf' : {
+    'ss-ort-fpnlite_aspp_regnetx1.6gf' : {
         'model_path' : os.path.join(modelforest_path, 'vision/segmentation/cityscapes/edgeai-jai/fpnlite_aspp_regnetx1.6gf_1024x512_20200914.onnx'),
         'mean': [123.675, 116.28, 103.53],
         'std' : [0.017125, 0.017507, 0.017429],
@@ -547,7 +547,7 @@ models_configs = {
         'num_classes': 21,
         'model_type': 'seg'
     },    
-    'fpnlite_aspp_regnetx3.2gf' : {
+    'ss-ort-fpnlite_aspp_regnetx3.2gf' : {
         'model_path' : os.path.join(modelforest_path, 'vision/segmentation/cityscapes/edgeai-jai/fpnlite_aspp_regnetx3.2gf_1024x512_20200916.onnx'),
         'mean': [123.675, 116.28, 103.53],
         'std' : [0.017125, 0.017507, 0.017429],
@@ -555,7 +555,7 @@ models_configs = {
         'num_classes': 21,
         'model_type': 'seg'
     }, 
-    'deeplabv3_resnet50_1040x520' : {
+    'ss-ort-deeplabv3_resnet50_1040x520' : {
         'model_path' : os.path.join(modelforest_path, 'vision/segmentation/cityscapes/torchvision/deeplabv3_resnet50_1040x520_20200901-213517.onnx'),
         'mean': [123.675, 116.28, 103.53],
         'std' : [0.017125, 0.017507, 0.017429],
@@ -563,7 +563,7 @@ models_configs = {
         'num_classes': 21,
         'model_type': 'seg'
     },
-    'fcn_resnet50_1040x520' : {
+    'ss-ort-fcn_resnet50_1040x520' : {
         'model_path' : os.path.join(modelforest_path, 'vision/segmentation/cityscapes/torchvision/ffcn_resnet50_1040x520_20200902-153444.onnx'),
         'mean': [123.675, 116.28, 103.53],
         'std' : [0.017125, 0.017507, 0.017429],

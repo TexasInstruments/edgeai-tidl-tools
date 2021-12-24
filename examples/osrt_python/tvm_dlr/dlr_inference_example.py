@@ -2,7 +2,7 @@ import time
 import platform
 import os
 
-output_images_folder = '../../../output_images/dlr/'
+output_images_folder = '../../../output_images/dlr-py/'
 def load_labels():
   with open('../../../test_data/labels.txt', 'r') as f:
     return [line.strip() for line in f.readlines()]

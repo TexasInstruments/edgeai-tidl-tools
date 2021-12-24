@@ -102,7 +102,9 @@ def run_model(model, mIdx):
     delegate_options = {}
     delegate_options.update(required_options)
     delegate_options.update(optional_options)
-    delegate_options['artifacts_folder'] = delegate_options['artifacts_folder'] + '/' + model + '/'
+    # stripping off the ss-tfl- from model namne
+    model_name = model[7:]
+    delegate_options['artifacts_folder'] = delegate_options['artifacts_folder'] + '/' + model_name + '/'
 
     if config['model_type'] == 'od':
         delegate_options['object_detection:meta_layers_names_list'] = config['meta_layers_names_list'] if ('meta_layers_names_list' in config) else ''
@@ -146,7 +148,7 @@ def run_model(model, mIdx):
     
     total_proc_time = total_proc_time/1000000
     sub_graphs_time = sub_graphs_time/1000000
-    output_file_name = "post_proc_out_"+os.path.basename(config['model_path'])+'_'+os.path.basename(input_image[i%len(input_image)])
+    output_file_name = "post_proc_out_"+model+'_'+os.path.basename(input_image[i%len(input_image)])
 
     # output post processing
     if(args.compile == False):  # post processing enabled only for inference
@@ -171,7 +173,7 @@ def run_model(model, mIdx):
         sem.release()
 
 #models = mlperf_models_configs.keys()
-models = ['mobilenet_v1_1.0_224', 'deeplabv3_mnv2_ade20k_float', 'ssd_mobilenet_v2_300_float']
+models = ['cl-tfl-mobilenet_v1_1.0_224', 'ss-tfl-deeplabv3_mnv2_ade20k_float', 'od-tfl-ssd_mobilenet_v2_300_float']
 if platform.machine() != 'aarch64':
     download_models()
 #models = ['efficientdet-ti-lite0_k5s1_k3s2']

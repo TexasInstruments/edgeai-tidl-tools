@@ -36,7 +36,6 @@ DataList="deeplabv3lite_mobilenetv2"
 for val in $DataList;
 do
  echo $val 
- echo 1
  ./bin/Release/ort_main -z "model-artifacts/ort/${val}/" -v 1 -i "test_data/ADE_val_00001801.jpg" -l "test_data/labels.txt" -a 1 
 done
 
@@ -45,7 +44,6 @@ DataList="resnet18-v1"
 for val in $DataList;
 do
  echo $val
- echo 2
  ./bin/Release/ort_main -z "model-artifacts/ort/${val}/" -v 1 -i "test_data/airshow.jpg" -l "test_data/labels.txt" -a 1 
 done
 
@@ -54,7 +52,6 @@ DataList="ssd-lite_mobilenetv2_fpn"
 for val in $DataList;
 do
  echo $val
- echo 3
  ./bin/Release/ort_main -z "model-artifacts/ort/${val}/" -v 1 -i "test_data/ADE_val_00001801.jpg" -l "test_data/labels.txt" -a 1 
 done
-# cd -
+cd -

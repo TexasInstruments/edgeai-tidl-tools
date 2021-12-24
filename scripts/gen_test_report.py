@@ -71,12 +71,12 @@ rt_base_dir_py = 'examples/osrt_python/'
 rt_base_dir_bash = 'scripts'
 
 test_configs = [
-                {'script_name':'tflrt_delegate.py', 'script_dir':'tfl','lang':'py', 'rt_type':'tfl'},
-                {'script_name':'onnxrt_ep.py', 'script_dir':'ort','lang':'py', 'rt_type':'ort'},
-                {'script_name':'dlr_inference_example.py', 'script_dir':'tvm_dlr','lang':'py', 'rt_type':'dlr'},
-                {'script_name':'run_tfl_models.sh', 'script_dir':'osrt_cpp_scripts/','lang':'bash','rt_type':'tfl'},
-                {'script_name':'run_onnx_models.sh', 'script_dir':'osrt_cpp_scripts/','lang':'bash','rt_type':'ort'},
-                {'script_name':'run_dlr_models.sh', 'script_dir':'osrt_cpp_scripts/','lang':'bash','rt_type':'dlr'},
+                {'script_name':'tflrt_delegate.py', 'script_dir':'tfl','lang':'py', 'rt_type':'tfl-py'},
+                {'script_name':'onnxrt_ep.py', 'script_dir':'ort','lang':'py', 'rt_type':'ort-py'},
+                {'script_name':'dlr_inference_example.py', 'script_dir':'tvm_dlr','lang':'py', 'rt_type':'dlr-py'},
+                {'script_name':'run_tfl_models.sh', 'script_dir':'osrt_cpp_scripts/','lang':'bash','rt_type':'tfl-cpp'},
+                {'script_name':'run_onnx_models.sh', 'script_dir':'osrt_cpp_scripts/','lang':'bash','rt_type':'ort-cpp'},
+                {'script_name':'run_dlr_models.sh', 'script_dir':'osrt_cpp_scripts/','lang':'bash','rt_type':'dlr-cpp'},
     ]
 currIdx = 0
 if platform.machine() == 'aarch64':
@@ -113,14 +113,14 @@ for test_config in test_configs:
     if(test_config['lang'] == 'bash'):
         rt_base_dir = rt_base_dir_bash
         curr_rt_base_dir= os.path.join(rt_base_dir,test_config['script_dir'])
-        curr_ref_outputs_base_dir = ref_outputs_base_dir+'/'+rt_type+'-refs-'+device+'/'
+        curr_ref_outputs_base_dir = ref_outputs_base_dir+'/'
         cmd = ('bash '+ script_name)
 
     elif(test_config['lang'] == 'py'):
         rt_base_dir = rt_base_dir_py
 
         curr_rt_base_dir= os.path.join(rt_base_dir,test_config['script_dir'])
-        curr_ref_outputs_base_dir = ref_outputs_base_dir+'/'+rt_type+'-refs-'+device+'/'
+        curr_ref_outputs_base_dir = ref_outputs_base_dir+'/'
         cmd = ('python3 '+ script_name)
 
     #result = subprocess.run(cmd, cwd=curr_rt_base_dir, shell=True, stdout=subprocess.PIPE, check=True, universal_newlines=True)
@@ -138,7 +138,7 @@ for test_config in test_configs:
         golden_ref_file = curr_ref_outputs_base_dir+'/golden_ref.csv'
     
     elif(test_config['lang'] == 'bash'):
-        golden_ref_file = curr_ref_outputs_base_dir+'/golden_ref_cpp.csv'
+        golden_ref_file = curr_ref_outputs_base_dir+'/golden_ref.csv'
     with open(golden_ref_file, 'r') as f:
         ref_report = [{k:v for k, v in row.items()} for row in csv.DictReader(f, skipinitialspace=True)]
     if enable_debug:
@@ -156,21 +156,27 @@ for test_config in test_configs:
     if enable_debug:
         print(rt_report)
     for r in ref_report:
-        curr = [item for item in rt_report if item["Name"] == r['Name']]
+        curr = [item for item in rt_report if ((item["Name"] == r['Name']) and (rt_type == r['rt type']) )]
         if enable_debug:
             print(curr)
-        if len(curr) == 0:
+        if (len(curr) == 0 and rt_type == r['rt type']):
             r['Offload Time'] = '0'
             r['Functional'] = 'FAIL'
+            r['info'] = 'op not detected'
             final_report.append(r)
-        else:
+            final_report[-1]['Completed_Model'] = currIdx
+            final_report[-1]['rt type'] = rt_type
+            currIdx+= 1
+        elif(len(curr) != 0 and rt_type == r['rt type']):
             final_report.append(curr[0])
             out_file_name = os.path.join(os.path.join('./output_images/'+rt_type+'/'),final_report[-1]['Output File'])
             ref_file_name = os.path.join(os.path.join(curr_ref_outputs_base_dir+'/'),final_report[-1]['Output File'])
             if filecmp.cmp(out_file_name, ref_file_name) == True:
                 final_report[-1]['Functional'] = 'PASS'
+                final_report[-1]['info'] = ''
             else:
                 final_report[-1]['Functional'] = 'FAIL'
+                final_report[-1]['info'] = 'output file mismatch'
             if platform.machine() == 'aarch64':
                 final_report[-1]['Ref Total Time']   =  r['Total time']
                 final_report[-1]['Ref Offload Time'] =  r['Offload Time']
@@ -179,17 +185,22 @@ for test_config in test_configs:
                 final_report[-1]['Diff in Total Time %']  = f'{diff_in_total_time:5.2f}'
                 if(diff_in_total_time > 2.0):
                     final_report[-1]['Performance Status']  = "FAIL"
+                    final_report[-1]['info'] ="Failed : diff in total time > 2."
                 else :
                     final_report[-1]['Performance Status']  = "PASS"
-
-                
-        final_report[-1]['Completed_Model'] = currIdx
-        final_report[-1]['rt type'] = rt_type
-        currIdx+= 1
-
+            final_report[-1]['Completed_Model'] = currIdx
+            final_report[-1]['rt type'] = rt_type
+            currIdx+= 1
+                     
 print(final_report)
-keys =final_report[0].keys()
-with open('test_report_'+device+'.csv', 'w', newline='')  as output_file:
-    dict_writer = csv.DictWriter(output_file, keys)
-    dict_writer.writeheader()
-    dict_writer.writerows(final_report)
+if(len(final_report) > 0):
+    keys =final_report[0].keys()
+    if 'Output File' not in final_report[0]:
+        final_report[0]['Output File'] = ''
+
+    with open('test_report_'+device+'.csv', 'w', newline='')  as output_file:
+        dict_writer = csv.DictWriter(output_file, keys)
+        dict_writer.writeheader()
+        dict_writer.writerows(final_report)
+else:
+    print("no test_report generated ")
