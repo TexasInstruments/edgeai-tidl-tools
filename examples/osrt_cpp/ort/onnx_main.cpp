@@ -163,6 +163,11 @@ namespace onnx
                 int64_t *tensor_op_array = (*output_tensors).front().GetTensorMutableData<int64_t>();
                 (*img).data = blendSegMask<int64_t>((*img).data, tensor_op_array, (*img).cols, (*img).rows, wanted_width, wanted_height, alpha);
             }
+            else if (op_tensor_type == ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT8)
+            {
+                uint8_t *tensor_op_array = (*output_tensors).front().GetTensorMutableData<uint8_t>();
+                (*img).data = blendSegMask<uint8_t>((*img).data, tensor_op_array, (*img).cols, (*img).rows, wanted_width, wanted_height, alpha);
+            }
             else if (op_tensor_type == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT)
             {
                 float *tensor_op_array = (*output_tensors).front().GetTensorMutableData<float>();
@@ -238,6 +243,35 @@ namespace onnx
             return RETURN_SUCCESS;
         }
 
+        void * allocTensorMem(int size, int accel)
+        {
+            void * ptr = NULL;
+            if (accel)
+            {
+                ptr = TIDLRT_allocSharedMem(64, size);
+            }
+            else
+            {
+                ptr = malloc(size);
+            }
+            if (ptr == NULL)
+            {
+                printf("Could not allocate memory for a Tensor of size %d \n ", size);
+                exit(0);
+            }
+            return ptr;
+        }   
+        void freeTensorMem(void * ptr, int accel)
+        {
+            if (accel)
+            {
+                TIDLRT_freeSharedMem(ptr);
+            }
+            else
+            {
+                free(ptr);
+            }
+        } 
         /**
          *  \brief  Actual infernce happening
          *  \param  ModelInfo YAML parsed model info
@@ -320,7 +354,6 @@ namespace onnx
             if (wanted_width != modelInfo->m_preProcCfg.outDataWidth)
             {
                 LOG_INFO("missmatch in YAML parsed wanted width:%d and model:%d\n", wanted_width, input_node_dims[3]);
-                ;
             }
 
             /* output information */
@@ -344,28 +377,37 @@ namespace onnx
                 return RETURN_FAIL;
             int num_iter = s->loop_count;
 
+            std::vector<Ort::Value> input_tensors;
+            ssize_t input_tensor_size_bytes;
             /* simplify ... using known dim values to calculate size */
             size_t input_tensor_size = wanted_channels * wanted_height * wanted_width;
             if (input_tensor_type == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT)
             {
-                inData = TIDLRT_allocSharedMem(32, input_tensor_size * sizeof(float));
-                if (inData == NULL)
-                {
-                    LOG_INFO("Could not allocate memory for inData \n ");
-                    return RETURN_FAIL;
-                }
+                input_tensor_size_bytes = input_tensor_size * sizeof(float);
+                inData = allocTensorMem(input_tensor_size_bytes, s->accel);              
                 img = preprocImage<float>(image_path, (float *)inData, modelInfo->m_preProcCfg);
+            }
+            else if (input_tensor_type == ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT8)
+            {
+                input_tensor_size_bytes = input_tensor_size * sizeof(uint8_t);
+                inData = allocTensorMem(input_tensor_size_bytes, s->accel);              
+                img = preprocImage<uint8_t>(image_path, (uint8_t *)inData, modelInfo->m_preProcCfg);
             }
             else
             {
                 LOG_INFO("indata type not supported yet \n ");
                 return RETURN_FAIL;
             }
-            LOG_INFO("Output name -- %s \n", *(output_node_names.data()));
-
             auto memory_info = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
-            LOG_INFO("create cpu done\n");
 
+            Ort::Value input_tensor = Ort::Value::CreateTensor(memory_info, inData, input_tensor_size_bytes, input_node_dims.data(), 4, input_tensor_type);
+            input_tensors.push_back(std::move(input_tensor));
+
+            auto run_options = Ort::RunOptions();
+            run_options.SetRunLogVerbosityLevel(2);
+            auto output_tensors_warm_up = session.Run(run_options, input_node_names.data(), input_tensors.data(), 1, output_node_names.data(), num_output_nodes);
+            
+ 
             void *outData = TIDLRT_allocSharedMem(16, output_tensor_size * sizeof(float));
             if (outData == NULL)
             {
@@ -373,63 +415,50 @@ namespace onnx
                 return RETURN_FAIL;
             }
 
-#if ORT_ZERO_COPY_API
-            Ort::IoBinding binding(_session);
-            const Ort::RunOptions &runOpts = Ort::RunOptions();
-            Ort::Value input_tensor = Ort::Value::CreateTensor<float>(memory_info, (float *)inData, input_tensor_size, _input_node_dims.data(), 4);
-            assert(input_tensor.IsTensor());
-            vector<int64_t> _output_node_dims = {1, 1, 1, 1000};
+            Ort::IoBinding binding(session);
+            binding.BindInput(input_node_names[0], input_tensors[0]);
 
-            Ort::Value output_tensors = Ort::Value::CreateTensor<float>(memory_info, (float *)outData, output_tensor_size, _output_node_dims.data(), 4);
-            assert(output_tensors.IsTensor());
-
-            binding.BindInput(_input_node_names[0], input_tensor);
-            binding.BindOutput(output_node_names[0], output_tensors);
-
-            struct timeval start_time, stop_time;
-            gettimeofday(&start_time, nullptr);
-            for (int i = 0; i < num_iter; i++)
+            std::vector<Ort::Value> output_tensors;
+            for(int idx =0; idx < num_output_nodes; idx++)
             {
-                _session.Run(runOpts, binding);
-            }
-            gettimeofday(&stop_time, nullptr);
-            float *floatarr = (float *)outData;
-
-#else
-            ssize_t input_tensor_size_bytes;
-            if (input_tensor_type == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT)
-            {
-                input_tensor_size_bytes = input_tensor_size * sizeof(float);
-            }
-            /* add further input types here */
-            else
-            {
-                LOG_INFO("in data type not supported\n");
-                return RETURN_FAIL;
-            }
-            Ort::Value input_tensor = Ort::Value::CreateTensor(memory_info, inData, input_tensor_size_bytes, input_node_dims.data(), 4, input_tensor_type);
-            assert(input_tensor.IsTensor());
-            /* score model & input tensor, get back output tensor */
-            auto run_options = Ort::RunOptions();
-            run_options.SetRunLogVerbosityLevel(2);
-            vector<Ort::Value> output_tensors;
-            if (s->loop_count >= 1)
-            {
-                LOG_INFO("Session.Run() - Started for warmup runs\n");
-                for (int i = 0; i < s->number_of_warmup_runs; i++)
+                auto node_dims = output_tensors_warm_up[idx].GetTypeInfo().GetTensorTypeAndShapeInfo().GetShape();
+                size_t tensor_size = 1;
+                for(int j = node_dims.size()-1; j >= 0; j--)
                 {
-                    output_tensors = session.Run(run_options, input_node_names.data(), &input_tensor, num_input_nodes, output_node_names.data(), num_output_nodes);
+                    tensor_size *= node_dims[j];
                 }
+                ONNXTensorElementDataType tensor_type  = output_tensors_warm_up[idx].GetTypeInfo().GetTensorTypeAndShapeInfo().GetElementType();               
+                if(tensor_type == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT)
+                {
+                    tensor_size *= sizeof(float);
+                }
+                else if(tensor_type == ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT8)
+                {
+                    tensor_size *= sizeof(uint8_t);
+                }
+                else if(tensor_type == ONNX_TENSOR_ELEMENT_DATA_TYPE_INT64)
+                {
+                    tensor_size *= sizeof(int64_t);
+                }                
+                else
+                {
+                    std::cout << "Un Supported output tensor_type\n";
+                    exit(0);
+                }   
+
+                void * outData = allocTensorMem(tensor_size, s->accel);
+                auto output_tensor = Ort::Value::CreateTensor(memory_info, (void *)outData, tensor_size, node_dims.data(), node_dims.size(),tensor_type);
+                output_tensors.push_back(std::move(output_tensor));
+                binding.BindOutput(output_node_names[idx], output_tensors[idx]);
             }
+
             struct timeval start_time, stop_time;
             gettimeofday(&start_time, nullptr);
             for (int i = 0; i < num_iter; i++)
             {
-                output_tensors = session.Run(run_options, input_node_names.data(), &input_tensor, num_input_nodes, output_node_names.data(), num_output_nodes);
+                session.Run(run_options, binding);
             }
             gettimeofday(&stop_time, nullptr);
-            assert(output_tensors.size() == 1 && output_tensors.front().IsTensor());
-#endif
             float avg_time = (getUs(stop_time) - getUs(start_time)) / (num_iter * 1000);
             LOG_INFO("invoked\n");
             LOG_INFO("average time: %lf ms \n",avg_time);
@@ -522,9 +551,17 @@ namespace onnx
                 if (RETURN_FAIL == prepSegResult(&img, &output_tensors, s, modelInfo->m_postProcCfg.alpha))
                     return RETURN_FAIL;
             }
-            /* frreing shared mem*/
-            TIDLRT_freeSharedMem(outData);
-            TIDLRT_freeSharedMem(inData);
+            /* freeing shared mem*/
+            for (size_t i = 0; i < output_tensors.size(); i++)
+            {
+                void *ptr = output_tensors[i].GetTensorMutableData<void>();
+                freeTensorMem(ptr, s->accel);
+            }
+            for (size_t i = 0; i < input_tensors.size(); i++)
+            {
+                void *ptr = input_tensors[i].GetTensorMutableData<void>();
+                freeTensorMem(ptr, s->accel);
+            }
 
             cv::cvtColor(img, img, cv::COLOR_RGB2BGR);
                string filename, foldername;

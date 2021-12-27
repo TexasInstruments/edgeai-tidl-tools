@@ -218,6 +218,13 @@ namespace tidl
                                             int32_t outDataWidth,
                                             int32_t outDataHeight,
                                             float alpha);
+        template uchar *blendSegMask<uint8_t>(uchar *frame,
+                                              uint8_t *classes,
+                                              int32_t inDataWidth,
+                                              int32_t inDataHeight,
+                                              int32_t outDataWidth,
+                                              int32_t outDataHeight,
+                                              float alpha);
 
         /**
          *  \brief Takes a file name, and loads a list of labels from it, one per line,
