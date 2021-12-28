@@ -207,108 +207,108 @@ def OperatorAddIntermediates(builder, intermediates): builder.PrependUOffsetTRel
 def OperatorStartIntermediatesVector(builder, numElems): return builder.StartVector(4, numElems, 4)
 def OperatorEnd(builder): return builder.EndObject()
 
-import tflite.AbsOptions
-import tflite.AddNOptions
-import tflite.AddOptions
-import tflite.ArgMaxOptions
-import tflite.ArgMinOptions
-import tflite.BatchMatMulOptions
-import tflite.BatchToSpaceNDOptions
-import tflite.BidirectionalSequenceLSTMOptions
-import tflite.BidirectionalSequenceRNNOptions
-import tflite.BuiltinOptions
-import tflite.CallOptions
-import tflite.CastOptions
-import tflite.ConcatEmbeddingsOptions
-import tflite.ConcatenationOptions
-import tflite.Conv2DOptions
-import tflite.CosOptions
-import tflite.DensifyOptions
-import tflite.DepthToSpaceOptions
-import tflite.DepthwiseConv2DOptions
-import tflite.DequantizeOptions
-import tflite.DivOptions
-import tflite.EmbeddingLookupSparseOptions
-import tflite.EqualOptions
-import tflite.ExpOptions
-import tflite.ExpandDimsOptions
-import tflite.FakeQuantOptions
-import tflite.FillOptions
-import tflite.FloorDivOptions
-import tflite.FloorModOptions
-import tflite.FullyConnectedOptions
-import tflite.GatherNdOptions
-import tflite.GatherOptions
-import tflite.GreaterEqualOptions
-import tflite.GreaterOptions
-import tflite.HardSwishOptions
-import tflite.IfOptions
-import tflite.L2NormOptions
-import tflite.LSHProjectionOptions
-import tflite.LSTMOptions
-import tflite.LeakyReluOptions
-import tflite.LessEqualOptions
-import tflite.LessOptions
-import tflite.LocalResponseNormalizationOptions
-import tflite.LogSoftmaxOptions
-import tflite.LogicalAndOptions
-import tflite.LogicalNotOptions
-import tflite.LogicalOrOptions
-import tflite.MatrixDiagOptions
-import tflite.MatrixSetDiagOptions
-import tflite.MaximumMinimumOptions
-import tflite.MirrorPadOptions
-import tflite.MulOptions
-import tflite.NegOptions
-import tflite.NonMaxSuppressionV4Options
-import tflite.NonMaxSuppressionV5Options
-import tflite.NotEqualOptions
-import tflite.OneHotOptions
-import tflite.PackOptions
-import tflite.PadOptions
-import tflite.PadV2Options
-import tflite.Pool2DOptions
-import tflite.PowOptions
-import tflite.QuantizeOptions
-import tflite.RNNOptions
-import tflite.RangeOptions
-import tflite.RankOptions
-import tflite.ReducerOptions
-import tflite.ReshapeOptions
-import tflite.ResizeBilinearOptions
-import tflite.ResizeNearestNeighborOptions
-import tflite.ReverseSequenceOptions
-import tflite.ReverseV2Options
-import tflite.SVDFOptions
-import tflite.ScatterNdOptions
-import tflite.SegmentSumOptions
-import tflite.SelectOptions
-import tflite.SelectV2Options
-import tflite.SequenceRNNOptions
-import tflite.ShapeOptions
-import tflite.SkipGramOptions
-import tflite.SliceOptions
-import tflite.SoftmaxOptions
-import tflite.SpaceToBatchNDOptions
-import tflite.SpaceToDepthOptions
-import tflite.SparseToDenseOptions
-import tflite.SplitOptions
-import tflite.SplitVOptions
-import tflite.SquareOptions
-import tflite.SquaredDifferenceOptions
-import tflite.SqueezeOptions
-import tflite.StridedSliceOptions
-import tflite.SubOptions
-import tflite.TileOptions
-import tflite.TopKV2Options
-import tflite.TransposeConvOptions
-import tflite.TransposeOptions
-import tflite.UnidirectionalSequenceLSTMOptions
-import tflite.UniqueOptions
-import tflite.UnpackOptions
-import tflite.WhereOptions
-import tflite.WhileOptions
-import tflite.ZerosLikeOptions
+import tflite_model.AbsOptions
+import tflite_model.AddNOptions
+import tflite_model.AddOptions
+import tflite_model.ArgMaxOptions
+import tflite_model.ArgMinOptions
+import tflite_model.BatchMatMulOptions
+import tflite_model.BatchToSpaceNDOptions
+import tflite_model.BidirectionalSequenceLSTMOptions
+import tflite_model.BidirectionalSequenceRNNOptions
+import tflite_model.BuiltinOptions
+import tflite_model.CallOptions
+import tflite_model.CastOptions
+import tflite_model.ConcatEmbeddingsOptions
+import tflite_model.ConcatenationOptions
+import tflite_model.Conv2DOptions
+import tflite_model.CosOptions
+import tflite_model.DensifyOptions
+import tflite_model.DepthToSpaceOptions
+import tflite_model.DepthwiseConv2DOptions
+import tflite_model.DequantizeOptions
+import tflite_model.DivOptions
+import tflite_model.EmbeddingLookupSparseOptions
+import tflite_model.EqualOptions
+import tflite_model.ExpOptions
+import tflite_model.ExpandDimsOptions
+import tflite_model.FakeQuantOptions
+import tflite_model.FillOptions
+import tflite_model.FloorDivOptions
+import tflite_model.FloorModOptions
+import tflite_model.FullyConnectedOptions
+import tflite_model.GatherNdOptions
+import tflite_model.GatherOptions
+import tflite_model.GreaterEqualOptions
+import tflite_model.GreaterOptions
+import tflite_model.HardSwishOptions
+import tflite_model.IfOptions
+import tflite_model.L2NormOptions
+import tflite_model.LSHProjectionOptions
+import tflite_model.LSTMOptions
+import tflite_model.LeakyReluOptions
+import tflite_model.LessEqualOptions
+import tflite_model.LessOptions
+import tflite_model.LocalResponseNormalizationOptions
+import tflite_model.LogSoftmaxOptions
+import tflite_model.LogicalAndOptions
+import tflite_model.LogicalNotOptions
+import tflite_model.LogicalOrOptions
+import tflite_model.MatrixDiagOptions
+import tflite_model.MatrixSetDiagOptions
+import tflite_model.MaximumMinimumOptions
+import tflite_model.MirrorPadOptions
+import tflite_model.MulOptions
+import tflite_model.NegOptions
+import tflite_model.NonMaxSuppressionV4Options
+import tflite_model.NonMaxSuppressionV5Options
+import tflite_model.NotEqualOptions
+import tflite_model.OneHotOptions
+import tflite_model.PackOptions
+import tflite_model.PadOptions
+import tflite_model.PadV2Options
+import tflite_model.Pool2DOptions
+import tflite_model.PowOptions
+import tflite_model.QuantizeOptions
+import tflite_model.RNNOptions
+import tflite_model.RangeOptions
+import tflite_model.RankOptions
+import tflite_model.ReducerOptions
+import tflite_model.ReshapeOptions
+import tflite_model.ResizeBilinearOptions
+import tflite_model.ResizeNearestNeighborOptions
+import tflite_model.ReverseSequenceOptions
+import tflite_model.ReverseV2Options
+import tflite_model.SVDFOptions
+import tflite_model.ScatterNdOptions
+import tflite_model.SegmentSumOptions
+import tflite_model.SelectOptions
+import tflite_model.SelectV2Options
+import tflite_model.SequenceRNNOptions
+import tflite_model.ShapeOptions
+import tflite_model.SkipGramOptions
+import tflite_model.SliceOptions
+import tflite_model.SoftmaxOptions
+import tflite_model.SpaceToBatchNDOptions
+import tflite_model.SpaceToDepthOptions
+import tflite_model.SparseToDenseOptions
+import tflite_model.SplitOptions
+import tflite_model.SplitVOptions
+import tflite_model.SquareOptions
+import tflite_model.SquaredDifferenceOptions
+import tflite_model.SqueezeOptions
+import tflite_model.StridedSliceOptions
+import tflite_model.SubOptions
+import tflite_model.TileOptions
+import tflite_model.TopKV2Options
+import tflite_model.TransposeConvOptions
+import tflite_model.TransposeOptions
+import tflite_model.UnidirectionalSequenceLSTMOptions
+import tflite_model.UniqueOptions
+import tflite_model.UnpackOptions
+import tflite_model.WhereOptions
+import tflite_model.WhileOptions
+import tflite_model.ZerosLikeOptions
 try:
     from typing import List, Union
 except:
@@ -322,7 +322,7 @@ class OperatorT(object):
         self.inputs = None  # type: List[int]
         self.outputs = None  # type: List[int]
         self.builtinOptionsType = 0  # type: int
-        self.builtinOptions = None  # type: Union[None, tflite.Conv2DOptions.Conv2DOptionsT, tflite.DepthwiseConv2DOptions.DepthwiseConv2DOptionsT, tflite.ConcatEmbeddingsOptions.ConcatEmbeddingsOptionsT, tflite.LSHProjectionOptions.LSHProjectionOptionsT, tflite.Pool2DOptions.Pool2DOptionsT, tflite.SVDFOptions.SVDFOptionsT, tflite.RNNOptions.RNNOptionsT, tflite.FullyConnectedOptions.FullyConnectedOptionsT, tflite.SoftmaxOptions.SoftmaxOptionsT, tflite.ConcatenationOptions.ConcatenationOptionsT, tflite.AddOptions.AddOptionsT, tflite.L2NormOptions.L2NormOptionsT, tflite.LocalResponseNormalizationOptions.LocalResponseNormalizationOptionsT, tflite.LSTMOptions.LSTMOptionsT, tflite.ResizeBilinearOptions.ResizeBilinearOptionsT, tflite.CallOptions.CallOptionsT, tflite.ReshapeOptions.ReshapeOptionsT, tflite.SkipGramOptions.SkipGramOptionsT, tflite.SpaceToDepthOptions.SpaceToDepthOptionsT, tflite.EmbeddingLookupSparseOptions.EmbeddingLookupSparseOptionsT, tflite.MulOptions.MulOptionsT, tflite.PadOptions.PadOptionsT, tflite.GatherOptions.GatherOptionsT, tflite.BatchToSpaceNDOptions.BatchToSpaceNDOptionsT, tflite.SpaceToBatchNDOptions.SpaceToBatchNDOptionsT, tflite.TransposeOptions.TransposeOptionsT, tflite.ReducerOptions.ReducerOptionsT, tflite.SubOptions.SubOptionsT, tflite.DivOptions.DivOptionsT, tflite.SqueezeOptions.SqueezeOptionsT, tflite.SequenceRNNOptions.SequenceRNNOptionsT, tflite.StridedSliceOptions.StridedSliceOptionsT, tflite.ExpOptions.ExpOptionsT, tflite.TopKV2Options.TopKV2OptionsT, tflite.SplitOptions.SplitOptionsT, tflite.LogSoftmaxOptions.LogSoftmaxOptionsT, tflite.CastOptions.CastOptionsT, tflite.DequantizeOptions.DequantizeOptionsT, tflite.MaximumMinimumOptions.MaximumMinimumOptionsT, tflite.ArgMaxOptions.ArgMaxOptionsT, tflite.LessOptions.LessOptionsT, tflite.NegOptions.NegOptionsT, tflite.PadV2Options.PadV2OptionsT, tflite.GreaterOptions.GreaterOptionsT, tflite.GreaterEqualOptions.GreaterEqualOptionsT, tflite.LessEqualOptions.LessEqualOptionsT, tflite.SelectOptions.SelectOptionsT, tflite.SliceOptions.SliceOptionsT, tflite.TransposeConvOptions.TransposeConvOptionsT, tflite.SparseToDenseOptions.SparseToDenseOptionsT, tflite.TileOptions.TileOptionsT, tflite.ExpandDimsOptions.ExpandDimsOptionsT, tflite.EqualOptions.EqualOptionsT, tflite.NotEqualOptions.NotEqualOptionsT, tflite.ShapeOptions.ShapeOptionsT, tflite.PowOptions.PowOptionsT, tflite.ArgMinOptions.ArgMinOptionsT, tflite.FakeQuantOptions.FakeQuantOptionsT, tflite.PackOptions.PackOptionsT, tflite.LogicalOrOptions.LogicalOrOptionsT, tflite.OneHotOptions.OneHotOptionsT, tflite.LogicalAndOptions.LogicalAndOptionsT, tflite.LogicalNotOptions.LogicalNotOptionsT, tflite.UnpackOptions.UnpackOptionsT, tflite.FloorDivOptions.FloorDivOptionsT, tflite.SquareOptions.SquareOptionsT, tflite.ZerosLikeOptions.ZerosLikeOptionsT, tflite.FillOptions.FillOptionsT, tflite.BidirectionalSequenceLSTMOptions.BidirectionalSequenceLSTMOptionsT, tflite.BidirectionalSequenceRNNOptions.BidirectionalSequenceRNNOptionsT, tflite.UnidirectionalSequenceLSTMOptions.UnidirectionalSequenceLSTMOptionsT, tflite.FloorModOptions.FloorModOptionsT, tflite.RangeOptions.RangeOptionsT, tflite.ResizeNearestNeighborOptions.ResizeNearestNeighborOptionsT, tflite.LeakyReluOptions.LeakyReluOptionsT, tflite.SquaredDifferenceOptions.SquaredDifferenceOptionsT, tflite.MirrorPadOptions.MirrorPadOptionsT, tflite.AbsOptions.AbsOptionsT, tflite.SplitVOptions.SplitVOptionsT, tflite.UniqueOptions.UniqueOptionsT, tflite.ReverseV2Options.ReverseV2OptionsT, tflite.AddNOptions.AddNOptionsT, tflite.GatherNdOptions.GatherNdOptionsT, tflite.CosOptions.CosOptionsT, tflite.WhereOptions.WhereOptionsT, tflite.RankOptions.RankOptionsT, tflite.ReverseSequenceOptions.ReverseSequenceOptionsT, tflite.MatrixDiagOptions.MatrixDiagOptionsT, tflite.QuantizeOptions.QuantizeOptionsT, tflite.MatrixSetDiagOptions.MatrixSetDiagOptionsT, tflite.HardSwishOptions.HardSwishOptionsT, tflite.IfOptions.IfOptionsT, tflite.WhileOptions.WhileOptionsT, tflite.DepthToSpaceOptions.DepthToSpaceOptionsT, tflite.NonMaxSuppressionV4Options.NonMaxSuppressionV4OptionsT, tflite.NonMaxSuppressionV5Options.NonMaxSuppressionV5OptionsT, tflite.ScatterNdOptions.ScatterNdOptionsT, tflite.SelectV2Options.SelectV2OptionsT, tflite.DensifyOptions.DensifyOptionsT, tflite.SegmentSumOptions.SegmentSumOptionsT, tflite.BatchMatMulOptions.BatchMatMulOptionsT]
+        self.builtinOptions = None  # type: Union[None, tflite_model.Conv2DOptions.Conv2DOptionsT, tflite_model.DepthwiseConv2DOptions.DepthwiseConv2DOptionsT, tflite_model.ConcatEmbeddingsOptions.ConcatEmbeddingsOptionsT, tflite_model.LSHProjectionOptions.LSHProjectionOptionsT, tflite_model.Pool2DOptions.Pool2DOptionsT, tflite_model.SVDFOptions.SVDFOptionsT, tflite_model.RNNOptions.RNNOptionsT, tflite_model.FullyConnectedOptions.FullyConnectedOptionsT, tflite_model.SoftmaxOptions.SoftmaxOptionsT, tflite_model.ConcatenationOptions.ConcatenationOptionsT, tflite_model.AddOptions.AddOptionsT, tflite_model.L2NormOptions.L2NormOptionsT, tflite_model.LocalResponseNormalizationOptions.LocalResponseNormalizationOptionsT, tflite_model.LSTMOptions.LSTMOptionsT, tflite_model.ResizeBilinearOptions.ResizeBilinearOptionsT, tflite_model.CallOptions.CallOptionsT, tflite_model.ReshapeOptions.ReshapeOptionsT, tflite_model.SkipGramOptions.SkipGramOptionsT, tflite_model.SpaceToDepthOptions.SpaceToDepthOptionsT, tflite_model.EmbeddingLookupSparseOptions.EmbeddingLookupSparseOptionsT, tflite_model.MulOptions.MulOptionsT, tflite_model.PadOptions.PadOptionsT, tflite_model.GatherOptions.GatherOptionsT, tflite_model.BatchToSpaceNDOptions.BatchToSpaceNDOptionsT, tflite_model.SpaceToBatchNDOptions.SpaceToBatchNDOptionsT, tflite_model.TransposeOptions.TransposeOptionsT, tflite_model.ReducerOptions.ReducerOptionsT, tflite_model.SubOptions.SubOptionsT, tflite_model.DivOptions.DivOptionsT, tflite_model.SqueezeOptions.SqueezeOptionsT, tflite_model.SequenceRNNOptions.SequenceRNNOptionsT, tflite_model.StridedSliceOptions.StridedSliceOptionsT, tflite_model.ExpOptions.ExpOptionsT, tflite_model.TopKV2Options.TopKV2OptionsT, tflite_model.SplitOptions.SplitOptionsT, tflite_model.LogSoftmaxOptions.LogSoftmaxOptionsT, tflite_model.CastOptions.CastOptionsT, tflite_model.DequantizeOptions.DequantizeOptionsT, tflite_model.MaximumMinimumOptions.MaximumMinimumOptionsT, tflite_model.ArgMaxOptions.ArgMaxOptionsT, tflite_model.LessOptions.LessOptionsT, tflite_model.NegOptions.NegOptionsT, tflite_model.PadV2Options.PadV2OptionsT, tflite_model.GreaterOptions.GreaterOptionsT, tflite_model.GreaterEqualOptions.GreaterEqualOptionsT, tflite_model.LessEqualOptions.LessEqualOptionsT, tflite_model.SelectOptions.SelectOptionsT, tflite_model.SliceOptions.SliceOptionsT, tflite_model.TransposeConvOptions.TransposeConvOptionsT, tflite_model.SparseToDenseOptions.SparseToDenseOptionsT, tflite_model.TileOptions.TileOptionsT, tflite_model.ExpandDimsOptions.ExpandDimsOptionsT, tflite_model.EqualOptions.EqualOptionsT, tflite_model.NotEqualOptions.NotEqualOptionsT, tflite_model.ShapeOptions.ShapeOptionsT, tflite_model.PowOptions.PowOptionsT, tflite_model.ArgMinOptions.ArgMinOptionsT, tflite_model.FakeQuantOptions.FakeQuantOptionsT, tflite_model.PackOptions.PackOptionsT, tflite_model.LogicalOrOptions.LogicalOrOptionsT, tflite_model.OneHotOptions.OneHotOptionsT, tflite_model.LogicalAndOptions.LogicalAndOptionsT, tflite_model.LogicalNotOptions.LogicalNotOptionsT, tflite_model.UnpackOptions.UnpackOptionsT, tflite_model.FloorDivOptions.FloorDivOptionsT, tflite_model.SquareOptions.SquareOptionsT, tflite_model.ZerosLikeOptions.ZerosLikeOptionsT, tflite_model.FillOptions.FillOptionsT, tflite_model.BidirectionalSequenceLSTMOptions.BidirectionalSequenceLSTMOptionsT, tflite_model.BidirectionalSequenceRNNOptions.BidirectionalSequenceRNNOptionsT, tflite_model.UnidirectionalSequenceLSTMOptions.UnidirectionalSequenceLSTMOptionsT, tflite_model.FloorModOptions.FloorModOptionsT, tflite_model.RangeOptions.RangeOptionsT, tflite_model.ResizeNearestNeighborOptions.ResizeNearestNeighborOptionsT, tflite_model.LeakyReluOptions.LeakyReluOptionsT, tflite_model.SquaredDifferenceOptions.SquaredDifferenceOptionsT, tflite_model.MirrorPadOptions.MirrorPadOptionsT, tflite_model.AbsOptions.AbsOptionsT, tflite_model.SplitVOptions.SplitVOptionsT, tflite_model.UniqueOptions.UniqueOptionsT, tflite_model.ReverseV2Options.ReverseV2OptionsT, tflite_model.AddNOptions.AddNOptionsT, tflite_model.GatherNdOptions.GatherNdOptionsT, tflite_model.CosOptions.CosOptionsT, tflite_model.WhereOptions.WhereOptionsT, tflite_model.RankOptions.RankOptionsT, tflite_model.ReverseSequenceOptions.ReverseSequenceOptionsT, tflite_model.MatrixDiagOptions.MatrixDiagOptionsT, tflite_model.QuantizeOptions.QuantizeOptionsT, tflite_model.MatrixSetDiagOptions.MatrixSetDiagOptionsT, tflite_model.HardSwishOptions.HardSwishOptionsT, tflite_model.IfOptions.IfOptionsT, tflite_model.WhileOptions.WhileOptionsT, tflite_model.DepthToSpaceOptions.DepthToSpaceOptionsT, tflite_model.NonMaxSuppressionV4Options.NonMaxSuppressionV4OptionsT, tflite_model.NonMaxSuppressionV5Options.NonMaxSuppressionV5OptionsT, tflite_model.ScatterNdOptions.ScatterNdOptionsT, tflite_model.SelectV2Options.SelectV2OptionsT, tflite_model.DensifyOptions.DensifyOptionsT, tflite_model.SegmentSumOptions.SegmentSumOptionsT, tflite_model.BatchMatMulOptions.BatchMatMulOptionsT]
         self.customOptions = None  # type: List[int]
         self.customOptionsFormat = 0  # type: int
         self.mutatingVariableInputs = None  # type: List[bool]
@@ -360,7 +360,7 @@ class OperatorT(object):
             else:
                 self.outputs = operator.OutputsAsNumpy()
         self.builtinOptionsType = operator.BuiltinOptionsType()
-        self.builtinOptions = tflite.BuiltinOptions.BuiltinOptionsCreator(self.builtinOptionsType, operator.BuiltinOptions())
+        self.builtinOptions = tflite_model.BuiltinOptions.BuiltinOptionsCreator(self.builtinOptionsType, operator.BuiltinOptions())
         if not operator.CustomOptionsIsNone():
             if np is None:
                 self.customOptions = []

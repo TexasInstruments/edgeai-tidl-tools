@@ -1,15 +1,29 @@
 import onnxruntime as rt
 import time
 import os
+import sys
 import numpy as np
 import PIL
 from PIL import Image, ImageFont, ImageDraw, ImageEnhance
-from utils import *
 import argparse
 import re
 import multiprocessing
 import platform
 #import onnx
+# directory reach
+current = os.path.dirname(os.path.realpath(__file__))
+parent = os.path.dirname(current)
+# setting path
+sys.path.append(parent)
+from common_utils import *
+
+artifacts_folder = '../../../model-artifacts/ort/'
+output_images_folder = '../../../output_images/ort-py/'
+
+required_options = {
+"tidl_tools_path":tidl_tools_path,
+"artifacts_folder":artifacts_folder
+}
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-c','--compile', action='store_true', help='Run in Model compilation mode')
@@ -74,6 +88,9 @@ def infer_image(sess, image_file, config):
     input_data = np.float32(input_data)
     for mean, scale, ch in zip(config['mean'], config['std'], range(input_data.shape[1])):
         input_data[:,ch,:,:] = ((input_data[:,ch,:,:]- mean) * scale)
+  else:
+    config['mean'] = [0, 0, 0]
+    config['std']  = [1, 1, 1]
   
   start_time = time.time()
   output = list(sess.run(None, {input_name: input_data}))
@@ -89,6 +106,8 @@ def infer_image(sess, image_file, config):
 
 def run_model(model, mIdx):
     print("\nRunning_Model : ", model, " \n")
+    if platform.machine() != 'aarch64':
+        download_model(models_configs, model)
     config = models_configs[model]
 
     #onnx shape inference
@@ -164,7 +183,7 @@ def run_model(model, mIdx):
             classes, image = get_class_labels(output[0],img)
             print("\n", classes)
         elif config['model_type'] == 'od':
-            classes, image = det_box_overlay(output, img, args.disable_offload, config['od_type'], config['framework'])
+            classes, image = det_box_overlay(output, img, config['od_type'], config['framework'])
         elif config['model_type'] == 'seg':
             classes, image = seg_mask_overlay(output[0], img)
         else:
@@ -174,7 +193,7 @@ def run_model(model, mIdx):
         if not os.path.exists(output_images_folder):
             os.makedirs(output_images_folder)
         image.save(output_images_folder + output_file_name, "JPEG") 
-    gen_param_yaml(delegate_options, config, int(height), int(width))
+    gen_param_yaml(delegate_options['artifacts_folder'], config, int(height), int(width))
     log = f'\n \nCompleted_Model : {mIdx+1:5d}, Name : {model:50s}, Total time : {total_proc_time/(i+1):10.1f}, Offload Time : {sub_graphs_time/(i+1):10.1f} , DDR RW MBs : 0, Output File : {output_file_name} \n \n ' #{classes} \n \n'
     print(log) 
     if ncpus > 1:
@@ -184,9 +203,6 @@ def run_model(model, mIdx):
 #models = models_configs.keys()
 
 models = ['cl-ort-resnet18-v1', 'ss-ort-deeplabv3lite_mobilenetv2', 'od-ort-ssd-lite_mobilenetv2_fpn']
-if platform.machine() != 'aarch64':
-    download_models()
-
 log = f'\nRunning {len(models)} Models - {models}\n'
 print(log)
 

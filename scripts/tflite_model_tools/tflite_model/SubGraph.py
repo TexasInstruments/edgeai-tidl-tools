@@ -31,7 +31,7 @@ class SubGraph(object):
             x = self._tab.Vector(o)
             x += flatbuffers.number_types.UOffsetTFlags.py_type(j) * 4
             x = self._tab.Indirect(x)
-            from tflite.Tensor import Tensor
+            from tflite_model.Tensor import Tensor
             obj = Tensor()
             obj.Init(self._tab.Bytes, x)
             return obj
@@ -110,7 +110,7 @@ class SubGraph(object):
             x = self._tab.Vector(o)
             x += flatbuffers.number_types.UOffsetTFlags.py_type(j) * 4
             x = self._tab.Indirect(x)
-            from tflite.Operator import Operator
+            from tflite_model.Operator import Operator
             obj = Operator()
             obj.Init(self._tab.Bytes, x)
             return obj
@@ -147,8 +147,8 @@ def SubGraphStartOperatorsVector(builder, numElems): return builder.StartVector(
 def SubGraphAddName(builder, name): builder.PrependUOffsetTRelativeSlot(4, flatbuffers.number_types.UOffsetTFlags.py_type(name), 0)
 def SubGraphEnd(builder): return builder.EndObject()
 
-import tflite.Operator
-import tflite.Tensor
+import tflite_model.Operator
+import tflite_model.Tensor
 try:
     from typing import List
 except:
@@ -158,10 +158,10 @@ class SubGraphT(object):
 
     # SubGraphT
     def __init__(self):
-        self.tensors = None  # type: List[tflite.Tensor.TensorT]
+        self.tensors = None  # type: List[tflite_model.Tensor.TensorT]
         self.inputs = None  # type: List[int]
         self.outputs = None  # type: List[int]
-        self.operators = None  # type: List[tflite.Operator.OperatorT]
+        self.operators = None  # type: List[tflite_model.Operator.OperatorT]
         self.name = None  # type: str
 
     @classmethod
@@ -186,7 +186,7 @@ class SubGraphT(object):
                 if subGraph.Tensors(i) is None:
                     self.tensors.append(None)
                 else:
-                    tensor_ = tflite.Tensor.TensorT.InitFromObj(subGraph.Tensors(i))
+                    tensor_ = tflite_model.Tensor.TensorT.InitFromObj(subGraph.Tensors(i))
                     self.tensors.append(tensor_)
         if not subGraph.InputsIsNone():
             if np is None:
@@ -208,7 +208,7 @@ class SubGraphT(object):
                 if subGraph.Operators(i) is None:
                     self.operators.append(None)
                 else:
-                    operator_ = tflite.Operator.OperatorT.InitFromObj(subGraph.Operators(i))
+                    operator_ = tflite_model.Operator.OperatorT.InitFromObj(subGraph.Operators(i))
                     self.operators.append(operator_)
         self.name = subGraph.Name()
 

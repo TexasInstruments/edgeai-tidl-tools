@@ -1,6 +1,12 @@
 import os
+import sys
 import argparse
-from utils import *
+# directory reach
+current = os.path.dirname(os.path.realpath(__file__))
+parent = os.path.dirname(current)
+# setting path
+sys.path.append(parent)
+from common_utils import *
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--no-offload', dest='offload', action='store_false', help='do not offload to TIDL')
@@ -10,20 +16,16 @@ parser.add_argument('--pc-inference', dest='device', action='store_false', help=
 parser.add_argument('--num_calib_images', dest='calib_iters', default=4, type=int, help='number of images to use for calibration')
 args = parser.parse_args()
 
-models = {
-    'inception_v3.tflite' : {'url':'https://tfhub.dev/tensorflow/lite-model/inception_v3/1/default/1?lite-format=tflite', 'dir':'../../../models/public/tflite/'},
-}
-
-models_base_path = '../../../models/public/tflite/'
-download_models(models_base_path, models)
+model_id = 'tflite_inceptionnetv3'
+download_model(models_configs, model_id)
 
 # model specifics
-model_path = os.path.join(models_base_path, 'inception_v3.tflite')
+model_path = models_configs[model_id]['model_path']
 model_input_name = 'input'
 model_input_shape = (1, 299, 299, 3)
 model_input_dtype = 'float32'
 model_layout = 'NHWC'
-model_output_directory = '../../../model-artifacts/dlr/tflite_inceptionnetv3'
+model_output_directory = '../../../model-artifacts/dlr/'+model_id
 
 # TIDL compiler specifics
 # We are compiling the model for J7 device using
@@ -91,10 +93,13 @@ def preprocess_for_tflite_inceptionnetv3(image_path):
             'mean': [123.675, 116.28, 103.53],
             'std' :[0.017125, 0.017507, 0.017429],
             'data_layout': 'NHWC',
-            'resize' : [256, 256],
+            'resize' : [299, 299],
             'crop' : [299, 299],
-            'model_type': 'classification'}
-    gen_param_yaml(model_output_directory, config, new_height, new_width)
+            'model_type': 'classification',
+            'model_path': model_path,
+            'session_name' : models_configs[model_id]['session_name']}
+   
+    gen_param_yaml(model_output_directory, config, 299, 299)
     return img
 
 # create the directory if not present

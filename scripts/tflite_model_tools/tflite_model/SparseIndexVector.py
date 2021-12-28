@@ -14,12 +14,12 @@ def SparseIndexVectorCreator(unionType, table):
     if not isinstance(table, Table):
         return None
     if unionType == SparseIndexVector().Int32Vector:
-        import tflite.Int32Vector
-        return tflite.Int32Vector.Int32VectorT.InitFromBuf(table.Bytes, table.Pos)
+        import tflite_model.Int32Vector
+        return tflite_model.Int32Vector.Int32VectorT.InitFromBuf(table.Bytes, table.Pos)
     if unionType == SparseIndexVector().Uint16Vector:
-        import tflite.Uint16Vector
-        return tflite.Uint16Vector.Uint16VectorT.InitFromBuf(table.Bytes, table.Pos)
+        import tflite_model.Uint16Vector
+        return tflite_model.Uint16Vector.Uint16VectorT.InitFromBuf(table.Bytes, table.Pos)
     if unionType == SparseIndexVector().Uint8Vector:
-        import tflite.Uint8Vector
-        return tflite.Uint8Vector.Uint8VectorT.InitFromBuf(table.Bytes, table.Pos)
+        import tflite_model.Uint8Vector
+        return tflite_model.Uint8Vector.Uint8VectorT.InitFromBuf(table.Bytes, table.Pos)
     return None

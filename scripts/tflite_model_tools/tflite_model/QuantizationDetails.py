@@ -12,6 +12,6 @@ def QuantizationDetailsCreator(unionType, table):
     if not isinstance(table, Table):
         return None
     if unionType == QuantizationDetails().CustomQuantization:
-        import tflite.CustomQuantization
-        return tflite.CustomQuantization.CustomQuantizationT.InitFromBuf(table.Bytes, table.Pos)
+        import tflite_model.CustomQuantization
+        return tflite_model.CustomQuantization.CustomQuantizationT.InitFromBuf(table.Bytes, table.Pos)
     return None

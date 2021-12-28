@@ -77,7 +77,7 @@ class Tensor(object):
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(12))
         if o != 0:
             x = self._tab.Indirect(o + self._tab.Pos)
-            from tflite.QuantizationParameters import QuantizationParameters
+            from tflite_model.QuantizationParameters import QuantizationParameters
             obj = QuantizationParameters()
             obj.Init(self._tab.Bytes, x)
             return obj
@@ -95,7 +95,7 @@ class Tensor(object):
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(16))
         if o != 0:
             x = self._tab.Indirect(o + self._tab.Pos)
-            from tflite.SparsityParameters import SparsityParameters
+            from tflite_model.SparsityParameters import SparsityParameters
             obj = SparsityParameters()
             obj.Init(self._tab.Bytes, x)
             return obj
@@ -141,8 +141,8 @@ def TensorAddShapeSignature(builder, shapeSignature): builder.PrependUOffsetTRel
 def TensorStartShapeSignatureVector(builder, numElems): return builder.StartVector(4, numElems, 4)
 def TensorEnd(builder): return builder.EndObject()
 
-import tflite.QuantizationParameters
-import tflite.SparsityParameters
+import tflite_model.QuantizationParameters
+import tflite_model.SparsityParameters
 try:
     from typing import List, Optional
 except:
@@ -156,9 +156,9 @@ class TensorT(object):
         self.type = 0  # type: int
         self.buffer = 0  # type: int
         self.name = None  # type: str
-        self.quantization = None  # type: Optional[tflite.QuantizationParameters.QuantizationParametersT]
+        self.quantization = None  # type: Optional[tflite_model.QuantizationParameters.QuantizationParametersT]
         self.isVariable = False  # type: bool
-        self.sparsity = None  # type: Optional[tflite.SparsityParameters.SparsityParametersT]
+        self.sparsity = None  # type: Optional[tflite_model.SparsityParameters.SparsityParametersT]
         self.shapeSignature = None  # type: List[int]
 
     @classmethod
@@ -188,10 +188,10 @@ class TensorT(object):
         self.buffer = tensor.Buffer()
         self.name = tensor.Name()
         if tensor.Quantization() is not None:
-            self.quantization = tflite.QuantizationParameters.QuantizationParametersT.InitFromObj(tensor.Quantization())
+            self.quantization = tflite_model.QuantizationParameters.QuantizationParametersT.InitFromObj(tensor.Quantization())
         self.isVariable = tensor.IsVariable()
         if tensor.Sparsity() is not None:
-            self.sparsity = tflite.SparsityParameters.SparsityParametersT.InitFromObj(tensor.Sparsity())
+            self.sparsity = tflite_model.SparsityParameters.SparsityParametersT.InitFromObj(tensor.Sparsity())
         if not tensor.ShapeSignatureIsNone():
             if np is None:
                 self.shapeSignature = []

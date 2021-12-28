@@ -90,6 +90,11 @@ namespace tflite
         int32_t *outputTensor = (*interpreter)->tensor((*outputs)[0])->data.i32;
         (*img).data = blendSegMask<int32_t>((*img).data, outputTensor, (*img).cols, (*img).rows, wanted_width, wanted_height, alpha);
       }
+      else if (type == TfLiteType::kTfLiteUInt8)
+      {
+        uint8_t *outputTensor = (*interpreter)->tensor((*outputs)[0])->data.uint8;
+        (*img).data = blendSegMask<uint8_t>((*img).data, outputTensor, (*img).cols, (*img).rows, wanted_width, wanted_height, alpha);
+      }
       else if (type == TfLiteType::kTfLiteInt64)
       {
         int64_t *outputTensor = (*interpreter)->tensor((*outputs)[0])->data.i64;
@@ -102,7 +107,7 @@ namespace tflite
       }
       else
       {
-        LOG_ERROR("op tensor tyrp not supprted\n");
+        LOG_ERROR("op tensor type not supprted\n");
         return RETURN_FAIL;
       }
       return RETURN_SUCCESS;

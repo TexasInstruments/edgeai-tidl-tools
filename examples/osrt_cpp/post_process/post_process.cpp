@@ -285,7 +285,6 @@ namespace tidl
         uchar *overlayTopNClasses(uchar *frame,
                                   std::vector<std::pair<float, int>> &top_results,
                                   std::vector<string> *labels,
-                                  int32_t outputoffset,
                                   int32_t outDataWidth,
                                   int32_t outDataHeight,
                                   int32_t N,

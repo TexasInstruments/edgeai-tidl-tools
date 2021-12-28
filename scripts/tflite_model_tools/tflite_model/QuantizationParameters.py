@@ -170,8 +170,8 @@ def QuantizationParametersAddDetails(builder, details): builder.PrependUOffsetTR
 def QuantizationParametersAddQuantizedDimension(builder, quantizedDimension): builder.PrependInt32Slot(6, quantizedDimension, 0)
 def QuantizationParametersEnd(builder): return builder.EndObject()
 
-import tflite.CustomQuantization
-import tflite.QuantizationDetails
+import tflite_model.CustomQuantization
+import tflite_model.QuantizationDetails
 try:
     from typing import List, Union
 except:
@@ -186,7 +186,7 @@ class QuantizationParametersT(object):
         self.scale = None  # type: List[float]
         self.zeroPoint = None  # type: List[int]
         self.detailsType = 0  # type: int
-        self.details = None  # type: Union[None, tflite.CustomQuantization.CustomQuantizationT]
+        self.details = None  # type: Union[None, tflite_model.CustomQuantization.CustomQuantizationT]
         self.quantizedDimension = 0  # type: int
 
     @classmethod
@@ -234,7 +234,7 @@ class QuantizationParametersT(object):
             else:
                 self.zeroPoint = quantizationParameters.ZeroPointAsNumpy()
         self.detailsType = quantizationParameters.DetailsType()
-        self.details = tflite.QuantizationDetails.QuantizationDetailsCreator(self.detailsType, quantizationParameters.Details())
+        self.details = tflite_model.QuantizationDetails.QuantizationDetailsCreator(self.detailsType, quantizationParameters.Details())
         self.quantizedDimension = quantizationParameters.QuantizedDimension()
 
     # QuantizationParametersT

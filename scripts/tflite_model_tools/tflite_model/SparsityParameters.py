@@ -85,7 +85,7 @@ class SparsityParameters(object):
             x = self._tab.Vector(o)
             x += flatbuffers.number_types.UOffsetTFlags.py_type(j) * 4
             x = self._tab.Indirect(x)
-            from tflite.DimensionMetadata import DimensionMetadata
+            from tflite_model.DimensionMetadata import DimensionMetadata
             obj = DimensionMetadata()
             obj.Init(self._tab.Bytes, x)
             return obj
@@ -112,7 +112,7 @@ def SparsityParametersAddDimMetadata(builder, dimMetadata): builder.PrependUOffs
 def SparsityParametersStartDimMetadataVector(builder, numElems): return builder.StartVector(4, numElems, 4)
 def SparsityParametersEnd(builder): return builder.EndObject()
 
-import tflite.DimensionMetadata
+import tflite_model.DimensionMetadata
 try:
     from typing import List
 except:
@@ -124,7 +124,7 @@ class SparsityParametersT(object):
     def __init__(self):
         self.traversalOrder = None  # type: List[int]
         self.blockMap = None  # type: List[int]
-        self.dimMetadata = None  # type: List[tflite.DimensionMetadata.DimensionMetadataT]
+        self.dimMetadata = None  # type: List[tflite_model.DimensionMetadata.DimensionMetadataT]
 
     @classmethod
     def InitFromBuf(cls, buf, pos):
@@ -162,7 +162,7 @@ class SparsityParametersT(object):
                 if sparsityParameters.DimMetadata(i) is None:
                     self.dimMetadata.append(None)
                 else:
-                    dimensionMetadata_ = tflite.DimensionMetadata.DimensionMetadataT.InitFromObj(sparsityParameters.DimMetadata(i))
+                    dimensionMetadata_ = tflite_model.DimensionMetadata.DimensionMetadataT.InitFromObj(sparsityParameters.DimMetadata(i))
                     self.dimMetadata.append(dimensionMetadata_)
 
     # SparsityParametersT

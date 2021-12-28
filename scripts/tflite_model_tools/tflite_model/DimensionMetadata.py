@@ -81,10 +81,10 @@ def DimensionMetadataAddArrayIndicesType(builder, arrayIndicesType): builder.Pre
 def DimensionMetadataAddArrayIndices(builder, arrayIndices): builder.PrependUOffsetTRelativeSlot(5, flatbuffers.number_types.UOffsetTFlags.py_type(arrayIndices), 0)
 def DimensionMetadataEnd(builder): return builder.EndObject()
 
-import tflite.Int32Vector
-import tflite.SparseIndexVector
-import tflite.Uint16Vector
-import tflite.Uint8Vector
+import tflite_model.Int32Vector
+import tflite_model.SparseIndexVector
+import tflite_model.Uint16Vector
+import tflite_model.Uint8Vector
 try:
     from typing import Union
 except:
@@ -97,9 +97,9 @@ class DimensionMetadataT(object):
         self.format = 0  # type: int
         self.denseSize = 0  # type: int
         self.arraySegmentsType = 0  # type: int
-        self.arraySegments = None  # type: Union[None, tflite.Int32Vector.Int32VectorT, tflite.Uint16Vector.Uint16VectorT, tflite.Uint8Vector.Uint8VectorT]
+        self.arraySegments = None  # type: Union[None, tflite_model.Int32Vector.Int32VectorT, tflite_model.Uint16Vector.Uint16VectorT, tflite_model.Uint8Vector.Uint8VectorT]
         self.arrayIndicesType = 0  # type: int
-        self.arrayIndices = None  # type: Union[None, tflite.Int32Vector.Int32VectorT, tflite.Uint16Vector.Uint16VectorT, tflite.Uint8Vector.Uint8VectorT]
+        self.arrayIndices = None  # type: Union[None, tflite_model.Int32Vector.Int32VectorT, tflite_model.Uint16Vector.Uint16VectorT, tflite_model.Uint8Vector.Uint8VectorT]
 
     @classmethod
     def InitFromBuf(cls, buf, pos):
@@ -120,9 +120,9 @@ class DimensionMetadataT(object):
         self.format = dimensionMetadata.Format()
         self.denseSize = dimensionMetadata.DenseSize()
         self.arraySegmentsType = dimensionMetadata.ArraySegmentsType()
-        self.arraySegments = tflite.SparseIndexVector.SparseIndexVectorCreator(self.arraySegmentsType, dimensionMetadata.ArraySegments())
+        self.arraySegments = tflite_model.SparseIndexVector.SparseIndexVectorCreator(self.arraySegmentsType, dimensionMetadata.ArraySegments())
         self.arrayIndicesType = dimensionMetadata.ArrayIndicesType()
-        self.arrayIndices = tflite.SparseIndexVector.SparseIndexVectorCreator(self.arrayIndicesType, dimensionMetadata.ArrayIndices())
+        self.arrayIndices = tflite_model.SparseIndexVector.SparseIndexVectorCreator(self.arrayIndicesType, dimensionMetadata.ArrayIndices())
 
     # DimensionMetadataT
     def Pack(self, builder):

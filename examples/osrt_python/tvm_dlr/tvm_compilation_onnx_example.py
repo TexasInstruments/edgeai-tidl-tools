@@ -1,6 +1,12 @@
 import os
+import sys
 import argparse
-from utils import *
+# directory reach
+current = os.path.dirname(os.path.realpath(__file__))
+parent = os.path.dirname(current)
+# setting path
+sys.path.append(parent)
+from common_utils import *
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--no-offload', dest='offload', action='store_false', help='do not offload to TIDL')
@@ -10,20 +16,16 @@ parser.add_argument('--pc-inference', dest='device', action='store_false', help=
 parser.add_argument('--num_calib_images', dest='calib_iters', default=4, type=int, help='number of images to use for calibration')
 args = parser.parse_args()
 
-models = {
-    'mobilenetv2-1.0.onnx' : {'url':'https://git.ti.com/cgit/jacinto-ai/jacinto-ai-modelzoo/plain/models/vision/classification/imagenet1k/torchvision/mobilenet_v2_tv_opset9.onnx', 'dir':'../../../models/public/onnx/'}
- }
-
-models_base_path = '../../../models/public/onnx/'
-download_models(models_base_path, models)
+model_id = 'onnx_mobilenetv2'
+download_model(models_configs, model_id)
 
 # model specifics
-model_path = os.path.join(models_base_path, 'mobilenetv2-1.0.onnx')
+model_path = models_configs[model_id]['model_path']
 model_input_name = 'input.1'
 model_input_shape = (1, 3, 224, 224)
 model_input_dtype = 'float32'
 model_layout = 'NCHW'
-model_output_directory = '../../../model-artifacts/dlr/onnx_mobilenetv2'
+model_output_directory = '../../../model-artifacts/dlr/'+model_id
 
 # TIDL compiler specifics
 # We are compiling the model for J7 device using
@@ -89,11 +91,13 @@ def preprocess_for_onnx_mobilenetv2(image_path):
             'mean': [123.675, 116.28, 103.53],
             'std' :[0.017125, 0.017507, 0.017429],
             'data_layout': 'NCHW',
-            'resize' : [256, 256],
+            'resize' : [224, 224],
             'crop' : [224, 224],
-            'model_type': 'classification'}
+            'model_type': 'classification',
+            'model_path': model_path,
+            'session_name' : models_configs[model_id]['session_name']}
     
-    gen_param_yaml(model_output_directory, config, new_height, new_width)
+    gen_param_yaml(model_output_directory, config, 224, 224)
     return img
 
 # create the directory if not present

@@ -37,7 +37,7 @@ class Model(object):
             x = self._tab.Vector(o)
             x += flatbuffers.number_types.UOffsetTFlags.py_type(j) * 4
             x = self._tab.Indirect(x)
-            from tflite.OperatorCode import OperatorCode
+            from tflite_model.OperatorCode import OperatorCode
             obj = OperatorCode()
             obj.Init(self._tab.Bytes, x)
             return obj
@@ -62,7 +62,7 @@ class Model(object):
             x = self._tab.Vector(o)
             x += flatbuffers.number_types.UOffsetTFlags.py_type(j) * 4
             x = self._tab.Indirect(x)
-            from tflite.SubGraph import SubGraph
+            from tflite_model.SubGraph import SubGraph
             obj = SubGraph()
             obj.Init(self._tab.Bytes, x)
             return obj
@@ -94,7 +94,7 @@ class Model(object):
             x = self._tab.Vector(o)
             x += flatbuffers.number_types.UOffsetTFlags.py_type(j) * 4
             x = self._tab.Indirect(x)
-            from tflite.Buffer import Buffer
+            from tflite_model.Buffer import Buffer
             obj = Buffer()
             obj.Init(self._tab.Bytes, x)
             return obj
@@ -146,7 +146,7 @@ class Model(object):
             x = self._tab.Vector(o)
             x += flatbuffers.number_types.UOffsetTFlags.py_type(j) * 4
             x = self._tab.Indirect(x)
-            from tflite.Metadata import Metadata
+            from tflite_model.Metadata import Metadata
             obj = Metadata()
             obj.Init(self._tab.Bytes, x)
             return obj
@@ -179,10 +179,10 @@ def ModelAddMetadata(builder, metadata): builder.PrependUOffsetTRelativeSlot(6, 
 def ModelStartMetadataVector(builder, numElems): return builder.StartVector(4, numElems, 4)
 def ModelEnd(builder): return builder.EndObject()
 
-import tflite.Buffer
-import tflite.Metadata
-import tflite.OperatorCode
-import tflite.SubGraph
+import tflite_model.Buffer
+import tflite_model.Metadata
+import tflite_model.OperatorCode
+import tflite_model.SubGraph
 try:
     from typing import List
 except:
@@ -193,12 +193,12 @@ class ModelT(object):
     # ModelT
     def __init__(self):
         self.version = 0  # type: int
-        self.operatorCodes = None  # type: List[tflite.OperatorCode.OperatorCodeT]
-        self.subgraphs = None  # type: List[tflite.SubGraph.SubGraphT]
+        self.operatorCodes = None  # type: List[tflite_model.OperatorCode.OperatorCodeT]
+        self.subgraphs = None  # type: List[tflite_model.SubGraph.SubGraphT]
         self.description = None  # type: str
-        self.buffers = None  # type: List[tflite.Buffer.BufferT]
+        self.buffers = None  # type: List[tflite_model.Buffer.BufferT]
         self.metadataBuffer = None  # type: List[int]
-        self.metadata = None  # type: List[tflite.Metadata.MetadataT]
+        self.metadata = None  # type: List[tflite_model.Metadata.MetadataT]
 
     @classmethod
     def InitFromBuf(cls, buf, pos):
@@ -223,7 +223,7 @@ class ModelT(object):
                 if model.OperatorCodes(i) is None:
                     self.operatorCodes.append(None)
                 else:
-                    operatorCode_ = tflite.OperatorCode.OperatorCodeT.InitFromObj(model.OperatorCodes(i))
+                    operatorCode_ = tflite_model.OperatorCode.OperatorCodeT.InitFromObj(model.OperatorCodes(i))
                     self.operatorCodes.append(operatorCode_)
         if not model.SubgraphsIsNone():
             self.subgraphs = []
@@ -231,7 +231,7 @@ class ModelT(object):
                 if model.Subgraphs(i) is None:
                     self.subgraphs.append(None)
                 else:
-                    subGraph_ = tflite.SubGraph.SubGraphT.InitFromObj(model.Subgraphs(i))
+                    subGraph_ = tflite_model.SubGraph.SubGraphT.InitFromObj(model.Subgraphs(i))
                     self.subgraphs.append(subGraph_)
         self.description = model.Description()
         if not model.BuffersIsNone():
@@ -240,7 +240,7 @@ class ModelT(object):
                 if model.Buffers(i) is None:
                     self.buffers.append(None)
                 else:
-                    buffer_ = tflite.Buffer.BufferT.InitFromObj(model.Buffers(i))
+                    buffer_ = tflite_model.Buffer.BufferT.InitFromObj(model.Buffers(i))
                     self.buffers.append(buffer_)
         if not model.MetadataBufferIsNone():
             if np is None:
@@ -255,7 +255,7 @@ class ModelT(object):
                 if model.Metadata(i) is None:
                     self.metadata.append(None)
                 else:
-                    metadata_ = tflite.Metadata.MetadataT.InitFromObj(model.Metadata(i))
+                    metadata_ = tflite_model.Metadata.MetadataT.InitFromObj(model.Metadata(i))
                     self.metadata.append(metadata_)
 
     # ModelT

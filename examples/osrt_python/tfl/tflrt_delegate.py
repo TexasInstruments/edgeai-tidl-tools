@@ -1,16 +1,28 @@
 import tflite_runtime.interpreter as tflite
 import time
 import os
+import sys
 import numpy as np
 import PIL
 from PIL import Image, ImageFont, ImageDraw, ImageEnhance
-from utils import *
 import argparse
 import re
 import multiprocessing
 import platform
+# directory reach
+current = os.path.dirname(os.path.realpath(__file__))
+parent = os.path.dirname(current)
+# setting path
+sys.path.append(parent)
+from common_utils import *
 
+artifacts_folder = '../../../model-artifacts/tfl/'
+output_images_folder = '../../../output_images/tfl-py/'
 
+required_options = {
+"tidl_tools_path":tidl_tools_path,
+"artifacts_folder":artifacts_folder
+}
 parser = argparse.ArgumentParser()
 parser.add_argument('-c','--compile', action='store_true', help='Run in Model compilation mode')
 parser.add_argument('-d','--disable_offload', action='store_true',  help='Disable offload to TIDL')
@@ -71,6 +83,9 @@ def infer_image(interpreter, image_file, config):
     input_data = np.float32(input_data)
     for mean, scale, ch in zip(config['mean'], config['std'], range(input_data.shape[3])):
         input_data[:,:,:, ch] = ((input_data[:,:,:, ch]- mean) * scale)
+  else:
+    config['mean'] = [0, 0, 0]
+    config['std']  = [1, 1, 1]
 
   interpreter.resize_tensor_input(input_details[0]['index'], [1, new_height, new_width, 3])
   interpreter.allocate_tensors()
@@ -90,7 +105,10 @@ def infer_image(interpreter, image_file, config):
 def run_model(model, mIdx):
     print("\nRunning_Model : ", model)
     #set input images for demo
-    config = mlperf_models_configs[model]
+    if platform.machine() != 'aarch64':
+        download_model(models_configs, model)
+    config = models_configs[model]
+ 
     if config['model_type'] == 'classification':
         test_images = class_test_images
     elif config['model_type'] == 'od':
@@ -166,19 +184,13 @@ def run_model(model, mIdx):
         if not os.path.exists(output_images_folder):
             os.makedirs(output_images_folder)
         image.save(output_images_folder + output_file_name, "JPEG") 
-    gen_param_yaml(delegate_options, config, int(new_height), int(new_width))
+    gen_param_yaml(delegate_options['artifacts_folder'], config, int(new_height), int(new_width))
     log = f'\n \nCompleted_Model : {mIdx+1:5d}, Name : {model:50s}, Total time : {total_proc_time/(i+1):10.2f}, Offload Time : {sub_graphs_time/(i+1):10.2f} , DDR RW MBs : {(total_ddr_write+total_ddr_read)/(i+1):10.2f}, Output File : {output_file_name}\n \n ' #{classes} \n \n'
     print(log) 
     if ncpus > 1:
         sem.release()
 
-#models = mlperf_models_configs.keys()
 models = ['cl-tfl-mobilenet_v1_1.0_224', 'ss-tfl-deeplabv3_mnv2_ade20k_float', 'od-tfl-ssd_mobilenet_v2_300_float']
-if platform.machine() != 'aarch64':
-    download_models()
-#models = ['efficientdet-ti-lite0_k5s1_k3s2']
-#models = ['mobilenet_v1_1.0_224', 'ssd_mobilenet_v2_300_float']
-
 log = f'Running {len(models)} Models - {models}\n'
 print(log)
 
