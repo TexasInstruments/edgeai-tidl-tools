@@ -259,7 +259,10 @@ namespace tflite
         LOG_ERROR("Failed to allocate tensors!");
         return RETURN_FAIL;
       }
-
+      if (s->accel == false)
+      {
+        s->device_mem = false;
+      }
       if (s->device_mem)
       {
         LOG_INFO("device mem enabled\n");
@@ -312,7 +315,7 @@ namespace tflite
       {
       case kTfLiteFloat32:
       {
-        img = preprocImage<float>(s->input_bmp_path, &interpreter->typed_tensor<float>(input)[0], modelInfo->m_preProcCfg);
+        img = preprocImage<float>(s->input_image_path, &interpreter->typed_tensor<float>(input)[0], modelInfo->m_preProcCfg);
         break;
       }
       case kTfLiteUInt8:
@@ -323,7 +326,7 @@ namespace tflite
                            temp_mean = modelInfo->m_preProcCfg.mean;
         modelInfo->m_preProcCfg.scale = {1, 1, 1};
         modelInfo->m_preProcCfg.mean = {0, 0, 0};
-        img = preprocImage<uint8_t>(s->input_bmp_path, &interpreter->typed_tensor<uint8_t>(input)[0], modelInfo->m_preProcCfg);
+        img = preprocImage<uint8_t>(s->input_image_path, &interpreter->typed_tensor<uint8_t>(input)[0], modelInfo->m_preProcCfg);
         /*restoring mean and scale to preserve the data */
         modelInfo->m_preProcCfg.scale = temp_scale;
         modelInfo->m_preProcCfg.mean = temp_mean;
@@ -511,7 +514,7 @@ int main(int argc, char **argv)
   dumpArgs(&s);
   logSetLevel((LogLevel)s.log_level);
   /* Parse the input configuration file */
-  ModelInfo model(s.model_zoo_path);
+  ModelInfo model(s.artifact_path);
   if (model.initialize() == RETURN_FAIL)
   {
     LOG_ERROR("Failed to initialize model\n");

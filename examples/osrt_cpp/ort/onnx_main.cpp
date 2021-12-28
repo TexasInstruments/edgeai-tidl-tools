@@ -281,15 +281,12 @@ namespace onnx
         int runInference(ModelInfo *modelInfo, Settings *s)
         {
             string model_path = modelInfo->m_infConfig.modelFile;
-            string image_path = s->input_bmp_path;
+            string image_path = s->input_image_path;
             string labels_path = s->labels_file_path;
             string artifacts_path;
 
             /*check artifacts path need to be overwritten from cmd line args */
-            if (s->artifact_path != "")
-                artifacts_path = s->artifact_path;
-            else
-                artifacts_path = modelInfo->m_infConfig.artifactsPath;
+            artifacts_path = modelInfo->m_infConfig.artifactsPath;
             cv::Mat img;
             void *inData;
 
@@ -384,13 +381,13 @@ namespace onnx
             if (input_tensor_type == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT)
             {
                 input_tensor_size_bytes = input_tensor_size * sizeof(float);
-                inData = allocTensorMem(input_tensor_size_bytes, s->accel);              
+                inData = allocTensorMem(input_tensor_size_bytes, (s->accel && s->device_mem));              
                 img = preprocImage<float>(image_path, (float *)inData, modelInfo->m_preProcCfg);
             }
             else if (input_tensor_type == ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT8)
             {
                 input_tensor_size_bytes = input_tensor_size * sizeof(uint8_t);
-                inData = allocTensorMem(input_tensor_size_bytes, s->accel);              
+                inData = allocTensorMem(input_tensor_size_bytes, (s->accel && s->device_mem));              
                 img = preprocImage<uint8_t>(image_path, (uint8_t *)inData, modelInfo->m_preProcCfg);
             }
             else
@@ -446,7 +443,7 @@ namespace onnx
                     exit(0);
                 }   
 
-                void * outData = allocTensorMem(tensor_size, s->accel);
+                void * outData = allocTensorMem(tensor_size, (s->accel && s->device_mem));
                 auto output_tensor = Ort::Value::CreateTensor(memory_info, (void *)outData, tensor_size, node_dims.data(), node_dims.size(),tensor_type);
                 output_tensors.push_back(std::move(output_tensor));
                 binding.BindOutput(output_node_names[idx], output_tensors[idx]);
@@ -555,12 +552,12 @@ namespace onnx
             for (size_t i = 0; i < output_tensors.size(); i++)
             {
                 void *ptr = output_tensors[i].GetTensorMutableData<void>();
-                freeTensorMem(ptr, s->accel);
+                freeTensorMem(ptr, (s->accel && s->device_mem));
             }
             for (size_t i = 0; i < input_tensors.size(); i++)
             {
                 void *ptr = input_tensors[i].GetTensorMutableData<void>();
-                freeTensorMem(ptr, s->accel);
+                freeTensorMem(ptr, (s->accel && s->device_mem));
             }
 
             cv::cvtColor(img, img, cv::COLOR_RGB2BGR);
@@ -613,7 +610,7 @@ int main(int argc, char *argv[])
     dumpArgs(&s);
     logSetLevel((LogLevel)s.log_level);
     /* Parse the input configuration file */
-    ModelInfo model(s.model_zoo_path);
+    ModelInfo model(s.artifact_path);
     if (model.initialize() == RETURN_FAIL)
     {
         LOG_ERROR("Failed to initialize model\n");

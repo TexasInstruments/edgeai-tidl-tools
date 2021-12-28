@@ -30,9 +30,18 @@
 ## Run 
   - Run the CPP examples using the below commands
     ```
-    ./bin/Release/ort_main -z "model-artifacts/ort/resnet18-v1/" -v 1 -i "test_data/airshow.jpg" -l "test_data/labels.txt" -a 1
-    ./bin/Release/tfl_main -z "model-artifacts/tfl/mobilenet_v1_1.0_224/" -v 1 -i "test_data/airshow.jpg" -l "test_data/labels.txt" -a 1
-    ./bin/Release/dlr_main -z "model-artifacts/dlr/tflite_inceptionnetv3" -v 1 -i "test_data/airshow.jpg"  -l "test_data/labels.txt"  -y "cpu"
+    ./bin/Release/ort_main -f model-artifacts/ort/resnet18-v1  -i test_data/airshow.jpg
+    ./bin/Release/tfl_main -f model-artifacts/tfl/mobilenet_v1_1.0_224 -i test_data/airshow.jpg
+    ./bin/Release/dlr_main -f model-artifacts/dlr/tflite_inceptionnetv3  -i test_data/airshow.jpg
+    ./bin/Release/dlr_main -f model-artifacts/dlr/onnx_mobilenetv2  -i test_data/airshow.jpg
+
+    ./bin/Release/ort_main -f model-artifacts/ort/ssd-lite_mobilenetv2_fpn -i test_data/ADE_val_00001801.jpg
+    ./bin/Release/tfl_main -f model-artifacts/tfl/ssd_mobilenet_v2_300_float -i test_data/ADE_val_00001801.jpg
+
+    ./bin/Release/ort_main -f model-artifacts/ort/deeplabv3lite_mobilenetv2 -i test_data/ADE_val_00001801.jpg
+    ./bin/Release/tfl_main -f model-artifacts/tfl/deeplabv3_mnv2_ade20k_float -i test_data/ADE_val_00001801.jpg
+
+
     ```
 ## Validation on Target
 - Build and runt steps remains same for PC emaultionn and target. Copy the below folders from PC to the EVM where this repo is cloned before ruunning the examples

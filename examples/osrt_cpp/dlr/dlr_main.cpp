@@ -354,14 +354,14 @@ namespace dlr
             GetDLRInputType(&model, 0, input_type);
             if (!strcmp(*input_type, "float32"))
             {
-                img = preprocImage<float>(s->input_bmp_path, image_data, modelInfo->m_preProcCfg);
+                img = preprocImage<float>(s->input_image_path, image_data, modelInfo->m_preProcCfg);
             }
             else
             {
                 LOG_ERROR("cannot handle input type %s yet", *input_type);
                 return RETURN_FAIL;
             }
-            LOG_INFO("Classifying input:%s\n", s->input_bmp_path.c_str());
+            LOG_INFO("Classifying input:%s\n", s->input_image_path.c_str());
 
             /*Running inference */
             if (SetDLRInput(&model, input_name, input_shape, image_data, 4) != 0)
@@ -563,7 +563,7 @@ int main(int argc, char **argv)
     dumpArgs(&s);
     logSetLevel((LogLevel)s.log_level);
     /* Parse the input configuration file */
-    ModelInfo model(s.model_zoo_path);
+    ModelInfo model(s.artifact_path);
     if (model.initialize() == RETURN_FAIL)
     {
         LOG_ERROR("Failed to initialize model\n");

@@ -80,21 +80,17 @@ namespace tidl
         struct Settings
         {
             int log_level = tidl::utils::ERROR;
-            bool accel = false;
-            bool device_mem = false;
+            bool accel = true;
+            bool device_mem = true;
             int loop_count = 1;
-            std::vector<float> input_mean;
-            std::vector<float> input_std;
-            std::string artifact_path = "";
             std::string model_path = "";
-            std::string input_bmp_path = "";
+            std::string artifact_path = "";
+            std::string input_image_path = "";
             std::string device_type = "cpu";
             std::string labels_file_path = "test_data/labels.txt";
-            std::string model_zoo_path = "";
             int number_of_threads = 4;
             int number_of_results = 5;
             int number_of_warmup_runs = 2;
-            std::string task_type = "";
         };
         /**
          * Use getopts lib to do options parsing and fill the contents to Setting struct.
