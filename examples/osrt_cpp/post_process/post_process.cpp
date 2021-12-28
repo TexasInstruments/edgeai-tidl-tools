@@ -440,7 +440,7 @@ namespace tidl
         {
             LOG_INFO("preparing detection result \n");
             vector<vector<float>> od_formatted_vec;
-            float threshold = modelInfo->m_vizThreshold;
+            float threshold = modelInfo->m_postProcCfg.vizThreshold;
             int cols = (*img).cols;
             /* copy the op tensors into single vector of for od post-process
             This loop will extract the data from f_tensor_unformatted
@@ -503,7 +503,8 @@ namespace tidl
                 }
                 else
                 {
-                    if (formatter_name == "DetectionBoxSL2BoxLS")
+                    LOG_INFO("box with score:%f, threshold set to:%f\n",(*it)[score_index], threshold);
+                    if (formatter_name == "DetectionBoxSL2BoxLS" && (*it)[x1Index] > 1)
                     {
                         (*it)[x1Index] = ((*it)[x1Index]) / cols;
                         (*it)[x2Index] = (*it)[x2Index] / cols;

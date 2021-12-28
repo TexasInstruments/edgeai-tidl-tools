@@ -1,4 +1,0 @@
-Name,Total time,Offload Time,DDR RW MBs
-resnet18-v1,302.4,302.4,0
-deeplabv3lite_mobilenetv2,898.8,898.7,0
-ssd-lite_mobilenetv2_fpn,712.7,712.7,0

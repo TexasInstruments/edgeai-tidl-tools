@@ -1,9 +1,0 @@
-Name,Total time,Offload Time,DDR RW MBs
-cl-3410_tvmdlr_gluoncv-mxnet_mobilenetv2_1.0-symbol_json,95.107002,95.107002,0
-cl-3420_tvmdlr_gluoncv-mxnet_resnet50_v1d-symbol_json,95.107002,95.107002,0
-cl-3430_tvmdlr_gluoncv-mxnet_xception-symbol_json,95.107002,95.107002,0
-cl-3480_tvmdlr_gluoncv-mxnet_hrnet_w18_small_v2_c-symbol_json,95.107002,95.107002,0
-ss-5720_tvmdlr_edgeai-tv_fpnlite_aspp_regnetx800mf_cocoseg21_512x512_20210405_onnx,95.107002,95.107002,0
-od-5020_tvmdlr_gluoncv-mxnet_yolo3_mobilenet1.0_coco-symbol_json,95.107002,95.107002,0
-onnx_mobilenetv2,95.107002,95.107002,0
-tflite_inceptionnetv3,95.107002,95.107002,0

@@ -113,7 +113,7 @@ for test_config in test_configs:
     if(test_config['lang'] == 'bash'):
         rt_base_dir = rt_base_dir_bash
         curr_rt_base_dir= os.path.join(rt_base_dir,test_config['script_dir'])
-        curr_ref_outputs_base_dir = ref_outputs_base_dir+'/'
+        curr_ref_outputs_base_dir = ref_outputs_base_dir+'/'+rt_type.split('-')[0]+'-refs-'+device+'/'
         cmd = ('bash '+ script_name)
 
     elif(test_config['lang'] == 'py'):
@@ -134,11 +134,7 @@ for test_config in test_configs:
 
     rt_report = []
     golden_ref_file= ""
-    if(test_config['lang'] == 'py'):
-        golden_ref_file = curr_ref_outputs_base_dir+'/golden_ref.csv'
-    
-    elif(test_config['lang'] == 'bash'):
-        golden_ref_file = curr_ref_outputs_base_dir+'/golden_ref.csv'
+    golden_ref_file = ref_outputs_base_dir+'/golden_ref.csv'
     with open(golden_ref_file, 'r') as f:
         ref_report = [{k:v for k, v in row.items()} for row in csv.DictReader(f, skipinitialspace=True)]
     if enable_debug:

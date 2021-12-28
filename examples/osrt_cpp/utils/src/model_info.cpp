@@ -290,6 +290,9 @@ namespace tidl
                 {
                     config.dataLayout = postProc["data_layout"].as<std::string>();
                 }
+                if (postProc["detection_thr"]){
+                    config.vizThreshold = postProc["detection_thr"].as<float>();
+                }
                 if (postProc["formatter"] && postProc["formatter"]["name"]){
 
                     config.formatterName = postProc["formatter"]["name"].as<std::string>();
@@ -488,7 +491,6 @@ namespace tidl
                     else
                     {
                         m_postProcCfg.classnames = ti::common::gClassNameMap["coco"];
-                        m_postProcCfg.vizThreshold = m_vizThreshold;
                     }
                 }
 
