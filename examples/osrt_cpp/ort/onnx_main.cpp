@@ -91,6 +91,7 @@ namespace onnx
                                      vector<int64_t> output_node_dims)
         {
             LOG_INFO("preparing classification result \n");
+            cv::resize((*img), (*img), cv::Size(512, 512), 0, 0, cv::INTER_AREA);
             ONNXTensorElementDataType op_tensor_type = getTensorType(0, output_tensors);
             /* Get pointer to output tensor float values*/
             vector<pair<float, int>> top_results;

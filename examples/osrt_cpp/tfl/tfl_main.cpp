@@ -120,6 +120,7 @@ namespace tflite
                                  const std::vector<int> *outputs, Settings *s)
     {
       LOG_INFO("preparing clasification result \n");
+      cv::resize((*img), (*img), cv::Size(512, 512), 0, 0, cv::INTER_AREA);
       const float threshold = 0.001f;
       std::vector<std::pair<float, int>> top_results;
 

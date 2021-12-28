@@ -141,6 +141,7 @@ namespace dlr
         int prepClassificationResult(cv::Mat *img, Settings *s, DLRModelHandle model, int num_outputs)
         {
             LOG_INFO("preparing classification result \n");
+            cv::resize((*img), (*img), cv::Size(512, 512), 0, 0, cv::INTER_AREA);
             const float threshold = 0.001f;
             std::vector<std::pair<float, int>> top_results;
             /* get tensor type */

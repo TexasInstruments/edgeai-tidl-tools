@@ -285,6 +285,7 @@ namespace tidl
         uchar *overlayTopNClasses(uchar *frame,
                                   std::vector<std::pair<float, int>> &top_results,
                                   std::vector<string> *labels,
+                                  int32_t outputoffset,
                                   int32_t outDataWidth,
                                   int32_t outDataHeight,
                                   int32_t N,
@@ -306,8 +307,8 @@ namespace tidl
                 const float confidence = result.first;
                 int index = result.second;
                 int32_t row = i + 3;
-                string str;
-                str.append((*labels)[index+ outputoffset]);
+                string str = std::to_string(confidence);
+                str.append((*labels)[index+outputoffset]);
                 putText(img, str, Point(5, row * rowSize),
                         FONT_HERSHEY_SIMPLEX, txtSize, text_color, 1);
                 i++;
