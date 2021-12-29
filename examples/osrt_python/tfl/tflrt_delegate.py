@@ -16,9 +16,6 @@ parent = os.path.dirname(current)
 sys.path.append(parent)
 from common_utils import *
 
-artifacts_folder = '../../../model-artifacts/tfl/'
-output_images_folder = '../../../output_images/tfl-py/'
-
 required_options = {
 "tidl_tools_path":tidl_tools_path,
 "artifacts_folder":artifacts_folder
@@ -121,8 +118,7 @@ def run_model(model, mIdx):
     delegate_options.update(required_options)
     delegate_options.update(optional_options)
     # stripping off the ss-tfl- from model namne
-    model_name = model[7:]
-    delegate_options['artifacts_folder'] = delegate_options['artifacts_folder'] + '/' + model_name + '/'
+    delegate_options['artifacts_folder'] = delegate_options['artifacts_folder'] + '/' + model + '/'
 
     if config['model_type'] == 'od':
         delegate_options['object_detection:meta_layers_names_list'] = config['meta_layers_names_list'] if ('meta_layers_names_list' in config) else ''
@@ -166,7 +162,7 @@ def run_model(model, mIdx):
     
     total_proc_time = total_proc_time/1000000
     sub_graphs_time = sub_graphs_time/1000000
-    output_file_name = "post_proc_out_"+model+'_'+os.path.basename(input_image[i%len(input_image)])
+    output_file_name = "py_out_"+model+'_'+os.path.basename(input_image[i%len(input_image)])
 
     # output post processing
     if(args.compile == False):  # post processing enabled only for inference
@@ -184,7 +180,8 @@ def run_model(model, mIdx):
         if not os.path.exists(output_images_folder):
             os.makedirs(output_images_folder)
         image.save(output_images_folder + output_file_name, "JPEG") 
-    gen_param_yaml(delegate_options['artifacts_folder'], config, int(new_height), int(new_width))
+    else :
+        gen_param_yaml(delegate_options['artifacts_folder'], config, int(new_height), int(new_width))
     log = f'\n \nCompleted_Model : {mIdx+1:5d}, Name : {model:50s}, Total time : {total_proc_time/(i+1):10.2f}, Offload Time : {sub_graphs_time/(i+1):10.2f} , DDR RW MBs : {(total_ddr_write+total_ddr_read)/(i+1):10.2f}, Output File : {output_file_name}\n \n ' #{classes} \n \n'
     print(log) 
     if ncpus > 1:

@@ -1,11 +1,16 @@
 import time
 import platform
 import os
+import sys
+from PIL import Image
+# directory reach
+current = os.path.dirname(os.path.realpath(__file__))
+parent = os.path.dirname(current)
+# setting path
+sys.path.append(parent)
+from common_utils import *
 
-output_images_folder = '../../../output_images/dlr-py/'
-def load_labels():
-  with open('../../../test_data/labels.txt', 'r') as f:
-    return [line.strip() for line in f.readlines()]
+output_images_folder = '../../../output_images/'
 
 if platform.machine() == 'aarch64':
     numImages = 100
@@ -122,26 +127,22 @@ def model_create_and_run(model_dir,
 
     res = postprocess_func(res)
 
-    output_file_name = "post_proc_out_" + model_dir.split("/")[-1] + '.txt'
-    print("\nSaving op to ", output_images_folder)
+    output_file_name = "py_out_"+model_dir.split("/")[-1]+'_'+os.path.basename(img_path)
+
+    image_pil = Image.open(img_path).convert('RGB')
+    classes, image = get_class_labels(res,image_pil)
+    print(classes)
+
+    print("\nSaving image to ", output_images_folder)
     if not os.path.exists(output_images_folder):
         os.makedirs(output_images_folder)
-    numpy.savetxt(os.path.join(output_images_folder,output_file_name), res)
-
-    #get TOP-5, TOP-1 results
-    classes = res.argsort()[-5:][::-1]
-    imagenet_class_names = load_labels()
-    names = [imagenet_class_names[x+1].replace(",", "/") for x in classes]
-
-    print(f'results for {img_path}:')
-    for idx, (id, name) in enumerate(zip(classes, names)):
-        print(f'[{idx}] {id:03d}, {name}')
+    image.save(output_images_folder + output_file_name, "JPEG") 
     
     log = f'\n \nCompleted_Model : {mIdx+1:5d}, Name : {os.path.basename(model_dir):50s}, Total time : {proc_time/numImages:10.2f}, Offload Time : {proc_time/numImages:10.2f} , DDR RW MBs : 0, Output File : {output_file_name}\n \n ' #{classes} \n \n'
     print(log) 
 
 
-model_output_directory = '../../../model-artifacts/dlr/tflite_inceptionnetv3'
+model_output_directory = '../../../model-artifacts/cl-dlr-tflite_inceptionnetv3'
 if platform.machine() == 'aarch64':
     model_output_directory = model_output_directory+'_device'
    
@@ -149,10 +150,10 @@ model_create_and_run(model_output_directory, 'input',
                         preprocess_for_tflite_inceptionnetv3,
                         postprocess_for_tflite_inceptionnetv3, 0)
 
-model_output_directory = '../../../model-artifacts/dlr/onnx_mobilenetv2'
+model_output_directory = '../../../model-artifacts/cl-dlr-onnx_mobilenetv2'
 if platform.machine() == 'aarch64':
     model_output_directory = model_output_directory+'_device'
 
-model_create_and_run('../../../model-artifacts/dlr/onnx_mobilenetv2', 'input.1',
+model_create_and_run(model_output_directory, 'input.1',
                         preprocess_for_onnx_mobilenetv2,
                         postprocess_for_onnx_mobilenetv2, 1)

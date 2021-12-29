@@ -30,16 +30,14 @@
 ## Run 
   - Run the CPP examples using the below commands
     ```
-    ./bin/Release/ort_main -f model-artifacts/ort/resnet18-v1  -i test_data/airshow.jpg
-    ./bin/Release/tfl_main -f model-artifacts/tfl/mobilenet_v1_1.0_224 -i test_data/airshow.jpg
-    ./bin/Release/dlr_main -f model-artifacts/dlr/tflite_inceptionnetv3  -i test_data/airshow.jpg
-    ./bin/Release/dlr_main -f model-artifacts/dlr/onnx_mobilenetv2  -i test_data/airshow.jpg
-
-    ./bin/Release/ort_main -f model-artifacts/ort/ssd-lite_mobilenetv2_fpn -i test_data/ADE_val_00001801.jpg
-    ./bin/Release/tfl_main -f model-artifacts/tfl/ssd_mobilenet_v2_300_float -i test_data/ADE_val_00001801.jpg
-
-    ./bin/Release/ort_main -f model-artifacts/ort/deeplabv3lite_mobilenetv2 -i test_data/ADE_val_00001801.jpg
-    ./bin/Release/tfl_main -f model-artifacts/tfl/deeplabv3_mnv2_ade20k_float -i test_data/ADE_val_00001801.jpg
+    ./bin/Release/ort_main -f model-artifacts/cl-ort-resnet18-v1  -i test_data/airshow.jpg
+    ./bin/Release/tfl_main -f model-artifacts/cl-tfl-mobilenet_v1_1.0_224 -i test_data/airshow.jpg
+    ./bin/Release/dlr_main -f model-artifacts/cl-dlr-tflite_inceptionnetv3  -i test_data/airshow.jpg
+    ./bin/Release/dlr_main -f model-artifacts/cl-dlr-onnx_mobilenetv2  -i test_data/airshow.jpg
+    ./bin/Release/ort_main -f model-artifacts/od-ort-ssd-lite_mobilenetv2_fpn -i test_data/ADE_val_00001801.jpg
+    ./bin/Release/tfl_main -f model-artifacts/od-tfl-ssd_mobilenet_v2_300_float -i test_data/ADE_val_00001801.jpg
+    ./bin/Release/ort_main -f model-artifacts/ss-ort-deeplabv3lite_mobilenetv2 -i test_data/ADE_val_00001801.jpg
+    ./bin/Release/tfl_main -f model-artifacts/ss-tfl-deeplabv3_mnv2_ade20k_float -i test_data/ADE_val_00001801.jpg
 
 
     ```

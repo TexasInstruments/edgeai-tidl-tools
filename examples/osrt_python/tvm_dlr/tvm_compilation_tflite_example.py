@@ -16,7 +16,7 @@ parser.add_argument('--pc-inference', dest='device', action='store_false', help=
 parser.add_argument('--num_calib_images', dest='calib_iters', default=4, type=int, help='number of images to use for calibration')
 args = parser.parse_args()
 
-model_id = 'tflite_inceptionnetv3'
+model_id = 'cl-dlr-tflite_inceptionnetv3'
 download_model(models_configs, model_id)
 
 # model specifics
@@ -25,7 +25,7 @@ model_input_name = 'input'
 model_input_shape = (1, 299, 299, 3)
 model_input_dtype = 'float32'
 model_layout = 'NHWC'
-model_output_directory = '../../../model-artifacts/dlr/'+model_id
+model_output_directory = artifacts_folder + model_id
 
 # TIDL compiler specifics
 # We are compiling the model for J7 device using

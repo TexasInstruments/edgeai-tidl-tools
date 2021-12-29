@@ -527,7 +527,6 @@ namespace dlr
                     return RETURN_FAIL;
                 }
             }
-            foldername = foldername + "dlr-cpp/";
             if (stat(foldername.c_str(), &buffer) != 0)
             {
                 if (mkdir(foldername.c_str(), 0777) == -1)
@@ -536,7 +535,7 @@ namespace dlr
                     return RETURN_FAIL;
                 }
             }
-            filename = "post_proc_out_";
+            filename = "cpp_out_";
             filename = filename + modelInfo->m_preProcCfg.modelName.c_str();
             filename = filename + ".jpg";
             foldername = foldername + filename;

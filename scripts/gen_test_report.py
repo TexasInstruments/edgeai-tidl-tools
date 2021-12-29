@@ -120,7 +120,7 @@ for test_config in test_configs:
         curr_rt_base_dir= os.path.join(rt_base_dir,test_config['script_dir'])
         cmd = ('python3 '+ script_name)
 
-    curr_ref_outputs_base_dir = ref_outputs_base_dir+'/'+rt_type.split('-')[0]+'-refs-'+device+'/'
+    curr_ref_outputs_base_dir = ref_outputs_base_dir+'/refs-'+device+'/'
 
     #result = subprocess.run(cmd, cwd=curr_rt_base_dir, shell=True, stdout=subprocess.PIPE, check=True, universal_newlines=True)
     #lines = result.stdout.splitlines()
@@ -164,8 +164,8 @@ for test_config in test_configs:
             currIdx+= 1
         elif(len(curr) != 0 and rt_type == r['rt type']):
             final_report.append(curr[0])
-            out_file_name = os.path.join(os.path.join('./output_images/'+rt_type+'/'),final_report[-1]['Output File'])
-            ref_file_name = os.path.join(os.path.join(curr_ref_outputs_base_dir+'/'),final_report[-1]['Output File'])
+            out_file_name = os.path.join('./output_images',final_report[-1]['Output File'])
+            ref_file_name = os.path.join(curr_ref_outputs_base_dir,final_report[-1]['Output File'])
             if filecmp.cmp(out_file_name, ref_file_name) == True:
                 final_report[-1]['Functional'] = 'PASS'
                 final_report[-1]['info'] = ''

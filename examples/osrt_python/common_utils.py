@@ -10,6 +10,7 @@ if platform.machine() == 'aarch64':
 else : 
     import requests
     import onnx
+    import shutil
     numImages = 3
 
     # directory reach
@@ -21,6 +22,10 @@ else :
     sys.path.append(tfl_flatbuf_path)
     from scripts.tflite_model_tools import tflite_model_opt as tflOpt
     from scripts.onnx_model_tools   import onnx_model_opt as onnxOpt
+
+artifacts_folder = '../../../model-artifacts/'
+output_images_folder = '../../../output_images/'
+
 
 tensor_bits = 8
 debug_level = 0
@@ -95,9 +100,12 @@ def gen_param_yaml(artifacts_folder_path, config, new_height, new_width):
     layout = 'NCHW'
     if config['session_name'] == 'tflitert':
         layout = 'NHWC'
+    
+    model_file_name = os.path.basename(config['model_path'])
+    
     dict_file.append( {'session' :  {'artifacts_folder': '',
                                      'model_folder': 'model',
-                                     'model_path': config['model_path'],
+                                     'model_path': model_file_name,
                                      'session_name': config['session_name']} ,
                       'task_type' : model_type,
                       'target_device': 'pc',
@@ -119,7 +127,10 @@ def gen_param_yaml(artifacts_folder_path, config, new_height, new_width):
 
     with open(os.path.join(artifacts_folder_path, "param.yaml"), 'w') as file:
         documents = yaml.dump(dict_file[0], file)
-          
+
+    if (config['session_name'] == 'tflitert') or (config['session_name'] == 'onnxrt'):
+        shutil.copy(config['model_path'], os.path.join(artifacts_folder_path,model_file_name))
+
 def download_model(models_configs, model_name):
     
     headers = {
@@ -375,7 +386,7 @@ models_configs = {
         'model_type': 'seg'
     },
     # TVM DLR OOB Models
-    'tflite_inceptionnetv3' : {
+    'cl-dlr-tflite_inceptionnetv3' : {
         'model_path' : os.path.join(models_base_path, 'inception_v3.tflite'),
         'source' : {'model_url': 'https://tfhub.dev/tensorflow/lite-model/inception_v3/1/default/1?lite-format=tflite', 'opt': False,  'infer_shape' : False},
         'mean': [127.5, 127.5, 127.5],
@@ -385,7 +396,7 @@ models_configs = {
         'session_name' : 'tvmdlr',
         'model_type': 'classification'
     },
-    'onnx_mobilenetv2' : {
+    'cl-dlr-onnx_mobilenetv2' : {
         'model_path' : os.path.join(models_base_path, 'mobilenetv2-1.0.onnx'),
         'source' : {'model_url': 'https://git.ti.com/cgit/jacinto-ai/jacinto-ai-modelzoo/plain/models/vision/classification/imagenet1k/torchvision/mobilenet_v2_tv_opset9.onnx', 'opt': False,  'infer_shape' : False},
         'mean': [127.5, 127.5, 127.5],
