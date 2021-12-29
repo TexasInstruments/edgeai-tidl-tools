@@ -7,7 +7,7 @@ IFS=,
 for val in $DataList;
 do
  echo $val
- ./bin/Release/ort_main -z  ~/edgeai-modelzoo/modelartifacts/8bits/${val}/ -v 1 -i "test_data/ADE_val_00001801.jpg" -l "test_data/labels.txt" -a 1  
+ ./bin/Release/ort_main -z  ../edgeai-modelzoo/modelartifacts/8bits/${val}/ -v 1 -i "test_data/ADE_val_00001801.jpg" -l "test_data/labels.txt" -a 1  
 done
 
 #cl-onnx-modelzoo-recommended
@@ -15,7 +15,7 @@ DataList="cl-6060_onnxrt_edgeai-tv_mobilenet_v1_20190906_onnx,cl-6070_onnxrt_edg
 for val in $DataList;
 do
  echo $val
- ./bin/Release/ort_main -z  ~/edgeai-modelzoo/modelartifacts/8bits/${val}/ -v 1 -i "test_data/airshow.jpg" -l "test_data/labels.txt"  -a 1
+ ./bin/Release/ort_main -z  ../edgeai-modelzoo/modelartifacts/8bits/${val}/ -v 1 -i "test_data/airshow.jpg" -l "test_data/labels.txt"  -a 1
 done
 
 ss-onnx-modelzoo-recommended
@@ -23,7 +23,7 @@ DataList="ss-8610_onnxrt_edgeai-tv_deeplabv3plus_mobilenetv2_edgeailite_512x512_
 for val in $DataList;
 do
  echo $val
- ./bin/Release/ort_main -z  ~/edgeai-modelzoo/modelartifacts/8bits/${val}/ -v 1 -i "test_data/ADE_val_00001801.jpg" -l "test_data/labels.txt"  -a 1
+ ./bin/Release/ort_main -z  ../edgeai-modelzoo/modelartifacts/8bits/${val}/ -v 1 -i "test_data/ADE_val_00001801.jpg" -l "test_data/labels.txt"  -a 1
 done
 
 

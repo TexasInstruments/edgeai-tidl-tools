@@ -113,15 +113,14 @@ for test_config in test_configs:
     if(test_config['lang'] == 'bash'):
         rt_base_dir = rt_base_dir_bash
         curr_rt_base_dir= os.path.join(rt_base_dir,test_config['script_dir'])
-        curr_ref_outputs_base_dir = ref_outputs_base_dir+'/'+rt_type.split('-')[0]+'-refs-'+device+'/'
         cmd = ('bash '+ script_name)
 
     elif(test_config['lang'] == 'py'):
         rt_base_dir = rt_base_dir_py
-
         curr_rt_base_dir= os.path.join(rt_base_dir,test_config['script_dir'])
-        curr_ref_outputs_base_dir = ref_outputs_base_dir+'/'
         cmd = ('python3 '+ script_name)
+
+    curr_ref_outputs_base_dir = ref_outputs_base_dir+'/'+rt_type.split('-')[0]+'-refs-'+device+'/'
 
     #result = subprocess.run(cmd, cwd=curr_rt_base_dir, shell=True, stdout=subprocess.PIPE, check=True, universal_newlines=True)
     #lines = result.stdout.splitlines()

@@ -7,7 +7,7 @@ IFS=,
 for val in $DataList;
 do
  echo $val
- ./bin/Release/tfl_main -z  ~/edgeai-modelzoo/modelartifacts/8bits/${val}/ -v 1 -i "test_data/ADE_val_00001801.jpg" -l "test_data/labels.txt" -d 1 -a 1
+ ./bin/Release/tfl_main -z  ../edgeai-modelzoo/modelartifacts/8bits/${val}/ -v 1 -i "test_data/ADE_val_00001801.jpg" -l "test_data/labels.txt" -d 1 -a 1
 done
 
 #cl tflite modelzoo recommended
@@ -16,7 +16,7 @@ DataList="cl-0000_tflitert_mlperf_mobilenet_v1_1.0_224_tflite,cl-0020_tflitert_t
 for val in $DataList;
 do
  echo $val
- ./bin/Release/tfl_main -z  ~/edgeai-modelzoo/modelartifacts/8bits/${val}/ -v 1 -i "test_data/airshow.jpg" -l "test_data/labels.txt" -d 1 -a 1
+ ./bin/Release/tfl_main -z  ../edgeai-modelzoo/modelartifacts/8bits/${val}/ -v 1 -i "test_data/airshow.jpg" -l "test_data/labels.txt" -d 1 -a 1
 done
 
 #ss-tflite-modelzoo-recommeneded
@@ -24,7 +24,7 @@ DataList="ss-2580_tflitert_mlperf_deeplabv3_mnv2_ade20k32_float_tflite"
 for val in $DataList;
 do
  echo $val
- ./bin/Release/tfl_main -z  ~/edgeai-modelzoo/modelartifacts/8bits/${val}/ -v 1 -i "test_data/ADE_val_00001801.jpg" -l "test_data/labels.txt" -d 1 -a 1
+ ./bin/Release/tfl_main -z  ../edgeai-modelzoo/modelartifacts/8bits/${val}/ -v 1 -i "test_data/ADE_val_00001801.jpg" -l "test_data/labels.txt" -d 1 -a 1
 done
 
 #running default models

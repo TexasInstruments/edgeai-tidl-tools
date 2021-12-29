@@ -7,7 +7,7 @@ IFS=,
 for val in $DataList;
 do
  echo $val
-  ./bin/Release/dlr_main -z  ~/edgeai-modelzoo/modelartifacts/8bits/${val}/ -v 1 -i "test_data/ADE_val_00001801.jpg"  -l "test_data/labels.txt"  -d 1  -y "cpu"
+  ./bin/Release/dlr_main -z  ../edgeai-modelzoo/modelartifacts/8bits/${val}/ -v 1 -i "test_data/ADE_val_00001801.jpg"  -l "test_data/labels.txt"  -d 1  -y "cpu"
 
 done
 
@@ -16,7 +16,7 @@ DataList="cl-3410_tvmdlr_gluoncv-mxnet_mobilenetv2_1.0-symbol_json,cl-3420_tvmdl
 for val in $DataList;
 do
  echo $val
-  ./bin/Release/dlr_main -z  ~/edgeai-modelzoo/modelartifacts/8bits/${val}/ -v 1 -i "test_data/airshow.jpg"  -l "test_data/labels.txt"  -d 1  -y "cpu"
+  ./bin/Release/dlr_main -z  ../edgeai-modelzoo/modelartifacts/8bits/${val}/ -v 1 -i "test_data/airshow.jpg"  -l "test_data/labels.txt"  -d 1  -y "cpu"
 
 done
 
@@ -25,7 +25,7 @@ DataList="ss-5720_tvmdlr_edgeai-tv_fpn_aspp_regnetx800mf_edgeailite_512x512_2021
 for val in $DataList;
 do
  echo $val
-  ./bin/Release/dlr_main -z  ~/edgeai-modelzoo/modelartifacts/8bits/${val}/ -v 1 -i "test_data/ADE_val_00001801.jpg"  -l "test_data/labels.txt"  -d 1  -y "cpu"
+  ./bin/Release/dlr_main -z  ../edgeai-modelzoo/modelartifacts/8bits/${val}/ -v 1 -i "test_data/ADE_val_00001801.jpg"  -l "test_data/labels.txt"  -d 1  -y "cpu"
 done
 
 #running defalt models
