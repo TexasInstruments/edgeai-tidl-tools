@@ -5,7 +5,6 @@ if [[ $arch == x86_64 ]]; then
     echo "X64 Architecture"
 elif [[ $arch == aarch64 ]]; then
     echo "ARM Architecture"
-    $skip_arm_gcc_download=1
 else
 echo 'Processor Architecture must be x86_64 or aarch64'
 echo 'Processor Architecture "'$arch'" is Not Supported '

@@ -2,7 +2,16 @@
 cd ../../
 Field_Separator=$IFS
 IFS=,
-
+arch=$(uname -p)
+if [[ $arch == x86_64 ]]; then
+loop_count=2
+elif [[ $arch == aarch64 ]]; then
+loop_count=20
+else
+echo 'Processor Architecture must be x86_64 or aarch64'
+echo 'Processor Architecture "'$arch'" is Not Supported '
+return
+fi
 # #od-onnx-modelzoo-recommended
 # DataList="od-8000_onnxrt_mlperf_ssd_resnet34-ssd1200_onnx,od-8020_onnxrt_edgeai-mmdet_ssd_mobilenetv2_lite_512x512_20201214_model_onnx,od-8030_onnxrt_edgeai-mmdet_ssd_mobilenetv2_fpn_lite_512x512_20201110_model_onnx,od-8040_onnxrt_edgeai-mmdet_ssd_regnetx-200mf_fpn_bgr_lite_320x320_20201010_model_onnx,od-8050_onnxrt_edgeai-mmdet_ssd_regnetx-800mf_fpn_bgr_lite_512x512_20200919_model_onnx,od-8060_onnxrt_edgeai-mmdet_ssd_regnetx-1.6gf_fpn_bgr_lite_768x768_20200923_model_onnx,od-8080_onnxrt_edgeai-mmdet_yolov3_regnetx-1.6gf_bgr_lite_512x512_20210202_model_onnx,od-8090_onnxrt_edgeai-mmdet_retinanet_regnetx-800mf_fpn_bgr_lite_512x512_20200908_model_onnx,od-8100_onnxrt_weights_yolov5s6_640_ti_lite_37p4_56p0_onnx,od-8110_onnxrt_weights_yolov5s6_384_ti_lite_32p8_51p2_onnx,od-8120_onnxrt_weights_yolov5m6_640_ti_lite_44p1_62p9_onnx,od-8140_onnxrt_edgeai-yolox_yolox-s-ti-lite_39p1_57p9_onnx,od-8160_onnxrt_edgeai-tv_ssdlite_mobilenet_v2_fpn_lite_512x512_20211015_dummypp_onnx,od-8170_onnxrt_edgeai-tv_ssdlite_regnet_x_800mf_fpn_lite_20211030_dummypp_onnx"
 # for val in $DataList;
@@ -35,7 +44,7 @@ DataList="cl-ort-resnet18-v1"
 for val in $DataList;
 do
  echo $val
- ./bin/Release/ort_main -f "model-artifacts/${val}/" -v 1 -i "test_data/airshow.jpg" 
+ ./bin/Release/ort_main -f "model-artifacts/${val}/" -v 1 -i "test_data/airshow.jpg"  -c ${loop_count}
 done
 
 #od,ss-onnx-deafult models
@@ -43,6 +52,6 @@ DataList="od-ort-ssd-lite_mobilenetv2_fpn,ss-ort-deeplabv3lite_mobilenetv2"
 for val in $DataList;
 do
  echo $val
- ./bin/Release/ort_main -f "model-artifacts/${val}/" -v 1 -i "test_data/ADE_val_00001801.jpg" 
+ ./bin/Release/ort_main -f "model-artifacts/${val}/" -v 1 -i "test_data/ADE_val_00001801.jpg"  -c ${loop_count}
 done
 cd -

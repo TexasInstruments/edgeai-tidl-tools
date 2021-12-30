@@ -2,7 +2,16 @@
 cd ../../
 Field_Separator=$IFS
 IFS=,
-
+arch=$(uname -p)
+if [[ $arch == x86_64 ]]; then
+loop_count=2
+elif [[ $arch == aarch64 ]]; then
+loop_count=20
+else
+echo 'Processor Architecture must be x86_64 or aarch64'
+echo 'Processor Architecture "'$arch'" is Not Supported '
+return
+fi
 #od tflite-modelzoo-recommended
 # DataList="od-2000_tflitert_mlperf_ssd_mobilenet_v1_coco_20180128_tflite,od-2010_tflitert_mlperf_ssd_mobilenet_v2_300_float_tflite,od-2020_tflitert_tf1-models_ssdlite_mobiledet_dsp_320x320_coco_20200519_tflite,od-2030_tflitert_tf1-models_ssdlite_mobiledet_edgetpu_320x320_coco_20200519_tflite,od-2060_tflitert_tf1-models_ssdlite_mobilenet_v2_coco_20180509_tflite,od-2070_tflitert_tf2-models_ssd_mobilenet_v1_fpn_640x640_coco17_tpu-8_tflite,od-2080_tflitert_tf2-models_ssd_mobilenet_v2_fpnlite_320x320_coco17_tpu-8_tflite,od-2090_tflitert_tf2-models_ssd_mobilenet_v2_fpnlite_640x640_coco17_tpu-8_tflite,od-2110_tflitert_google-automl_efficientdet-lite0_bifpn_maxpool2x2_relu_ti-lite_tflite,od-2130_tflitert_tf2-models_ssd_mobilenet_v2_320x320_coco17_tpu-8_tflite"
 # for val in $DataList;
@@ -35,7 +44,7 @@ DataList="cl-tfl-mobilenet_v1_1.0_224"
 for val in $DataList;
 do
  echo $val
- ./bin/Release/tfl_main -f "model-artifacts/${val}/" -v 1 -i "test_data/airshow.jpg"
+ ./bin/Release/tfl_main -f "model-artifacts/${val}/" -v 1 -i "test_data/airshow.jpg" -c ${loop_count}
 done
 
 #od,ss-tflite-deafult models
@@ -43,7 +52,7 @@ DataList="od-tfl-ssd_mobilenet_v2_300_float,ss-tfl-deeplabv3_mnv2_ade20k_float"
 for val in $DataList;
 do
  echo $val
- ./bin/Release/tfl_main -f "model-artifacts/${val}/" -v 1 -i "test_data/ADE_val_00001801.jpg"
+ ./bin/Release/tfl_main -f "model-artifacts/${val}/" -v 1 -i "test_data/ADE_val_00001801.jpg" -c ${loop_count}
 done
 
 cd -

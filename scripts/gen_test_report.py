@@ -133,7 +133,7 @@ for test_config in test_configs:
 
     rt_report = []
     golden_ref_file= ""
-    golden_ref_file = ref_outputs_base_dir+'/golden_ref.csv'
+    golden_ref_file = ref_outputs_base_dir+'/golden_ref_'+device+'.csv'
     with open(golden_ref_file, 'r') as f:
         ref_report = [{k:v for k, v in row.items()} for row in csv.DictReader(f, skipinitialspace=True)]
     if enable_debug:

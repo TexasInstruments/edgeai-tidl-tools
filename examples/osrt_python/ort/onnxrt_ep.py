@@ -191,7 +191,7 @@ def run_model(model, mIdx):
         image.save(output_images_folder + output_file_name, "JPEG") 
     else :
         gen_param_yaml(delegate_options['artifacts_folder'], config, int(height), int(width))
-    log = f'\n \nCompleted_Model : {mIdx+1:5d}, Name : {model:50s}, Total time : {total_proc_time/(i+1):10.1f}, Offload Time : {sub_graphs_time/(i+1):10.1f} , DDR RW MBs : 0, Output File : {output_file_name} \n \n ' #{classes} \n \n'
+    log = f'\n \nCompleted_Model : {mIdx+1:5d}, Name : {model:50s}, Total time : {total_proc_time/(i+1):10.2f}, Offload Time : {sub_graphs_time/(i+1):10.2f} , DDR RW MBs : 0, Output File : {output_file_name} \n \n ' #{classes} \n \n'
     print(log) 
     if ncpus > 1:
         sem.release()

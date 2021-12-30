@@ -1,0 +1,19 @@
+Name,Total time,Offload Time,DDR RW MBs,rt type
+cl-dlr-onnx_mobilenetv2,102.14,102.14,0,dlr-py
+cl-dlr-tflite_inceptionnetv3,1128.46,1128.45,0,dlr-py
+cl-dlr-onnx_mobilenetv2,95.107002,95.107002,0,dlr-cpp
+cl-dlr-tflite_inceptionnetv3,95.107002,95.107002,0,dlr-cpp
+cl-tfl-mobilenet_v1_1.0_224,102.14,102.14,0,tfl-py
+ss-tfl-deeplabv3_mnv2_ade20k_float,1128.46,1128.45,0,tfl-py
+od-tfl-ssd_mobilenet_v2_300_float,275.87,275.87,0,tfl-py
+ss-tfl-deeplabv3_mnv2_ade20k_float,214.4,0,0,tfl-cpp
+cl-tfl-mobilenet_v1_1.0_224,214.4,0,0,tfl-cpp
+od-tfl-ssd_mobilenet_v2_300_float,214.4,0,0,tfl-cpp
+ss-ort-deeplabv3lite_mobilenetv2,226.707001,226.707001,0,ort-cpp
+cl-ort-resnet18-v1,226.707001,226.707001,0,ort-cpp
+od-ort-ssd-lite_mobilenetv2_fpn,226.707001,226.707001,0,ort-cpp
+cl-ort-resnet18-v1,302.4,302.4,0,ort-py
+ss-ort-deeplabv3lite_mobilenetv2,898.8,898.7,0,ort-py
+od-ort-ssd-lite_mobilenetv2_fpn,712.7,712.7,0,ort-py
+
+
