@@ -21,7 +21,7 @@ download_model(models_configs, model_id)
 
 # model specifics
 model_path = models_configs[model_id]['model_path']
-model_input_name = 'input.1'
+model_input_name = 'input.1Net_IN'
 model_input_shape = (1, 3, 224, 224)
 model_input_dtype = 'float32'
 model_layout = 'NCHW'
@@ -80,16 +80,16 @@ def preprocess_for_onnx_mobilenetv2(image_path):
     # if your model is built with an input
     # normalization layer, then you might
     # need to skip this
-    img = img.astype('float32')
-    for mean, scale, ch in zip([123.675, 116.28, 103.53], [0.017125, 0.017507, 0.017429], range(img.shape[2])):
-            img[:,:,ch] = ((img.astype('float32')[:,:,ch] - mean) * scale)
+    img = img.astype('uint8')
+    #for mean, scale, ch in zip([123.675, 116.28, 103.53], [0.017125, 0.017507, 0.017429], range(img.shape[2])):
+    #        img[:,:,ch] = ((img.astype('float32')[:,:,ch] - mean) * scale)
      
     # convert HWC to NCHW
     img = np.expand_dims(np.transpose(img, (2,0,1)),axis=0)
     # hard coding config values 
     config = {
-            'mean': [123.675, 116.28, 103.53],
-            'std' :[0.017125, 0.017507, 0.017429],
+            'mean': [0, 0, 0],
+            'std' :[1, 1 , 1],
             'data_layout': 'NCHW',
             'resize' : [224, 224],
             'crop' : [224, 224],

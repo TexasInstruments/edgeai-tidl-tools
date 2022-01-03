@@ -111,7 +111,7 @@ def tidlTfliteModelOptimize(in_model_path, out_model_path, scaleList=[0.0078125,
     add_idx = addNewOperator(modelT, tflite_model.BuiltinOperator.BuiltinOperator.ADD)
     cast_idx = addNewOperator(modelT, tflite_model.BuiltinOperator.BuiltinOperator.CAST)
 
-    dequantize_idx = addNewOperator(modelT, tflite_model.BuiltinOperator.BuiltinOperator.DEQUANTIZE)
+    in_cast_idx = addNewOperator(modelT, tflite_model.BuiltinOperator.BuiltinOperator.CAST)
     #Find argmax in the network:
     argMax_idx = getArgMax_idx(modelT)
 
@@ -157,7 +157,7 @@ def tidlTfliteModelOptimize(in_model_path, out_model_path, scaleList=[0.0078125,
     modelT.subgraphs[0].tensors[new_tensor_idx].shape = modelT.subgraphs[0].tensors[modelT.subgraphs[0].operators[0].inputs[0]].shape
     modelT.subgraphs[0].operators[0].opcodeIndex = mul_idx
     modelT.subgraphs[0].operators[0].builtinOptionsType = tflite_model.BuiltinOptions.BuiltinOptions.MulOptions
-    modelT.subgraphs[0].operators[0].builtinOptions = None
+    modelT.subgraphs[0].operators[0].builtinOptions = tflite_model.MulOptions.MulOptionsT()
 
     #Add the ADD operator for mean:
     new_tensor = copy.deepcopy(modelT.subgraphs[0].tensors[modelT.subgraphs[0].operators[0].outputs[0]])
@@ -177,11 +177,11 @@ def tidlTfliteModelOptimize(in_model_path, out_model_path, scaleList=[0.0078125,
     modelT.subgraphs[0].tensors[new_tensor_idx].shape = modelT.subgraphs[0].tensors[modelT.subgraphs[0].operators[0].inputs[0]].shape
     modelT.subgraphs[0].operators[0].opcodeIndex = add_idx
     modelT.subgraphs[0].operators[0].builtinOptionsType = tflite_model.BuiltinOptions.BuiltinOptions.AddOptions
-    modelT.subgraphs[0].operators[0].builtinOptions = None
+    modelT.subgraphs[0].operators[0].builtinOptions = tflite_model.AddOptions.AddOptionsT()
 
     #Add the dequantize operator:
     new_tensor = copy.deepcopy(modelT.subgraphs[0].tensors[modelT.subgraphs[0].operators[0].outputs[0]])
-    new_tensor.name = bytearray((str(new_tensor.name, 'utf-8') + str("/Dequantize")),'utf-8')
+    new_tensor.name = bytearray((str(new_tensor.name, 'utf-8') + str("/InCast")),'utf-8')
     modelT.subgraphs[0].tensors.append(new_tensor)
     new_tensor_idx = len(modelT.subgraphs[0].tensors) - 1 
     new_buffer = copy.deepcopy(modelT.buffers[modelT.subgraphs[0].tensors[modelT.subgraphs[0].operators[0].outputs[0]].buffer])
@@ -195,9 +195,11 @@ def tidlTfliteModelOptimize(in_model_path, out_model_path, scaleList=[0.0078125,
     modelT.subgraphs[0].operators[0].inputs = [modelT.subgraphs[0].operators[1].inputs[0]]
     modelT.subgraphs[0].operators[1].inputs[0] = new_tensor_idx
     modelT.subgraphs[0].tensors[new_tensor_idx].shape = modelT.subgraphs[0].tensors[modelT.subgraphs[0].operators[0].inputs[0]].shape
-    modelT.subgraphs[0].operators[0].opcodeIndex = dequantize_idx
-    modelT.subgraphs[0].operators[0].builtinOptionsType = tflite_model.BuiltinOptions.BuiltinOptions.DequantizeOptions
-    modelT.subgraphs[0].operators[0].builtinOptions = None
+    modelT.subgraphs[0].operators[0].opcodeIndex = in_cast_idx
+    modelT.subgraphs[0].operators[0].builtinOptionsType = tflite_model.BuiltinOptions.BuiltinOptions.CastOptions
+    modelT.subgraphs[0].operators[0].builtinOptions = tflite_model.CastOptions.CastOptionsT()
+    modelT.subgraphs[0].operators[0].builtinOptions.inDataType = tflite_model.TensorType.TensorType.UINT8
+    modelT.subgraphs[0].tensors[new_tensor_idx].type  = tflite_model.TensorType.TensorType.FLOAT32
 
     #Detect and convert ArgMax's output data type:
     for operator in modelT.subgraphs[0].operators:
@@ -227,7 +229,8 @@ def tidlTfliteModelOptimize(in_model_path, out_model_path, scaleList=[0.0078125,
                 modelT.subgraphs[0].operators[new_op_idx].inputs[0] = new_tensor_idx
                 modelT.subgraphs[0].operators[new_op_idx].opcodeIndex = cast_idx
                 modelT.subgraphs[0].operators[new_op_idx].builtinOptionsType = tflite_model.BuiltinOptions.BuiltinOptions.CastOptions
-                modelT.subgraphs[0].operators[new_op_idx].builtinOptions = None
+                modelT.subgraphs[0].operators[new_op_idx].builtinOptions = tflite_model.CastOptions.CastOptionsT()
+                modelT.subgraphs[0].operators[new_op_idx].builtinOptions.outDataType = tflite_model.TensorType.TensorType.UINT8
 
 
     # Packs the object class into another flatbuffer.

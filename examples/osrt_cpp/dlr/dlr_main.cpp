@@ -357,6 +357,10 @@ namespace dlr
             {
                 img = preprocImage<float>(s->input_image_path, image_data, modelInfo->m_preProcCfg);
             }
+            else if (!strcmp(*input_type, "uint8"))
+            {
+                img = preprocImage<uint8_t>(s->input_image_path, (uint8_t*)image_data, modelInfo->m_preProcCfg);
+            }
             else
             {
                 LOG_ERROR("cannot handle input type %s yet", *input_type);

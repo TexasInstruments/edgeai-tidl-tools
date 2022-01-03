@@ -82,16 +82,16 @@ def preprocess_for_tflite_inceptionnetv3(image_path):
     # if your model is built with an input
     # normalization layer, then you might
     # need to skip this
-    img = img.astype('float32')
-    for mean, scale, ch in zip([128, 128, 128], [0.0078125, 0.0078125, 0.0078125], range(img.shape[2])):
-            img[:,:,ch] = ((img[:,:,ch] - mean) * scale)
+    img = img.astype('uint8')
+    #for mean, scale, ch in zip([128, 128, 128], [0.0078125, 0.0078125, 0.0078125], range(img.shape[2])):
+    #        img[:,:,ch] = ((img[:,:,ch] - mean) * scale)
      
     # convert HWC to NHWC
     img = np.expand_dims(img, axis=0)
     # hard coding config values 
     config = {
-            'mean': [123.675, 116.28, 103.53],
-            'std' :[0.017125, 0.017507, 0.017429],
+            'mean': [0, 0, 0],
+            'std' :[1, 1 , 1],
             'data_layout': 'NHWC',
             'resize' : [299, 299],
             'crop' : [299, 299],

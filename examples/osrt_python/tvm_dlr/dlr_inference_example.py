@@ -48,9 +48,9 @@ def preprocess_for_tflite_inceptionnetv3(image_path):
     # if your model is built with an input
     # normalization layer, then you might
     # need to skip this
-    img = img.astype('float32')
-    for mean, scale, ch in zip([128, 128, 128], [0.0078125, 0.0078125, 0.0078125], range(img.shape[2])):
-            img[:,:,ch] = ((img[:,:,ch] - mean) * scale)
+    img = img.astype('uint8')
+    #for mean, scale, ch in zip([128, 128, 128], [0.0078125, 0.0078125, 0.0078125], range(img.shape[2])):
+    #        img[:,:,ch] = ((img[:,:,ch] - mean) * scale)
      
     # convert HWC to NHWC
     img = np.expand_dims(img, axis=0)
@@ -91,9 +91,9 @@ def preprocess_for_onnx_mobilenetv2(image_path):
     # if your model is built with an input
     # normalization layer, then you might
     # need to skip this
-    img = img.astype('float32')
-    for mean, scale, ch in zip([123.675, 116.28, 103.53], [0.017125, 0.017507, 0.017429], range(img.shape[2])):
-            img[:,:,ch] = ((img.astype('float32')[:,:,ch] - mean) * scale)
+    img = img.astype('uint8')
+    #for mean, scale, ch in zip([123.675, 116.28, 103.53], [0.017125, 0.017507, 0.017429], range(img.shape[2])):
+    #        img[:,:,ch] = ((img.astype('float32')[:,:,ch] - mean) * scale)
      
     # convert HWC to NCHW
     img = np.expand_dims(np.transpose(img, (2,0,1)),axis=0)
@@ -154,6 +154,6 @@ model_output_directory = '../../../model-artifacts/cl-dlr-onnx_mobilenetv2'
 if platform.machine() == 'aarch64':
     model_output_directory = model_output_directory+'_device'
 
-model_create_and_run(model_output_directory, 'input.1',
+model_create_and_run(model_output_directory, 'input.1Net_IN',
                         preprocess_for_onnx_mobilenetv2,
                         postprocess_for_onnx_mobilenetv2, 1)
