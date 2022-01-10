@@ -107,6 +107,7 @@ include_directories(${PROJECT_SOURCE_DIR}
                     ${ONNXRT_INSTALL_DIR}/include/onnxruntime
                     ${ONNXRT_INSTALL_DIR}/include/onnxruntime/core/session                    
                     ${DLR_INSTALL_DIR}/include
+                    ${DLR_INSTALL_DIR}/3rdparty/tvm/3rdparty/dlpack/include
                     ${OPENCV_INSTALL_DIR}/modules/core/include
                     ${OPENCV_INSTALL_DIR}/modules/highgui/include
                     ${OPENCV_INSTALL_DIR}/modules/imgcodecs/include

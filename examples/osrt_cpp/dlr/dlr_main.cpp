@@ -60,6 +60,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "dlr_main.h"
+#include <dlpack/dlpack.h>
 
 namespace dlr
 {
@@ -343,12 +344,13 @@ namespace dlr
 
             LOG_INFO("Inference call started...\n");
             cv::Mat img;
-            float *image_data = (float *)malloc(sizeof(float) * wanted_height * wanted_width * wanted_channels);
+            float *image_data = (float *)TIDLRT_allocSharedMem(128, sizeof(float) * wanted_height * wanted_width * wanted_channels);
             if (image_data == NULL)
             {
                 LOG_ERROR("could not allocate space for image data \n");
                 return RETURN_FAIL;
             }
+            LOG_INFO("Input tetsor Pointer - %p \n", image_data);
             const char *input_type_feild[] = {};
             const char **input_type = &input_type_feild[0];
 
@@ -369,7 +371,18 @@ namespace dlr
             LOG_INFO("Classifying input:%s\n", s->input_image_path.c_str());
 
             /*Running inference */
-            if (SetDLRInput(&model, input_name, input_shape, image_data, 4) != 0)
+
+            DLTensor dltensor;
+            dltensor.ctx = {kDLCPU, 0};
+            dltensor.ndim    = 4;
+            dltensor.shape   = input_shape;
+            dltensor.strides = nullptr;
+            dltensor.byte_offset = 0;
+            dltensor.dtype = {kDLUInt, static_cast<uint8_t>(8), 1};
+            dltensor.data = image_data;
+
+            if (SetDLRInputTensorZeroCopy(&model, input_name, &dltensor) != 0)
+            //if (SetDLRInput(&model, input_name, input_shape, image_data, 4) != 0)
             {
                 LOG_ERROR("Could not set input:%s\n", input_name);
                 return RETURN_FAIL;
@@ -548,7 +561,7 @@ namespace dlr
                 LOG_INFO("Saving the image, FAILED\n");
                 return RETURN_FAIL;
             }
-
+            TIDLRT_freeSharedMem(image_data);
             LOG_INFO("\nCompleted_Model : 0, Name : %s, Total time : %f, Offload Time : 0 , DDR RW MBs : 0, Output File : %s \n \n",
                      modelInfo->m_postProcCfg.modelName.c_str(), avg_time, filename.c_str());
             return RETURN_SUCCESS;
