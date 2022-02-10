@@ -28,12 +28,20 @@ Below Custom Model compialtion and infrnce is supported only on PC emualtion:
 - ONNXRT Custom Model
 - TVM/NEO-AI-DLR Custom Model
 
-## EVM IP Address
+## Note your IP Address - To use after "Launch Notebook Session step"
+### If running on EVM
 - Connect to your EVM
 - Note your EVM IP address
     ```
     ifconfig
     ```
+### If running on Host Emulation
+- Use your host IP address to access the notebooks
+### If running on Host Emulation inside a docker
+- Run the docker container with -p option
+    Example: sudo docker run -it -p 8888:8888 your_docker_image
+- Use your host IP address to access the notebooks
+
 ## Setup
 - Prepare the Environment for the Model compilation by follwoing the setup section [here](../../
 README.md#setup)
@@ -50,6 +58,6 @@ README.md#setup)
   ```
 
 ## Open Jupyter Session in Browser
-- In a webbrowser open Jupiter notebook using EVM IP address and token
+- In a webbrowser open Jupiter notebook using EVM's or Host IP address and token
     - ex: http://192.168.1.199:8888/tree
     - if asked paste token

@@ -39,18 +39,18 @@ if [ $skip_setup -eq 0 ]
 then
 echo "Installing python modules
 This step is required only the first time"
-pip3 install numpy>=1.20
+pip3 install numpy==1.19.5
 pip3 install pycocotools
 pip3 install colorama
-#pip3 install tqdm
-#pip3 install pyyaml
 pip3 install pytest
 pip3 install notebook
-#pip3 install ipywidgets
+pip3 install ipywidgets
 pip3 install papermill --ignore-installed
 pip3 install munkres
 pip3 install json_tricks
 pip3 install git+https://github.com/jin-s13/xtcocoapi.git
+pip3 install h5py
+pip3 install scipy
 jupyter nbextension enable --py widgetsnbextension
 
 echo "# ##################################################################"
@@ -61,6 +61,7 @@ cd ../
 git clone --single-branch -b master https://github.com/TexasInstruments/edgeai-benchmark.git
 cd edgeai-benchmark
 pip3 install -e ./
+cd ../jupyter_notebooks
 fi
 
 if [ $skip_models_download -eq 0 ]
@@ -69,17 +70,22 @@ echo "# ##################################################################"
 echo "Download pre-compiled models
 For additional models visit: https://software-dl.ti.com/jacinto7/esd/modelzoo/latest/docs/html/index.html
 This step is required only the first time"
-cd ../jupyter_notebooks
 mkdir prebuilt-models
 mkdir prebuilt-models/8bits
 cd prebuilt-models/8bits
-wget https://software-dl.ti.com/jacinto7/esd/modelzoo/08_00_00_05/modelartifacts/8bits/cl-3410_tvmdlr_gluoncv-mxnet_mobilenetv2_1.0-symbol_json.tar.gz
-wget https://software-dl.ti.com/jacinto7/esd/modelzoo/08_00_00_05/modelartifacts/8bits/cl-0000_tflitert_mlperf_mobilenet_v1_1.0_224_tflite.tar.gz
-wget https://software-dl.ti.com/jacinto7/esd/modelzoo/08_00_00_05/modelartifacts/8bits/cl-6060_onnxrt_edgeai-tv_mobilenet_v1_20190906_onnx.tar.gz
-wget https://software-dl.ti.com/jacinto7/esd/modelzoo/08_00_00_05/modelartifacts/8bits/od-5020_tvmdlr_gluoncv-mxnet_yolo3_mobilenet1.0_coco-symbol_json.tar.gz
-wget https://software-dl.ti.com/jacinto7/esd/modelzoo/08_00_00_05/modelartifacts/8bits/od-2000_tflitert_mlperf_ssd_mobilenet_v1_coco_20180128_tflite.tar.gz
-wget https://software-dl.ti.com/jacinto7/esd/modelzoo/08_00_00_05/modelartifacts/8bits/od-8000_onnxrt_mlperf_ssd_resnet34-ssd1200_onnx.tar.gz
-wget https://software-dl.ti.com/jacinto7/esd/modelzoo/08_00_00_05/modelartifacts/8bits/ss-2580_tflitert_mlperf_deeplabv3_mnv2_ade20k32_float_tflite.tar.gz
+
+wget http://software-dl.ti.com/jacinto7/esd/modelzoo/08_01_00_05/modelartifacts/8bits/cl-0000_tflitert_mlperf_mobilenet_v1_1.0_224_tflite.tar.gz
+wget http://software-dl.ti.com/jacinto7/esd/modelzoo/08_01_00_05/modelartifacts/8bits/3dod-7100_onnxrt_mmdetection3d_lidar_point_pillars_496x432_onnx.tar.gz
+wget http://software-dl.ti.com/jacinto7/esd/modelzoo/08_01_00_05/modelartifacts/8bits/kd-7000_onnxrt_edgeai-mmpose_mobilenetv2_fpn_spp_udp_512_20210610_onnx.tar.gz
+wget http://software-dl.ti.com/jacinto7/esd/modelzoo/08_01_00_05/modelartifacts/8bits/cl-3410_tvmdlr_gluoncv-mxnet_mobilenetv2_1.0-symbol_json.tar.gz
+wget http://software-dl.ti.com/jacinto7/esd/modelzoo/08_01_00_05/modelartifacts/8bits/cl-6061_onnxrt_edgeai-tv_mobilenet_v1_20190906_512x512_onnx.tar.gz
+wget http://software-dl.ti.com/jacinto7/esd/modelzoo/08_01_00_05/modelartifacts/8bits/cl-6060_onnxrt_edgeai-tv_mobilenet_v1_20190906_onnx.tar.gz
+wget http://software-dl.ti.com/jacinto7/esd/modelzoo/08_01_00_05/modelartifacts/8bits/od-5020_tvmdlr_gluoncv-mxnet_yolo3_mobilenet1.0_coco-symbol_json.tar.gz
+wget http://software-dl.ti.com/jacinto7/esd/modelzoo/08_01_00_05/modelartifacts/8bits/od-8000_onnxrt_mlperf_ssd_resnet34-ssd1200_onnx.tar.gz
+wget http://software-dl.ti.com/jacinto7/esd/modelzoo/08_01_00_05/modelartifacts/8bits/od-2000_tflitert_mlperf_ssd_mobilenet_v1_coco_20180128_tflite.tar.gz
+wget http://software-dl.ti.com/jacinto7/esd/modelzoo/08_01_00_05/modelartifacts/8bits/ss-5720_tvmdlr_edgeai-tv_fpn_aspp_regnetx800mf_edgeailite_512x512_20210405_onnx.tar.gz
+wget http://software-dl.ti.com/jacinto7/esd/modelzoo/08_01_00_05/modelartifacts/8bits/ss-8690_onnxrt_edgeai-tv_fpn_aspp_regnetx400mf_edgeailite_384x384_20210314_outby4_onnx.tar.gz
+wget http://software-dl.ti.com/jacinto7/esd/modelzoo/08_01_00_05/modelartifacts/8bits/ss-2580_tflitert_mlperf_deeplabv3_mnv2_ade20k32_float_tflite.tar.gz
 
 find . -name "*.tar.gz" -exec tar --one-top-level -zxvf "{}" \;
 cd ../../
