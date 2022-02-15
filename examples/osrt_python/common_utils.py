@@ -512,7 +512,7 @@ models_configs = {
 
     'cl-ort-caffe_pelee_ssd' : {
         'model_path' : os.path.join(models_base_path, 'caffe_pelee_ssd.onnx'),
-        'source' : {'model_url': 'https://github.com/kumardesappan/ai-model-zoo/raw/main/models/vision/detection/voc2012/caffe/pelee/pelee_ssd.prototxt', 'opt': True,  'infer_shape' : False,
+        'source' : {'model_url': 'https://github.com/kumardesappan/ai-model-zoo/raw/main/models/vision/detection/voc2012/caffe/pelee/pelee_ssd.prototxt', 'opt': False,  'infer_shape' : False,
                     'caffe_model_url' : 'https://github.com/kumardesappan/ai-model-zoo/raw/main/models/vision/detection/voc2012/caffe/pelee/pelee_ssd.caffemodel', 
                     'meta_arch_url' : 'https://github.com/kumardesappan/ai-model-zoo/raw/main/models/vision/detection/voc2012/caffe/pelee/pelee_ssd_meta.prototxt',
                     'prototext' :   os.path.join(models_base_path, 'caffe_pelee_ssd.prototxt'), 'caffe_model' : os.path.join(models_base_path,'caffe_pelee_ssd.caffemodel') },
