@@ -126,7 +126,7 @@ def tidlOnnxModelOptimize(in_model_path, out_model_path, scaleList=[0.0078125,0.
         initList
         )
     #Construct Model:
-    #op.version = 11
+    op.version = 11
     model_def_noShape = helper.make_model(newGraph, producer_name='onnx-TIDL', opset_imports=[op])
     model_def = shape_inference.infer_shapes(model_def_noShape)
 

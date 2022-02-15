@@ -23,6 +23,11 @@ else :
     from scripts.tflite_model_tools import tflite_model_opt as tflOpt
     from scripts.onnx_model_tools   import onnx_model_opt as onnxOpt
 
+    from caffe2onnx.src.load_save_model import loadcaffemodel, saveonnxmodel
+    from caffe2onnx.src.caffe2onnx import Caffe2Onnx
+    from caffe2onnx.src.args_parser import parse_args
+    from caffe2onnx.src.utils import freeze
+
 artifacts_folder = '../../../model-artifacts/'
 output_images_folder = '../../../output_images/'
 
@@ -131,12 +136,18 @@ def gen_param_yaml(artifacts_folder_path, config, new_height, new_width):
     if (config['session_name'] == 'tflitert') or (config['session_name'] == 'onnxrt'):
         shutil.copy(config['model_path'], os.path.join(artifacts_folder_path,model_file_name))
 
-def download_model(models_configs, model_name):
-    
-    headers = {
-    'User-Agent': 'My User Agent 1.0',
-    'From': 'aid@ti.com'  # This is another valid field
-    }   
+headers = {
+'User-Agent': 'My User Agent 1.0',
+'From': 'aid@ti.com'  # This is another valid field
+}  
+
+def get_url_from_link_file(url):
+    if url.endswith('.link'):
+        r = requests.get(url, allow_redirects=True, headers=headers)
+        url = r.content.rstrip()
+    return url
+
+def download_model(models_configs, model_name): 
 
     if(model_name in models_configs.keys()):
         if('source' in models_configs[model_name].keys()):
@@ -148,9 +159,25 @@ def download_model(models_configs, model_name):
                     # Create a new directory because it does not exist 
                     os.makedirs(os.path.dirname(model_path))
 
-                print("Downloading  ", model_path)
-                r = requests.get(model_source['model_url'], allow_redirects=True, headers=headers)
-                open(model_path, 'wb').write(r.content)
+                if('original_model_type' in models_configs[model_name].keys()) and models_configs[model_name]['original_model_type'] == 'caffe':
+                    print("Downloading  ", model_source['prototext'])
+                    r = requests.get(get_url_from_link_file(model_source['model_url']), allow_redirects=True, headers=headers)
+                    open(model_source['prototext'], 'wb').write(r.content)
+
+                    print("Downloading  ", model_source['caffe_model'])
+                    r = requests.get(get_url_from_link_file(model_source['caffe_model_url']), allow_redirects=True, headers=headers)
+                    open(model_source['caffe_model'], 'wb').write(r.content)
+
+                    graph, params = loadcaffemodel(model_source['prototext'], model_source['caffe_model'])
+                    c2o = Caffe2Onnx(graph, params, model_path)
+                    onnxmodel = c2o.createOnnxModel()
+                    freeze(onnxmodel)
+                    saveonnxmodel(onnxmodel, model_path)
+
+                else:
+                    print("Downloading  ", model_path)
+                    r = requests.get(get_url_from_link_file(model_source['model_url']), allow_redirects=True, headers=headers)
+                    open(model_path, 'wb').write(r.content)
             
                 filename = os.path.splitext(model_path)
                 abs_path = os.path.realpath(model_path)
@@ -171,7 +198,7 @@ def download_model(models_configs, model_name):
                 meta_layers_names_list = models_configs[model_name]['meta_layers_names_list']
                 if(not os.path.isfile(meta_layers_names_list)):
                     print("Downloading  ", meta_layers_names_list)
-                    r = requests.get(model_source['meta_arch_url'], allow_redirects=True, headers=headers)
+                    r = requests.get(get_url_from_link_file(model_source['meta_arch_url']), allow_redirects=True, headers=headers)
                     open(meta_layers_names_list, 'wb').write(r.content)
     else :
         print(f'{model_name} ot found in availbale list of model configs - {models_configs.keys()}')
@@ -405,6 +432,115 @@ models_configs = {
         'num_classes': 1000,
         'session_name' : 'tvmdlr',
         'model_type': 'classification'
+    },
+    # Caffe Model - Would be converted ot ONNX
+    'cl-ort-caffe_mobilenet_v1' : {
+        'model_path' : os.path.join(models_base_path, 'caffe_mobilenet_v1.onnx'),
+        'source' : {'model_url': 'https://github.com/kumardesappan/ai-model-zoo/raw/main/models/vision/classification/imagenet1k/caffe/mobilenet/mobilenet_v1_prototext.link', 'opt': True,  'infer_shape' : False,
+                    'caffe_model_url' : 'https://github.com/kumardesappan/ai-model-zoo/raw/main/models/vision/classification/imagenet1k/caffe/mobilenet/mobilenet_v1_caffemodel.link', 
+                    'prototext' :   os.path.join(models_base_path, 'caffe_mobilenet_v1.prototxt'), 'caffe_model' : os.path.join(models_base_path,'caffe_mobilenet_v1.caffemodel') },
+        'mean': [103.94, 116.78, 123.68],
+        'std' : [0.017125, 0.017507, 0.017429],
+        'num_images' : numImages,
+        'num_classes': 1000,
+        'session_name' : 'onnxrt' ,
+        'model_type': 'classification',
+        'original_model_type': 'caffe'
+    },
+    
+    'cl-ort-caffe_mobilenet_v2' : {
+        'model_path' : os.path.join(models_base_path, 'caffe_mobilenet_v2.onnx'),
+        'source' : {'model_url': 'https://github.com/kumardesappan/ai-model-zoo/raw/main/models/vision/classification/imagenet1k/caffe/mobilenet/mobilenet_v2_prototext.link', 'opt': True,  'infer_shape' : False,
+                    'caffe_model_url' : 'https://github.com/kumardesappan/ai-model-zoo/raw/main/models/vision/classification/imagenet1k/caffe/mobilenet/mobilenet_v2_caffemodel.link', 
+                    'prototext' :   os.path.join(models_base_path, 'caffe_mobilenet_v2.prototxt'), 'caffe_model' : os.path.join(models_base_path,'caffe_mobilenet_v2.caffemodel') },
+        'mean': [103.94, 116.78, 123.68],
+        'std' : [0.017125, 0.017507, 0.017429],
+        'num_images' : numImages,
+        'num_classes': 1000,
+        'session_name' : 'onnxrt' ,
+        'model_type': 'classification',
+        'original_model_type': 'caffe'
+    },
+
+
+    'cl-ort-caffe_squeezenet_v1_1' : {
+        'model_path' : os.path.join(models_base_path, 'caffe_squeezenet_v1_1.onnx'),
+        'source' : {'model_url': 'https://github.com/kumardesappan/ai-model-zoo/raw/main/models/vision/classification/imagenet1k/caffe/squeezenet/squeezenet_v1_1.prototext', 'opt': True,  'infer_shape' : False,
+                    'caffe_model_url' : 'https://github.com/kumardesappan/ai-model-zoo/raw/main/models/vision/classification/imagenet1k/caffe/squeezenet/squeezenet_v1_1_caffemodel.link', 
+                    'prototext' :   os.path.join(models_base_path, 'caffe_squeezenet_v1_1.prototxt'), 'caffe_model' : os.path.join(models_base_path,'caffe_squeezenet_v1_1.caffemodel') },
+        'mean': [103.94, 116.78, 123.68],
+        'std' : [1, 1, 1],
+        'num_images' : numImages,
+        'num_classes': 1000,
+        'session_name' : 'onnxrt' ,
+        'model_type': 'classification',
+        'original_model_type': 'caffe'
+    },
+
+    'cl-ort-caffe_resnet10' : {
+        'model_path' : os.path.join(models_base_path, 'caffe_resnet10.onnx'),
+        'source' : {'model_url': 'https://github.com/kumardesappan/ai-model-zoo/raw/main/models/vision/classification/imagenet1k/caffe/resnet10/deploy.prototxt', 'opt': True,  'infer_shape' : False,
+                    'caffe_model_url' : 'https://github.com/kumardesappan/ai-model-zoo/raw/main/models/vision/classification/imagenet1k/caffe/resnet10/resnet10_cvgj_iter_320000.caffemodel', 
+                    'prototext' :   os.path.join(models_base_path, 'caffe_resnet10.prototxt'), 'caffe_model' : os.path.join(models_base_path,'caffe_resnet10.caffemodel') },
+        'mean': [0,0,0],
+        'std' : [1, 1, 1],
+        'num_images' : numImages,
+        'num_classes': 1000,
+        'session_name' : 'onnxrt' ,
+        'model_type': 'classification',
+        'original_model_type': 'caffe'
+    },
+
+    'cl-ort-caffe_mobilenetv1_ssd' : {
+        'model_path' : os.path.join(models_base_path, 'caffe_mobilenetv1_ssd.onnx'),
+        'source' : {'model_url': 'https://github.com/kumardesappan/ai-model-zoo/raw/main/models/vision/detection/voc2012/caffe/mobilenet_ssd/mobilenet_v1_ssd_prototext.link', 'opt': False,  'infer_shape' : False,
+                    'caffe_model_url' : 'https://github.com/kumardesappan/ai-model-zoo/raw/main/models/vision/detection/voc2012/caffe/mobilenet_ssd/mobilenet_v1_ssd_caffemodel.link', 
+                    'meta_arch_url' : 'https://github.com/kumardesappan/ai-model-zoo/raw/main/models/vision/detection/voc2012/caffe/mobilenet_ssd/mobilenet_v1_ssd_meta.prototxt',
+                    'prototext' :   os.path.join(models_base_path, 'caffe_mobilenetv1_ssd.prototxt'), 'caffe_model' : os.path.join(models_base_path,'caffe_mobilenetv1_ssd.caffemodel') },
+        'mean': [103.94, 116.78, 123.68],
+        'std' : [0.017125, 0.017507, 0.017429],
+        'num_images' : numImages,
+        'num_classes': 91,
+        'model_type': 'od',
+        'od_type' : 'SSD',
+        'framework' : 'MMDetection',
+        'meta_layers_names_list' : os.path.join(models_base_path, 'caffe_mobilenetv1_ssd_meta.prototxt'),
+        'session_name' : 'onnxrt' ,
+        'meta_arch_type' : 3,
+        'original_model_type': 'caffe'
+    },
+
+    'cl-ort-caffe_pelee_ssd' : {
+        'model_path' : os.path.join(models_base_path, 'caffe_pelee_ssd.onnx'),
+        'source' : {'model_url': 'https://github.com/kumardesappan/ai-model-zoo/raw/main/models/vision/detection/voc2012/caffe/pelee/pelee_ssd.prototxt', 'opt': True,  'infer_shape' : False,
+                    'caffe_model_url' : 'https://github.com/kumardesappan/ai-model-zoo/raw/main/models/vision/detection/voc2012/caffe/pelee/pelee_ssd.caffemodel', 
+                    'meta_arch_url' : 'https://github.com/kumardesappan/ai-model-zoo/raw/main/models/vision/detection/voc2012/caffe/pelee/pelee_ssd_meta.prototxt',
+                    'prototext' :   os.path.join(models_base_path, 'caffe_pelee_ssd.prototxt'), 'caffe_model' : os.path.join(models_base_path,'caffe_pelee_ssd.caffemodel') },
+        'mean': [103.94, 116.78, 123.68],
+        'std' : [0.017125, 0.017507, 0.017429],
+        'num_images' : numImages,
+        'num_classes': 91,
+        'model_type': 'od',
+        'od_type' : 'SSD',
+        'framework' : 'MMDetection',
+        'meta_layers_names_list' : os.path.join(models_base_path, 'caffe_pelee_ssd_meta.prototxt'),
+        'session_name' : 'onnxrt' ,
+        'meta_arch_type' : 3,
+        'original_model_type': 'caffe'
+    },
+
+    'cl-ort-caffe_erfnet' : {
+        'model_path' : os.path.join(models_base_path, 'caffe_erfnet.onnx'),
+        'source' : {'model_url': 'https://github.com/kumardesappan/ai-model-zoo/raw/main/models/vision/segmentation/cityscapes/caffe/erfnet/erfnet.prototxt', 'opt': False,  'infer_shape' : False,
+                    'caffe_model_url' : 'https://github.com/kumardesappan/ai-model-zoo/raw/main/models/vision/segmentation/cityscapes/caffe/erfnet/erfnet_caffemodel.link', 
+                    'prototext' :   os.path.join(models_base_path, 'caffe_erfnet.prototxt'), 'caffe_model' : os.path.join(models_base_path,'caffe_erfnet.caffemodel') },
+        'mean': [0,0,0],
+        'std' : [1,1,1],
+        'num_images' : numImages,
+        'num_classes': 19,
+        'session_name' : 'onnxrt' ,
+        'model_type': 'seg',
+        'original_model_type': 'caffe'
     },
 }
 
