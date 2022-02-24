@@ -5,106 +5,124 @@ def voxelization(lidar_data=[], params=[], voxel_data=[], indices=[], scale_fact
 
     scratch_1 =[]
     scratch_2 =[]
+    enable_pre_proc = True
 
-    for i, data in enumerate(lidar_data):
+    if enable_pre_proc == True:
+        for i, data in enumerate(lidar_data):
 
-        x = data[0]
-        y = data[1]
-        z = data[2]
+            x = data[0]
+            y = data[1]
+            z = data[2]
 
-        if ((x >= params['min_x']) and (x < params['max_x']) and (y >= params['min_y']) and (y < params['max_y']) and
-            (z >= params['min_z']) and (z < params['max_z'])):
+            if ((x > params['min_x']) and (x < params['max_x']) and (y > params['min_y']) and (y < params['max_y']) and
+                (z > params['min_z']) and (z < params['max_z'])):
 
-            x_id = (int)(((x - params['min_x']) / params['voxel_size_x']))
-            y_id = (int)(((y - params['min_y']) / params['voxel_size_y']))
-            scratch_1.append(y_id * params['num_voxel_x'] + x_id)
-        else:
-            scratch_1.append(-1 - i) # filing unique non valid index
-
-    num_points = np.zeros(params['nw_max_num_voxels'],dtype=int)
-
-    # Find unique indices
-    # There will be voxel which doesnt have any 3d point, hence collecting the voxel ids for valid voxels*/
-    # scratch_2 is the index in valid voxels
-    num_non_empty_voxels = 0
-
-    for i in range(len(lidar_data)):
-        if (scratch_1[i] >= 0):
-
-            find_voxel = scratch_1[i] in scratch_1[:i]
-
-            if find_voxel == False:
-                scratch_2.append(num_non_empty_voxels) # this voxel idx has come first time, hence allocate a new index for this
-                indices[num_non_empty_voxels] = scratch_1[i]
-                num_non_empty_voxels += 1
+                x_id = (int)(((x - params['min_x']) / params['voxel_size_x']))
+                y_id = (int)(((y - params['min_y']) / params['voxel_size_y']))
+                scratch_1.append(y_id * params['num_voxel_x'] + x_id)
             else:
-                k = scratch_1[:i].index(scratch_1[i])
-                scratch_2.append(scratch_2[k]) #already this voxel is having one id hence reuse it
-        else:
-            scratch_2.append(None)
+                scratch_1.append(-1 - i) # filing unique non valid index
 
-    #Even though current_voxels is less than params['nw_max_num_voxels'], then also arrange
-    #    the data as per maximum number of voxels.
+        num_points = np.zeros(params['nw_max_num_voxels'],dtype=int)
 
-    line_pitch = params['nw_max_num_voxels']
-    channel_pitch = params['max_points_per_voxel'] * line_pitch
-    j = 0
-    tot_num_pts = 0
+        # Find unique indices
+        # There will be voxel which doesnt have any 3d point, hence collecting the voxel ids for valid voxels*/
+        # scratch_2 is the index in valid voxels
+        num_non_empty_voxels = 0
+        for i in range(len(lidar_data)):
+            if (scratch_1[i] >= 0):
 
-    for i in range(len(lidar_data)):
-        if (scratch_1[i] >= 0):
-            j = scratch_2[i] #voxel index
-            if(num_points[j]<params['max_points_per_voxel']):
-                voxel_data[0][num_points[j]][j] = lidar_data[i][0] * scale_fact
-                voxel_data[1][num_points[j]][j] = lidar_data[i][1] * scale_fact
-                voxel_data[2][num_points[j]][j] = lidar_data[i][2] * scale_fact
-                voxel_data[3][num_points[j]][j] = lidar_data[i][3] * scale_fact
-                num_points[j] = num_points[j] + 1
+                find_voxel = scratch_1[i] in scratch_1[:i]
+
+                if find_voxel == False:
+                    scratch_2.append(num_non_empty_voxels) # this voxel idx has come first time, hence allocate a new index for this
+                    indices[0][num_non_empty_voxels] = scratch_1[i]
+                    num_non_empty_voxels += 1
+                else:
+                    k = scratch_1[:i].index(scratch_1[i])
+                    scratch_2.append(scratch_2[k]) #already this voxel is having one id hence reuse it
             else:
-                tot_num_pts = tot_num_pts+1
+                scratch_2.append(None)
 
-    line_pitch = params['nw_max_num_voxels']
-    channel_pitch = params['max_points_per_voxel'] * line_pitch
-    x_offset = params['voxel_size_x'] / 2 + params['min_x']
-    y_offset = params['voxel_size_y'] / 2 + params['min_y']
+        #Even though current_voxels is less than params['nw_max_num_voxels'], then also arrange
+        #    the data as per maximum number of voxels.
 
-    for i in range(num_non_empty_voxels):
-        x = 0
-        y = 0
-        z = 0
+        line_pitch = params['nw_max_num_voxels']
+        channel_pitch = params['max_points_per_voxel'] * line_pitch
+        j = 0
+        tot_num_pts = 0
 
-        for j in range(num_points[i]):
-            x += voxel_data[0][j][i]
-            y += voxel_data[1][j][i]
-            z += voxel_data[2][j][i]
+        for i in range(len(lidar_data)):
+            if (scratch_1[i] >= 0):
+                j = scratch_2[i] #voxel index
+                if(num_points[j]<params['max_points_per_voxel']):
+                    voxel_data[0][num_points[j]][j] = lidar_data[i][0] * scale_fact
+                    voxel_data[1][num_points[j]][j] = lidar_data[i][1] * scale_fact
+                    voxel_data[2][num_points[j]][j] = lidar_data[i][2] * scale_fact
+                    voxel_data[3][num_points[j]][j] = lidar_data[i][3] * scale_fact
+                    num_points[j] = num_points[j] + 1
+                else:
+                    tot_num_pts = tot_num_pts+1
 
-        x_avg = x / num_points[i]
-        y_avg = y / num_points[i]
-        z_avg = z / num_points[i]
+        line_pitch = params['nw_max_num_voxels']
+        channel_pitch = params['max_points_per_voxel'] * line_pitch
+        x_offset = params['voxel_size_x'] / 2 + params['min_x']
+        y_offset = params['voxel_size_y'] / 2 + params['min_y']
 
-        voxel_center_y = (int)(indices[i] / params['num_voxel_x'])
-        voxel_center_x = (int)(indices[i] - ((int)(voxel_center_y)) * params['num_voxel_x'])
+        for i in range(num_non_empty_voxels):
+            x = 0
+            y = 0
+            z = 0
 
-        voxel_center_x *= params['voxel_size_x']
-        voxel_center_x += x_offset
+            for j in range(num_points[i]):
+                x += voxel_data[0][j][i]
+                y += voxel_data[1][j][i]
+                z += voxel_data[2][j][i]
 
-        voxel_center_y *= params['voxel_size_y']
-        voxel_center_y += y_offset
+            x_avg = x / num_points[i]
+            y_avg = y / num_points[i]
+            z_avg = z / num_points[i]
 
-        for j in range(num_points[i]):
-            voxel_data[4][j][i] = voxel_data[0][j][i] - x_avg
-            voxel_data[5][j][i] = voxel_data[1][j][i] - y_avg
-            voxel_data[6][j][i] = voxel_data[2][j][i] - z_avg
-            voxel_data[7][j][i] = voxel_data[0][j][i] - voxel_center_x * scale_fact
-            voxel_data[8][j][i] = voxel_data[1][j][i] - voxel_center_y * scale_fact
+            voxel_center_y = (int)(indices[0][i] / params['num_voxel_x'])
+            voxel_center_x = (int)(indices[0][i] - ((int)(voxel_center_y)) * params['num_voxel_x'])
 
-        #/*looks like bug in python mmdetection3d code, hence below code is to mimic the mmdetect behaviour*/
-        for j in range (num_points[i]):
-            voxel_data[0][j][i] = voxel_data[7][j][i]
-            voxel_data[1][j][i] = voxel_data[8][j][i]
 
-    # Number of points in each voxel is not given to algorithm, here '-1' acts as marker position, as zero is valid entry
-    indices[num_non_empty_voxels] = -1
+            voxel_center_x *= params['voxel_size_x']
+            voxel_center_x += x_offset
+
+            voxel_center_y *= params['voxel_size_y']
+            voxel_center_y += y_offset
+
+            for j in range(num_points[i]):
+                voxel_data[4][j][i] = voxel_data[0][j][i] - x_avg
+                voxel_data[5][j][i] = voxel_data[1][j][i] - y_avg
+                voxel_data[6][j][i] = voxel_data[2][j][i] - z_avg
+                voxel_data[7][j][i] = voxel_data[0][j][i] - voxel_center_x * scale_fact
+                voxel_data[8][j][i] = voxel_data[1][j][i] - voxel_center_y * scale_fact
+
+            #/*looks like bug in python mmdetection3d code, hence below code is to mimic the mmdetect behaviour*/
+            for j in range (num_points[i]):
+                voxel_data[0][j][i] = voxel_data[7][j][i]
+                voxel_data[1][j][i] = voxel_data[8][j][i]
+
+        # Number of points in each voxel is not given to algorithm, here '-1' acts as marker position, as zero is valid entry
+        indices[0][num_non_empty_voxels] = -1
+        indices[1:64] = indices[0]
+
+        voxel_data = voxel_data.astype("int32")
+        voxel_data = voxel_data.astype("float32")
+
+    else:
+
+        voxel_data = np.fromfile("voxel_input0_f32.bin", dtype='float32')
+        indices = np.fromfile("indices_input2_f32.bin", dtype='float32')
+
+        voxel_data = input0.astype("int32")
+        voxel_data = input0.astype("float32")
+
+        voxel_data = input0.reshape(1, 9, params['max_points_per_voxel'], params['nw_max_num_voxels'])
+        indices = input2.reshape(1, 64, params['nw_max_num_voxels']).astype('int32')
+
 
 #https://github.com/open-mmlab/mmdetection3d/
 def boxes3d_to_corners3d_lidar(boxes3d, bottom_center=True):

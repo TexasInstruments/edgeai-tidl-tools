@@ -510,7 +510,8 @@ def get_eval_configs(task_type, runtime_type, num_quant_bits, last_artifacts_id=
         'session_type_dict' : session_type_dict,
         'run_import' : False,
         'model_selection': model_selection,
-        'experimental_models' : experimental_models
+        'experimental_models' : experimental_models,
+        'tidl_offload' : True
     }
     settings = ConfigSettings(settings_dict)
     prebuilt_configs = select_configs(settings,os.path.join(prebuilts_dir, f'{num_quant_bits}bits'), runtime_type)
