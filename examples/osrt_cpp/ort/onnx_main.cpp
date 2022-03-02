@@ -307,9 +307,12 @@ namespace onnx
             {
                 LOG_INFO("accelerated mode\n");
                 c_api_tidl_options *options = (c_api_tidl_options *)malloc(sizeof(c_api_tidl_options));
+                OrtStatus *def_status = OrtSessionsOptionsSetDefault_Tidl(options);
                 LOG_INFO("artifacts: %s\n", artifacts_path.c_str());
                 strcpy(options->artifacts_folder, artifacts_path.c_str());
-                options->debug_level = 0;
+                // options->debug_level = 0;
+                // options->max_pre_empt_delay = 6.0;
+                // options->priority = 2;
                 if (options == NULL)
                 {
                     LOG_ERROR("failed to allocate c_api_tidl_options \n");
