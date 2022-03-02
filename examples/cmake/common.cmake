@@ -187,6 +187,7 @@ function(build_app)
                           post_process
                           pre_process
                           utils
+                          utils_adv
                           ${lobs}
                           -Wl,--end-group)
 endfunction()
