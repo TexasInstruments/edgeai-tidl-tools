@@ -171,6 +171,7 @@ in the following table.
 | max_num_subgraphs  | offload up to \<num\> tidl subgraphs, default is 16     |
 | deny_list          | deny TVM relay ops for TIDL offloading, comma separated string, default is "" |
 | accuracy_level     | 0 for simple calibration, 1 for advanced bias calibration, 9 for user defined, default is 1 |
+| c7x_codegen        | (TVM Only) 0 for running TIDL-unsupported layers on Arm, 1 for running on C7x, default is 0 |
 | ti_internal_nc_flag| internal use only , default is 0x641                    |
 | advanced_options   | a dictionary to overwrite default calibration options, default is {} |
 | **advanced_options Keys** | (if not specified, defaults are used)            |
@@ -186,6 +187,12 @@ in the following table.
 | 'bias_calibration'        | 0 for disable, 1 for enable                      |
 | 'channel_wise_quantization' | 0 for disable, 1 for enable                    |
 
+Note that the TVM-only feature, running TIDL-unsupported layers on C7x with parameter
+"c7x_codegen=1", requires Processor SDK 8.2 or newer.
+This feature has only been validated with selected models in TI's Edgeai-benchmark
+that are using the TVM flow.  We will continue to work on this feature
+to improve the operator coverage and generate more performant C7x code.  If your model encounters
+problem with this feature, please set "c7x_codegen=0" and run the TIDL-unsupported layers on Arm.
 
 ## Trouble Shooting
 Refre this [Troubel Shooting](../../docs/tidl_osr_debug.md) section if any issues observed during compialtion of custom models

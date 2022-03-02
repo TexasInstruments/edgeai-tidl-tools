@@ -434,6 +434,15 @@ models_configs = {
         'session_name' : 'tvmdlr',
         'model_type': 'classification'
     },
+    'cl-dlr-mxnet_mobilenetv3_large' : {
+        'model_path' : os.path.join(models_base_path, 'mobilenetv3_large'),
+        'mean': [127.5, 127.5, 127.5],
+        'std' : [1/127.5, 1/127.5, 1/127.5],
+        'num_images' : numImages,
+        'num_classes': 1000,
+        'session_name' : 'tvmdlr',
+        'model_type': 'classification'
+    },
     # Caffe Model - Would be converted ot ONNX
     'cl-ort-caffe_mobilenet_v1' : {
         'model_path' : os.path.join(models_base_path, 'caffe_mobilenet_v1.onnx'),
