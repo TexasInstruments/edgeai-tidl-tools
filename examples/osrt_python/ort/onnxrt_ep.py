@@ -19,7 +19,10 @@ from common_utils import *
 
 required_options = {
 "tidl_tools_path":tidl_tools_path,
-"artifacts_folder":artifacts_folder
+"artifacts_folder":artifacts_folder,
+# "priority":0,
+#delay in ms
+# "max_pre_empt_delay":10
 }
 
 parser = argparse.ArgumentParser()
@@ -70,22 +73,28 @@ def get_benchmark_output(interpreter):
     return copy_time, proc_time, totaltime
 
 
-def infer_image(sess, image_file, config):
+def infer_image(sess, image_files, config):
   input_details = sess.get_inputs()
   input_name = input_details[0].name
   floating_model = (input_details[0].type == 'tensor(float)')
   height = input_details[0].shape[2]
   width  = input_details[0].shape[3]
-  img    = Image.open(image_file).convert('RGB').resize((width, height), PIL.Image.LANCZOS)
-  #img    = Image.open(image_file).convert('RGB').resize((416,416))
-  input_data = np.expand_dims(img, axis=0)
-  input_data = np.transpose(input_data, (0, 3, 1, 2))
-
+  channel = input_details[0].shape[1]
+  batch  = input_details[0].shape[0]
+  imgs= []
+  shape = [batch, channel, height, width]
+  input_data = np.zeros(shape)
+  for i in range(batch):
+      imgs.append(Image.open(image_files[i]).convert('RGB').resize((width, height), PIL.Image.LANCZOS))
+      temp_input_data = np.expand_dims(imgs[i], axis=0)
+      temp_input_data = np.transpose(temp_input_data, (0, 3, 1, 2))  
+      input_data[i] = temp_input_data[0] 
   if floating_model:
     input_data = np.float32(input_data)
     for mean, scale, ch in zip(config['mean'], config['std'], range(input_data.shape[1])):
         input_data[:,ch,:,:] = ((input_data[:,ch,:,:]- mean) * scale)
   else:
+    input_data = np.uint8(input_data)
     config['mean'] = [0, 0, 0]
     config['std']  = [1, 1, 1]
   
@@ -99,7 +108,7 @@ def infer_image(sess, image_file, config):
   copy_time, sub_graphs_proc_time, totaltime = get_benchmark_output(sess)
   proc_time = totaltime - copy_time
 
-  return img, output, proc_time, sub_graphs_proc_time, height, width
+  return imgs, output, proc_time, sub_graphs_proc_time, height, width
 
 def run_model(model, mIdx):
     print("\nRunning_Model : ", model, " \n")
@@ -165,7 +174,14 @@ def run_model(model, mIdx):
     # run session
     for i in range(numFrames):
         #img, output, proc_time, sub_graph_time = infer_image(sess, input_image[i%len(input_image)], config)
-        img, output, proc_time, sub_graph_time, height, width = infer_image(sess, input_image[i%len(input_image)], config)
+        start_index = i%len(input_image)
+        input_details = sess.get_inputs()
+        batch = input_details[0].shape[0]
+        input_images = []
+        # for batch processing diff image needed for a single  input 
+        for j in range(batch):
+            input_images.append(input_image[(start_index+j)%len(input_image)])
+        imgs, output, proc_time, sub_graph_time, height, width  = infer_image(sess, input_images, config)
         total_proc_time = total_proc_time + proc_time if ('total_proc_time' in locals()) else proc_time
         sub_graphs_time = sub_graphs_time + sub_graph_time if ('sub_graphs_time' in locals()) else sub_graph_time
     
@@ -175,20 +191,29 @@ def run_model(model, mIdx):
     # output post processing
     output_file_name = "py_out_"+model+'_'+os.path.basename(input_image[i%len(input_image)])
     if(args.compile == False):  # post processing enabled only for inference
+        images = []
         if config['model_type'] == 'classification':
-            classes, image = get_class_labels(output[0],img)
-            print("\n", classes)
+            for j in range(batch):
+                classes, image = get_class_labels(output[0][j],imgs[j])
+                print("\n", classes)
+                images.append(image)
         elif config['model_type'] == 'od':
-            classes, image = det_box_overlay(output, img, config['od_type'], config['framework'])
+             for j in range(batch):
+                classes, image = det_box_overlay(output, imgs[j], config['od_type'], config['framework'])
+                images.append(image)
+            
         elif config['model_type'] == 'seg':
-            classes, image = seg_mask_overlay(output[0], img)
+            for j in range(batch):
+                classes, image = seg_mask_overlay(output[0][j],imgs[j])
+                images.append(image)
         else:
             print("Not a valid model type")
-
-        print("\nSaving image to ", output_images_folder)
-        if not os.path.exists(output_images_folder):
-            os.makedirs(output_images_folder)
-        image.save(output_images_folder + output_file_name, "JPEG") 
+        for j in range(batch):
+            output_file_name = "py_out_"+model+'_'+os.path.basename(input_images[j])
+            print("\nSaving image to ", output_images_folder)
+            if not os.path.exists(output_images_folder):
+                os.makedirs(output_images_folder)
+            images[j].save(output_images_folder + output_file_name, "JPEG") 
     else :
         gen_param_yaml(delegate_options['artifacts_folder'], config, int(height), int(width))
     log = f'\n \nCompleted_Model : {mIdx+1:5d}, Name : {model:50s}, Total time : {total_proc_time/(i+1):10.2f}, Offload Time : {sub_graphs_time/(i+1):10.2f} , DDR RW MBs : 0, Output File : {output_file_name} \n \n ' #{classes} \n \n'
@@ -199,8 +224,7 @@ def run_model(model, mIdx):
 
 #models = models_configs.keys()
 
-models = ['cl-ort-resnet18-v1', 'ss-ort-deeplabv3lite_mobilenetv2', 'od-ort-ssd-lite_mobilenetv2_fpn', 'cl-ort-caffe_squeezenet_v1_1']
-
+models = ['cl-ort-resnet18-v1', 'ss-ort-deeplabv3lite_mobilenetv2', 'od-ort-ssd-lite_mobilenetv2_fpn']
 log = f'\nRunning {len(models)} Models - {models}\n'
 print(log)
 
