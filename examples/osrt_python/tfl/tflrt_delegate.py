@@ -18,7 +18,9 @@ from common_utils import *
 
 required_options = {
 "tidl_tools_path":tidl_tools_path,
-"artifacts_folder":artifacts_folder
+"artifacts_folder":artifacts_folder,
+# "priority":2,
+# "max_pre_empt_delay":10
 }
 parser = argparse.ArgumentParser()
 parser.add_argument('-c','--compile', action='store_true', help='Run in Model compilation mode')
@@ -65,26 +67,34 @@ def get_benchmark_output(interpreter):
 
 
 
-def infer_image(interpreter, image_file, config):
+def infer_image(interpreter, image_files, config):
   input_details = interpreter.get_input_details()
   output_details = interpreter.get_output_details()
   floating_model = input_details[0]['dtype'] == np.float32
+  batch = input_details[0]['shape'][0]
   height = input_details[0]['shape'][1]
   width  = input_details[0]['shape'][2]
+  channel = input_details[0]['shape'][3]
   new_height = height  #valid height for modified resolution for given network
   new_width = width  #valid width for modified resolution for given network
-  img    = Image.open(image_file).convert('RGB').resize((new_width, new_height), PIL.Image.LANCZOS)
-  input_data = np.expand_dims(img, axis=0)
-
+  imgs    = []
+ # copy image data in input_data if num_batch is more than 1 
+  shape = [batch, new_height, new_width, channel]
+  input_data = np.zeros(shape)
+  for i in range(batch):
+      imgs.append(Image.open(image_files[i]).convert('RGB').resize((new_width, new_height), PIL.Image.LANCZOS))
+      temp_input_data = np.expand_dims(imgs[i], axis=0)  
+      input_data[i] = temp_input_data[0] 
   if floating_model:
     input_data = np.float32(input_data)
     for mean, scale, ch in zip(config['mean'], config['std'], range(input_data.shape[3])):
         input_data[:,:,:, ch] = ((input_data[:,:,:, ch]- mean) * scale)
   else:
+    input_data = np.uint8(input_data)
     config['mean'] = [0, 0, 0]
     config['std']  = [1, 1, 1]
 
-  interpreter.resize_tensor_input(input_details[0]['index'], [1, new_height, new_width, 3])
+  interpreter.resize_tensor_input(input_details[0]['index'], [batch, new_height, new_width, channel])
   interpreter.allocate_tensors()
   interpreter.set_tensor(input_details[0]['index'], input_data)
   
@@ -97,7 +107,7 @@ def infer_image(interpreter, image_file, config):
   proc_time = proc_time - copy_time
 
   outputs = [interpreter.get_tensor(output_detail['index']) for output_detail in output_details]
-  return img, outputs, proc_time, sub_graphs_proc_time, ddr_write, ddr_read, new_height, new_width
+  return imgs, outputs, proc_time, sub_graphs_proc_time, ddr_write, ddr_read, new_height, new_width
 
 def run_model(model, mIdx):
     print("\nRunning_Model : ", model)
@@ -154,32 +164,47 @@ def run_model(model, mIdx):
     
     # run interpreter
     for i in range(numFrames):
-        img, output, proc_time, sub_graph_time, ddr_write, ddr_read, new_height, new_width  = infer_image(interpreter, input_image[i%len(input_image)], config)
+        start_index = i%len(input_image)
+        input_details = interpreter.get_input_details()
+        batch = input_details[0]['shape'][0]
+        input_images = []
+        #for batch > 1 input images will be more than one in single input tensor
+        for j in range(batch):
+            input_images.append(input_image[(start_index+j)%len(input_image)])
+        imgs, output, proc_time, sub_graph_time, ddr_write, ddr_read, new_height, new_width  = infer_image(interpreter, input_images, config)
         total_proc_time = total_proc_time + proc_time if ('total_proc_time' in locals()) else proc_time
         sub_graphs_time = sub_graphs_time + sub_graph_time if ('sub_graphs_time' in locals()) else sub_graph_time
         total_ddr_write = total_ddr_write + ddr_write if ('total_ddr_write' in locals()) else ddr_write
         total_ddr_read  = total_ddr_read + ddr_read if ('total_ddr_read' in locals()) else ddr_read
-    
     total_proc_time = total_proc_time/1000000
     sub_graphs_time = sub_graphs_time/1000000
     output_file_name = "py_out_"+model+'_'+os.path.basename(input_image[i%len(input_image)])
 
     # output post processing
     if(args.compile == False):  # post processing enabled only for inference
+        images = []
         if config['model_type'] == 'classification':
-            classes, image = get_class_labels(output[0],img)
-            print(classes)
+            for j in range(batch):         
+                classes, image = get_class_labels(output[0][j],imgs[j])
+                images.append(image)
+                print("\n", classes)
         elif config['model_type'] == 'od':
-            classes, image = det_box_overlay(output, img, config['od_type'])
+            for j in range(batch):
+                classes, image = det_box_overlay(output[0][j], imgs[j], config['od_type'])
+                images.append(image)
         elif config['model_type'] == 'seg':
-            classes, image = seg_mask_overlay(output[0], img)
+            for j in range(batch):
+                classes, image = seg_mask_overlay(output[0][j], imgs[j])
+                images.append(image)
         else:
             print("Not a valid model type")
 
-        print("\nSaving image to ", output_images_folder)
-        if not os.path.exists(output_images_folder):
-            os.makedirs(output_images_folder)
-        image.save(output_images_folder + output_file_name, "JPEG") 
+        for j in range(batch):
+            output_file_name = "py_out_"+model+'_'+os.path.basename(input_images[j])
+            print("\nSaving image to ", output_images_folder)
+            if not os.path.exists(output_images_folder):
+                os.makedirs(output_images_folder)
+            images[j].save(output_images_folder + output_file_name, "JPEG")
     else :
         gen_param_yaml(delegate_options['artifacts_folder'], config, int(new_height), int(new_width))
     log = f'\n \nCompleted_Model : {mIdx+1:5d}, Name : {model:50s}, Total time : {total_proc_time/(i+1):10.2f}, Offload Time : {sub_graphs_time/(i+1):10.2f} , DDR RW MBs : {(total_ddr_write+total_ddr_read)/(i+1):10.2f}, Output File : {output_file_name}\n \n ' #{classes} \n \n'
