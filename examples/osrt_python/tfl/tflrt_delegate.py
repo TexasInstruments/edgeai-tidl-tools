@@ -19,8 +19,6 @@ from common_utils import *
 required_options = {
 "tidl_tools_path":tidl_tools_path,
 "artifacts_folder":artifacts_folder,
-# "priority":2,
-# "max_pre_empt_delay":10
 }
 parser = argparse.ArgumentParser()
 parser.add_argument('-c','--compile', action='store_true', help='Run in Model compilation mode')

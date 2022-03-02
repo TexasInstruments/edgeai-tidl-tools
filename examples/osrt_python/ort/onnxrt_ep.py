@@ -19,10 +19,7 @@ from common_utils import *
 
 required_options = {
 "tidl_tools_path":tidl_tools_path,
-"artifacts_folder":artifacts_folder,
-# "priority":0,
-#delay in ms
-# "max_pre_empt_delay":10
+"artifacts_folder":artifacts_folder
 }
 
 parser = argparse.ArgumentParser()
@@ -224,7 +221,7 @@ def run_model(model, mIdx):
 
 #models = models_configs.keys()
 
-models = ['cl-ort-resnet18-v1', 'ss-ort-deeplabv3lite_mobilenetv2', 'od-ort-ssd-lite_mobilenetv2_fpn']
+models = ['cl-ort-resnet18-v1', 'ss-ort-deeplabv3lite_mobilenetv2', 'od-ort-ssd-lite_mobilenetv2_fpn', 'cl-ort-caffe_squeezenet_v1_1']
 log = f'\nRunning {len(models)} Models - {models}\n'
 print(log)
 

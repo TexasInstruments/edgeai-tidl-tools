@@ -55,6 +55,9 @@ channel_wise_quantization = 0
 tidl_tools_path = os.environ["TIDL_TOOLS_PATH"]
 
 optional_options = {
+# "priority":0,
+#delay in ms
+# "max_pre_empt_delay":10
 "platform":"J7",
 "version":"7.2",
 "tensor_bits":tensor_bits,
