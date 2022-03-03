@@ -195,4 +195,4 @@ to improve the operator coverage and generate more performant C7x code.  If your
 problem with this feature, please set "c7x_codegen=0" and run the TIDL-unsupported layers on Arm.
 
 ## Trouble Shooting
-Refre this [Troubel Shooting](../../docs/tidl_osr_debug.md) section if any issues observed during compialtion of custom models
+Refer this [Troubleshooting](../../docs/tidl_osr_debug.md) section if any issues observed during compilation of custom models
