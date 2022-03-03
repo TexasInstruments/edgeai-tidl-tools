@@ -373,7 +373,7 @@ namespace dlr
             /*Running inference */
 
             DLTensor dltensor;
-            dltensor.ctx = {kDLCPU, 0};
+            dltensor.device = {kDLCPU, 0};
             dltensor.ndim    = 4;
             dltensor.shape   = input_shape;
             dltensor.strides = nullptr;
