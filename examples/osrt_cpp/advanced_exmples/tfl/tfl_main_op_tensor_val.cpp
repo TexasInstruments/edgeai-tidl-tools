@@ -124,7 +124,7 @@ namespace tflite
             }
             else
             {
-                LOG_ERROR("op tensor tyrp not supprted\n");
+                LOG_ERROR("op tensor type not supprted type: %d\n");
                 return RETURN_FAIL;
             }
             return RETURN_SUCCESS;
@@ -275,16 +275,6 @@ namespace tflite
                     }
                     interpreter->SetCustomAllocationForTensor(inputs[i], {in_ptrs[i], tensor->bytes});
                 }
-                for (uint32_t i = 0; i < outputs.size(); i++)
-                {
-                    const TfLiteTensor *tensor = interpreter->output_tensor(i);
-                    out_ptrs[i] = TIDLRT_allocSharedMem(tflite::kDefaultTensorAlignment, tensor->bytes);
-                    if (out_ptrs[i] == NULL)
-                    {
-                        LOG_INFO("Could not allocate Memory for ouput: %s\n", tensor->name);
-                    }
-                    interpreter->SetCustomAllocationForTensor(outputs[i], {out_ptrs[i], tensor->bytes});
-                }
             }
 
             int input = inputs[0];
@@ -338,6 +328,16 @@ namespace tflite
             gettimeofday(&start_time, nullptr);
             for (size_t k = 0; k < arg->s->loop_counts[arg->model_id]; k++)
             {
+                for (uint32_t i = 0; i < outputs.size(); i++)
+                {
+                    const TfLiteTensor *tensor = interpreter->output_tensor(i);
+                    out_ptrs[i] = TIDLRT_allocSharedMem(tflite::kDefaultTensorAlignment, tensor->bytes);
+                    if (out_ptrs[i] == NULL)
+                    {
+                        LOG_INFO("Could not allocate Memory for ouput: %s\n", tensor->name);
+                    }
+                    interpreter->SetCustomAllocationForTensor(outputs[i], {out_ptrs[i], tensor->bytes});
+                }
                 struct timeval now;
                 gettimeofday(&now, nullptr);
                 float iter_time_start = getUs(now) - getUs(arg->main_start_time);
@@ -350,16 +350,57 @@ namespace tflite
                 float iter_time_end = getUs(now) - getUs(arg->main_start_time);
                 LOG_INFO("Done iteration %d of model %s in thread %u at %f\n", k, arg->modelInfo->m_preProcCfg.modelName.c_str(), thread_id, iter_time_end);
 
+                if (arg->modelInfo->m_preProcCfg.taskType == "classification")
+                {
+                    if (RETURN_FAIL == prepClassificationResult(&img, &interpreter, &outputs, arg->s))
+                        pthread_exit(NULL);
+                }
+                else if (arg->modelInfo->m_preProcCfg.taskType == "segmentation")
+                {
+                    float alpha = arg->modelInfo->m_postProcCfg.alpha;
+                    if (RETURN_FAIL == prepSegResult(&img, wanted_width, wanted_height, alpha, &interpreter, &outputs)){
+                        LOG_ERROR("prepSegResult failed\n ");
+                        pthread_exit(NULL);
+                    }
+                }
+                LOG_INFO("saving image result file \n");
+                cv::cvtColor(img, img, cv::COLOR_RGB2BGR);
+                string filename, foldername;
+                foldername = foldername + "output_images/";
+                struct stat buffer;
+                if (stat(foldername.c_str(), &buffer) != 0)
+                {
+                    if (mkdir(foldername.c_str(), 0777) == -1)
+                    {
+                        LOG_ERROR("failed to create folder %s:%s\n", foldername, strerror(errno));
+                        pthread_exit(NULL);
+                    }
+                }
+                foldername = foldername + "tfl-cpp/";
+                if (stat(foldername.c_str(), &buffer) != 0)
+                {
+                    if (mkdir(foldername.c_str(), 0777) == -1)
+                    {
+                        LOG_ERROR("failed to create folder %s:%s\n", foldername, strerror(errno));
+                        pthread_exit(NULL);
+                    }
+                }
+                filename = "post_proc_out_";
+                filename = filename + std::to_string(k);
+                filename = filename + arg->modelInfo->m_preProcCfg.modelName.c_str();
+                filename = filename + ".jpg";
+                foldername = foldername + filename;
+                if (false == cv::imwrite(foldername, img))
+                {
+                    LOG_INFO("Saving the image, FAILED\n");
+                    pthread_exit(NULL);
+                }
             }
-            
             gettimeofday(&stop_time, nullptr);
             float avg_time = ( (getUs(stop_time) - getUs(start_time)) / (arg->s->loop_counts[arg->model_id] * 1000));
             LOG_INFO("average time:%f ms\n", avg_time);
-
-            if (arg->modelInfo->m_preProcCfg.taskType == "classification")
-            {
-                if (RETURN_FAIL == prepClassificationResult(&img, &interpreter, &outputs, arg->s))
-                    pthread_exit(NULL);
+            if(arg->modelInfo->m_preProcCfg.taskType == "classificatio"){
+                
             }
             else if (arg->modelInfo->m_preProcCfg.taskType == "detection")
             {
@@ -438,8 +479,10 @@ namespace tflite
             else if (arg->modelInfo->m_preProcCfg.taskType == "segmentation")
             {
                 float alpha = arg->modelInfo->m_postProcCfg.alpha;
-                if (RETURN_FAIL == prepSegResult(&img, wanted_width, wanted_height, alpha, &interpreter, &outputs))
+                if (RETURN_FAIL == prepSegResult(&img, wanted_width, wanted_height, alpha, &interpreter, &outputs)){
+                    LOG_ERROR("prepSegResult failed\n ");
                     pthread_exit(NULL);
+                }
             }
 
             LOG_INFO("saving image result file \n");
@@ -564,7 +607,7 @@ namespace tflite
             struct sched_param param;
             /* initialized with default attributes */
             ret = pthread_attr_init(&tattr);
-            pthread_t ptid[2 * NUM_PARLLEL_MODELS];
+            pthread_t ptid[2  * s->number_of_threads];
 
             for (size_t i = 0; i < s->number_of_threads; i++)
             {
@@ -580,7 +623,6 @@ namespace tflite
                 pthread_join(ptid[2 * i + 1], NULL);
             }
             pthread_mutex_destroy(&tfl_pr_lock );
-            dumpInferenceInfo(inference_infos, infer_count);
             return RETURN_SUCCESS;
         }
 

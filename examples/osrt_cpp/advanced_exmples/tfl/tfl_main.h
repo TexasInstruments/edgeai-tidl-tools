@@ -82,6 +82,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sys/stat.h>
 #include <pthread.h>
 #include <sched.h>
+#include <unistd.h>
 
 #include <tensorflow/lite/kernels/register.h>
 #include <tensorflow/lite/optional_debug_tools.h>
@@ -105,6 +106,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../utils/include/print_utils.h"
 
 pthread_mutex_t tfl_pr_lock;
+pthread_barrier_t barrier;
 
 using namespace tidl::arg_parsing_adv;
 using namespace tidl::modelInfo;

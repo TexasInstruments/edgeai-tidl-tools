@@ -66,7 +66,7 @@ namespace tflite
 {
     namespace main
     {
-
+        using namespace std::chrono;
         typedef struct
         {
             ModelInfo *modelInfo;
@@ -335,26 +335,28 @@ namespace tflite
             }
             
             struct timeval start_time, stop_time;
+            pthread_barrier_wait(&barrier);
             gettimeofday(&start_time, nullptr);
-            for (size_t k = 0; k < arg->s->loop_counts[arg->model_id]; k++)
+            gettimeofday(&arg->main_start_time, nullptr);
+            auto finish = system_clock::now() + minutes{1};
+            int k =0;
+            do
             {
-                struct timeval now;
-                gettimeofday(&now, nullptr);
-                float iter_time_start = getUs(now) - getUs(arg->main_start_time);
-                LOG_INFO("Started iteration %d of model %s in thread %u at %f\n", k, arg->modelInfo->m_preProcCfg.modelName.c_str(), thread_id, iter_time_start);
+                LOG_INFO("Started iteration %d of model %s in thread %u \n", k, arg->modelInfo->m_preProcCfg.modelName.c_str(), thread_id);
                 if (interpreter->Invoke() != kTfLiteOk)
                 {
                     LOG_ERROR("Failed to invoke tflite!\n");
                 }
-                gettimeofday(&now, nullptr);
-                float iter_time_end = getUs(now) - getUs(arg->main_start_time);
-                LOG_INFO("Done iteration %d of model %s in thread %u at %f\n", k, arg->modelInfo->m_preProcCfg.modelName.c_str(), thread_id, iter_time_end);
-
-            }
-            
+                LOG_INFO("Done iteration %d of model %s in thread %u \n", k, arg->modelInfo->m_preProcCfg.modelName.c_str(), thread_id);  
+                k++;
+            } while (system_clock::now() < finish);
             gettimeofday(&stop_time, nullptr);
-            float avg_time = ( (getUs(stop_time) - getUs(start_time)) / (arg->s->loop_counts[arg->model_id] * 1000));
+            float avg_time = ( (getUs(stop_time) - getUs(start_time)) / (k * 1000));
             LOG_INFO("average time:%f ms\n", avg_time);
+            LOG_INFO("Total num iterations run for model %s:%d \n",arg->modelInfo->m_preProcCfg.modelName.c_str(), k);
+            LOG_INFO("FPS for model %s :%f \n",arg->modelInfo->m_preProcCfg.modelName.c_str(), (float)((float)k/60));
+            LOG_INFO("Main start time run:%ld %ld \n", arg->main_start_time.tv_sec, arg->main_start_time.tv_usec);
+
 
             if (arg->modelInfo->m_preProcCfg.taskType == "classification")
             {
@@ -564,7 +566,15 @@ namespace tflite
             struct sched_param param;
             /* initialized with default attributes */
             ret = pthread_attr_init(&tattr);
-            pthread_t ptid[2 * NUM_PARLLEL_MODELS];
+            /*iniitalizing barrier */ 
+            pthread_barrierattr_t barr_attr;
+            unsigned count = 2 * s->number_of_threads; 
+            ret = pthread_barrier_init(&barrier, &barr_attr, count);
+            if(ret != 0){
+                printf("barrier creation failied exiting\n");
+                return RETURN_FAIL;
+            }
+            pthread_t ptid[2  * s->number_of_threads];
 
             for (size_t i = 0; i < s->number_of_threads; i++)
             {
@@ -580,7 +590,8 @@ namespace tflite
                 pthread_join(ptid[2 * i + 1], NULL);
             }
             pthread_mutex_destroy(&tfl_pr_lock );
-            dumpInferenceInfo(inference_infos, infer_count);
+            pthread_barrierattr_destroy( &barr_attr);
+            // dumpInferenceInfo(inference_infos, infer_count);
             return RETURN_SUCCESS;
         }
 
