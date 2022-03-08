@@ -337,25 +337,24 @@ namespace tflite
             struct timeval start_time, stop_time;
             pthread_barrier_wait(&barrier);
             gettimeofday(&start_time, nullptr);
-            gettimeofday(&arg->main_start_time, nullptr);
+            // gettimeofday(&arg->main_start_time, nullptr);
             auto finish = system_clock::now() + minutes{1};
             int k =0;
             do
             {
-                LOG_INFO("Started iteration %d of model %s in thread %u \n", k, arg->modelInfo->m_preProcCfg.modelName.c_str(), thread_id);
                 if (interpreter->Invoke() != kTfLiteOk)
                 {
                     LOG_ERROR("Failed to invoke tflite!\n");
                 }
-                LOG_INFO("Done iteration %d of model %s in thread %u \n", k, arg->modelInfo->m_preProcCfg.modelName.c_str(), thread_id);  
                 k++;
             } while (system_clock::now() < finish);
             gettimeofday(&stop_time, nullptr);
             float avg_time = ( (getUs(stop_time) - getUs(start_time)) / (k * 1000));
+            LOG_INFO("Model %s start time %ld.%06ld\n",arg->modelInfo->m_preProcCfg.modelName.c_str(), start_time.tv_sec,start_time.tv_usec);
+            LOG_INFO("Model %s stop time %ld.%06ld\n",arg->modelInfo->m_preProcCfg.modelName.c_str(), start_time.tv_sec,start_time.tv_usec);
             LOG_INFO("average time:%f ms\n", avg_time);
             LOG_INFO("Total num iterations run for model %s:%d \n",arg->modelInfo->m_preProcCfg.modelName.c_str(), k);
             LOG_INFO("FPS for model %s :%f \n",arg->modelInfo->m_preProcCfg.modelName.c_str(), (float)((float)k/60));
-            LOG_INFO("Main start time run:%ld %ld \n", arg->main_start_time.tv_sec, arg->main_start_time.tv_usec);
 
 
             if (arg->modelInfo->m_preProcCfg.taskType == "classification")
