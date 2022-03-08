@@ -84,8 +84,7 @@ namespace tflite
         /* global var to keep the inference count on each thread*/
         int infer_count = 0;
 
-        void *in_ptrs[16] = {NULL};
-        void *out_ptrs[16] = {NULL};
+
 
         /**
          *  \brief  prepare the segemntation result inplace
@@ -196,6 +195,8 @@ namespace tflite
          */
         void *infer(void *argument)
         {
+            void *in_ptrs[16] = {NULL};
+            void *out_ptrs[16] = {NULL};
 
             vector<int> inputs;
             vector<int> outputs;

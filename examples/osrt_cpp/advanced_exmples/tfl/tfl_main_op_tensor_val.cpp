@@ -84,8 +84,6 @@ namespace tflite
         /* global var to keep the inference count on each thread*/
         int infer_count = 0;
 
-        void *in_ptrs[16] = {NULL};
-        void *out_ptrs[16] = {NULL};
 
         /**
          *  \brief  prepare the segemntation result inplace
@@ -197,7 +195,7 @@ namespace tflite
          * @returns int status
          */
         template <class T>
-        int compTensorOut(int loop_count,int output_tensor_length, std::unique_ptr<tflite::Interpreter> *interpreter  ){
+        int compTensorOut(int loop_count,int output_tensor_length, std::unique_ptr<tflite::Interpreter> *interpreter, void* out_ptrs[]  ){
             int is_ident_flag = 0;
             for (size_t k = 0; k < loop_count; k++){
                 T* val = (*interpreter)->typed_output_tensor<T>(0);
@@ -210,8 +208,8 @@ namespace tflite
             return is_ident_flag;
         }
 
-        template int compTensorOut<uint8_t>(int loop_count,int output_tensor_length, std::unique_ptr<tflite::Interpreter> *interpreter   );
-        template int compTensorOut<float>(int loop_count,int output_tensor_length, std::unique_ptr<tflite::Interpreter> *interpreter   );
+        template int compTensorOut<uint8_t>(int loop_count,int output_tensor_length, std::unique_ptr<tflite::Interpreter> *interpreter,void* out_ptrs[]   );
+        template int compTensorOut<float>(int loop_count,int output_tensor_length, std::unique_ptr<tflite::Interpreter> *interpreter, void* out_ptrs[]   );
 
 
         /**
@@ -221,7 +219,8 @@ namespace tflite
          */
         void *infer(void *argument)
         {
-
+            void *in_ptrs[16] = {NULL};
+            void *out_ptrs[16] = {NULL};
             vector<int> inputs;
             vector<int> outputs;
             int wanted_batch, wanted_height, wanted_width, wanted_channels;
@@ -378,14 +377,14 @@ namespace tflite
             if (arg->modelInfo->m_preProcCfg.taskType == "classification"){
                 TfLiteIntArray *output_dims = interpreter->tensor(outputs[0])->dims;
                 size_t output_tensor_length = output_dims->data[output_dims->size - 1];
-                if(0 == compTensorOut<float>(arg->s->loop_counts[arg->model_id],output_tensor_length,&interpreter )){
-                    LOG_ERROR("Comaprison failed in op iterations\n");
+                if(0 != compTensorOut<float>(arg->s->loop_counts[arg->model_id],output_tensor_length,&interpreter, out_ptrs )){
+                    LOG_ERROR("Compare failed in op iterations\n");
                     pthread_exit(NULL);
                 }
             }
             else if (arg->modelInfo->m_preProcCfg.taskType == "segmentation"){
                 size_t output_tensor_length = wanted_height * wanted_width;
-                if(0 == compTensorOut<uint8_t>(arg->s->loop_counts[arg->model_id],output_tensor_length,&interpreter )){
+                if(0 != compTensorOut<uint8_t>(arg->s->loop_counts[arg->model_id],output_tensor_length,&interpreter, out_ptrs )){
                     LOG_ERROR("Comaprison failed in op iterations\n");
                     pthread_exit(NULL);
                 }
