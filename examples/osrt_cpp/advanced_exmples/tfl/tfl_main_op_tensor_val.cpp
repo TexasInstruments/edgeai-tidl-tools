@@ -188,6 +188,31 @@ namespace tflite
             (*img).data = overlayTopNClasses((*img).data, top_results, &labels, (*img).cols, (*img).rows, num_results, outputoffset);
             return RETURN_SUCCESS;
         }
+        /**
+         *  \brief  Compare the final tensor output and each iteration output
+         *  \param  loop_count number of iteration run per model
+         *  \param  output_tensor_length length of op tensor 
+         *  \param  val final tensor output
+         *  \param  out_ptrs each iteration output tensor start addresses
+         * @returns int status
+         */
+        template <class T>
+        int compTensorOut(int loop_count,int output_tensor_length, std::unique_ptr<tflite::Interpreter> *interpreter  ){
+            int is_ident_flag = 0;
+            for (size_t k = 0; k < loop_count; k++){
+                T* val = (*interpreter)->typed_output_tensor<T>(0);
+                for (size_t j = 0; j < output_tensor_length; j++){
+                    if( *((T*)((T*)out_ptrs[k] + j)) != *(val + j)){
+                        is_ident_flag =1;
+                    }
+                }
+            }
+            return is_ident_flag;
+        }
+
+        template int compTensorOut<uint8_t>(int loop_count,int output_tensor_length, std::unique_ptr<tflite::Interpreter> *interpreter   );
+        template int compTensorOut<float>(int loop_count,int output_tensor_length, std::unique_ptr<tflite::Interpreter> *interpreter   );
+
 
         /**
          *  \brief  Thread function to carry out final model running
@@ -275,6 +300,18 @@ namespace tflite
                     }
                     interpreter->SetCustomAllocationForTensor(inputs[i], {in_ptrs[i], tensor->bytes});
                 }
+                /* Assuming single output tensor for model 
+                   creating out_pts array for num of loops*/
+                for (uint32_t i = 0; i <  arg->s->loop_counts[arg->model_id]; i++)
+                {
+                    const TfLiteTensor *tensor = interpreter->output_tensor(0);
+                    out_ptrs[i] = TIDLRT_allocSharedMem(tflite::kDefaultTensorAlignment, tensor->bytes);
+                    if (out_ptrs[i] == NULL)
+                    {
+                        LOG_INFO("Could not allocate Memory for ouput: %s\n", tensor->name);
+                        pthread_exit(NULL);
+                    }
+                }
             }
 
             int input = inputs[0];
@@ -325,82 +362,41 @@ namespace tflite
             }
             
             struct timeval start_time, stop_time;
+            pthread_barrier_wait(&barrier);
             gettimeofday(&start_time, nullptr);
             for (size_t k = 0; k < arg->s->loop_counts[arg->model_id]; k++)
             {
-                for (uint32_t i = 0; i < outputs.size(); i++)
-                {
-                    const TfLiteTensor *tensor = interpreter->output_tensor(i);
-                    out_ptrs[i] = TIDLRT_allocSharedMem(tflite::kDefaultTensorAlignment, tensor->bytes);
-                    if (out_ptrs[i] == NULL)
-                    {
-                        LOG_INFO("Could not allocate Memory for ouput: %s\n", tensor->name);
-                    }
-                    interpreter->SetCustomAllocationForTensor(outputs[i], {out_ptrs[i], tensor->bytes});
-                }
-                struct timeval now;
-                gettimeofday(&now, nullptr);
-                float iter_time_start = getUs(now) - getUs(arg->main_start_time);
-                LOG_INFO("Started iteration %d of model %s in thread %u at %f\n", k, arg->modelInfo->m_preProcCfg.modelName.c_str(), thread_id, iter_time_start);
+                /* allocating 0th tensor from out_pts array at invoke time*/
+                const TfLiteTensor *tensor = interpreter->output_tensor(0);
+                interpreter->SetCustomAllocationForTensor(outputs[0], {out_ptrs[k], tensor->bytes});
+                
                 if (interpreter->Invoke() != kTfLiteOk)
                 {
                     LOG_ERROR("Failed to invoke tflite!\n");
                 }
-                gettimeofday(&now, nullptr);
-                float iter_time_end = getUs(now) - getUs(arg->main_start_time);
-                LOG_INFO("Done iteration %d of model %s in thread %u at %f\n", k, arg->modelInfo->m_preProcCfg.modelName.c_str(), thread_id, iter_time_end);
-
-                if (arg->modelInfo->m_preProcCfg.taskType == "classification")
-                {
-                    if (RETURN_FAIL == prepClassificationResult(&img, &interpreter, &outputs, arg->s))
-                        pthread_exit(NULL);
+            }
+            if (arg->modelInfo->m_preProcCfg.taskType == "classification"){
+                TfLiteIntArray *output_dims = interpreter->tensor(outputs[0])->dims;
+                size_t output_tensor_length = output_dims->data[output_dims->size - 1];
+                if(0 == compTensorOut<float>(arg->s->loop_counts[arg->model_id],output_tensor_length,&interpreter )){
+                    LOG_ERROR("Comaprison failed in op iterations\n");
+                    pthread_exit(NULL);
                 }
-                else if (arg->modelInfo->m_preProcCfg.taskType == "segmentation")
-                {
-                    float alpha = arg->modelInfo->m_postProcCfg.alpha;
-                    if (RETURN_FAIL == prepSegResult(&img, wanted_width, wanted_height, alpha, &interpreter, &outputs)){
-                        LOG_ERROR("prepSegResult failed\n ");
-                        pthread_exit(NULL);
-                    }
-                }
-                LOG_INFO("saving image result file \n");
-                cv::cvtColor(img, img, cv::COLOR_RGB2BGR);
-                string filename, foldername;
-                foldername = foldername + "output_images/";
-                struct stat buffer;
-                if (stat(foldername.c_str(), &buffer) != 0)
-                {
-                    if (mkdir(foldername.c_str(), 0777) == -1)
-                    {
-                        LOG_ERROR("failed to create folder %s:%s\n", foldername, strerror(errno));
-                        pthread_exit(NULL);
-                    }
-                }
-                foldername = foldername + "tfl-cpp/";
-                if (stat(foldername.c_str(), &buffer) != 0)
-                {
-                    if (mkdir(foldername.c_str(), 0777) == -1)
-                    {
-                        LOG_ERROR("failed to create folder %s:%s\n", foldername, strerror(errno));
-                        pthread_exit(NULL);
-                    }
-                }
-                filename = "post_proc_out_";
-                filename = filename + std::to_string(k);
-                filename = filename + arg->modelInfo->m_preProcCfg.modelName.c_str();
-                filename = filename + ".jpg";
-                foldername = foldername + filename;
-                if (false == cv::imwrite(foldername, img))
-                {
-                    LOG_INFO("Saving the image, FAILED\n");
+            }
+            else if (arg->modelInfo->m_preProcCfg.taskType == "segmentation"){
+                size_t output_tensor_length = wanted_height * wanted_width;
+                if(0 == compTensorOut<uint8_t>(arg->s->loop_counts[arg->model_id],output_tensor_length,&interpreter )){
+                    LOG_ERROR("Comaprison failed in op iterations\n");
                     pthread_exit(NULL);
                 }
             }
             gettimeofday(&stop_time, nullptr);
             float avg_time = ( (getUs(stop_time) - getUs(start_time)) / (arg->s->loop_counts[arg->model_id] * 1000));
             LOG_INFO("average time:%f ms\n", avg_time);
-            if(arg->modelInfo->m_preProcCfg.taskType == "classificatio"){
-                
+            if (arg->modelInfo->m_preProcCfg.taskType == "classification")
+            {
+                if (RETURN_FAIL == prepClassificationResult(&img, &interpreter, &outputs, arg->s))
+                    pthread_exit(NULL);
             }
             else if (arg->modelInfo->m_preProcCfg.taskType == "detection")
             {
@@ -608,7 +604,14 @@ namespace tflite
             /* initialized with default attributes */
             ret = pthread_attr_init(&tattr);
             pthread_t ptid[2  * s->number_of_threads];
-
+            /*iniitalizing barrier */ 
+            pthread_barrierattr_t barr_attr;
+            unsigned count = 2 * s->number_of_threads; 
+            ret = pthread_barrier_init(&barrier, &barr_attr, count);
+            if(ret != 0){
+                LOG_ERROR("barrier creation failied exiting\n");
+                return RETURN_FAIL;
+            }
             for (size_t i = 0; i < s->number_of_threads; i++)
             {
                 /* Creating a new thread*/
@@ -622,6 +625,7 @@ namespace tflite
                 pthread_join(ptid[i], NULL);
                 pthread_join(ptid[2 * i + 1], NULL);
             }
+            pthread_barrierattr_destroy( &barr_attr);
             pthread_mutex_destroy(&tfl_pr_lock );
             return RETURN_SUCCESS;
         }
