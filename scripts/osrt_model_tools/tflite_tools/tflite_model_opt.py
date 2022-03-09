@@ -55,15 +55,21 @@
 # OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 # OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 # OF THE POSSIBILITY OF SUCH DAMAGE.
-
+import sys
+import os.path
 import flatbuffers
+import copy
+import struct
+
+# add local path temporarily for the import of tflite_model to work
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import tflite_model.Model
 import tflite_model.BuiltinOperator
 import tflite_model.BuiltinOptions
 import tflite_model.Tensor
 import tflite_model.TensorType
-import copy 
-import struct
+sys.path.pop(0)
+
 
 def addNewOperator(modelT, operatorBuiltinCode):
     new_op_code                       = copy.deepcopy(modelT.operatorCodes[0])

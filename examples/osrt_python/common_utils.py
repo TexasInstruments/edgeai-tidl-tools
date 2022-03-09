@@ -18,8 +18,6 @@ else :
     parent = os.path.dirname(os.path.dirname(current))
     # setting path
     sys.path.append(parent)
-    tfl_flatbuf_path = os.path.join(parent,'scripts/osrt_model_tools/tflite_tools')
-    sys.path.append(tfl_flatbuf_path)
     from scripts.osrt_model_tools.tflite_tools import tflite_model_opt as tflOpt
     from scripts.osrt_model_tools.onnx_tools   import onnx_model_opt as onnxOpt
 
