@@ -84,7 +84,6 @@ namespace tflite
         /* global var to keep the inference count on each thread*/
         int infer_count = 0;
 
-
         /**
          *  \brief  prepare the segemntation result inplace
          *  \param  img cv image to do inplace transform
@@ -189,28 +188,32 @@ namespace tflite
         /**
          *  \brief  Compare the final tensor output and each iteration output
          *  \param  loop_count number of iteration run per model
-         *  \param  output_tensor_length length of op tensor 
+         *  \param  output_tensor_length length of op tensor
          *  \param  val final tensor output
          *  \param  out_ptrs each iteration output tensor start addresses
          * @returns int status
          */
         template <class T>
-        int compTensorOut(int loop_count,int output_tensor_length, std::unique_ptr<tflite::Interpreter> *interpreter, void* out_ptrs[]  ){
+        int compTensorOut(int loop_count, int output_tensor_length, std::unique_ptr<tflite::Interpreter> *interpreter, void *out_ptrs[])
+        {
             int is_ident_flag = 0;
-            for (size_t k = 0; k < loop_count; k++){
-                T* val = (*interpreter)->typed_output_tensor<T>(0);
-                for (size_t j = 0; j < output_tensor_length; j++){
-                    if( *((T*)((T*)out_ptrs[k] + j)) != *(val + j)){
-                        is_ident_flag =1;
+            for (size_t k = 0; k < loop_count; k++)
+            {
+                T *val = (*interpreter)->typed_output_tensor<T>(0);
+                for (size_t j = 0; j < output_tensor_length; j++)
+                {
+                    if (*((T *)((T *)out_ptrs[k] + j)) != *(val + j))
+                    {
+                        is_ident_flag = 1;
                     }
                 }
             }
             return is_ident_flag;
         }
 
-        template int compTensorOut<uint8_t>(int loop_count,int output_tensor_length, std::unique_ptr<tflite::Interpreter> *interpreter,void* out_ptrs[]   );
-        template int compTensorOut<float>(int loop_count,int output_tensor_length, std::unique_ptr<tflite::Interpreter> *interpreter, void* out_ptrs[]   );
-
+        template int compTensorOut<uint8_t>(int loop_count, int output_tensor_length, std::unique_ptr<tflite::Interpreter> *interpreter, void *out_ptrs[]);
+        template int compTensorOut<float>(int loop_count, int output_tensor_length, std::unique_ptr<tflite::Interpreter> *interpreter, void *out_ptrs[]);
+        template int compTensorOut<int32_t>(int loop_count, int output_tensor_length, std::unique_ptr<tflite::Interpreter> *interpreter, void *out_ptrs[]);
 
         /**
          *  \brief  Thread function to carry out final model running
@@ -267,13 +270,16 @@ namespace tflite
                 tflite_plugin_create_delegate tflite_plugin_dlg_create;
                 char prior_char[2], pre_empt_char[64];
                 std::sprintf(prior_char, "%d", arg->priority);
-                if(arg->s->max_pre_empts[arg->model_id] == -1){
-                    std::sprintf(prior_char, "%d", FLT_MAX); 
-                }else{
-                 std::sprintf(pre_empt_char, "%f", arg->s->max_pre_empts[arg->model_id]);   
+                if (arg->s->max_pre_empts[arg->model_id] == -1)
+                {
+                    std::sprintf(prior_char, "%d", FLT_MAX);
+                }
+                else
+                {
+                    std::sprintf(pre_empt_char, "%f", arg->s->max_pre_empts[arg->model_id]);
                 }
                 char *keys[] = {"artifacts_folder", "num_tidl_subgraphs", "debug_level", "priority", "max_pre_empt_delay"};
-                char *values[] = {(char *)arg->modelInfo->m_infConfig.artifactsPath.c_str(), "16", "0", (char*)prior_char, (char*)pre_empt_char};
+                char *values[] = {(char *)arg->modelInfo->m_infConfig.artifactsPath.c_str(), "16", "0", (char *)prior_char, (char *)pre_empt_char};
                 void *lib = dlopen("libtidl_tfl_delegate.so", RTLD_NOW);
                 assert(lib);
                 tflite_plugin_dlg_create = (tflite_plugin_create_delegate)dlsym(lib, "tflite_plugin_create_delegate");
@@ -299,9 +305,9 @@ namespace tflite
                     }
                     interpreter->SetCustomAllocationForTensor(inputs[i], {in_ptrs[i], tensor->bytes});
                 }
-                /* Assuming single output tensor for model 
+                /* Assuming single output tensor for model
                    creating out_pts array for num of loops*/
-                for (uint32_t i = 0; i <  arg->s->loop_counts[arg->model_id]; i++)
+                for (uint32_t i = 0; i < arg->s->loop_counts[arg->model_id]; i++)
                 {
                     const TfLiteTensor *tensor = interpreter->output_tensor(0);
                     out_ptrs[i] = TIDLRT_allocSharedMem(tflite::kDefaultTensorAlignment, tensor->bytes);
@@ -359,7 +365,7 @@ namespace tflite
             default:
                 LOG_ERROR("cannot handle input type %d yet\n", interpreter->tensor(input)->type);
             }
-            
+
             struct timeval start_time, stop_time;
             pthread_barrier_wait(&barrier);
             gettimeofday(&start_time, nullptr);
@@ -368,37 +374,80 @@ namespace tflite
                 /* allocating 0th tensor from out_pts array at invoke time*/
                 const TfLiteTensor *tensor = interpreter->output_tensor(0);
                 interpreter->SetCustomAllocationForTensor(outputs[0], {out_ptrs[k], tensor->bytes});
-                
+
                 if (interpreter->Invoke() != kTfLiteOk)
                 {
                     LOG_ERROR("Failed to invoke tflite!\n");
                 }
             }
-            if (arg->modelInfo->m_preProcCfg.taskType == "classification"){
-                TfLiteIntArray *output_dims = interpreter->tensor(outputs[0])->dims;
-                size_t output_tensor_length = output_dims->data[output_dims->size - 1];
-                if(0 != compTensorOut<float>(arg->s->loop_counts[arg->model_id],output_tensor_length,&interpreter, out_ptrs )){
-                    LOG_ERROR("Compare failed in op iterations\n");
-                    pthread_exit(NULL);
-                }
-            }
-            else if (arg->modelInfo->m_preProcCfg.taskType == "segmentation"){
-                size_t output_tensor_length = wanted_height * wanted_width;
-                if(0 != compTensorOut<uint8_t>(arg->s->loop_counts[arg->model_id],output_tensor_length,&interpreter, out_ptrs )){
-                    LOG_ERROR("Comaprison failed in op iterations\n");
-                    pthread_exit(NULL);
-                }
-            }
             gettimeofday(&stop_time, nullptr);
-            float avg_time = ( (getUs(stop_time) - getUs(start_time)) / (arg->s->loop_counts[arg->model_id] * 1000));
+            float avg_time = ((getUs(stop_time) - getUs(start_time)) / (arg->s->loop_counts[arg->model_id] * 1000));
             LOG_INFO("average time:%f ms\n", avg_time);
             if (arg->modelInfo->m_preProcCfg.taskType == "classification")
             {
                 if (RETURN_FAIL == prepClassificationResult(&img, &interpreter, &outputs, arg->s))
+                {
                     pthread_exit(NULL);
+                }
+                TfLiteIntArray *output_dims = interpreter->tensor(outputs[0])->dims;
+                size_t output_tensor_length = output_dims->data[output_dims->size - 1];
+                TfLiteType type = interpreter->tensor(outputs[0])->type;
+                if (type == TfLiteType::kTfLiteInt32)
+                {
+                    if (0 != compTensorOut<int32_t>(arg->s->loop_counts[arg->model_id], output_tensor_length, &interpreter, out_ptrs))
+                    {
+                        LOG_ERROR("Compare failed in op iterations\n");
+                        pthread_exit(NULL);
+                    }
+                }
+                else if (type == TfLiteType::kTfLiteFloat32)
+                {
+                    if (0 != compTensorOut<float>(arg->s->loop_counts[arg->model_id], output_tensor_length, &interpreter, out_ptrs))
+                    {
+                        LOG_ERROR("Compare failed in op iterations\n");
+                        pthread_exit(NULL);
+                    }
+                }
+                else
+                {
+                    LOG_ERROR("op tensor type not supprted type: %d\n");
+                    pthread_exit(NULL);
+                }
+            }
+            else if (arg->modelInfo->m_preProcCfg.taskType == "segmentation")
+            {
+                float alpha = arg->modelInfo->m_postProcCfg.alpha;
+                if (RETURN_FAIL == prepSegResult(&img, wanted_width, wanted_height, alpha, &interpreter, &outputs))
+                {
+                    LOG_ERROR("prepSegResult failed\n ");
+                    pthread_exit(NULL);
+                }
+                size_t output_tensor_length = wanted_height * wanted_width;
+                TfLiteType type = interpreter->tensor(outputs[0])->type;
+                if (type == TfLiteType::kTfLiteUInt8)
+                {
+                    if (0 != compTensorOut<uint8_t>(arg->s->loop_counts[arg->model_id], output_tensor_length, &interpreter, out_ptrs))
+                    {
+                        LOG_ERROR("Compare failed in op iterations\n");
+                        pthread_exit(NULL);
+                    }
+                }
+                else if(type == TfLiteType::kTfLiteFloat32){
+                    if (0 != compTensorOut<float>(arg->s->loop_counts[arg->model_id], output_tensor_length, &interpreter, out_ptrs))
+                    {
+                        LOG_ERROR("Compare failed in op iterations\n");
+                        pthread_exit(NULL);
+                    }
+                }
+                else{
+                    LOG_ERROR("op tensor type not supprted type: %d\n");
+                    pthread_exit(NULL);
+                }
+
             }
             else if (arg->modelInfo->m_preProcCfg.taskType == "detection")
             {
+                /*TODO compare tensor op of each iteration */
                 /*store tensor_shape info of op tensors in arr
                         to avaoid recalculation*/
                 int num_ops = outputs.size();
@@ -471,14 +520,6 @@ namespace tflite
                     pthread_exit(NULL);
             }
 
-            else if (arg->modelInfo->m_preProcCfg.taskType == "segmentation")
-            {
-                float alpha = arg->modelInfo->m_postProcCfg.alpha;
-                if (RETURN_FAIL == prepSegResult(&img, wanted_width, wanted_height, alpha, &interpreter, &outputs)){
-                    LOG_ERROR("prepSegResult failed\n ");
-                    pthread_exit(NULL);
-                }
-            }
 
             LOG_INFO("saving image result file \n");
             cv::cvtColor(img, img, cv::COLOR_RGB2BGR);
@@ -541,7 +582,7 @@ namespace tflite
             arg->inference_infos[curr_infer_count].start = 0;
             arg->inference_infos[curr_infer_count].end = (getUs(arg->main_start_time) - getUs(curr_time));
             arg->inference_infos[curr_infer_count].model_name = arg->modelInfo->m_preProcCfg.modelName;
-            
+
             /*exit the current thread*/
             pthread_exit(NULL);
         }
@@ -602,12 +643,13 @@ namespace tflite
             struct sched_param param;
             /* initialized with default attributes */
             ret = pthread_attr_init(&tattr);
-            pthread_t ptid[2  * s->number_of_threads];
-            /*iniitalizing barrier */ 
+            pthread_t ptid[2 * s->number_of_threads];
+            /*iniitalizing barrier */
             pthread_barrierattr_t barr_attr;
-            unsigned count = 2 * s->number_of_threads; 
+            unsigned count = 2 * s->number_of_threads;
             ret = pthread_barrier_init(&barrier, &barr_attr, count);
-            if(ret != 0){
+            if (ret != 0)
+            {
                 LOG_ERROR("barrier creation failied exiting\n");
                 return RETURN_FAIL;
             }
@@ -624,8 +666,8 @@ namespace tflite
                 pthread_join(ptid[i], NULL);
                 pthread_join(ptid[2 * i + 1], NULL);
             }
-            pthread_barrierattr_destroy( &barr_attr);
-            pthread_mutex_destroy(&tfl_pr_lock );
+            pthread_barrierattr_destroy(&barr_attr);
+            pthread_mutex_destroy(&tfl_pr_lock);
             return RETURN_SUCCESS;
         }
 
