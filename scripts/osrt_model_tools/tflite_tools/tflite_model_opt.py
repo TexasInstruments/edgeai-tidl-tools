@@ -57,7 +57,7 @@
 # OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import flatbuffers
-import tflite_model.Model 
+import tflite_model.Model
 import tflite_model.BuiltinOperator
 import tflite_model.BuiltinOptions
 import tflite_model.Tensor
@@ -136,13 +136,13 @@ def tidlTfliteModelOptimize(in_model_path, out_model_path, scaleList=[0.0078125,
 
     #Append tensors into the tensor list:
     modelT.subgraphs[0].tensors.append(bias_tensor)
-    bias_tensor_idx = len(modelT.subgraphs[0].tensors) - 1 
+    bias_tensor_idx = len(modelT.subgraphs[0].tensors) - 1
     modelT.subgraphs[0].tensors.append(scale_tensor)
-    scale_tensor_idx = len(modelT.subgraphs[0].tensors) - 1 
+    scale_tensor_idx = len(modelT.subgraphs[0].tensors) - 1
     new_tensor = copy.deepcopy(modelT.subgraphs[0].tensors[modelT.subgraphs[0].operators[0].outputs[0]])
     new_tensor.name = bytearray((str(new_tensor.name, 'utf-8') + str("/Mul")),'utf-8')
     modelT.subgraphs[0].tensors.append(new_tensor)
-    new_tensor_idx = len(modelT.subgraphs[0].tensors) - 1 
+    new_tensor_idx = len(modelT.subgraphs[0].tensors) - 1
     new_buffer = copy.deepcopy(modelT.buffers[modelT.subgraphs[0].tensors[modelT.subgraphs[0].operators[0].outputs[0]].buffer])
     modelT.buffers.append(new_buffer)
     new_buffer_idx = len(modelT.buffers) - 1
@@ -163,7 +163,7 @@ def tidlTfliteModelOptimize(in_model_path, out_model_path, scaleList=[0.0078125,
     new_tensor = copy.deepcopy(modelT.subgraphs[0].tensors[modelT.subgraphs[0].operators[0].outputs[0]])
     new_tensor.name = bytearray((str(new_tensor.name, 'utf-8') + str("/Bias")),'utf-8')
     modelT.subgraphs[0].tensors.append(new_tensor)
-    new_tensor_idx = len(modelT.subgraphs[0].tensors) - 1 
+    new_tensor_idx = len(modelT.subgraphs[0].tensors) - 1
     new_buffer = copy.deepcopy(modelT.buffers[modelT.subgraphs[0].tensors[modelT.subgraphs[0].operators[0].outputs[0]].buffer])
     modelT.buffers.append(new_buffer)
     new_buffer_idx = len(modelT.buffers) - 1
@@ -183,7 +183,7 @@ def tidlTfliteModelOptimize(in_model_path, out_model_path, scaleList=[0.0078125,
     new_tensor = copy.deepcopy(modelT.subgraphs[0].tensors[modelT.subgraphs[0].operators[0].outputs[0]])
     new_tensor.name = bytearray((str(new_tensor.name, 'utf-8') + str("/InCast")),'utf-8')
     modelT.subgraphs[0].tensors.append(new_tensor)
-    new_tensor_idx = len(modelT.subgraphs[0].tensors) - 1 
+    new_tensor_idx = len(modelT.subgraphs[0].tensors) - 1
     new_buffer = copy.deepcopy(modelT.buffers[modelT.subgraphs[0].tensors[modelT.subgraphs[0].operators[0].outputs[0]].buffer])
     modelT.buffers.append(new_buffer)
     new_buffer_idx = len(modelT.buffers) - 1
@@ -205,18 +205,18 @@ def tidlTfliteModelOptimize(in_model_path, out_model_path, scaleList=[0.0078125,
     for operator in modelT.subgraphs[0].operators:
         #Find ARGMAX:
         if(operator.opcodeIndex == argMax_idx):
-            if(modelT.subgraphs[0].tensors[operator.inputs[0]].shape[3] < 256): #Change dType only if #Classes can fit in UINT8 
+            if(modelT.subgraphs[0].tensors[operator.inputs[0]].shape[3] < 256): #Change dType only if #Classes can fit in UINT8
                 #Add CAST Op on ouput of Argmax:
                 new_op = copy.deepcopy(modelT.subgraphs[0].operators[0])
                 modelT.subgraphs[0].operators.append(new_op)
                 new_op_idx = len(modelT.subgraphs[0].operators) - 1
-            
+
                 modelT.subgraphs[0].operators[new_op_idx].outputs[0] = operator.outputs[0]
 
                 new_tensor = copy.deepcopy(modelT.subgraphs[0].tensors[operator.outputs[0]])
                 new_tensor.name = bytearray((str(new_tensor.name, 'utf-8') + str("_org")),'utf-8')
                 modelT.subgraphs[0].tensors.append(new_tensor)
-                new_tensor_idx = len(modelT.subgraphs[0].tensors) - 1 
+                new_tensor_idx = len(modelT.subgraphs[0].tensors) - 1
                 new_buffer = copy.deepcopy(modelT.buffers[modelT.subgraphs[0].tensors[operator.outputs[0]].buffer])
                 modelT.buffers.append(new_buffer)
                 new_buffer_idx = len(modelT.buffers) - 1
