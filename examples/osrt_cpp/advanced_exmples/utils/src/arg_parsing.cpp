@@ -86,6 +86,7 @@ namespace tidl
                 << "--model_dirs, -m: model directory for models in order\n"
                 << "--priors, -p: thread priority for models in order\n"
                 << "--threads, -t: number of threads to be running in parellel\n"
+                << "--val_type, -x: validation type 0:prioirty 1:fps calualtion 2:op tensor validation\n"
                 << "\n";
         }
 
@@ -119,13 +120,14 @@ namespace tidl
                     {"priorities", required_argument, nullptr, 'p'},
                     {"max_pre_empt_delays", required_argument, nullptr, 'e'},
                     {"threads", required_argument, nullptr, 't'},
+                    {"val_type", required_argument, nullptr, 'x'},
                     {nullptr, 0, nullptr, 0}};
 
                 /* getopt_long stores the option index here. */
                 int option_index = 0;
 
                 c = getopt_long(argc, argv,
-                                "v:a:d:c:f:i:y:l:m:p:e:t:", long_options,
+                                "v:a:d:c:f:i:y:l:m:p:e:t:x:", long_options,
                                 &option_index);
 
                 /* Detect the end of the options. */
@@ -139,6 +141,9 @@ namespace tidl
                     break;
                 case 'a':
                     s->accel = strtol(optarg, nullptr, 10);
+                    break;
+                case 'x':
+                    s->validation_type = strtol(optarg, nullptr, 10);
                     break;
                 case 'd':
                     s->device_mem = strtol(optarg, nullptr, 10);
@@ -270,6 +275,7 @@ namespace tidl
             std::cout << "maxPreEmt2 set to: " << s->max_pre_empts[1] << "\n";            
             std::cout << "num of threads set to: " << s->number_of_threads << "\n";
             std::cout << "num of results set to: " << s->number_of_results << "\n";
+            std::cout << "validateion type set to: " << s->validation_type << "\n";
 
             std::cout << "\n***** Display run Config: end *****\n";
         }

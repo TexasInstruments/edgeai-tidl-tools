@@ -115,6 +115,7 @@ using namespace tidl::utils;
 using namespace tidl::postprocess;
 using namespace tidl::preprocess;
 using namespace tidl::print_utils;
+using namespace std::chrono;
 
 #define NUM_PARLLEL_MODELS 2
 

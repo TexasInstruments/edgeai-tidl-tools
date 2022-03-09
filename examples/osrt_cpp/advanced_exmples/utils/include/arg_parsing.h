@@ -93,6 +93,7 @@ namespace tidl
             float max_pre_empts[2] = {-1, -1};
             int number_of_threads = 4;
             int number_of_results = 5;
+            int validation_type = 0;
         };
         /**
          * Use getopts lib to do options parsing and fill the contents to Setting struct.
