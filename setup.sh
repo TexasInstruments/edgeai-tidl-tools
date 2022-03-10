@@ -127,6 +127,10 @@ if [ $skip_cpp_deps -eq 0 ]
 then
 cd $HOME
 git clone --depth 1 --single-branch -b tidl-j7 https://github.com/TexasInstruments/neo-ai-dlr
+cd neo-ai-dlr
+git submodule init
+git submodule update --init --recursive
+cd ..
 git clone --depth 1 --single-branch -b tidl-j7 https://github.com/TexasInstruments/onnxruntime.git
 git clone --depth 1 --single-branch -b tidl-j7 https://github.com/TexasInstruments/tensorflow.git
 mkdir -p tensorflow/tensorflow/lite/tools/make/downloads
