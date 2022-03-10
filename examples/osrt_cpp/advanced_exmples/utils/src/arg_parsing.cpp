@@ -137,7 +137,7 @@ namespace tidl
                 switch (c)
                 {
                 case 'v':
-                    s->log_level = strtol(optarg, nullptr, 10);
+                    s->log_level = (tidl::utils::LogLevel)strtol(optarg, nullptr, 10);
                     break;
                 case 'a':
                     s->accel = strtol(optarg, nullptr, 10);

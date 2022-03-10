@@ -437,7 +437,7 @@ namespace tidl
           * - Instantiate an inference object
           * - Create the pre-processing
           */
-         int32_t initialize();
+         int32_t initialize(tidl::utils::LogLevel logLevel = tidl::utils::ERROR);
 
          /**
           * Helper function to dump the configuration information.

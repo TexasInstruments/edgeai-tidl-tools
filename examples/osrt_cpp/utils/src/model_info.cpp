@@ -405,7 +405,7 @@ namespace tidl
             this->m_modelPath = modelPath;
         }
 
-        int32_t ModelInfo::initialize()
+        int32_t ModelInfo::initialize(tidl::utils::LogLevel logLevel)
         {
             YAML::Node yaml;
             int32_t status = 0;
@@ -509,9 +509,11 @@ namespace tidl
                 m_preProcCfg.modelName = modelName;
                 m_postProcCfg.modelName = modelName;
             }
-            m_infConfig.dumpInfo();
-            m_preProcCfg.dumpInfo();
-            m_postProcCfg.dumpInfo();
+            if(logLevel <= tidl::utils::INFO ){
+                m_infConfig.dumpInfo();
+                m_preProcCfg.dumpInfo();
+                m_postProcCfg.dumpInfo();
+            }
             return status;
         }
 

@@ -80,7 +80,7 @@ namespace tidl
 */
         struct Settings
         {
-            int log_level = tidl::utils::ERROR;
+            tidl::utils::LogLevel log_level = tidl::utils::ERROR;
             bool accel = false;
             bool device_mem = false;
             int loop_counts[2] = {5, 5};
@@ -91,7 +91,7 @@ namespace tidl
             std::string model_paths[2] = {};
             int priors[2] = {0, 6};
             float max_pre_empts[2] = {-1, -1};
-            int number_of_threads = 4;
+            int number_of_threads = 1;
             int number_of_results = 5;
             int validation_type = 0;
         };
