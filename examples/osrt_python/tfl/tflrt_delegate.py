@@ -188,7 +188,7 @@ def run_model(model, mIdx):
                 print("\n", classes)
         elif config['model_type'] == 'od':
             for j in range(batch):
-                classes, image = det_box_overlay(output[0][j], imgs[j], config['od_type'])
+                classes, image = det_box_overlay(output, imgs[j], config['od_type'])
                 images.append(image)
         elif config['model_type'] == 'seg':
             for j in range(batch):
