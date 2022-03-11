@@ -103,6 +103,46 @@ def preprocess_for_onnx_mobilenetv2(image_path):
 def postprocess_for_onnx_mobilenetv2(res):
     return res[0].flatten()
 
+# preprocessing / postprocessing for mxnet model
+def preprocess_for_mxnet_mobilenetv3(image_path):
+    import cv2
+    import numpy as np
+
+    # read the image using openCV
+    img = cv2.imread(image_path)
+
+    # convert to RGB
+    img = img[:,:,::-1]
+
+    # Most of the onnx models are trained using
+    # 224x224 images. The general rule of thumb
+    # is to scale the input image while preserving
+    # the original aspect ratio so that the
+    # short edge is 256 pixels, and then
+    # center-crop the scaled image to 224x224
+    orig_height, orig_width, _ = img.shape
+    short_edge = min(img.shape[:2])
+    new_height = (orig_height * 256) // short_edge
+    new_width = (orig_width * 256) // short_edge
+    img = cv2.resize(img, (new_width, new_height), interpolation=cv2.INTER_CUBIC)
+
+    startx = new_width//2 - (224//2)
+    starty = new_height//2 - (224//2)
+    img = img[starty:starty+224,startx:startx+224]
+
+    # apply scaling and mean subtraction.
+    # if your model is built with an input
+    # normalization layer, then you might
+    # need to skip this
+    img = img.astype('float32')
+    for mean, scale, ch in zip([128.0, 128.0, 128.0], [0.0078125, 0.0078125, 0.0078125], range(img.shape[2])):
+            img[:,:,ch] = ((img.astype('float32')[:,:,ch] - mean) * scale)
+
+    # convert HWC to NCHW
+    img = np.expand_dims(np.transpose(img, (2,0,1)),axis=0)
+
+    return img
+
 def model_create_and_run(model_dir,
                             model_input_name,
                             preprocess_func,
@@ -161,10 +201,10 @@ model_create_and_run(model_output_directory, 'input.1Net_IN',
 if platform.machine() == 'aarch64':
     model_output_directory = '../../../model-artifacts/cl-dlr-mxnet_mobilenetv3_large_device'
     model_create_and_run(model_output_directory, 'data',
-                        preprocess_for_onnx_mobilenetv2,
+                        preprocess_for_mxnet_mobilenetv3,
                         postprocess_for_onnx_mobilenetv2, 1)
 
     model_output_directory = '../../../model-artifacts/cl-dlr-mxnet_mobilenetv3_large_device_c7x'
     model_create_and_run(model_output_directory, 'data',
-                        preprocess_for_onnx_mobilenetv2,
+                        preprocess_for_mxnet_mobilenetv3,
                         postprocess_for_onnx_mobilenetv2, 1)
