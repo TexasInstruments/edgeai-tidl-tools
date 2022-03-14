@@ -511,9 +511,9 @@ namespace tflite
             }
             pthread_barrier_wait(&barrier);
             gettimeofday(&start_time, nullptr);
-            auto finish = system_clock::now() + seconds{2};
+            auto finish = system_clock::now() + minutes{1};
             int k = 0, num_switches = 0;
-            float time_spends[2000];
+            float time_spend;
             const TfLiteTensor *tensor = interpreter->output_tensor(0);
             interpreter->SetCustomAllocationForTensor(outputs[0], {out_ptrs[0], tensor->bytes});
             do
@@ -525,9 +525,9 @@ namespace tflite
                     pthread_exit(NULL);
                 }
                 gettimeofday(&iter_end, nullptr);
-                time_spends[k] = (float)((getUs(iter_end) - getUs(iter_start)) / (1000));
+                time_spend = (float)((getUs(iter_end) - getUs(iter_start)) / (1000));
                 /* TODO decide the differnece : temperory using  1.1 ms */
-                if (time_spends[k] > arg->actual_time + 1.1 && num_switches < max_num_op_saved)
+                if (time_spend > arg->actual_time + 1.1 && num_switches < max_num_op_saved)
                 {
                     /* allocating 0th tensor from out_pts array at invoke time
                     each time it exceeds its actual inference time */

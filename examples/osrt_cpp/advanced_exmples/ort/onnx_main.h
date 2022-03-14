@@ -87,6 +87,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../utils/include/print_utils.h"
 
 pthread_mutex_t ort_pr_lock;
+pthread_barrier_t barrier;
 
 using namespace tidl::arg_parsing_adv;
 using namespace tidl::modelInfo;
@@ -95,6 +96,7 @@ using namespace tidl::utils;
 using namespace tidl::postprocess;
 using namespace tidl::preprocess;
 using namespace tidl::print_utils;
+using namespace std::chrono;
 
 
 #define NUM_PARLLEL_MODELS 2
