@@ -74,7 +74,6 @@ namespace tflite
             tflite::ops::builtin::BuiltinOpResolver resolver;
             Settings *s;
             int priority;
-            int breath_time = 10;
             int model_id;
             float actual_times[NUM_PARLLEL_MODELS];
 
@@ -423,9 +422,8 @@ namespace tflite
                 char prior_char[2], pre_empt_char[64];
                 std::sprintf(prior_char, "%d", arg->priority);
                 if (arg->s->max_pre_empts[arg->model_id] == -1)
-                    std::sprintf(pre_empt_char, "%d", FLT_MAX);
-                else
-                    std::sprintf(pre_empt_char, "%f", arg->s->max_pre_empts[arg->model_id]);
+                    arg->s->max_pre_empts[arg->model_id] = FLT_MAX;
+                std::sprintf(pre_empt_char, "%f", arg->s->max_pre_empts[arg->model_id]);
                 char *keys[] = {"artifacts_folder", "num_tidl_subgraphs", "debug_level", "priority", "max_pre_empt_delay"};
                 char *values[] = {(char *)arg->modelInfo->m_infConfig.artifactsPath.c_str(), "16", "0", (char *)prior_char, (char *)pre_empt_char};
                 void *lib = dlopen("libtidl_tfl_delegate.so", RTLD_NOW);
@@ -512,10 +510,11 @@ namespace tflite
             pthread_barrier_wait(&barrier);
             gettimeofday(&start_time, nullptr);
             auto finish = system_clock::now() + minutes{1};
-            int k = 0, num_switches = 0;
-            float time_spend;
-            float fisrt_actual_time = arg->actual_times[arg->model_id];
-            float second_actual_time = arg->actual_times[(arg->model_id+1) % NUM_PARLLEL_MODELS];
+            int k = 0, num_switches = 0, exceeded_iter = 0;
+            float time_spend, min_time_spend = FLT_MAX, max_time_spend = 0;
+            float curr_actual_time = arg->actual_times[arg->model_id];
+            float pll_actual_time = arg->actual_times[(arg->model_id+1) % NUM_PARLLEL_MODELS];
+            float pll_max_pre_empt_dealy = arg->s->max_pre_empts[(arg->model_id+1) % NUM_PARLLEL_MODELS];
             const TfLiteTensor *tensor = interpreter->output_tensor(0);
             interpreter->SetCustomAllocationForTensor(outputs[0], {out_ptrs[0], tensor->bytes});
             do
@@ -528,8 +527,14 @@ namespace tflite
                 }
                 gettimeofday(&iter_end, nullptr);
                 time_spend = (float)((getUs(iter_end) - getUs(iter_start)) / (1000));
-                /* TODO decide the differnece : temperory using  1.1 ms */
-                if (time_spend > fisrt_actual_time + second_actual_time)
+                if(time_spend >( curr_actual_time + pll_max_pre_empt_dealy ))
+                   exceeded_iter++;
+                if(time_spend < min_time_spend)
+                   min_time_spend = time_spend; 
+                if(time_spend > max_time_spend)
+                   max_time_spend = time_spend; 
+
+                if (time_spend > curr_actual_time + pll_actual_time)
                 {
                     if(num_switches < max_num_op_saved){
                         /* allocating 0th tensor from out_pts array at invoke time
@@ -547,6 +552,7 @@ namespace tflite
             LOG_INFO("Model %s stop time %ld.%06ld\n", arg->modelInfo->m_preProcCfg.modelName.c_str(), start_time.tv_sec, start_time.tv_usec);
             LOG_INFO("Total num context switches for model %s:%d \n", arg->modelInfo->m_preProcCfg.modelName.c_str(), num_switches);
             LOG_INFO("Total num iterations run for model %s:%d \n", arg->modelInfo->m_preProcCfg.modelName.c_str(), k);
+            LOG_ERROR("Total %d iterations for model %s exceeded the expected time. max:%f min:%fms  \n",exceeded_iter, arg->modelInfo->m_preProcCfg.modelName.c_str(), max_time_spend, min_time_spend); 
             LOG_INFO("FPS for model %s :%f \n", arg->modelInfo->m_preProcCfg.modelName.c_str(), (float)((float)k / 60));
 
             if (arg->modelInfo->m_preProcCfg.taskType == "classification")

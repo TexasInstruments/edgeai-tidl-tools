@@ -236,6 +236,12 @@ namespace dlr
                 fetchOutputTensors<float>(outputs, num_outputs, model);
                 (*img).data = blendSegMask<float>((*img).data, outputs[0].data(), (*img).cols, (*img).rows, wanted_width, wanted_height, alpha);
             }
+            else if (!strcmp(output_type, "uint8"))
+            {
+                std::vector<std::vector<uint8_t>> outputs;
+                fetchOutputTensors<uint8_t>(outputs, num_outputs, model);
+                (*img).data = blendSegMask<uint8_t>((*img).data, outputs[0].data(), (*img).cols, (*img).rows, wanted_width, wanted_height, alpha);
+            }
             else
             {
                 LOG_ERROR("output type not supported %s\n", *output_type);

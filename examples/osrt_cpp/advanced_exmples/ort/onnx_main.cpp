@@ -281,7 +281,6 @@ namespace onnx
             ModelInfo *modelInfo;
             Settings *s;
             int priority;
-            int breath_time = 10;
             int model_id;
             Ort::Env *env;
             float actual_times[NUM_PARLLEL_MODELS];
@@ -600,6 +599,8 @@ namespace onnx
             Ort::SessionOptions session_options;
             session_options.SetIntraOpNumThreads(1);
             session_options.DisablePerSessionThreads();
+            if (arg->s->max_pre_empts[arg->model_id] == -1)
+                arg->s->max_pre_empts[arg->model_id] = FLT_MAX;
             /* Initialize session options */
             if (s->accel)
             {
@@ -607,14 +608,8 @@ namespace onnx
                 c_api_tidl_options *options = (c_api_tidl_options *)malloc(sizeof(c_api_tidl_options));
                 strcpy(options->artifacts_folder, artifacts_path.c_str());
                 options->priority = arg->priority;
-                if (arg->s->max_pre_empts[arg->model_id] == -1)
-                {
-                    options->max_pre_empt_delay = FLT_MAX;
-                }
-                else
-                {
-                    options->max_pre_empt_delay = (arg->s->max_pre_empts[arg->model_id]);
-                }
+                options->max_pre_empt_delay = arg->s->max_pre_empts[arg->model_id];
+  
                 options->debug_level = 0;
                 if (options == NULL)
                 {
@@ -744,9 +739,13 @@ namespace onnx
             gettimeofday(&start_time, nullptr);
             auto finish = system_clock::now() + minutes{1};
             int k = 0, num_switches = 0;
+            size_t exceeded_iter = 0;
             float fisrt_actual_time = arg->actual_times[arg->model_id];
             float second_actual_time = arg->actual_times[(arg->model_id+1) % NUM_PARLLEL_MODELS];
-            float time_spend;
+            float curr_actual_time = arg->actual_times[arg->model_id];
+            float pll_actual_time = arg->actual_times[(arg->model_id+1) % NUM_PARLLEL_MODELS];
+            float pll_max_pre_empt_dealy = arg->s->max_pre_empts[(arg->model_id+1) % NUM_PARLLEL_MODELS];
+            float time_spend, min_time_spend = FLT_MAX, max_time_spend = 0;
             binding.BindOutput(output_node_names[0], output_tensors[0]);
             do
             {
@@ -754,16 +753,22 @@ namespace onnx
                 session.Run(run_options, binding);
                 gettimeofday(&iter_end, nullptr);
                 time_spend = (float)((getUs(iter_end) - getUs(iter_start)) / (1000));
-                /* TODO decide the differnece : temperory using  1.1 ms */
-              if (time_spend > fisrt_actual_time + second_actual_time)
-                {
-                    if(num_switches < max_num_op_saved){
-                        /* allocating 0th tensor from out_pts array at invoke time
-                        each time it exceeds its actual inference time */
-                        binding.BindOutput(output_node_names[0], output_tensors[num_switches % max_num_op_saved]);
+                if(time_spend >( curr_actual_time + pll_max_pre_empt_dealy ))
+                   exceeded_iter++;
+                if(time_spend < min_time_spend)
+                   min_time_spend = time_spend; 
+                if(time_spend > max_time_spend)
+                   max_time_spend = time_spend; 
+
+                if (time_spend > fisrt_actual_time + second_actual_time)
+                    {
+                        if(num_switches < max_num_op_saved){
+                            /* allocating 0th tensor from out_pts array at invoke time
+                            each time it exceeds its actual inference time */
+                            binding.BindOutput(output_node_names[0], output_tensors[num_switches % max_num_op_saved]);
+                        }
+                        num_switches++;
                     }
-                    num_switches++;
-                }
                 k++;
             } while (system_clock::now() < finish);
             gettimeofday(&stop_time, nullptr);
@@ -772,6 +777,7 @@ namespace onnx
             LOG_INFO("Model %s stop time %ld.%06ld\n", arg->modelInfo->m_preProcCfg.modelName.c_str(), stop_time.tv_sec, stop_time.tv_usec);
             LOG_INFO("Total num context switches for model %s:%d \n", arg->modelInfo->m_preProcCfg.modelName.c_str(), num_switches);
             LOG_INFO("Total num iterations run for model %s:%d \n", arg->modelInfo->m_preProcCfg.modelName.c_str(), k);
+            LOG_ERROR("Total %d iterations for model %s exceeded the expected time. max:%f min:%fms  \n",exceeded_iter, arg->modelInfo->m_preProcCfg.modelName.c_str(), max_time_spend, min_time_spend); 
             LOG_INFO("FPS for model %s :%f \n", arg->modelInfo->m_preProcCfg.modelName.c_str(), (float)((float)k / 60));
 
             if (arg->modelInfo->m_preProcCfg.taskType == "classification")
