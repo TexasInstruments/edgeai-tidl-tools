@@ -284,7 +284,7 @@ namespace onnx
             int breath_time = 10;
             int model_id;
             Ort::Env *env;
-            float actual_time;
+            float actual_times[NUM_PARLLEL_MODELS];
 
         } ort_model_struct;
 
@@ -378,6 +378,7 @@ namespace onnx
             if (s->accel)
             {
                 c_api_tidl_options *options = (c_api_tidl_options *)malloc(sizeof(c_api_tidl_options));
+                OrtSessionsOptionsSetDefault_Tidl(options);
                 if (options == NULL)
                 {
                     LOG_ERROR("failed to allocate c_api_tidl_options \n");
@@ -511,7 +512,7 @@ namespace onnx
             }
             gettimeofday(&stop_time, nullptr);
             avg_time = ((getUs(stop_time) - getUs(start_time)) / (loop_count * 1000));
-            arg->actual_time = avg_time;
+            arg->actual_times[arg->model_id] = avg_time;
             LOG_INFO("Done fetching actual inference time for model %s :avg_time %f\n", arg->modelInfo->m_preProcCfg.modelName.c_str(), avg_time);
             return RETURN_SUCCESS;
         }
@@ -605,16 +606,14 @@ namespace onnx
                 LOG_INFO("accelerated mode\n");
                 c_api_tidl_options *options = (c_api_tidl_options *)malloc(sizeof(c_api_tidl_options));
                 strcpy(options->artifacts_folder, artifacts_path.c_str());
-                char prior_char[2], pre_empt_char[64];
-                std::sprintf(prior_char, "%d", arg->priority);
                 options->priority = arg->priority;
                 if (arg->s->max_pre_empts[arg->model_id] == -1)
                 {
-                    std::sprintf(pre_empt_char, "%d", FLT_MAX);
+                    options->max_pre_empt_delay = FLT_MAX;
                 }
                 else
                 {
-                    std::sprintf(pre_empt_char, "%f", arg->s->max_pre_empts[arg->model_id]);
+                    options->max_pre_empt_delay = (arg->s->max_pre_empts[arg->model_id]);
                 }
                 options->debug_level = 0;
                 if (options == NULL)
@@ -743,9 +742,10 @@ namespace onnx
 
             pthread_barrier_wait(&barrier);
             gettimeofday(&start_time, nullptr);
-            // auto finish = system_clock::now() + minutes{1};
             auto finish = system_clock::now() + minutes{1};
             int k = 0, num_switches = 0;
+            float fisrt_actual_time = arg->actual_times[arg->model_id];
+            float second_actual_time = arg->actual_times[(arg->model_id+1) % NUM_PARLLEL_MODELS];
             float time_spend;
             binding.BindOutput(output_node_names[0], output_tensors[0]);
             do
@@ -755,11 +755,13 @@ namespace onnx
                 gettimeofday(&iter_end, nullptr);
                 time_spend = (float)((getUs(iter_end) - getUs(iter_start)) / (1000));
                 /* TODO decide the differnece : temperory using  1.1 ms */
-                if (time_spend > arg->actual_time + 1.1 && num_switches < max_num_op_saved)
+              if (time_spend > fisrt_actual_time + second_actual_time)
                 {
-                    /* allocating 0th tensor from out_pts array at invoke time
-                    each time it exceeds its actual inference time */
-                    binding.BindOutput(output_node_names[0], output_tensors[num_switches % max_num_op_saved]);
+                    if(num_switches < max_num_op_saved){
+                        /* allocating 0th tensor from out_pts array at invoke time
+                        each time it exceeds its actual inference time */
+                        binding.BindOutput(output_node_names[0], output_tensors[num_switches % max_num_op_saved]);
+                    }
                     num_switches++;
                 }
                 k++;

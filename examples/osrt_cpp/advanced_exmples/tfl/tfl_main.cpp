@@ -76,7 +76,7 @@ namespace tflite
             int priority;
             int breath_time = 10;
             int model_id;
-            float actual_time;
+            float actual_times[NUM_PARLLEL_MODELS];
 
         } tfl_model_struct;
 
@@ -359,7 +359,7 @@ namespace tflite
             gettimeofday(&stop_time, nullptr);
 
             float avg_time = ((getUs(stop_time) - getUs(start_time)) / (loop_count * 1000));
-            arg->actual_time = avg_time;
+            arg->actual_times[arg->model_id] = avg_time;
             LOG_INFO("Done fetching actual inference time for model %s :vag_time %f\n", arg->modelInfo->m_preProcCfg.modelName.c_str(), avg_time);
             return RETURN_SUCCESS;
         }
@@ -514,6 +514,8 @@ namespace tflite
             auto finish = system_clock::now() + minutes{1};
             int k = 0, num_switches = 0;
             float time_spend;
+            float fisrt_actual_time = arg->actual_times[arg->model_id];
+            float second_actual_time = arg->actual_times[(arg->model_id+1) % NUM_PARLLEL_MODELS];
             const TfLiteTensor *tensor = interpreter->output_tensor(0);
             interpreter->SetCustomAllocationForTensor(outputs[0], {out_ptrs[0], tensor->bytes});
             do
@@ -527,12 +529,14 @@ namespace tflite
                 gettimeofday(&iter_end, nullptr);
                 time_spend = (float)((getUs(iter_end) - getUs(iter_start)) / (1000));
                 /* TODO decide the differnece : temperory using  1.1 ms */
-                if (time_spend > arg->actual_time + 1.1 && num_switches < max_num_op_saved)
+                if (time_spend > fisrt_actual_time + second_actual_time)
                 {
-                    /* allocating 0th tensor from out_pts array at invoke time
-                    each time it exceeds its actual inference time */
-                    const TfLiteTensor *tensor = interpreter->output_tensor(0);
-                    interpreter->SetCustomAllocationForTensor(outputs[0], {out_ptrs[num_switches % max_num_op_saved], tensor->bytes});
+                    if(num_switches < max_num_op_saved){
+                        /* allocating 0th tensor from out_pts array at invoke time
+                        each time it exceeds its actual inference time */
+                        const TfLiteTensor *tensor = interpreter->output_tensor(0);
+                        interpreter->SetCustomAllocationForTensor(outputs[0], {out_ptrs[num_switches % max_num_op_saved], tensor->bytes});
+                    }
                     num_switches++;
                 }
                 k++;
