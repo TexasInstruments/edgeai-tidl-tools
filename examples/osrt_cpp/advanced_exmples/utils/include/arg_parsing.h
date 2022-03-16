@@ -84,7 +84,6 @@ namespace tidl
             bool accel = false;
             bool device_mem = false;
             int loop_counts[2] = {5, 5};
-            std::string artifact_path = "";
             std::string input_img_paths[2] = {};
             std::string device_type = "cpu";
             std::string labels_file_path = "test_data/labels.txt";
@@ -93,7 +92,6 @@ namespace tidl
             float max_pre_empts[2] = {-1, -1};
             int number_of_threads = 1;
             int number_of_results = 5;
-            int validation_type = 0;
         };
         /**
          * Use getopts lib to do options parsing and fill the contents to Setting struct.

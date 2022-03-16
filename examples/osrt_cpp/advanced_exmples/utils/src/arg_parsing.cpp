@@ -77,16 +77,13 @@ namespace tidl
                 << "--verbose, -v: [0|1] print more information\n"
                 << "--accelerated, -a: [0|1], use Android NNAPI or not\n"
                 << "--dev_mem, -d: [0|1], dev_mem or not\n"
-                << "--count, -c: loop interpreter->Invoke() for certain times\n"
-                << "--artifact_path, -f: [0|1], Path for Delegate artifacts folder \n"
                 << "--images, -i: input images for model in order with full path\n"
                 << "--device_type, -y: device_type for dlr models can be cpu,gpu\n"
                 << "--pre_empt_delay, -e: pre emmpt delay for models in order\n"
                 << "--labels, -l: labels for the model\n"
                 << "--model_dirs, -m: model directory for models in order\n"
                 << "--priors, -p: thread priority for models in order\n"
-                << "--threads, -t: number of threads to be running in parellel\n"
-                << "--val_type, -x: validation type 0:prioirty 1:fps calualtion 2:op tensor validation\n"
+                << "--threads, -t: number of threads to be running in parellel for each model\n"
                 << "\n";
         }
 
@@ -111,8 +108,6 @@ namespace tidl
                     {"log_level", required_argument, nullptr, 'v'},
                     {"accelerated", required_argument, nullptr, 'a'},
                     {"device_mem", required_argument, nullptr, 'd'},
-                    {"loop_counts", required_argument, nullptr, 'c'},
-                    {"artifact_path", required_argument, nullptr, 'f'},
                     {"images", required_argument, nullptr, 'i'},
                     {"device_type", required_argument, nullptr, 'y'},
                     {"labels", required_argument, nullptr, 'l'},
@@ -120,14 +115,13 @@ namespace tidl
                     {"priorities", required_argument, nullptr, 'p'},
                     {"max_pre_empt_delays", required_argument, nullptr, 'e'},
                     {"threads", required_argument, nullptr, 't'},
-                    {"val_type", required_argument, nullptr, 'x'},
                     {nullptr, 0, nullptr, 0}};
 
                 /* getopt_long stores the option index here. */
                 int option_index = 0;
 
                 c = getopt_long(argc, argv,
-                                "v:a:d:c:f:i:y:l:m:p:e:t:x:", long_options,
+                                "v:a:d:c:i:y:l:m:p:e:t:h:", long_options,
                                 &option_index);
 
                 /* Detect the end of the options. */
@@ -142,28 +136,8 @@ namespace tidl
                 case 'a':
                     s->accel = strtol(optarg, nullptr, 10);
                     break;
-                case 'x':
-                    s->validation_type = strtol(optarg, nullptr, 10);
-                    break;
                 case 'd':
                     s->device_mem = strtol(optarg, nullptr, 10);
-                    break;
-                case 'c':
-                    index = optind - 1;
-                    while (index < argc)
-                    {
-
-                        if (*argv[index] != '-')
-                        { /* check if optarg is next switch */
-                            s->loop_counts[index - optind + 1] = strtol(argv[index], nullptr, 10);
-                        }
-                        else
-                            break;
-                        index++;
-                    }
-                    break;
-                case 'f':
-                    s->artifact_path = optarg;
                     break;
                 case 'i':
                     index = optind - 1;
@@ -261,9 +235,6 @@ namespace tidl
             std::cout << "verbose level set to: " << s->log_level << "\n";
             std::cout << "accelerated mode set to: " << s->accel << "\n";
             std::cout << "device mem set to: " << s->device_mem << "\n";
-            std::cout << "model1 loop count set to: " << s->loop_counts[0] << "\n";
-            std::cout << "model2 loop count set to: " << s->loop_counts[1] << "\n";
-            std::cout << "artifacts path set to: " << s->artifact_path << "\n";
             std::cout << "image1 path set to: " << s->input_img_paths[0] << "\n";
             std::cout << "image2 path set to: " << s->input_img_paths[1] << "\n";
             std::cout << "labels path set to: " << s->labels_file_path << "\n";
@@ -275,7 +246,6 @@ namespace tidl
             std::cout << "maxPreEmt2 set to: " << s->max_pre_empts[1] << "\n";            
             std::cout << "num of threads set to: " << s->number_of_threads << "\n";
             std::cout << "num of results set to: " << s->number_of_results << "\n";
-            std::cout << "validateion type set to: " << s->validation_type << "\n";
 
             std::cout << "\n***** Display run Config: end *****\n";
         }
