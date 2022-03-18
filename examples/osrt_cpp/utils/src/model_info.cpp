@@ -163,13 +163,11 @@ namespace tidl
             }
             else if (!preProc["mean"])
             {
-                LOG_ERROR("Mean value specification missing.\n");
-                status = -1;
+                LOG_ERROR("Mean value specification missing. Setting deafult mean: 0\n");
             }
             else if (!preProc["scale"])
             {
-                LOG_ERROR("Scale value specification missing.\n");
-                status = -1;
+                LOG_ERROR("Scale value specification missing.Setting default scale: 1\n");
             }
             else if (!preProc["data_layout"])
             {
@@ -211,19 +209,28 @@ namespace tidl
                 config.dataLayout = preProc["data_layout"].as<std::string>();
 
                 /* Read the mean values */
-                const YAML::Node &meanNode = preProc["mean"];
-                for (uint32_t i = 0; i < meanNode.size(); i++)
-                {
-                    config.mean.push_back(meanNode[i].as<float>());
+                if(preProc["mean"]){
+                    const YAML::Node &meanNode = preProc["mean"];
+                    for (uint32_t i = 0; i < meanNode.size(); i++)
+                    {
+                        config.mean.push_back(meanNode[i].as<float>());
+                    }
+                }else{
+                    /*setting default mean to 0 , assuming 3 ch input */
+                    config.mean.insert(config.mean.end(), { 0, 0, 0 });
                 }
 
                 /* Read the scale values */
-                const YAML::Node &scaleNode = preProc["scale"];
-                for (uint32_t i = 0; i < scaleNode.size(); i++)
-                {
-                    config.scale.push_back(scaleNode[i].as<float>());
+                if(preProc["mean"]){
+                    const YAML::Node &scaleNode = preProc["scale"];
+                    for (uint32_t i = 0; i < scaleNode.size(); i++)
+                    {
+                        config.scale.push_back(scaleNode[i].as<float>());
+                    }
+                }else{
+                     /*setting default scale to 1 , assuming 3 ch input */
+                    config.scale.insert(config.scale.end(), { 1, 1, 1 });
                 }
-
                 /* Read the width and height values */
                 const YAML::Node &resizeNode = preProc["resize"];
 
