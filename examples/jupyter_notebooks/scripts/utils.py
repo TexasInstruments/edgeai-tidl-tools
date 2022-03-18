@@ -533,13 +533,19 @@ def get_eval_configs(task_type, runtime_type, num_quant_bits, last_artifacts_id=
 
 def get_preproc_props(pipeline_config):
     size = pipeline_config['preprocess'].get_param('crop')
-    mean = list(pipeline_config['preprocess'].get_param('mean'))
-    scale = list(pipeline_config['preprocess'].get_param('scale'))
     layout = pipeline_config['preprocess'].get_param('data_layout')
     reverse_channels = pipeline_config['preprocess'].get_param('reverse_channels')
+    mean = pipeline_config['session'].get_param('input_mean')
+    scale = pipeline_config['session'].get_param('input_scale')
 
     if type(size) is tuple:
         size = list(size)
+
+    if mean is not None:
+        mean = list(mean)
+
+    if scale is not None:
+        scale = list(scale)
 
     return size, mean, scale, layout, reverse_channels
 
