@@ -231,7 +231,7 @@ def tidlTfliteModelOptimize(in_model_path, out_model_path, scaleList=[0.0078125,
 
                 operator.outputs[0] = new_tensor_idx
 
-                modelT.subgraphs[0].tensors[modelT.subgraphs[0].operators[new_op_idx].outputs[0]].type  = tflite_model.TensorType.TensorType.UINT8
+                setTensorProperties(modelT.subgraphs[0].tensors[modelT.subgraphs[0].operators[new_op_idx].outputs[0]], tflite_model.TensorType.TensorType.UINT8, 1.0, 0)
 
                 modelT.subgraphs[0].operators[new_op_idx].inputs[0] = new_tensor_idx
                 modelT.subgraphs[0].operators[new_op_idx].opcodeIndex = cast_idx
