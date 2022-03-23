@@ -74,6 +74,7 @@ sys.path.pop(0)
 def addNewOperator(modelT, operatorBuiltinCode):
     new_op_code                       = copy.deepcopy(modelT.operatorCodes[0])
     new_op_code.deprecatedBuiltinCode = operatorBuiltinCode
+    new_op_code.builtinCode = operatorBuiltinCode
     modelT.operatorCodes.append(new_op_code)
     return (len(modelT.operatorCodes) - 1)
 
