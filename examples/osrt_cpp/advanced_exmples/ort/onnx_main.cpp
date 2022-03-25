@@ -355,16 +355,14 @@ namespace onnx
          *  \param  arg ort_model_struct containing model details to be ran
          * @returns int status
          */
-        int getActualRunTime(ort_model_struct *arg)
+        int getInvokeTime(ort_model_struct *arg)
         {
-            LOG_INFO("Fetching actual inference time for model %s\n", arg->modelInfo->m_preProcCfg.modelName.c_str());
             Settings *s = arg->s;
             string artifacts_path = arg->modelInfo->m_infConfig.artifactsPath;
             string model_path = arg->modelInfo->m_infConfig.modelFile;
             cv::Mat img;
             void *inData;
             string input_img_path = s->input_img_paths[arg->model_id];
-            int loop_count = s->loop_counts[arg->model_id];
             struct timeval start_time, stop_time;
             float avg_time;
             std::vector<Ort::Value> output_tensors;
@@ -430,12 +428,6 @@ namespace onnx
             vector<int64_t> output_node_dims = output_tensor_info.GetShape();
             size_t output_tensor_size = output_node_dims[1];
 
-            if (RETURN_FAIL == printTensorInfo(&session, &input_node_names))
-            {
-                LOG_ERROR("failed to print tensor info\n");
-                return RETURN_FAIL;
-            }
-
             std::vector<Ort::Value> input_tensors;
             ssize_t input_tensor_size_bytes;
             /* simplify ... using known dim values to calculate size */
@@ -494,8 +486,15 @@ namespace onnx
             binding.BindInput(input_node_names[0], input_tensors[0]);
             for (int idx = 0; idx < num_output_nodes; idx++)
             {
-                auto node_dims = output_tensors_warm_up[idx].GetTypeInfo().GetTensorTypeAndShapeInfo().GetShape();
-                ONNXTensorElementDataType tensor_type = output_tensors_warm_up[idx].GetTypeInfo().GetTensorTypeAndShapeInfo().GetElementType();
+                type_info = session.GetOutputTypeInfo(idx);
+                auto output_tensor_info = type_info.GetTensorTypeAndShapeInfo();
+                auto node_dims = output_tensor_info.GetShape();
+                ONNXTensorElementDataType tensor_type = output_tensor_info.GetElementType();
+                /*TODO need to check why this is coming*/
+                if(node_dims[0] == 1 && node_dims[1] == 1000){
+                    node_dims.insert(node_dims.begin(),1);
+                    node_dims.insert(node_dims.begin(),1);
+                }
                 size_t tensor_size = calcTensorSize(node_dims, tensor_type);
                 if (tensor_size == RETURN_FAIL)
                     return RETURN_FAIL;
@@ -505,17 +504,40 @@ namespace onnx
                 binding.BindOutput(output_node_names[idx], output_tensors[idx]);
             }
             gettimeofday(&start_time, nullptr);
-            for (int i = 0; i < loop_count; i++)
-            {
-                session.Run(run_options, binding);
-            }
+            session.Run(run_options, binding);
             gettimeofday(&stop_time, nullptr);
-            avg_time = ((getUs(stop_time) - getUs(start_time)) / (loop_count * 1000));
+            avg_time = ((getUs(stop_time) - getUs(start_time)) / (1000));
             arg->actual_times[arg->model_id] = avg_time;
-            LOG_INFO("Done fetching actual inference time for model %s :avg_time %f\n", arg->modelInfo->m_preProcCfg.modelName.c_str(), avg_time);
             return RETURN_SUCCESS;
         }
 
+
+        /**
+         *  \brief  Get the actual run time of model if ran individually
+         *  \param  arg tfl_model_struct containing models details to be ran
+         * @returns int status
+         */
+        int getActualRunTime(ort_model_struct *arg0, ort_model_struct *arg1){
+            LOG_INFO("Fetching actual inference time for models\n");
+            float total_m0,total_m1;
+            int loop_count = 10;
+            for (size_t i = 0; i < loop_count; i++)
+            {
+                getInvokeTime(arg0);
+                total_m0 += arg0->actual_times[0];
+                getInvokeTime(arg1);
+                total_m1 += arg1->actual_times[1];
+                LOG_INFO("Run times of model 0 and 1 are: %f %f\n",arg0->actual_times[0], arg1->actual_times[1]);
+            }
+            arg0->actual_times[0] = total_m0/loop_count;
+            arg0->actual_times[1] = total_m1/loop_count;
+            arg1->actual_times[0] = total_m0/loop_count;
+            arg1->actual_times[1] = total_m1/loop_count;
+            LOG_INFO("Done fetching actual inference time for model %s :avg_time %f\n", arg0->modelInfo->m_preProcCfg.modelName.c_str(), arg0->actual_times[0]);
+            LOG_INFO("Done fetching actual inference time for model %s :avg_time %f\n", arg1->modelInfo->m_preProcCfg.modelName.c_str(), arg0->actual_times[1]);
+             return RETURN_SUCCESS;   
+        }
+        
         /**
          *  \brief  Compare the final tensor output and each iteration output
          *  \param  loop_count number of iteration run per model
@@ -711,7 +733,7 @@ namespace onnx
 
             auto run_options = Ort::RunOptions();
             run_options.SetRunLogVerbosityLevel(2);
-            auto output_tensors_warm_up = session.Run(run_options, input_node_names.data(), input_tensors.data(), 1, output_node_names.data(), num_output_nodes);
+            
 
             void *outData = TIDLRT_allocSharedMem(16, output_tensor_size * sizeof(float));
             if (outData == NULL)
@@ -725,8 +747,15 @@ namespace onnx
             /* assuming 1 op tensor in model */
             for (int idx = 0; idx < max_num_op_saved; idx++)
             {
-                auto node_dims = output_tensors_warm_up[0].GetTypeInfo().GetTensorTypeAndShapeInfo().GetShape();
-                ONNXTensorElementDataType tensor_type = output_tensors_warm_up[0].GetTypeInfo().GetTensorTypeAndShapeInfo().GetElementType();
+                type_info = session.GetOutputTypeInfo(0);
+                auto output_tensor_info = type_info.GetTensorTypeAndShapeInfo();
+                auto node_dims = output_tensor_info.GetShape();
+                ONNXTensorElementDataType tensor_type = output_tensor_info.GetElementType();
+                /*TODO need to check why this is coming*/
+                if(node_dims[0] == 1 && node_dims[1] == 1000){
+                    node_dims.insert(node_dims.begin(),1);
+                    node_dims.insert(node_dims.begin(),1);
+                }                
                 size_t tensor_size = calcTensorSize(node_dims, tensor_type);
                 if (tensor_size == RETURN_FAIL)
                     pthread_exit(NULL);
@@ -777,7 +806,7 @@ namespace onnx
             LOG_INFO("Model %s stop time %ld.%06ld\n", arg->modelInfo->m_preProcCfg.modelName.c_str(), stop_time.tv_sec, stop_time.tv_usec);
             LOG_INFO("Total num context switches for model %s:%d \n", arg->modelInfo->m_preProcCfg.modelName.c_str(), num_switches);
             LOG_INFO("Total num iterations run for model %s:%d \n", arg->modelInfo->m_preProcCfg.modelName.c_str(), k);
-            LOG_ERROR("Total %d iterations for model %s exceeded the expected time. max:%f min:%fms  \n",exceeded_iter, arg->modelInfo->m_preProcCfg.modelName.c_str(), max_time_spend, min_time_spend); 
+            LOG_ERROR("Total %d iterations for model %s exceeded the expected time. max:%f min:%fms avg:%fms \n",exceeded_iter, arg->modelInfo->m_preProcCfg.modelName.c_str(), max_time_spend, min_time_spend, avg_time); 
             LOG_INFO("FPS for model %s :%f \n", arg->modelInfo->m_preProcCfg.modelName.c_str(), (float)((float)k / 60));
 
             if (arg->modelInfo->m_preProcCfg.taskType == "classification")
@@ -968,9 +997,9 @@ namespace onnx
                 args[i].s = s;
                 args[i].model_id = i;
                 args[i].priority = s->priors[i];
-                if (RETURN_FAIL == getActualRunTime(&args[i]))
-                    return RETURN_FAIL;
             }
+            if (RETURN_FAIL == getActualRunTime(&args[0], &args[1]))
+                    return RETURN_FAIL;
             if (pthread_mutex_init(&ort_pr_lock, NULL) != 0)
             {
                 LOG_ERROR("\n mutex init has failed\n");
@@ -1018,7 +1047,7 @@ int main(int argc, char *argv[])
     dumpArgs(&s);
     /* Parse the model YAML file */
     ModelInfo model1(s.model_paths[0]);
-    if (model1.initialize() == RETURN_FAIL)
+    if (model1.initialize(s.log_level) == RETURN_FAIL)
     {
         LOG_ERROR("Failed to initialize model\n");
         return RETURN_FAIL;
@@ -1026,7 +1055,7 @@ int main(int argc, char *argv[])
 
     /* Parse the model YAML file */
     ModelInfo model2(s.model_paths[1]);
-    if (model2.initialize() == RETURN_FAIL)
+    if (model2.initialize(s.log_level) == RETURN_FAIL)
     {
         LOG_ERROR("Failed to initialize model\n");
         return RETURN_FAIL;

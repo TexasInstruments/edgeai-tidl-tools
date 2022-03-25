@@ -214,18 +214,16 @@ namespace tflite
         template int compTensorOut<int32_t>(int loop_count, int output_tensor_length, std::unique_ptr<tflite::Interpreter> *interpreter, void *out_ptrs[]);
 
         /**
-         *  \brief  Get the actual run time of model if ran individually
+         *  \brief  Get the invoke run time of model for single run
          *  \param  arg tfl_model_struct containing model details to be ran
          * @returns int status
          */
-        int getActualRunTime(tfl_model_struct *arg)
+        int getInvokeTime(tfl_model_struct *arg)
         {
-            LOG_INFO("Fetching actual inference time for model %s\n", arg->modelInfo->m_preProcCfg.modelName.c_str());
             void *in_ptrs[16] = {NULL};
             void *out_ptrs[16] = {NULL};
             vector<int> inputs, outputs;
             int wanted_batch, wanted_height, wanted_width, wanted_channels;
-            int loop_count = arg->s->loop_counts[arg->model_id];
             std::unique_ptr<tflite::Interpreter> interpreter;
             tflite::InterpreterBuilder(*arg->model, arg->resolver)(&interpreter);
             string input_img_path = arg->s->input_img_paths[arg->model_id];
@@ -335,34 +333,47 @@ namespace tflite
                 LOG_ERROR("cannot handle input type %d yet\n", interpreter->tensor(input)->type);
                 return RETURN_FAIL;
             }
-            /* running default 10 warmup runs*/
-            for (int i = 0; i < 10; i++)
-            {
-                if (interpreter->Invoke() != kTfLiteOk)
-                {
-                    LOG_ERROR("Failed to invoke tflite!\n");
-                    return RETURN_FAIL;
-                }
-            }
 
             struct timeval start_time, stop_time;
             gettimeofday(&start_time, nullptr);
-
-            for (int i = 0; i < loop_count; i++)
+            if (interpreter->Invoke() != kTfLiteOk)
             {
-                if (interpreter->Invoke() != kTfLiteOk)
-                {
-                    LOG_ERROR("Failed to invoke tflite!\n");
-                }
+                LOG_ERROR("Failed to invoke tflite!\n");
             }
             gettimeofday(&stop_time, nullptr);
 
-            float avg_time = ((getUs(stop_time) - getUs(start_time)) / (loop_count * 1000));
+            float avg_time = ((getUs(stop_time) - getUs(start_time)) / (1000));
             arg->actual_times[arg->model_id] = avg_time;
-            LOG_INFO("Done fetching actual inference time for model %s :vag_time %f\n", arg->modelInfo->m_preProcCfg.modelName.c_str(), avg_time);
             return RETURN_SUCCESS;
         }
 
+
+        /**
+         *  \brief  Get the actual run time of model if ran individually
+         *  \param  arg tfl_model_struct containing models details to be ran
+         * @returns int status
+         */
+        int getActualRunTime(tfl_model_struct *arg0, tfl_model_struct *arg1){
+            LOG_INFO("Fetching actual inference time for models\n");
+            float total_m0,total_m1;
+            int loop_count = 10;
+            for (size_t i = 0; i < loop_count; i++)
+            {
+                getInvokeTime(arg0);
+                total_m0 += arg0->actual_times[0];
+                getInvokeTime(arg1);
+                total_m1 += arg1->actual_times[1];
+                LOG_INFO("Run times of model 0 and 1 are: %f %f\n",arg0->actual_times[0], arg1->actual_times[1]);
+            }
+            arg0->actual_times[0] = total_m0/loop_count;
+            arg0->actual_times[1] = total_m1/loop_count;
+            arg1->actual_times[0] = total_m0/loop_count;
+            arg1->actual_times[1] = total_m1/loop_count;
+            LOG_INFO("Done fetching actual inference time for model %s :avg_time %f\n", arg0->modelInfo->m_preProcCfg.modelName.c_str(), arg0->actual_times[0]);
+            LOG_INFO("Done fetching actual inference time for model %s :avg_time %f\n", arg1->modelInfo->m_preProcCfg.modelName.c_str(), arg0->actual_times[1]);
+             return RETURN_SUCCESS;   
+        }
+        
         /**
          *  \brief  Actual infernce happening
          *  \param  ModelInfo YAML parsed model info
@@ -552,7 +563,7 @@ namespace tflite
             LOG_INFO("Model %s stop time %ld.%06ld\n", arg->modelInfo->m_preProcCfg.modelName.c_str(), start_time.tv_sec, start_time.tv_usec);
             LOG_INFO("Total num context switches for model %s:%d \n", arg->modelInfo->m_preProcCfg.modelName.c_str(), num_switches);
             LOG_INFO("Total num iterations run for model %s:%d \n", arg->modelInfo->m_preProcCfg.modelName.c_str(), k);
-            LOG_ERROR("Total %d iterations for model %s exceeded the expected time. max:%f min:%fms  \n",exceeded_iter, arg->modelInfo->m_preProcCfg.modelName.c_str(), max_time_spend, min_time_spend); 
+            LOG_ERROR("Total %d iterations for model %s exceeded the expected time. max:%f min:%fms avg:%fms  \n",exceeded_iter, arg->modelInfo->m_preProcCfg.modelName.c_str(), max_time_spend, min_time_spend, avg_time); 
             LOG_INFO("FPS for model %s :%f \n", arg->modelInfo->m_preProcCfg.modelName.c_str(), (float)((float)k / 60));
 
             if (arg->modelInfo->m_preProcCfg.taskType == "classification")
@@ -793,8 +804,9 @@ namespace tflite
                 args[i].s = s;
                 args[i].model_id = i;
                 args[i].priority = s->priors[i];
-                getActualRunTime(&args[i]);
+                // getActualRunTime(&args[i]);
             }
+            getActualRunTime(&args[0],&args[1]);
             if (pthread_mutex_init(&tfl_pr_lock, NULL) != 0)
             {
                 LOG_ERROR("\n mutex init has failed\n");
