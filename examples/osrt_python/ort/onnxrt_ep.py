@@ -221,7 +221,7 @@ def run_model(model, mIdx):
 
 #models = models_configs.keys()
 
-models = ['cl-ort-resnet18-v1', 'ss-ort-deeplabv3lite_mobilenetv2', 'od-ort-ssd-lite_mobilenetv2_fpn', 'cl-ort-caffe_squeezenet_v1_1']
+models = ['cl-ort-resnet18-v1', 'cl-ort-caffe_squeezenet_v1_1', 'ss-ort-deeplabv3lite_mobilenetv2', 'od-ort-ssd-lite_mobilenetv2_fpn']
 log = f'\nRunning {len(models)} Models - {models}\n'
 print(log)
 
