@@ -26,6 +26,59 @@ import sys
 from pathlib import Path
 import platform
 
+_CLASS_COLOR_MAP = [
+    (0, 0, 255) , # Person (blue).
+    (255, 0, 0) ,  # Bear (red).
+    (0, 255, 0) ,  # Tree (lime).
+    (255, 0, 255) ,  # Bird (fuchsia).
+    (0, 255, 255) ,  # Sky (aqua).
+    (255, 255, 0) ,  # Cat (yellow).
+]
+
+palette = np.array(
+    [[255, 128, 0],
+     [255, 153, 51],
+     [255, 178, 102],
+     [230, 230, 0],
+     [255, 153, 255],
+     [153, 204, 255],
+     [255, 102, 255],
+     [255, 51, 255],
+     [102, 178, 255],
+     [51, 153, 255],
+     [255, 153, 153],
+     [255, 102, 102],
+     [255, 51, 51],
+     [153, 255, 153],
+     [102, 255, 102],
+     [51, 255, 51],
+     [0, 255, 0], [0, 0, 255],
+     [255, 0, 0],
+     [255, 255, 255]])
+skeleton = [[16, 14],
+            [14, 12],
+            [17, 15],
+            [15, 13],
+            [12, 13], [6, 12],
+            [7, 13], [6, 7],
+            [6, 8], [7, 9],
+            [8, 10], [9, 11],
+            [2, 3],
+            [1, 2], [1, 3],
+            [2, 4], [3, 5],
+            [4, 6], [5, 7]]
+
+pose_limb_color = palette[[
+    0, 0, 0, 0, 7, 7, 7, 9, 9,
+    9, 9, 9, 16, 16, 16, 16,
+    16, 16, 16
+]]
+pose_kpt_color = palette[[
+    16, 16, 16, 16, 16, 9, 9,
+    9, 9, 9, 9, 0, 0, 0, 0, 0,
+    0
+]]
+
 if platform.machine() != 'aarch64':
     import requests
     import onnx
@@ -1687,24 +1740,6 @@ def vis_pose_result(img,
                     thickness=1,
                     radius=4):
 
-    palette = np.array([[255, 128, 0], [255, 153, 51], [255, 178, 102],
-                        [230, 230, 0], [255, 153, 255], [153, 204, 255],
-                        [255, 102, 255], [255, 51, 255], [102, 178, 255],
-                        [51, 153, 255], [255, 153, 153], [255, 102, 102],
-                        [255, 51, 51], [153, 255, 153], [102, 255, 102],
-                        [51, 255, 51], [0, 255, 0], [0, 0, 255], [255, 0, 0],
-                        [255, 255, 255]])
-    skeleton = [[16, 14], [14, 12], [17, 15], [15, 13], [12, 13], [6, 12],
-                [7, 13], [6, 7], [6, 8], [7, 9], [8, 10], [9, 11], [2, 3],
-                [1, 2], [1, 3], [2, 4], [3, 5], [4, 6], [5, 7]]
-
-    pose_limb_color = palette[[
-        0, 0, 0, 0, 7, 7, 7, 9, 9, 9, 9, 9, 16, 16, 16, 16, 16, 16, 16
-    ]]
-    pose_kpt_color = palette[[
-        16, 16, 16, 16, 16, 9, 9, 9, 9, 9, 9, 0, 0, 0, 0, 0, 0
-    ]]
-
     img = show_result(
         img,
         result,
@@ -1718,99 +1753,153 @@ def vis_pose_result(img,
         out_file=out_file)
     return img
 
-def single_img_visualise(output, image_size, img_name, out_file, udp=False,thickness=1,radius=4):
+def single_img_visualise(output, image_size, img_name, out_file, top, left, ratio, udp=False, thickness=2, radius=5, label='ae'):
+    print(label)
+    if 'ae' in label and 'yolo' not in label:
+        cfg = define_cfg(udp)
 
-    cfg = define_cfg(udp)
+        if cfg['use_udp']:
+            base_size = (image_size,image_size)
+            center = np.array([(image_size-1)/2.0,(image_size-1)/2.0])
+            scale = np.array([image_size-1,image_size-1])
+        else:
+            base_size = (image_size,image_size)
+            center = np.array([image_size/2,image_size/2])
+            scale = np.array([image_size/200,image_size/200])
 
-    if cfg['use_udp']:
-        base_size = (image_size,image_size)
-        center = np.array([(image_size-1)/2.0,(image_size-1)/2.0])
-        scale = np.array([image_size-1,image_size-1])
+        parser = HeatmapParser(cfg)
+
+        result = {}
+
+        outputs_flipped = None
+
+        aggregated_heatmaps, tags = get_multi_stage_outputs(
+            output,
+            outputs_flipped,
+            cfg['num_joints'],
+            cfg['with_heatmaps'],
+            cfg['with_ae'],
+            cfg['tag_per_joint'],
+            cfg['flip_index'],
+            cfg['project2image'],
+            base_size,
+            align_corners=cfg['use_udp'])
+
+        grouped, scores = parser.parse(aggregated_heatmaps, tags,
+            cfg['adjust'],
+            cfg['refine'])
+
+        preds = get_group_preds(
+            grouped,
+            center,
+            scale, [aggregated_heatmaps.shape[3],
+                    aggregated_heatmaps.shape[2]],
+            use_udp=cfg['use_udp'])
+
+        actual_size = cv2.imread(img_name).shape
+        k = [actual_size[1],actual_size[0]]
+        final_size = image_size
+        # for converting the keypoints back to the original image
+
+        if k[1]<k[0]:
+            scale_it = final_size/k[0]
+            value_it = (final_size - scale_it*k[1])/2
+            for i in range(len(preds)):
+                for j in range(len(preds[0])):
+                    preds[i][j][0] = preds[i][j][0]/scale_it
+                    preds[i][j][1] = (preds[i][j][1]-value_it)/scale_it
+        else:
+            scale_it = final_size/k[1]
+            value_it = (final_size - scale_it*k[0])/2
+            for i in range(len(preds)):
+                for j in range(len(preds[0])):
+                    preds[i][j][1] = preds[i][j][1]/scale_it
+                    preds[i][j][0] = (preds[i][j][0]-value_it)/scale_it
+
+        image_paths = []
+        image_paths.append(img_name)
+
+        output_heatmap = None
+
+        result['preds'] = preds
+        result['scores'] = scores
+        result['image_paths'] = img_name
+        result['output_heatmap'] = output_heatmap
+
+        pose_results = []
+        for idx, pred in enumerate(result['preds']):
+            area = (np.max(pred[:, 0]) - np.min(pred[:, 0])) * (
+                np.max(pred[:, 1]) - np.min(pred[:, 1]))
+            pose_results.append({
+                'keypoints': pred[:, :3],
+                'score': result['scores'][idx],
+                'area': area,
+            })
+
+        pose_nms_thr=0.9
+        keep = oks_nms(pose_results, pose_nms_thr, sigmas=None)
+        pose_results = [pose_results[_keep] for _keep in keep]
+
+        output_image = vis_pose_result(
+            img_name,
+            pose_results,
+            kpt_score_thr=0.3,
+            show=False,
+            out_file=out_file,
+            thickness=thickness,
+            radius=radius)
     else:
-        base_size = (image_size,image_size)
-        center = np.array([image_size/2,image_size/2])
-        scale = np.array([image_size/200,image_size/200])
+        pose_results = np.squeeze(output[0])
+        output_image = vis_box_pose_result(
+            img_name,
+            pose_results,
+            top, left, ratio,
+            score_threshold=0.6,
+            thickness=thickness,
+            radius=radius)
 
-    parser = HeatmapParser(cfg)
-
-    result = {}
-
-    outputs_flipped = None
-
-    aggregated_heatmaps, tags = get_multi_stage_outputs(
-        output,
-        outputs_flipped,
-        cfg['num_joints'],
-        cfg['with_heatmaps'],
-        cfg['with_ae'],
-        cfg['tag_per_joint'],
-        cfg['flip_index'],
-        cfg['project2image'],
-        base_size,
-        align_corners=cfg['use_udp'])
-
-    grouped, scores = parser.parse(aggregated_heatmaps, tags,
-        cfg['adjust'],
-        cfg['refine'])
-
-    preds = get_group_preds(
-        grouped,
-        center,
-        scale, [aggregated_heatmaps.shape[3],
-                aggregated_heatmaps.shape[2]],
-        use_udp=cfg['use_udp'])
-
-    actual_size = cv2.imread(img_name).shape
-    k = [actual_size[1],actual_size[0]]
-    final_size = image_size
-    # for converting the keypoints back to the original image
-
-    if k[1]<k[0]:
-        scale_it = final_size/k[0]
-        value_it = (final_size - scale_it*k[1])/2
-        for i in range(len(preds)):
-            for j in range(len(preds[0])):
-                preds[i][j][0] = preds[i][j][0]/scale_it
-                preds[i][j][1] = (preds[i][j][1]-value_it)/scale_it
-    else:
-        scale_it = final_size/k[1]
-        value_it = (final_size - scale_it*k[0])/2
-        for i in range(len(preds)):
-            for j in range(len(preds[0])):
-                preds[i][j][1] = preds[i][j][1]/scale_it
-                preds[i][j][0] = (preds[i][j][0]-value_it)/scale_it
-
-    image_paths = []
-    image_paths.append(img_name)
-
-    output_heatmap = None
-
-    result['preds'] = preds
-    result['scores'] = scores
-    result['image_paths'] = img_name
-    result['output_heatmap'] = output_heatmap
-
-    pose_results = []
-    for idx, pred in enumerate(result['preds']):
-        area = (np.max(pred[:, 0]) - np.min(pred[:, 0])) * (
-            np.max(pred[:, 1]) - np.min(pred[:, 1]))
-        pose_results.append({
-            'keypoints': pred[:, :3],
-            'score': result['scores'][idx],
-            'area': area,
-        })
-
-    pose_nms_thr=0.9
-    keep = oks_nms(pose_results, pose_nms_thr, sigmas=None)
-    pose_results = [pose_results[_keep] for _keep in keep]
-
-    output_image = vis_pose_result(
-        img_name,
-        pose_results,
-        kpt_score_thr=0.3,
-        show=False,
-        out_file=out_file,
-        thickness=thickness,
-        radius=radius)
 
     return output_image
+
+def vis_box_pose_result(img_file, output, top, left, ratio, score_threshold=0.3,thickness=2, radius=5):
+    """
+    Draw bounding boxes on the input image. Dump boxes in a txt file.
+    """
+    det_bboxes, det_scores, det_labels, kpts = output[:, 0:4], output[:, 4], output[:, 5], output[:, 6:]
+    det_bboxes[:, 0::2] = det_bboxes[:, 0::2]*ratio - left
+    det_bboxes[:, 1::2] = det_bboxes[:, 1::2]*ratio - top
+    kpts[:, 0::3] = kpts[:, 0::3]*ratio - left
+    kpts[:, 1::3] = kpts[:, 1::3]*ratio - top
+    #adjust the coordinates here
+    img = cv2.imread(img_file)[:, :, ::-1]
+    img = np.ascontiguousarray(img)
+    #To generate color based on det_label, to look into the codebase of Tensorflow object detection api.
+    for idx in range(len(det_bboxes)):
+        det_bbox = det_bboxes[idx]
+        kpt = kpts[idx]
+        if det_scores[idx]>score_threshold:
+            color_map = _CLASS_COLOR_MAP[int(det_labels[idx])]
+            img = cv2.rectangle(img, (det_bbox[0], det_bbox[1]), (det_bbox[2], det_bbox[3]), color_map[::-1], 1)
+            plot_skeleton_kpts(img, kpt, thickness=thickness, radius=radius)
+    return img
+
+def plot_skeleton_kpts(im, kpts, steps=3, thickness=2, radius=5):
+    num_kpts = len(kpts) // steps
+    #plot keypoints
+    for kid in range(num_kpts):
+        r, g, b = pose_kpt_color[kid]
+        x_coord, y_coord = kpts[steps * kid], kpts[steps * kid + 1]
+        conf = kpts[steps * kid + 2]
+        if conf > 0.5: #Confidence of a keypoint has to be greater than 0.5
+            cv2.circle(im, (int(x_coord), int(y_coord)), radius, (int(r), int(g), int(b)), -1)
+    #plot skeleton
+    for sk_id, sk in enumerate(skeleton):
+        r, g, b = pose_limb_color[sk_id]
+        pos1 = (int(kpts[(sk[0]-1)*steps]), int(kpts[(sk[0]-1)*steps+1]))
+        pos2 = (int(kpts[(sk[1]-1)*steps]), int(kpts[(sk[1]-1)*steps+1]))
+        conf1 = kpts[(sk[0]-1)*steps+2]
+        conf2 = kpts[(sk[1]-1)*steps+2]
+        if conf1>0.5 and conf2>0.5: # For a limb, both the keypoint confidence must be greater than 0.5
+            cv2.line(im, pos1, pos2, (int(r), int(g), int(b)), thickness=thickness)
+
+
