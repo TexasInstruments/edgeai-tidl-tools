@@ -30,12 +30,12 @@
 ## Run 
   - Run the advanced application with -h flag to see supported command line argument.
   ```
-    ./bin/Release/tfl_main_adv -h
+    ./bin/Release/tfl_priority_scheduling -h
     ./bin/Release/ort_main_adv -h
   ```
   - Run the CPP Advanced examples using the below commands
     ```
-    ./bin/Release/tfl_main_adv -i test_data/ADE_val_00001801.jpg test_data/airshow.jpg -m  model-artifacts/ss-tfl-deeplabv3_mnv2_ade20k_float/ model-artifacts/
+    ./bin/Release/tfl_priority_scheduling -i test_data/ADE_val_00001801.jpg test_data/airshow.jpg -m  model-artifacts/ss-tfl-deeplabv3_mnv2_ade20k_float/ model-artifacts/
     cl-tfl-mobilenet_v1_1.0_224/ -p 1 0 -t 1  -a 1  -d 1 -e 3
      ./bin/Release/ort_main_adv -i test_data/ADE_val_00001801.jpg test_data/airshow.jpg -m model-artifacts/ss-ort-deeplabv3lite_mobilenetv2/ model-artifacts/cl-ort-resnet18-v1/  -p 1 0 -t 1  -a 1  -d 1 -e 3
     ```
