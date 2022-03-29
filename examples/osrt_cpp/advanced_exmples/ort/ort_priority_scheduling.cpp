@@ -60,7 +60,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "onnx_main.h"
+#include "ort_priority_scheduling.h"
 
 #define NUM_PARLLEL_MODELS 2
 

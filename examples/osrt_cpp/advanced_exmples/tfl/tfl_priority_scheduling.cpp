@@ -60,7 +60,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "tfl_main.h"
+#include "tfl_priority_scheduling.h"
 
 namespace tflite
 {
