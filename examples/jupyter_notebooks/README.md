@@ -47,12 +47,12 @@ Below Custom Model compialtion and infrnce is supported only on PC emualtion:
 README.md#setup)
 
 ## Launch Notebook Session
-- If this is the first time run below script to get your setup ready and copy "token" from printed information in the EVM. If not the first time, go to step 4
+- If this is the first time run below script to get your setup ready and copy "token" from printed information in the EVM. If not the first time, go to "Open Jupyter Session in Browser" section
     ```
     source ./launch_notebook.sh
     ```
 - token example: http://j7-evm:8888/?token=5f4dc2f9c60318a8d8f70013a0786d56fd1c17a012a6a630 
-- If this is not the first time, It is only needed to setup environment variables and relaunch Jupyter notebook server. No need to re-run notebook_evm.sh
+- If this is not the first time, It is only needed to setup environment variables and relaunch Jupyter notebook server.
   ```
   source ./launch_notebook.sh --skip_setup --skip_models_download 
   ```
