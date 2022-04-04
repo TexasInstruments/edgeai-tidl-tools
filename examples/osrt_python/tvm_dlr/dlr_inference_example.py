@@ -17,6 +17,9 @@ if platform.machine() == 'aarch64':
 else : 
     numImages = 3
 
+model_input_height = 299
+model_input_width = 299
+
 # preprocessing / postprocessing for tflite model
 def preprocess_for_tflite_inceptionnetv3(image_path):
     import cv2
@@ -36,13 +39,13 @@ def preprocess_for_tflite_inceptionnetv3(image_path):
     # center-crop the scaled image to 224x224
     orig_height, orig_width, _ = img.shape
     short_edge = min(img.shape[:2])
-    new_height = (orig_height * 299) // short_edge
-    new_width = (orig_width * 299) // short_edge
+    new_height = (orig_height * model_input_height) // short_edge
+    new_width = (orig_width * model_input_width) // short_edge
     img = cv2.resize(img, (new_width, new_height), interpolation=cv2.INTER_CUBIC)
 
-    startx = new_width//2 - (299//2)
-    starty = new_height//2 - (299//2)
-    img = img[starty:starty+299,startx:startx+299]
+    startx = new_width//2 - (model_input_width//2)
+    starty = new_height//2 - (model_input_height//2)
+    img = img[starty:starty+model_input_height,startx:startx+model_input_width]
     
     # apply scaling and mean subtraction.
     # if your model is built with an input

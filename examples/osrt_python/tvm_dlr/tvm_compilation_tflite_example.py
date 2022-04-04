@@ -22,7 +22,9 @@ download_model(models_configs, model_id)
 # model specifics
 model_path = models_configs[model_id]['model_path']
 model_input_name = 'input'
-model_input_shape = (1, 299, 299, 3)
+model_input_height = 299
+model_input_width = 299
+model_input_shape = (1, model_input_height, model_input_width, 3)
 model_input_dtype = 'float32'
 model_layout = 'NHWC'
 model_output_directory = artifacts_folder + model_id
@@ -70,13 +72,13 @@ def preprocess_for_tflite_inceptionnetv3(image_path):
     # center-crop the scaled image to 224x224
     orig_height, orig_width, _ = img.shape
     short_edge = min(img.shape[:2])
-    new_height = (orig_height * 299) // short_edge
-    new_width = (orig_width * 299) // short_edge
+    new_height = (orig_height * model_input_height) // short_edge
+    new_width = (orig_width * model_input_width) // short_edge
     img = cv2.resize(img, (new_width, new_height), interpolation=cv2.INTER_CUBIC)
 
-    startx = new_width//2 - (299//2)
-    starty = new_height//2 - (299//2)
-    img = img[starty:starty+299,startx:startx+299]
+    startx = new_width//2 - (model_input_width//2)
+    starty = new_height//2 - (model_input_height//2)
+    img = img[starty:starty+model_input_height,startx:startx+model_input_width]
     
     # apply scaling and mean subtraction.
     # if your model is built with an input
@@ -93,13 +95,13 @@ def preprocess_for_tflite_inceptionnetv3(image_path):
             'mean': [0, 0, 0],
             'std' :[1, 1 , 1],
             'data_layout': 'NHWC',
-            'resize' : [299, 299],
-            'crop' : [299, 299],
+            'resize' : [model_input_height, model_input_width],
+            'crop' : [model_input_height, model_input_width],
             'model_type': 'classification',
             'model_path': model_path,
             'session_name' : models_configs[model_id]['session_name']}
    
-    gen_param_yaml(model_output_directory, config, 299, 299)
+    gen_param_yaml(model_output_directory, config, model_input_height, model_input_width)
     return img
 
 # create the directory if not present
