@@ -41,6 +41,10 @@ if(NOT TENSORFLOW_INSTALL_DIR)
   endif()
 endif()
 
+if(CROSS_COMPILE )
+  message(STATUS "CROSS COMPILING ENABLED")
+endif()
+
 if(NOT ONNXRT_INSTALL_DIR)
   if (EXISTS $ENV{HOME}/onnxruntime)
     set(ONNXRT_INSTALL_DIR $ENV{HOME}/onnxruntime)
@@ -70,25 +74,33 @@ add_definitions(
     -DTARGET_OS=${TARGET_OS}
 )
 
-link_directories(/usr/lib 
-                 /usr/local/dlr
-                 /usr/lib/aarch64-linux-gnu
-                 /usr/lib/python3.8/site-packages/dlr/
-                 $ENV{HOME}/.local/dlr/
-                 )
-if (EXISTS $ENV{CONDA_PREFIX}/dlr)
-link_directories($ENV{CONDA_PREFIX}/dlr
-                 )
-endif()  
 
-if(X86_64 EQUAL 1)
-link_directories(${OPENCV_INSTALL_DIR}/cmake/lib
-                 ${OPENCV_INSTALL_DIR}/cmake/3rdparty/lib
-                 $ENV{TIDL_TOOLS_PATH}
-                 )
-set(CMAKE_C_COMPILER gcc-5)
-set(CMAKE_CXX_COMPILER g++-5)
-endif()             
+if(CROSS_COMPILE)
+  link_directories(
+                    ${OPENCV_INSTALL_DIR}/cmake_static/lib
+                    ${OPENCV_INSTALL_DIR}/cmake_static/3rdparty/lib
+                    ${CMAKE_SYSROOT}/targetfs/usr/lib
+                    ${CMAKE_SYSROOT}/usr/lib/glib-2.0
+                    ${CMAKE_SYSROOT}/usr/lib/python3.8/site-packages   
+                    ${OPENCV_INSTALL_DIR}/cmake/3rdparty/libjasper/CMakeFiles/libjasper.dir
+                  )
+else()
+  link_directories(
+                  ${OPENCV_INSTALL_DIR}/cmake/lib
+                  ${OPENCV_INSTALL_DIR}/cmake/3rdparty/lib
+                  /usr/lib 
+                  /usr/local/dlr
+                  /usr/lib/aarch64-linux-gnu
+                  /usr/lib/python3.8/site-packages/dlr/
+                  $ENV{HOME}/.local/dlr/
+                  $ENV{TIDL_TOOLS_PATH}
+                  )
+endif()
+if (EXISTS $ENV{CONDA_PREFIX}/dlr)
+  link_directories(
+                  $ENV{CONDA_PREFIX}/dlr
+                  )
+endif()  
 
 
 include_directories(${PROJECT_SOURCE_DIR}
@@ -108,21 +120,24 @@ include_directories(${PROJECT_SOURCE_DIR}
                     ${ONNXRT_INSTALL_DIR}/include/onnxruntime/core/session                    
                     ${DLR_INSTALL_DIR}/include
                     ${DLR_INSTALL_DIR}/3rdparty/tvm/3rdparty/dlpack/include
-                    ${OPENCV_INSTALL_DIR}/modules/core/include
+                    ${OPENCV_INSTALL_DIR}/modules/core/include/
                     ${OPENCV_INSTALL_DIR}/modules/highgui/include
                     ${OPENCV_INSTALL_DIR}/modules/imgcodecs/include
                     ${OPENCV_INSTALL_DIR}/modules/videoio/include
                     ${OPENCV_INSTALL_DIR}/modules/imgproc/include
                     ${OPENCV_INSTALL_DIR}/cmake
-                    $ENV{TIDL_TOOLS_PATH}
+                    $ENV{TIDL_TOOLS_PATH}/
                     PUBLIC ${PROJECT_SOURCE_DIR}/post_process
                     PUBLIC ${PROJECT_SOURCE_DIR}/pre_process
                     PUBLIC ${PROJECT_SOURCE_DIR}/utils
+                    PUBLIC ${CMAKE_SYSROOT}/usr/include
                     )
 
 
 
 if(X86_64 EQUAL 1)
+set(CMAKE_C_COMPILER gcc-5)
+set(CMAKE_CXX_COMPILER g++-5)
 set(SYSTEM_LINK_LIBS
     glib-2.0
     gobject-2.0
@@ -161,6 +176,33 @@ set(SYSTEM_LINK_LIBS
     yaml-cpp
     )
 endif()  
+if(CROSS_COMPILE )
+  set(SYSTEM_LINK_LIBS
+    glib-2.0
+    gobject-2.0
+    pcre
+    ffi
+    ti_rpmsg_char    
+    z
+    tegra_hal
+    opencv_imgproc
+    opencv_imgcodecs
+    opencv_core
+    tbb
+    libjasper
+    jpeg
+    webp
+    png16
+    tiff
+    dlr
+    tensorflow-lite
+    onnxruntime
+    vx_tidl_rt
+    pthread
+    dl
+    yaml-cpp
+)
+endif()
 
 # Function for building a node:
 # ARG0: app name

@@ -1,0 +1,35 @@
+
+set(CMAKE_SYSTEM_NAME Linux)
+set(CMAKE_SYSTEM_PROCESSOR arm)
+set(CROSS_COMPILE TRUE)
+
+# set(CMAKE_SYSROOT /home/a0496663/work/test/psdkra_git/targetfs)
+if(NOT CMAKE_SYSROOT)
+  if (EXISTS $ENV{HOME}/targetfs)
+    set(CMAKE_SYSROOT $ENV{HOME}/targetfs)
+  else()
+     message(WARNING "CMAKE_SYSROOT is not set")
+  endif()
+endif()
+
+# set(CROSS_COMPILER_PATH /home/a0496663/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu)
+if(NOT CROSS_COMPILER_PATH)
+  if (EXISTS $ENV{HOME}/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu)
+    set(CROSS_COMPILER_PATH $ENV{HOME}/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu)
+  else()
+     message(WARNING "CROSS_COMPILER_PATH is not set")
+  endif()
+endif()
+
+SET(STATIC_LINKING TRUE)
+message(STATUS "static linking:" ${STATIC_LINKING})
+
+set(tools ${CROSS_COMPILER_PATH})
+set(CMAKE_C_COMPILER ${tools}/bin/aarch64-none-linux-gnu-gcc)
+set(CMAKE_CXX_COMPILER ${tools}/bin/aarch64-none-linux-gnu-g++)
+
+set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
+SET(CMAKE_FIND_ROOT_PATH ${CMAKE_SYSROOT})
