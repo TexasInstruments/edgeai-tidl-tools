@@ -221,7 +221,7 @@ namespace tidl
                 }
 
                 /* Read the scale values */
-                if(preProc["mean"]){
+                if(preProc["scale"]){
                     const YAML::Node &scaleNode = preProc["scale"];
                     for (uint32_t i = 0; i < scaleNode.size(); i++)
                     {

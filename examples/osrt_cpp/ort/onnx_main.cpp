@@ -302,7 +302,15 @@ namespace onnx
             Ort::Env env(ORT_LOGGING_LEVEL_WARNING, "test");
             /* Initialize session options */
             Ort::SessionOptions session_options;
-            session_options.SetIntraOpNumThreads(1);
+            /*  ONNX Runtime supports 2 modes of execution: sequential and parallel.
+             This controls whether the operators in a graph run sequentially or in parallel.
+             Parallel execution of operators is scheduled on an inter-op thread pool.
+             The execution of an individual operator is parallelized using an intra-op thread pool.
+             A heavily home-optimized variant of an Eigen thread pool is used for
+             inter-op parallelism, while OpenMP is used for intra-op.*/
+             
+            // session_options.SetInterOpNumThreads(s->number_of_threads);
+            session_options.SetIntraOpNumThreads(s->number_of_threads);
             if (s->accel)
             {
                 LOG_INFO("accelerated mode\n");
@@ -407,13 +415,27 @@ namespace onnx
             auto run_options = Ort::RunOptions();
             run_options.SetRunLogVerbosityLevel(2);
             auto output_tensors_warm_up = session.Run(run_options, input_node_names.data(), input_tensors.data(), 1, output_node_names.data(), num_output_nodes);
-            
- 
-            void *outData = TIDLRT_allocSharedMem(16, output_tensor_size * sizeof(float));
-            if (outData == NULL)
+            void *outData;
+            if (s->accel == false)
             {
-                LOG_INFO("Could not allocate memory for outData \n ");
-                return RETURN_FAIL;
+                s->device_mem = false;
+            }
+            if (s->device_mem)
+            {
+                LOG_INFO("device mem enabled\n");
+                outData = TIDLRT_allocSharedMem(16, output_tensor_size * sizeof(float));
+                if (outData == NULL)
+                {
+                    LOG_INFO("Could not allocate memory for outData \n ");
+                    return RETURN_FAIL;
+                }
+            }else{
+                outData = calloc( output_tensor_size , sizeof(float));
+                if (outData == NULL)
+                {
+                    LOG_INFO("Could not allocate memory for outData \n ");
+                    return RETURN_FAIL;
+                }
             }
 
             Ort::IoBinding binding(session);
