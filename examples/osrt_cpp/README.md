@@ -19,13 +19,34 @@
 
 
 ## Build 
-  - Build the CPP examples using cmake from repository base directory
+  - Build the CPP examples using cmake from repository base directory for x86
     ```
     mkdir build && cd build
     cmake ../examples/
     make
     cd  ../
     ```
+  - Build the CPP examples using cmake from repository base directory for j7 on target device
+    ```
+    mkdir build && cd build
+    cmake ../examples/
+    make
+    cd  ../
+    ```
+  - Cross compile the CPP examples for j7 
+    ```
+    mkdir build && cd build
+     cmake -DCMAKE_SYSROOT=<path to j7 filesystem> -DCMAKE_TOOLCHAIN_FILE=../examples/cmake/cross_compile_j7.cmake  ../examples/
+    make
+    cd  ../
+    ``` 
+  - Cross compile the CPP examples for am62
+    ```
+    mkdir build && cd build
+     cmake -DCMAKE_SYSROOT=<path to am62 filesystem> -DCMAKE_TOOLCHAIN_FILE=../examples/cmake/cross_compile_am62.cmake  ../examples/
+    make
+    cd  ../
+    ```         
 
 ## Run 
   - Run the CPP examples using the below commands
