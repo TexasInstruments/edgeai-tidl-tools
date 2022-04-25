@@ -284,6 +284,7 @@ namespace onnx
             int model_id;
             Ort::Env *env;
             float actual_times[NUM_PARLLEL_MODELS];
+            vector<double> xs, ys;
 
         } ort_model_struct;
 
@@ -776,12 +777,17 @@ namespace onnx
             float pll_max_pre_empt_dealy = arg->s->max_pre_empts[(arg->model_id+1) % NUM_PARLLEL_MODELS];
             float time_spend, min_time_spend = FLT_MAX, max_time_spend = 0;
             binding.BindOutput(output_node_names[0], output_tensors[0]);
+            /* plotting graph */
+            RGBABitmapImageReference *imageReference = CreateRGBABitmapImageReference();
+            StringReference *errorMessage = new StringReference();
             do
             {
                 gettimeofday(&iter_start, nullptr);
                 session.Run(run_options, binding);
                 gettimeofday(&iter_end, nullptr);
                 time_spend = (float)((getUs(iter_end) - getUs(iter_start)) / (1000));
+                arg->ys.push_back(time_spend);
+                arg->xs.push_back(k);
                 if(time_spend >( curr_actual_time + pll_max_pre_empt_dealy ))
                    exceeded_iter++;
                 if(time_spend < min_time_spend)
@@ -801,6 +807,15 @@ namespace onnx
                 k++;
             } while (system_clock::now() < finish);
             gettimeofday(&stop_time, nullptr);
+            /*plotting graph*/
+            DrawScatterPlot(imageReference, 600, 400, &(arg->xs), &(arg->ys),errorMessage);
+            vector<double> *pngdata = ConvertToPNG(imageReference->image);
+            char graph_name[20];
+            sprintf(graph_name,"model%d_graph.png",arg->model_id);
+            WriteToFile(pngdata, graph_name);
+            DeleteImage(imageReference->image);
+
+
             float avg_time = ((getUs(stop_time) - getUs(start_time)) / (k * 1000));
             LOG_INFO("Model %s start time %ld.%06ld\n", arg->modelInfo->m_preProcCfg.modelName.c_str(), start_time.tv_sec, start_time.tv_usec);
             LOG_INFO("Model %s stop time %ld.%06ld\n", arg->modelInfo->m_preProcCfg.modelName.c_str(), stop_time.tv_sec, stop_time.tv_usec);

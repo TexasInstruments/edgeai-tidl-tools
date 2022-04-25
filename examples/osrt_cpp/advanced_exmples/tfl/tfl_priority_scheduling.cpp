@@ -76,6 +76,7 @@ namespace tflite
             int priority;
             int model_id;
             float actual_times[NUM_PARLLEL_MODELS];
+            vector<double> xs, ys;
 
         } tfl_model_struct;
 
@@ -528,6 +529,9 @@ namespace tflite
             float pll_max_pre_empt_dealy = arg->s->max_pre_empts[(arg->model_id+1) % NUM_PARLLEL_MODELS];
             const TfLiteTensor *tensor = interpreter->output_tensor(0);
             interpreter->SetCustomAllocationForTensor(outputs[0], {out_ptrs[0], tensor->bytes});
+            /* plotting graph */
+            RGBABitmapImageReference *imageReference = CreateRGBABitmapImageReference();
+            StringReference *errorMessage = new StringReference();
             do
             {
                 gettimeofday(&iter_start, nullptr);
@@ -538,6 +542,8 @@ namespace tflite
                 }
                 gettimeofday(&iter_end, nullptr);
                 time_spend = (float)((getUs(iter_end) - getUs(iter_start)) / (1000));
+                arg->ys.push_back(time_spend);
+                arg->xs.push_back(k);
                 if(time_spend >( curr_actual_time + pll_max_pre_empt_dealy ))
                    exceeded_iter++;
                 if(time_spend < min_time_spend)
@@ -558,12 +564,20 @@ namespace tflite
                 k++;
             } while (system_clock::now() < finish);
             gettimeofday(&stop_time, nullptr);
+            /*plotting graph*/
+            DrawScatterPlot(imageReference, 600, 400, &(arg->xs), &(arg->ys),errorMessage);
+            vector<double> *pngdata = ConvertToPNG(imageReference->image);
+            char graph_name[20];
+            sprintf(graph_name,"model%d_graph.png",arg->model_id);
+            WriteToFile(pngdata, graph_name);
+            DeleteImage(imageReference->image);
+
             float avg_time = ((getUs(stop_time) - getUs(start_time)) / (k * 1000));
             LOG_INFO("Model %s start time %ld.%06ld\n", arg->modelInfo->m_preProcCfg.modelName.c_str(), start_time.tv_sec, start_time.tv_usec);
             LOG_INFO("Model %s stop time %ld.%06ld\n", arg->modelInfo->m_preProcCfg.modelName.c_str(), start_time.tv_sec, start_time.tv_usec);
             LOG_INFO("Total num context switches for model %s:%d \n", arg->modelInfo->m_preProcCfg.modelName.c_str(), num_switches);
             LOG_INFO("Total num iterations run for model %s:%d \n", arg->modelInfo->m_preProcCfg.modelName.c_str(), k);
-            LOG_ERROR("Total %d iterations for model %s exceeded the expected time. max:%f min:%fms avg:%fms  \n",exceeded_iter, arg->modelInfo->m_preProcCfg.modelName.c_str(), max_time_spend, min_time_spend, avg_time); 
+            LOG_INFO("Total %d iterations for model %s exceeded the expected time. max:%f min:%fms avg:%fms  \n",exceeded_iter, arg->modelInfo->m_preProcCfg.modelName.c_str(), max_time_spend, min_time_spend, avg_time); 
             LOG_INFO("FPS for model %s :%f \n", arg->modelInfo->m_preProcCfg.modelName.c_str(), (float)((float)k / 60));
 
             if (arg->modelInfo->m_preProcCfg.taskType == "classification")

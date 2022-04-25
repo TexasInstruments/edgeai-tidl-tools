@@ -104,6 +104,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../../utils/include/ti_logger.h"
 #include "../../utils/include/model_info.h"
 #include "../utils/include/print_utils.h"
+#include "../../utils/include/pbPlots.hpp"
+#include "../../utils/include/supportLib.hpp"
 
 pthread_mutex_t tfl_pr_lock;
 pthread_barrier_t barrier;

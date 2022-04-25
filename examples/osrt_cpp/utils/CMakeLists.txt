@@ -10,6 +10,10 @@ add_library(utils ${CMAKE_CURRENT_SOURCE_DIR}/src/utility_functs.cpp
                             ${CMAKE_CURRENT_SOURCE_DIR}/include/ti_logger.h
                             ${CMAKE_CURRENT_SOURCE_DIR}/src/arg_parsing.cpp
                             ${CMAKE_CURRENT_SOURCE_DIR}/include/arg_parsing.h
+                            ${CMAKE_CURRENT_SOURCE_DIR}/src/pbPlots.cpp
+                            ${CMAKE_CURRENT_SOURCE_DIR}/include/pbPlots.hpp
+                            ${CMAKE_CURRENT_SOURCE_DIR}/src/supportLib.cpp
+                            ${CMAKE_CURRENT_SOURCE_DIR}/include/supportLib.hpp
                             )
 
 install(TARGETS
