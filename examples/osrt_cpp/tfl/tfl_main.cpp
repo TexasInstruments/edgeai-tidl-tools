@@ -245,10 +245,11 @@ namespace tflite
       if (s->log_level <= INFO)
         LOG_INFO("input: %d\n", input);
 
-      if (s->accel == 1)
+      if (s->accel == TIDL)
       {
+        #ifndef DEVICE_AM62
         /* This part creates the dlg_ptr */
-        LOG_INFO("accelerated mode\n");
+        LOG_INFO("TIDL delegate mode\n");
         typedef TfLiteDelegate *(*tflite_plugin_create_delegate)(char **, char **, size_t, void (*report_error)(const char *));
         tflite_plugin_create_delegate tflite_plugin_dlg_create;
         char *keys[] = {"artifacts_folder", "num_tidl_subgraphs", "debug_level"};
@@ -259,18 +260,50 @@ namespace tflite
         TfLiteDelegate *dlg_ptr = tflite_plugin_dlg_create(keys, values, 3, NULL);
         interpreter->ModifyGraphWithDelegate(dlg_ptr);
         LOG_INFO("ModifyGraphWithDelegate - Done \n");
+        #endif
+      }else if(s->accel == XNN){
+        LOG_INFO("XNN delegate mode\n");
+        TfLiteXNNPackDelegateOptions xnnpack_options = TfLiteXNNPackDelegateOptionsDefault();
+        xnnpack_options.num_threads = s->number_of_threads;
+        TfLiteDelegate* xnnpack_delegate = TfLiteXNNPackDelegateCreate(&xnnpack_options);
+        interpreter->ModifyGraphWithDelegate(xnnpack_delegate);
       }
+      #ifdef __ARM_ARCH_ISA_A64
+        else if(s->accel == ARMNN){
+          LOG_INFO("ARMNN delegate mode\n");
+          /* Create the ArmNN Delegate*/
+          std::vector<armnn::BackendId> m_ComputeDevices = {"CpuAcc"};
+          armnnDelegate::DelegateOptions delegateOptions(m_ComputeDevices);
+          armnn::OptimizerOptions optOptions;
+          armnn::BackendOptions cpuAcc("CpuAcc",
+                                      {
+              { "FastMathEnabled", true },
+              { "NumberOfThreads", s->number_of_threads }
+                                      });
+          optOptions.m_ModelOptions.push_back(cpuAcc);
+          // Create the Arm NN Delegate
+          delegateOptions.SetOptimizerOptions(optOptions);
+          std::unique_ptr<TfLiteDelegate, decltype(&armnnDelegate::TfLiteArmnnDelegateDelete)>
+                              theArmnnDelegate(armnnDelegate::TfLiteArmnnDelegateCreate(delegateOptions),
+                                              armnnDelegate::TfLiteArmnnDelegateDelete);
+          // Instruct the Interpreter to use the armnnDelegate
+          interpreter->ModifyGraphWithDelegate(std::move(theArmnnDelegate));
+          // interpreter->ModifyGraphWithDelegate(theArmnnDelegate.get()); 
+        }
+      #endif
+
       if (interpreter->AllocateTensors() != kTfLiteOk)
       {
         LOG_ERROR("Failed to allocate tensors!");
         return RETURN_FAIL;
       }
-      if (s->accel == false)
+      if (s->accel != TIDL || s->accel == NONE)
       {
         s->device_mem = false;
       }
       if (s->device_mem)
       {
+        #ifndef DEVICE_AM62
         LOG_INFO("device mem enabled\n");
         for (uint32_t i = 0; i < inputs.size(); i++)
         {
@@ -292,6 +325,7 @@ namespace tflite
           }
           interpreter->SetCustomAllocationForTensor(outputs[i], {out_ptrs[i], tensor->bytes});
         }
+        #endif
       }
 
       if (s->log_level <= DEBUG)
@@ -485,6 +519,7 @@ namespace tflite
 
       if (s->device_mem)
       {
+        #ifndef DEVICE_AM62
         for (uint32_t i = 0; i < inputs.size(); i++)
         {
           if (in_ptrs[i])
@@ -499,6 +534,7 @@ namespace tflite
             TIDLRT_freeSharedMem(out_ptrs[i]);
           }
         }
+        #endif
       }
       LOG_INFO("\nCompleted_Model : 0, Name : %s, Total time : %f, Offload Time : 0 , DDR RW MBs : 0, Output File : %s \n \n",
                modelInfo->m_postProcCfg.modelName.c_str(), avg_time, filename.c_str());

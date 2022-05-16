@@ -93,13 +93,19 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <opencv2/imgproc/imgproc_c.h>
 #include <tensorflow/lite/tools/evaluation/utils.h>
 
+#ifndef DEVICE_AM62
 #include "itidl_rt.h"
+#endif
 #include "post_process/post_process.h"
 #include "pre_process/pre_process.h"
 #include "utils/include/arg_parsing.h"
 #include "utils/include/utility_functs.h"
 #include "utils/include/ti_logger.h"
 #include "utils/include/model_info.h"
+#ifdef __ARM_ARCH_ISA_A64
+#include "DelegateOptions.hpp"
+#include "armnn_delegate.hpp"
+#endif
 
 using namespace tidl::arg_parsing;
 using namespace tidl::modelInfo;

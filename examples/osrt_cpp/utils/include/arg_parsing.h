@@ -80,7 +80,7 @@ namespace tidl
         struct Settings
         {
             int log_level = tidl::utils::ERROR;
-            bool accel = true;
+            tidl::utility_functs::DelegateMode accel = tidl::utility_functs::TIDL;
             bool device_mem = true;
             int loop_count = 1;
             std::string model_path = "";

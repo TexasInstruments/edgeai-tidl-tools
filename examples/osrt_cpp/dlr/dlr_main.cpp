@@ -350,7 +350,17 @@ namespace dlr
 
             LOG_INFO("Inference call started...\n");
             cv::Mat img;
-            float *image_data = (float *)TIDLRT_allocSharedMem(128, sizeof(float) * wanted_height * wanted_width * wanted_channels);
+            float *image_data;
+            if(s->accel && s->device_mem){
+                #ifdef DEVICE_AM62
+                LOG_ERROR("TIDL Delgate mode is not allowed on AM62 devices...\n");
+                return RETURN_FAIL;
+                #else
+                image_data = (float *)TIDLRT_allocSharedMem(128, sizeof(float) * wanted_height * wanted_width * wanted_channels);
+                #endif
+            }else{
+                image_data = (float*)calloc(wanted_height * wanted_width * wanted_channels,sizeof(float) );
+            }
             if (image_data == NULL)
             {
                 LOG_ERROR("could not allocate space for image data \n");
@@ -567,7 +577,14 @@ namespace dlr
                 LOG_INFO("Saving the image, FAILED\n");
                 return RETURN_FAIL;
             }
-            TIDLRT_freeSharedMem(image_data);
+            if(s->accel && s->device_mem){
+                #ifndef DEVICE_AM62
+                TIDLRT_freeSharedMem(image_data);
+                #endif
+            }else{
+                free(image_data);
+            }
+            
             LOG_INFO("\nCompleted_Model : 0, Name : %s, Total time : %f, Offload Time : 0 , DDR RW MBs : 0, Output File : %s \n \n",
                      modelInfo->m_postProcCfg.modelName.c_str(), avg_time, filename.c_str());
             return RETURN_SUCCESS;

@@ -75,14 +75,13 @@ namespace tidl
         {
             std::cout
                 << "--verbose, -v: [0|1] print more information\n"
-                << "--accelerated, -a: [0|1], use DSP acceleration or not\n"
+                << "--accelerated, -a: [0|1|2|3], use [NONE|TIDL|XNN|ARMNN-arm cpu only] delegate mode default to TIDL\n"
                 << "--dev_mem, -d: [0|1], dev_mem or not\n"
                 << "--count, -c: loop interpreter->Invoke() for certain times\n"
-                << "--model, -m: model path\n"
+                << "--artifact_path, -f: model artifacts folder path\n"
                 << "--image, -i: input image with full path\n"
                 << "--device_type, -y: device_type for dlr models can be cpu,gpu\n"
                 << "--labels, -l: labels for the model\n"
-                << "--zoo, -z: tidl model-zoo path\n"
                 << "--threads, -t: number of threads\n"
                 << "--num_results, -r: number of results to show\n"
                 << "--warmup_runs, -w: number of warmup runs\n"
@@ -110,7 +109,6 @@ namespace tidl
                     {"accelerated", required_argument, nullptr, 'a'},
                     {"device_mem", required_argument, nullptr, 'd'},
                     {"count", required_argument, nullptr, 'c'},
-                    {"model", required_argument, nullptr, 'm'},
                     {"image", required_argument, nullptr, 'i'},
                     {"device_type", required_argument, nullptr, 'y'},
                     {"labels", required_argument, nullptr, 'l'},
@@ -124,7 +122,7 @@ namespace tidl
                 int option_index = 0;
 
                 c = getopt_long(argc, argv,
-                                "v:a:d:c:f:m:i:y:l:t:r:w:z:", long_options,
+                                "v:a:d:c:f:i:y:l:t:r:w:", long_options,
                                 &option_index);
 
                 /* Detect the end of the options. */
@@ -137,16 +135,19 @@ namespace tidl
                     s->log_level = strtol(optarg, nullptr, 10);
                     break;
                 case 'a':
-                    s->accel = strtol(optarg, nullptr, 10);
+                    s->accel = (tidl::utility_functs::DelegateMode) strtol(optarg, nullptr, 10);
+                    #ifndef __ARM_ARCH_ISA_A64
+                    if(s->accel == tidl::utility_functs::ARMNN){
+                        std::cout << "Warning: ARMNN supported only on arm cpu defaulting to TIDL \n";
+                        s->accel = tidl::utility_functs::TIDL;
+                    }
+                    #endif
                     break;
                 case 'd':
                     s->device_mem = strtol(optarg, nullptr, 10);
                     break;
                 case 'c':
                     s->loop_count = strtol(optarg, nullptr, 10);
-                    break;
-                case 'm':
-                    s->model_path = optarg;
                     break;
                 case 'i':
                     s->input_image_path = optarg;
@@ -173,7 +174,7 @@ namespace tidl
                 case '?':
                     /* getopt_long already printed an error message. */
                     displayUsage();
-                    return RETURN_FAIL;;
+                    exit(0);
                 default:
                     return RETURN_FAIL;;
                 }

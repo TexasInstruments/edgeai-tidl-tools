@@ -74,6 +74,24 @@ namespace tidl
 {
     namespace utility_functs
     {
+
+        /*! \brief Enumerations for DelegateMode.
+       */
+        enum DelegateMode
+        {
+            /** Uses no delegate */
+            NONE = 0,
+
+            /** Uses TIDL delegate */
+            TIDL = 1,
+
+            /** Uses XNN delegate */
+            XNN = 2,
+
+            /** Uses ARMNN delegate - only on ARM CPU*/
+            ARMNN = 3,
+
+        };
         /**
          *  \brief returns time in micro sec
          * @returns void

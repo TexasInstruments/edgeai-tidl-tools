@@ -91,7 +91,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "opencv2/imgcodecs.hpp"
 #include "opencv2/imgproc/imgproc_c.h"
 
+#ifndef DEVICE_AM62
 #include "itidl_rt.h"
+#endif
 #include "post_process/post_process.h"
 #include "pre_process/pre_process.h"
 #include "utils/include/arg_parsing.h"
