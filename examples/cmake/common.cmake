@@ -356,8 +356,82 @@ if((${DEVICE} STREQUAL  "am62") AND CROSS_COMPILE )
 endif()
 if((${DEVICE} STREQUAL  "am62") AND (NOT CROSS_COMPILE) )
   message(STATUS "native compiling for AM62")
+  if(NOT ARMNN_PATH)
+    if (EXISTS $ENV{HOME}/armnn)
+      set(ARMNN_PATH $ENV{HOME}/armnn)
+    else()
+      message(WARNING "ARMNN_PATH is not set")
+    endif()
+  endif()
+
   add_compile_options(-DDEVICE_AM62=1)
-endif()
+
+  include_directories(
+              ${PROJECT_SOURCE_DIR}
+              ${PROJECT_SOURCE_DIR}/..
+              ${PROJECT_SOURCE_DIR}/include
+              /usr/local/include
+              /usr/local/dlr
+              /usr/include/gstreamer-1.0/
+              /usr/include/glib-2.0/
+              /usr/lib/aarch64-linux-gnu/glib-2.0/include
+              /usr/include/opencv4/
+              /usr/include/processor_sdk/vision_apps/
+              
+              #tflite
+              ${TENSORFLOW_INSTALL_DIR}/tensorflow_src
+              ${TENSORFLOW_INSTALL_DIR}/tflite_build_arm/flatbuffers/include
+              #armnn
+              ${ARMNN_PATH}/delegate/include
+              ${ARMNN_PATH}/armnn/include
+              ${ARMNN_PATH}/include
+
+              ${ONNXRT_INSTALL_DIR}/include
+              ${ONNXRT_INSTALL_DIR}/include/onnxruntime
+              ${ONNXRT_INSTALL_DIR}/include/onnxruntime/core/session                    
+              ${DLR_INSTALL_DIR}/include
+              ${DLR_INSTALL_DIR}/3rdparty/tvm/3rdparty/dlpack/include
+              #opencv
+              ${OPENCV_INSTALL_DIR}/modules/core/include
+              ${OPENCV_INSTALL_DIR}/modules/highgui/include
+              ${OPENCV_INSTALL_DIR}/modules/imgcodecs/include
+              ${OPENCV_INSTALL_DIR}/modules/videoio/include
+              ${OPENCV_INSTALL_DIR}/modules/imgproc/include
+              ${OPENCV_INSTALL_DIR}/cmake
+              PUBLIC ${PROJECT_SOURCE_DIR}/post_process
+              PUBLIC ${PROJECT_SOURCE_DIR}/pre_process
+              PUBLIC ${PROJECT_SOURCE_DIR}/utils
+)
+
+  set(SYSTEM_LINK_LIBS
+              opencv_imgproc
+              opencv_imgcodecs
+              opencv_core
+              # dlr
+              tensorflow-lite
+              onnxruntime            
+              pthread
+              dl
+              yaml-cpp
+              pthreadpool
+              XNNPACK
+              #armnnn libs
+              armnn
+              armnnDelegate
+  )
+
+  link_directories(
+                  #armnn lib need to remove once added to filesystem
+                  ${ARMNN_PATH}/build
+                  ${ARMNN_PATH}/build/delegate
+                  /usr/lib 
+                  /usr/local/dlr
+                  /usr/lib/aarch64-linux-gnu
+                  /usr/lib/python3.8/site-packages/dlr/
+                  $ENV{HOME}/.local/dlr/                 
+  )
+  
+  endif()
 if((${DEVICE} STREQUAL  "j7") AND CROSS_COMPILE )
   message(STATUS "cross compiling for J7")
   add_compile_options(-DDEVICE_J7=1)
