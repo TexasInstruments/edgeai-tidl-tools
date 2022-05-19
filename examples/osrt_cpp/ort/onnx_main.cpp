@@ -310,7 +310,7 @@ namespace onnx
             Ort::Env env(ORT_LOGGING_LEVEL_WARNING, "test");
             /* Initialize session options */
             Ort::SessionOptions session_options;
-            session_options.SetIntraOpNumThreads(1);
+            session_options.SetIntraOpNumThreads(s->number_of_threads);
             if (s->accel)
             {
                 LOG_INFO("accelerated mode\n");

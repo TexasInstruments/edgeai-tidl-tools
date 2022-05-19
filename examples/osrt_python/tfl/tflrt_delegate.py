@@ -101,9 +101,13 @@ def infer_image(interpreter, image_files, config):
   interpreter.invoke()
   stop_time = time.time()
 
-  copy_time, proc_time, sub_graphs_proc_time, ddr_write, ddr_read  = get_benchmark_output(interpreter)
-  proc_time = proc_time - copy_time
-
+  DEVICE = os.environ["DEVICE"]
+  if(DEVICE != "am62"):
+    copy_time, proc_time, sub_graphs_proc_time, ddr_write, ddr_read  = get_benchmark_output(interpreter)
+    proc_time = proc_time - copy_time
+  else:
+    copy_time = proc_time = sub_graphs_proc_time = ddr_write = ddr_read  = 0
+    proc_time = (stop_time - start_time) * 1000000000
   outputs = [interpreter.get_tensor(output_detail['index']) for output_detail in output_details]
   return imgs, outputs, proc_time, sub_graphs_proc_time, ddr_write, ddr_read, new_height, new_width
 
@@ -211,6 +215,7 @@ def run_model(model, mIdx):
         sem.release()
 
 models = ['cl-tfl-mobilenet_v1_1.0_224', 'ss-tfl-deeplabv3_mnv2_ade20k_float', 'od-tfl-ssd_mobilenet_v2_300_float']
+models = ['cl-tfl-mobilenet_v1_1.0_224']
 log = f'Running {len(models)} Models - {models}\n'
 print(log)
 
