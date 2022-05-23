@@ -268,7 +268,7 @@ namespace tflite
         TfLiteDelegate* xnnpack_delegate = TfLiteXNNPackDelegateCreate(&xnnpack_options);
         interpreter->ModifyGraphWithDelegate(xnnpack_delegate);
       }
-      #ifdef __ARM_ARCH_ISA_A64
+      #if ARMNN_ENABLE
         else if(s->accel == ARMNN){
           LOG_INFO("ARMNN delegate mode\n");
           /* Create the ArmNN Delegate*/

@@ -73,6 +73,19 @@ add_definitions(
     -DTARGET_CPU=${TARGET_CPU}
     -DTARGET_OS=${TARGET_OS}
 )
+if(ARMNN_ENABLE)
+  if(NOT ARMNN_PATH)
+    if (EXISTS $ENV{HOME}/armnn)
+      set(ARMNN_PATH $ENV{HOME}/armnn)
+    else()
+      message(WARNING "ARMNN_PATH is not set")
+    endif()
+  endif()
+
+  add_compile_options(-DARMNN_ENABLE=1)
+else()
+  add_compile_options(-DARMNN_ENABLE=0)
+endif()
 
 if(${DEVICE} STREQUAL  "x86_64" )
   message(STATUS "Native compiling for X86")
@@ -356,13 +369,6 @@ if((${DEVICE} STREQUAL  "am62") AND CROSS_COMPILE )
 endif()
 if((${DEVICE} STREQUAL  "am62") AND (NOT CROSS_COMPILE) )
   message(STATUS "native compiling for AM62")
-  if(NOT ARMNN_PATH)
-    if (EXISTS $ENV{HOME}/armnn)
-      set(ARMNN_PATH $ENV{HOME}/armnn)
-    else()
-      message(WARNING "ARMNN_PATH is not set")
-    endif()
-  endif()
 
   if(NOT FLATBUFFERS_DIR)
     if (EXISTS $ENV{HOME}/flatbuffers)
@@ -389,10 +395,6 @@ if((${DEVICE} STREQUAL  "am62") AND (NOT CROSS_COMPILE) )
               #tflite
               ${TENSORFLOW_INSTALL_DIR}/
               ${FLATBUFFERS_DIR}/include
-              #armnn
-              ${ARMNN_PATH}/delegate/include
-              ${ARMNN_PATH}/armnn/include
-              ${ARMNN_PATH}/include
 
               ${ONNXRT_INSTALL_DIR}/include
               ${ONNXRT_INSTALL_DIR}/include/onnxruntime
@@ -416,15 +418,27 @@ if((${DEVICE} STREQUAL  "am62") AND (NOT CROSS_COMPILE) )
               yaml-cpp
               pthreadpool
               XNNPACK
-              #armnnn libs
-              armnn
-              armnnDelegate
+
   )
+  if(ARMNN_ENABLE)
+    include_directories(
+      ${ARMNN_PATH}/delegate/include
+      ${ARMNN_PATH}/armnn/include
+      ${ARMNN_PATH}/include
+    )
+    set(SYSTEM_LINK_LIBS
+      ${SYSTEM_LINK_LIBS}
+      armnn
+      armnnDelegate
+    )
+    link_directories(
+      #armnn lib need to remove once added to filesystem
+      ${ARMNN_PATH}/build
+      ${ARMNN_PATH}/build/delegate
+    )
+endif()     
 
   link_directories(
-                  #armnn lib need to remove once added to filesystem
-                  ${ARMNN_PATH}/build
-                  ${ARMNN_PATH}/build/delegate
                   /usr/lib 
                   /usr/local/dlr
                   /usr/lib/aarch64-linux-gnu
