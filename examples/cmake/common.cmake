@@ -364,6 +364,14 @@ if((${DEVICE} STREQUAL  "am62") AND (NOT CROSS_COMPILE) )
     endif()
   endif()
 
+  if(NOT FLATBUFFERS_DIR)
+    if (EXISTS $ENV{HOME}/flatbuffers)
+      set(FLATBUFFERS_DIR $ENV{HOME}/flatbuffers)
+    else()
+      message(WARNING "FLATBUFFERS_DIR is not set")
+    endif()
+  endif()
+
   add_compile_options(-DDEVICE_AM62=1)
 
   include_directories(
@@ -379,8 +387,8 @@ if((${DEVICE} STREQUAL  "am62") AND (NOT CROSS_COMPILE) )
               /usr/include/processor_sdk/vision_apps/
               
               #tflite
-              ${TENSORFLOW_INSTALL_DIR}/tensorflow_src
-              ${TENSORFLOW_INSTALL_DIR}/tflite_build_arm/flatbuffers/include
+              ${TENSORFLOW_INSTALL_DIR}/
+              ${FLATBUFFERS_DIR}/include
               #armnn
               ${ARMNN_PATH}/delegate/include
               ${ARMNN_PATH}/armnn/include
@@ -391,13 +399,6 @@ if((${DEVICE} STREQUAL  "am62") AND (NOT CROSS_COMPILE) )
               ${ONNXRT_INSTALL_DIR}/include/onnxruntime/core/session                    
               ${DLR_INSTALL_DIR}/include
               ${DLR_INSTALL_DIR}/3rdparty/tvm/3rdparty/dlpack/include
-              #opencv
-              ${OPENCV_INSTALL_DIR}/modules/core/include
-              ${OPENCV_INSTALL_DIR}/modules/highgui/include
-              ${OPENCV_INSTALL_DIR}/modules/imgcodecs/include
-              ${OPENCV_INSTALL_DIR}/modules/videoio/include
-              ${OPENCV_INSTALL_DIR}/modules/imgproc/include
-              ${OPENCV_INSTALL_DIR}/cmake
               PUBLIC ${PROJECT_SOURCE_DIR}/post_process
               PUBLIC ${PROJECT_SOURCE_DIR}/pre_process
               PUBLIC ${PROJECT_SOURCE_DIR}/utils

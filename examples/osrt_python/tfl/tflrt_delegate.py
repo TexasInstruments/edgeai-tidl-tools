@@ -215,7 +215,6 @@ def run_model(model, mIdx):
         sem.release()
 
 models = ['cl-tfl-mobilenet_v1_1.0_224', 'ss-tfl-deeplabv3_mnv2_ade20k_float', 'od-tfl-ssd_mobilenet_v2_300_float']
-models = ['cl-tfl-mobilenet_v1_1.0_224']
 log = f'Running {len(models)} Models - {models}\n'
 print(log)
 
