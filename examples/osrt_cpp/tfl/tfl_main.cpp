@@ -262,11 +262,13 @@ namespace tflite
         LOG_INFO("ModifyGraphWithDelegate - Done \n");
         #endif
       }else if(s->accel == XNN){
+        #if XNN_ENABLE
         LOG_INFO("XNN delegate mode\n");
         TfLiteXNNPackDelegateOptions xnnpack_options = TfLiteXNNPackDelegateOptionsDefault();
         xnnpack_options.num_threads = s->number_of_threads;
         TfLiteDelegate* xnnpack_delegate = TfLiteXNNPackDelegateCreate(&xnnpack_options);
         interpreter->ModifyGraphWithDelegate(xnnpack_delegate);
+        #endif
       }
       #if ARMNN_ENABLE
         else if(s->accel == ARMNN){
