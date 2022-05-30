@@ -1,7 +1,6 @@
 include(GNUInstallDirs)
 
 # add_compile_options(-std=c++11)
-#Need to testcross compile J7 and native compile of J7 and AM62
 
 
 IF(NOT CMAKE_BUILD_TYPE)
@@ -50,13 +49,13 @@ if(NOT OPENCV_INSTALL_DIR)
   if (EXISTS $ENV{HOME}/opencv-4.1.0)
     set(OPENCV_INSTALL_DIR $ENV{HOME}/opencv-4.1.0)
   else()
-     message(WARNING "OPENCV_INSTALL_DIR is not set")
+     message(WARNING "OPENCV_INSTALL_DIR is not set(: ignore the warning if device is am62)")
   endif()
 endif()
 
 if(ARMNN_ENABLE)
-  if( ${TARGET_CPU} STREQUAL  "x86")
-    message(WARNING "ARMNN NOT supported on X86")
+  if( ${TARGET_CPU} STREQUAL  "x86" OR ${TARGET_DEVICE} STREQUAL "j7" )
+    message(WARNING "ARMNN NOT supported on X86 and j7")
     set(ARMNN_ENABLE 0)
     add_compile_options(-DARMNN_ENABLE=0)    
   else()
@@ -505,13 +504,9 @@ if((${TARGET_DEVICE} STREQUAL  "j7") AND (${TARGET_CPU} STREQUAL  "arm" AND ${HO
                   dl
                   dlr
                   yaml-cpp
-                  fft2d_fftsg2d
-                  fft2d_fftsg
-                  cpuinfo
-                  farmhash
-                  pthreadpool
                   pthread
                   vx_tidl_rt
+                  ti_rpmsg_char
   )
   include_directories(
                   ${PROJECT_SOURCE_DIR}
@@ -570,21 +565,6 @@ if( ((${TARGET_DEVICE} STREQUAL  "j7") AND (${TARGET_CPU} STREQUAL  "arm" AND ${
   set(CMAKE_CXX_COMPILER g++)
 
   link_directories(
-                  #tesnorflow and dependencies need to remove once 2.8 is added
-                  ${TENSORFLOW_INSTALL_DIR}/tflite_build_arm
-                  ${TENSORFLOW_INSTALL_DIR}/tflite_build_arm/_deps/ruy-build/ruy
-                  ${TENSORFLOW_INSTALL_DIR}/tflite_build_arm/pthreadpool
-                  ${TENSORFLOW_INSTALL_DIR}/tflite_build_arm/_deps/fft2d-build
-                  ${TENSORFLOW_INSTALL_DIR}/tflite_build_arm/_deps/cpuinfo-build
-                  ${TENSORFLOW_INSTALL_DIR}/tflite_build_arm/_deps/flatbuffers-build
-                  ${TENSORFLOW_INSTALL_DIR}/tflite_build_arm/_deps/clog-build
-                  ${TENSORFLOW_INSTALL_DIR}/tflite_build_arm/_deps/farmhash-build
-                  ${TENSORFLOW_INSTALL_DIR}/tflite_build_arm/_deps/xnnpack-build
-
-                  #armnn lib need to remove once added to filesystem
-                  ${ARMNN_PATH}/build
-                  ${ARMNN_PATH}/build/delegate
-
                   /usr/lib 
                   /usr/local/dlr
                   /usr/lib/aarch64-linux-gnu
@@ -610,45 +590,6 @@ if( ((${TARGET_DEVICE} STREQUAL  "j7") AND (${TARGET_CPU} STREQUAL  "arm" AND ${
                   dl
                   dlr
                   yaml-cpp
-                  flatbuffers
-                  fft2d_fftsg2d
-                  fft2d_fftsg
-                  cpuinfo
-                  clog
-                  farmhash
-                  ruy_allocator
-                  ruy_apply_multiplier
-                  ruy_blocking_counter
-                  ruy_block_map
-                  ruy_context
-                  ruy_context_get_ctx
-                  ruy_cpuinfo
-                  ruy_ctx
-                  ruy_denormal
-                  ruy_frontend
-                  ruy_have_built_path_for_avx2_fma
-                  ruy_have_built_path_for_avx512
-                  ruy_have_built_path_for_avx
-                  ruy_kernel_arm
-                  ruy_kernel_avx2_fma
-                  ruy_kernel_avx512
-                  ruy_kernel_avx
-                  ruy_pack_arm
-                  ruy_pack_avx2_fma
-                  ruy_pack_avx512
-                  ruy_pack_avx
-                  ruy_prepacked_cache
-                  ruy_prepare_packed_matrices
-                  ruy_system_aligned_alloc
-                  ruy_thread_pool
-                  ruy_trmul
-                  ruy_tune
-                  ruy_wait
-                  XNNPACK
-                  pthreadpool
-                  pthread
-                  armnn
-                  armnnDelegate
                   vx_tidl_rt
   )
   include_directories(
@@ -663,13 +604,9 @@ if( ((${TARGET_DEVICE} STREQUAL  "j7") AND (${TARGET_CPU} STREQUAL  "arm" AND ${
                   /usr/include/opencv4/
                   /usr/include/processor_sdk/vision_apps/
                   
-                  #tflite
-                  ${TENSORFLOW_INSTALL_DIR}/tensorflow_src
-                  ${TENSORFLOW_INSTALL_DIR}/tflite_build/flatbuffers/include
-                  #armnn
-                  ${ARMNN_PATH}/delegate/include
-                  ${ARMNN_PATH}/armnn/include
-                  ${ARMNN_PATH}/include
+                  #tesnorflow2.4  and dependencies
+                  ${TENSORFLOW_INSTALL_DIR}
+                  ${TENSORFLOW_INSTALL_DIR}/tensorflow/lite/tools/make/downloads/flatbuffers/include
 
                   ${ONNXRT_INSTALL_DIR}/include
                   ${ONNXRT_INSTALL_DIR}/include/onnxruntime
