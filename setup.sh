@@ -29,13 +29,10 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ######################################################################
-download_compile_tflite_2.8(){
-    cd $HOME
-    mkdir tensorflow    
-    cd tensorflow
+compile_tflite_2.8(){
+    cd $HOME/tensorflow
     export TENSORFLOW_INSTALL_DIR=$(pwd)
-    git clone --depth 1 --single-branch -b v2.8.0 https://github.com/tensorflow/tensorflow.git tensorflow_src
-    
+
     #native compialtion for x86
     mkdir tflite_build
     cd tflite_build
@@ -47,13 +44,31 @@ download_compile_tflite_2.8(){
     cd tflite_build_arm
     ARMCC_PREFIX=$ARM64_GCC_PATH/bin/aarch64-none-linux-gnu-    
     ARMCC_FLAGS="-funsafe-math-optimizations"
-    cmake -DCMAKE_C_COMPILER=${ARMCC_PREFIX}gcc   -DCMAKE_CXX_COMPILER=${ARMCC_PREFIX}g++   -DCMAKE_C_FLAGS="${ARMCC_FLAGS}"   -DCMAKE_CXX_FLAGS="${ARMCC_FLAGS}"   -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON   -DCMAKE_SYSTEM_NAME=Linux  -DTFLITE_ENABLE_XNNPACK=ON  -DCMAKE_SYSTEM_PROCESSOR=aarch64   ../tensorflow_src/tensorflow/lite/
-    cmake --build . -j    
+    cmake -DCMAKE_C_COMPILER=${ARMCC_PREFIX}gcc \
+    -DCMAKE_CXX_COMPILER=${ARMCC_PREFIX}g++ \
+    -DCMAKE_C_FLAGS="${ARMCC_FLAGS}" \
+    -DCMAKE_CXX_FLAGS="${ARMCC_FLAGS}" \
+    -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON \
+    -DCMAKE_SYSTEM_NAME=Linux \
+    -DTFLITE_ENABLE_XNNPACK=ON \
+    -DCMAKE_SYSTEM_PROCESSOR=aarch64 \
+    -DBUILD_SHARED_LIBS=ON \
+    ../tensorflow_src/tensorflow/lite/
+
+    cmake --build . -j 
+}
+
+download_tflite_2.8(){
+    cd $HOME
+    mkdir tensorflow    
+    cd tensorflow
+    export TENSORFLOW_INSTALL_DIR=$(pwd)
+    git clone --depth 1 --single-branch -b v2.8.0 https://github.com/tensorflow/tensorflow.git tensorflow_src
+
 }
 
 download_tflite2.4(){
     cd $HOME
-    git clone --depth 1 --single-branch -b tidl-j7 https://github.com/TexasInstruments/onnxruntime.git
     git clone --depth 1 --single-branch -b tidl-j7 https://github.com/TexasInstruments/tensorflow.git
     mkdir -p tensorflow/tensorflow/lite/tools/make/downloads
     cd tensorflow/tensorflow/lite/tools/make/downloads
@@ -80,8 +95,7 @@ download_compile_opencv(){
         cd -
     fi
 }
-
-download_compile_armnn(){
+compile_armnn(){
     #requires tflite2.8 to be build first
     cd $HOME
     export BASEDIR=~/ArmNNDelegate
@@ -134,6 +148,26 @@ download_compile_armnn(){
         -DFLATBUFFERS_BUILD_TESTS=0
     make all install
     
+    # build tflite 2.5
+    cd $BASEDIR
+    git clone https://github.com/tensorflow/tensorflow.git
+    cd tensorflow/
+    git checkout v2.5.0
+    cd ..
+    mkdir -p tflite/build
+    cd tflite/build
+    ARMCC_PREFIX=$ARM64_GCC_PATH/bin/aarch64-none-linux-gnu-\
+    ARMCC_FLAGS="-funsafe-math-optimizations" \
+    cmake -DCMAKE_C_COMPILER=${ARMCC_PREFIX}gcc \
+      -DCMAKE_CXX_COMPILER=${ARMCC_PREFIX}g++ \
+      -DCMAKE_C_FLAGS="${ARMCC_FLAGS}" -DCMAKE_CXX_FLAGS="${ARMCC_FLAGS}" \
+      -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON  -DCMAKE_SYSTEM_NAME=Linux \
+      -DTFLITE_ENABLE_XNNPACK=ON \
+      -DCMAKE_SYSTEM_PROCESSOR=aarch64 \
+      $BASEDIR/tensorflow/tensorflow/lite/ 
+      
+    cmake --build .
+
     #finally build armnn
     cd $BASEDIR
     cd armnn
@@ -148,17 +182,33 @@ download_compile_armnn(){
         -DARMCOMPUTECL=1 \
         -DARMNNREF=1 \
         -DBUILD_TF_LITE_PARSER=1 \
-        -DTENSORFLOW_ROOT=$HOME/tensorflow/tensorflow_src \
-        -DFLATBUFFERS_ROOT=$BASEDIR/flatbuffers-1.12.0/build-arm64 \
+        -DTENSORFLOW_ROOT=$BASEDIR/tensorflow/ \
+        -DFLATBUFFERS_ROOT=$BASEDIR/flatbuffers-1.12.0/ \
         -DFLATC_DIR=$BASEDIR/flatbuffers-1.12.0/build \
         -DPROTOBUF_ROOT=$BASEDIR/google/x86_64_pb_install \
         -DPROTOBUF_ROOT=$BASEDIR/google/x86_64_pb_install/ \
         -DPROTOBUF_LIBRARY_DEBUG=$BASEDIR/google/arm64_pb_install/lib/libprotobuf.so.23.0.0 \
         -DPROTOBUF_LIBRARY_RELEASE=$BASEDIR/google/arm64_pb_install/lib/libprotobuf.so.23.0.0 \
-        -DTF_LITE_SCHEMA_INCLUDE_PATH=$HOME/tensorflow/tensorflow_src/tensorflow/lite/schema \
-        -DTFLITE_LIB_ROOT=$HOME/tensorflow/tflite_build_arm \
+        -DTF_LITE_SCHEMA_INCLUDE_PATH=$BASEDIR/tensorflow/tensorflow/lite/schema \
+        -DTFLITE_LIB_ROOT=$BASEDIR/tflite/build/ \
         -DBUILD_ARMNN_TFLITE_DELEGATE=1 
     make
+}
+
+download_armnn_repo(){    
+    export BASEDIR=~/ArmNNDelegate
+    mkdir $BASEDIR    
+    git clone "https://review.mlplatform.org/ml/armnn" 
+    git clone --depth 1 --single-branch -b branches/armnn_22_02 https://review.mlplatform.org/ml/armnn
+    cd armnn
+    git checkout branches/armnn_22_02
+    cd $HOME
+    ln -s $BASEDIR/armnn armnn
+}
+
+download_armnn_lib(){    
+    cd $TIDL_TOOLS_PATH 
+    # wget both libs here
 }
 
 SCRIPTDIR=`pwd`
@@ -178,12 +228,16 @@ case $key in
     --skip_arm_gcc_download)
     skip_arm_gcc_download=1
     ;;
+    --skip_armnn)
+    skip_armnn=1
+    ;;
     -h|--help)
     echo Usage: $0 [options]
     echo
     echo Options,
     echo --skip_cpp_deps            Skip Downloading or Compiling dependencies for CPP examples
     echo --skip_arm_gcc_download            Skip Downloading or setting environment variable  for ARM64_GCC_PATH
+    echo --skip_armnn_compile            Skip amrnn cross compilation  for arm
     exit 0
     ;;
 esac
@@ -256,13 +310,20 @@ if [ $skip_cpp_deps -eq 0 ]; then
         download_tflite2.4
     elif [[  $device == am62 ]]; then
         echo "Device am62: Downloading tflite 2.8"
-        download_compile_tflite_2.8
+        download_tflite_2.8
     else
         echo 'unknown device: "'$device'"'
         return
     fi
     cd $HOME
     download_compile_opencv
+fi
+
+if [ $skip_armnn -eq 0 ]; then
+    if [[ $arch == x86_64 ]]; then
+        download_armnn_repo
+        download_armnn_lib
+    fi
 fi
 
 cd $SCRIPTDIR
