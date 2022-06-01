@@ -78,11 +78,8 @@ download_tflite2.4(){
     mv  flatbuffers-1.12.0 flatbuffers
 }
 
-download_compile_opencv(){
+compile_opencv(){
     cd $HOME
-    wget https://github.com/opencv/opencv/archive/4.1.0.zip
-    unzip 4.1.0.zip
-    rm 4.1.0.zip
     cp -r opencv-4.1.0/cmake opencv-4.1.0/cmake_static 
     if [[ $arch == x86_64 ]]; then
         cd opencv-4.1.0/cmake/
@@ -94,6 +91,12 @@ download_compile_opencv(){
         make -j32
         cd -
     fi
+}
+download_opencv(){
+    cd $HOME
+    wget https://github.com/opencv/opencv/archive/4.1.0.zip
+    unzip 4.1.0.zip
+    rm 4.1.0.zip
 }
 compile_armnn(){
     #requires tflite2.8 to be build first
@@ -270,7 +273,11 @@ echo 'Installing python packages...'
 if [[ $arch == x86_64 ]]; then
     pip3 install -r ./requirements_pc.txt
 elif [[ $arch == aarch64 ]]; then
-    pip3 install -r ./requirements_j7.txt
+    if [[ $device == j7 ]]; then
+        pip3 install -r ./requirements_j7.txt
+    elif [[ $device == am62 ]]; then
+        echo "using python packages from filesytem "
+    fi
 fi
 if [[ -z "$TIDL_TOOLS_PATH" ]]; then
     wget https://github.com/TexasInstruments/edgeai-tidl-tools/releases/download/08_02_00_01-rc1/tidl_tools.tar.gz
@@ -282,11 +289,12 @@ if [[ -z "$TIDL_TOOLS_PATH" ]]; then
 fi
 
 
-
-if [ $skip_arm_gcc_download -eq 0 ]; then
-    wget https://developer.arm.com/-/media/Files/downloads/gnu-a/9.2-2019.12/binrel/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu.tar.xz
-    tar -xf gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu.tar.xz
-    export ARM64_GCC_PATH=$(pwd)/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu
+if [[ $arch == x86_64 ]]; then
+    if [ $skip_arm_gcc_download -eq 0 ]; then
+        wget https://developer.arm.com/-/media/Files/downloads/gnu-a/9.2-2019.12/binrel/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu.tar.xz
+        tar -xf gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu.tar.xz
+        export ARM64_GCC_PATH=$(pwd)/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu
+    fi
 fi
 
 if [ $skip_cpp_deps -eq 0 ]; then
@@ -315,8 +323,11 @@ if [ $skip_cpp_deps -eq 0 ]; then
         echo 'unknown device: "'$device'"'
         return
     fi
-    cd $HOME
-    download_compile_opencv
+    # opencv headers availbale as part of fs in am62
+    if [[ $device != am62 ]]; then
+        cd $HOME
+        download_opencv
+    fi
 fi
 
 if [ $skip_armnn -eq 0 ]; then

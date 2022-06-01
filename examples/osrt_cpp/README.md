@@ -19,13 +19,36 @@
 
 
 ## Build 
-  - Build the CPP examples using cmake from repository base directory
+  - Build the CPP examples using cmake from repository base directory. Create a build folder for your generated build files.
+  
     ```
     mkdir build && cd build
-    cmake ../examples/
-    make
-    cd  ../
     ```
+  - Below tables depicts the flags required for different compilation mode and different taget device use these with cmake inside build directory.
+  - During cmake build following paths are expected at $HOME(to override default path use cmake flags during cmake build).
+      - TENSORFLOW_INSTALL_DIR : defaults check at ~/tensorflow 
+      - ONNXRT_INSTALL_DIR: defaults check at ~/onnxruntime
+      - DLR_INSTALL_DIR: defaults check at ~/neo-ai-dlr
+      - OPENCV_INSTALL_DIR: defaults check at ~/opencv-4.1.0
+      - ARMNN_PATH: defaults check at ~/armnn
+      - TARGET_FS_PATH: defaults check ~/targetfs
+      - CROSS_COMPILER_PATH: defaults check ~/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu
+    ```
+    cmake -DFLAG1 -DFLAG2 ../examples
+    make -j
+    cd ../
+    ```
+
+  
+    | HOST CPU        | TARGET CPU           | TARGET DEVICE  | CMAKE OPTIONS  |
+    | ------- |:------:| -----:|:------------:|
+    | X86      | X86 | AM62 | TARGET_DEVICE=am62 |
+    | X86      | X86 | J7 | <none> |
+    | X86      | ARM | AM62 | TARGET_DEVICE=am62<br> TARGET_CPU=arm |
+    | X86      | ARM | J7 |  TARGET_CPU=arm |
+    | ARM      | ARM | AM62 | TARGET_DEVICE=am62|
+    | ARM      | ARM | J7 | 
+
 
 ## Run 
   - Run the CPP examples using the below commands
@@ -38,11 +61,23 @@
     ./bin/Release/tfl_main -f model-artifacts/od-tfl-ssd_mobilenet_v2_300_float -i test_data/ADE_val_00001801.jpg
     ./bin/Release/ort_main -f model-artifacts/ss-ort-deeplabv3lite_mobilenetv2 -i test_data/ADE_val_00001801.jpg
     ./bin/Release/tfl_main -f model-artifacts/ss-tfl-deeplabv3_mnv2_ade20k_float -i test_data/ADE_val_00001801.jpg
-
-
     ```
+  - Available cmd line arguments for cpp
+    - -h : for help
+    - -i : input image path
+    - -c : number of iteration to run for model
+    - -l: labels path for classification model
+    - -y: device_type for dlr models can be cpu,gpu
+    - -a : accelarate [0|1|2|3]
+      - 0 : None valid on all device
+      - 1 : TIDL valid on J7 and x86 in runtimes(tfl and onnx)
+      - 2 : XNN valid on Am62 and x86(Am62 config) in runtimes(tfl only)
+      - 3 : ARMNN valid on Am62 in runtimes(tfl only)
+
+    - -v : verbose (set to 1) 
+
 ## Validation on Target
-- Build and runt steps remains same for PC emaultionn and target. Copy the below folders from PC to the EVM where this repo is cloned before ruunning the examples
+- Build and run steps remains same for PC emaultionn and target. Copy the below folders from PC to the EVM where this repo is cloned before ruunning the examples
   
     ```
     ./model-artifacts
@@ -64,5 +99,9 @@
     cd ../
     ./bin/Release/tfl_main -z "cl-0000_tflitert_mlperf_mobilenet_v1_1.0_224_tflite/" -v 1 -i "test_data/airshow.jpg" -l "test_data/labels.txt" -a 1 -d 1
     ```
-
+- to run on target , copy the below folders from PC to the EVM where this repo is cloned before ruunning the examples
+    ```
+    ./model-artifacts
+    ./models
+    ```
 

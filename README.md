@@ -70,6 +70,21 @@ source ./setup.sh
 
 - Refer [CPP Examples](examples/osrt_cpp/README.md) for detailed instructions on building and running the CPP examples
 
+## Validated Examples
+  - Follwoing table summerises the validated examples 
+
+    | Demo exmaple  | Interface |Exmaple  location| AM62   | J7  | X86  |
+    | ------- |:------:|:------:|:------:|:-----:|:------------:|
+    |tfl | Python | examples/osrt_python/tfl/ | :heavy_check_mark: |:heavy_check_mark:| :heavy_check_mark: |
+    |ort | Python | examples/osrt_python/ort/ | :heavy_check_mark: |:heavy_check_mark:| :heavy_check_mark: |
+    |dlr | Python | examples/osrt_python/dlr/ |  |:heavy_check_mark:| :heavy_check_mark: |
+    |tfl | cpp | examples/osrt_cpp/tfl/ | :heavy_check_mark: |:heavy_check_mark:| :heavy_check_mark: |
+    |ort | cpp | examples/osrt_cpp/ort/ | :heavy_check_mark: |:heavy_check_mark:| :heavy_check_mark: |
+    |dlr | cpp | examples/osrt_cpp/dlr/ |  |:heavy_check_mark:| :heavy_check_mark: |
+    |advanced tfl | cpp | examples/osrt_cpp/advanced_exmples/tfl/ |  |:heavy_check_mark:| :heavy_check_mark: |
+    |advanced ort | cpp | examples/osrt_cpp/advanced_exmples/ort/ |  |:heavy_check_mark:| :heavy_check_mark: |
+ 
+
 ## Jupyter Notebooks
 
 - All the noteboks can be executed in PC emulation mode, but only inference notebooks can be executed on target device.
