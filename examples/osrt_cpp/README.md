@@ -34,12 +34,12 @@
       - TARGET_FS_PATH: defaults check ~/targetfs
       - CROSS_COMPILER_PATH: defaults check ~/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu
     ```
-    cmake -DFLAG1 -DFLAG2 ../examples
+    cmake -DFLAG1=val -DFLAG2=val ../examples
     make -j
     cd ../
     ```
 
-  
+
     | HOST CPU        | TARGET CPU           | TARGET DEVICE  | CMAKE OPTIONS  |
     | ------- |:------:| -----:|:------------:|
     | X86      | X86 | AM62 | TARGET_DEVICE=am62 |
@@ -49,6 +49,25 @@
     | ARM      | ARM | AM62 | TARGET_DEVICE=am62|
     | ARM      | ARM | J7 | 
 
+  - Example: for cross compiling cpp examples for am62 device on x86 host
+    ```
+    cmake -DTARGET_DEVICE=am62 TARGET_CPU=arm ../examples
+    make -j
+    cd ../
+    ```
+  - To compile ARMNN delegate option in AM62 native on AM62 device
+    ```
+    cmake -DTARGET_DEVICE=am62  -DARMNN_ENABLE=1../examples    
+    ```
+  - To compile ARMNN delegate option in AM62 cross compile on x86 device
+    ```
+    cmake -DTARGET_DEVICE=am62 TARGET_CPU=arm -DARMNN_ENABLE=1../examples
+    ```
+  - Note: If during cross-compiling/native-compiling cpp aplication for J7 device error appears "onnxruntime library not found" create symbolic for the same 
+    ```
+    cd <target_fs>/usr/lib
+    ln -s libonnxruntime.so.1.7.0 libonnxruntime.so
+    ```
 
 ## Run 
   - Run the CPP examples using the below commands

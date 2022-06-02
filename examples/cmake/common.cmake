@@ -33,7 +33,7 @@ if(NOT ONNXRT_INSTALL_DIR)
   if (EXISTS $ENV{HOME}/onnxruntime)
     set(ONNXRT_INSTALL_DIR $ENV{HOME}/onnxruntime)
   else()
-     message(WARNING "ONNXRT_INSTALL_DIR is not set")
+     message(WARNING "ONNXRT_INSTALL_DIR is not set(: ignore the warning if device is am62)")
   endif()
 endif()
 
@@ -289,11 +289,11 @@ if((${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" AND ${
   #disable xnn tflite 2.8
   add_compile_options(-DXNN_ENABLE=1)
 
-  if(NOT CROSS_COMPILER_PATH)
+  if(NOT ARM64GCC_PATH)
     if (EXISTS $ENV{HOME}/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu)
-      set(CROSS_COMPILER_PATH $ENV{HOME}/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu)
+      set(ARM64GCC_PATH $ENV{HOME}/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu)
     else()
-     message(WARNING "CROSS_COMPILER_PATH is not set")
+     message(WARNING "ARM64GCC_PATH is not set")
     endif()
   endif()
 
@@ -305,7 +305,7 @@ if((${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" AND ${
     endif()
   endif()
 
-  set(ARMCC_PREFIX ${CROSS_COMPILER_PATH}/bin/aarch64-none-linux-gnu-)
+  set(ARMCC_PREFIX ${ARM64GCC_PATH}/bin/aarch64-none-linux-gnu-)
   set(CMAKE_C_COMPILER ${ARMCC_PREFIX}gcc)
   set(CMAKE_CXX_COMPILER ${ARMCC_PREFIX}g++)
 
@@ -439,11 +439,11 @@ if((${TARGET_DEVICE} STREQUAL  "j7") AND (${TARGET_CPU} STREQUAL  "arm" AND ${HO
   add_compile_options(-DDEVICE_J7=1)
   #disable xnn tflite 2.4
   add_compile_options(-DXNN_ENABLE=0)
-  if(NOT CROSS_COMPILER_PATH)
+  if(NOT ARM64GCC_PATH)
     if (EXISTS $ENV{HOME}/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu)
-      set(CROSS_COMPILER_PATH $ENV{HOME}/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu)
+      set(ARM64GCC_PATH $ENV{HOME}/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu)
     else()
-     message(WARNING "CROSS_COMPILER_PATH is not set")
+     message(WARNING "ARM64GCC_PATH is not set")
     endif()
   endif()
 
@@ -456,7 +456,7 @@ if((${TARGET_DEVICE} STREQUAL  "j7") AND (${TARGET_CPU} STREQUAL  "arm" AND ${HO
   endif()
 
 
-  set(ARMCC_PREFIX ${CROSS_COMPILER_PATH}/bin/aarch64-none-linux-gnu-)
+  set(ARMCC_PREFIX ${ARM64GCC_PATH}/bin/aarch64-none-linux-gnu-)
   set(CMAKE_C_COMPILER ${ARMCC_PREFIX}gcc)
   set(CMAKE_CXX_COMPILER ${ARMCC_PREFIX}g++)
 
@@ -629,6 +629,7 @@ if(ARMNN_ENABLE)
     /home/root
     ${ARMNN_PATH}/build
     ${ARMNN_PATH}/build/delegate
+    ${TIDL_TARGET_LIBS}
   )
 endif()        
 

@@ -96,6 +96,9 @@ download_opencv(){
     cd $HOME
     wget https://github.com/opencv/opencv/archive/4.1.0.zip
     unzip 4.1.0.zip
+    cd opencv-4.1.0
+    export OPENCV_INSTALL_DIR=$(pwd)
+    cd -   
     rm 4.1.0.zip
 }
 compile_armnn(){
@@ -103,6 +106,7 @@ compile_armnn(){
     cd $HOME
     export BASEDIR=~/ArmNNDelegate
     mkdir $BASEDIR
+    cd $BASEDIR
     apt-get update && apt-get install git wget unzip zip python git cmake scons
 
     git clone "https://review.mlplatform.org/ml/armnn" 
@@ -210,8 +214,11 @@ download_armnn_repo(){
 }
 
 download_armnn_lib(){    
-    cd $TIDL_TOOLS_PATH 
-    # wget both libs here
+    export TIDL_TARGET_LIBS = $SCRIPTDIR/tidl_target_libs
+    mkdir $TIDL_TARGET_LIBS
+    cd $TIDL_TARGET_LIBS
+    # wget https://github.com/TexasInstruments/edgeai-tidl-tools/releases/download/08_02_00_01-rc1/libarmnnDelegate.so
+    # wget https://github.com/TexasInstruments/edgeai-tidl-tools/releases/download/08_02_00_01-rc1/libarmnn.so
 }
 
 SCRIPTDIR=`pwd`
@@ -267,11 +274,20 @@ else
     echo 'Processor Architecture "'$arch'" is Not Supported '
 return
 fi
-device=am62
-if [[ $device == j7 ]]; then
-    export DEVICE=J7
-elif [[ $device == am62 ]]; then
-    export DEVICE=am62
+
+if [ -z "$DEVICE" ];then
+    echo "DEVICE not defined. Run either of below commands"
+    echo "export DEVICE=j7"
+    echo "export DEVICE=am62"
+    return
+else 
+    if [ $DEVICE != j7 ] && [ $DEVICE != am62 ]; then
+        echo "DEVICE shell var not set correctly. Set"
+        echo "export DEVICE=j7"
+        echo "export DEVICE=am62"
+        return
+    fi
+fi
 
 ######################################################################
 # Installing dependencies
@@ -279,9 +295,9 @@ echo 'Installing python packages...'
 if [[ $arch == x86_64 ]]; then
     pip3 install -r ./requirements_pc.txt
 elif [[ $arch == aarch64 ]]; then
-    if [[ $device == j7 ]]; then
+    if [[ $DEVICE == j7 ]]; then
         pip3 install -r ./requirements_j7.txt
-    elif [[ $device == am62 ]]; then
+    elif [[ $DEVICE == am62 ]]; then
         echo "using python packages from filesytem "
     fi
 fi
@@ -319,23 +335,31 @@ if [ $skip_cpp_deps -eq 0 ]; then
     git submodule update --init --recursive
     cd ..
     git clone --depth 1 --single-branch -b tidl-j7 https://github.com/TexasInstruments/onnxruntime.git
-    if [[ $device == j7 ]]; then
+    if [[ $DEVICE == j7 ]]; then
         echo "Device j7: Downloading tflite 2.4"
         download_tflite2.4
-    elif [[  $device == am62 ]]; then
+    elif [[  $DEVICE == am62 ]]; then
         echo "Device am62: Downloading tflite 2.8"
         download_tflite_2.8
         if [[ $arch == x86_64 ]]; then
+            #to update the cmake
+            cd $SCRIPTDIR
+            wget https://github.com/Kitware/CMake/releases/download/v3.22.1/cmake-3.22.1-linux-x86_64.sh
+            chmod u+x cmake-3.22.1-linux-x86_64.sh 
+            mkdir $SCRIPTDIR/cmake
+            ./cmake-3.22.1-linux-x86_64.sh --skip-license --prefix=$SCRIPTDIR/cmake
+            export PATH=$SCRIPTDIR/cmake/bin:$PATH
+
             compile_tflite_2.8
         fi
     else
-        echo 'unknown device: "'$device'"'
+        echo 'unknown DEVICE: "'$DEVICE'"'
         return
     fi
-    # opencv headers availbale as part of fs in am62
-    if [[ $device == am62 ]]; then
-        cd $HOME
-        download_opencv
+
+    download_opencv
+    if  [[$arch == x86_64 ]] ; then
+        cd $HOME        
         compile_opencv
     fi
 fi

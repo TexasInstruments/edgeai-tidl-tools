@@ -19,12 +19,15 @@ This repository contains examples developed for Deep learning runtime (DLRT) off
  The following sections describes the steps to install this repository, dependent components on your device and run the examples on the same. Most the steps explained in this page are common for PC emulation and execution on target. If any of the steps is different between PC and target, then same is called out in this document.
 
 ## Setup
-  - This repository is validated on Ubuntu 18.04 in PC emulation mode and TDA4VM EVM using PSDK-RTOS release
+  - This repository is validated on Ubuntu 18.04 in PC emulation mode, AM62 EVM and TDA4VM EVM using PSDK-RTOS release
   - This repository works only with python 3.6 on PC (Which is default in Ubuntu 18.04)
   - We have also validated under docker container in PC. Refer [Dockerfile](./Dockerfile) for the list of dependencies installed on top of ubuntu 18.04 base line
   - Run the below script to install the dependent components on your machine and set all the required environments
+  - setup.sh uses the env variable DEVICE. set the same prior to sourcing setup.sh
  ```
  git clone https://github.com/TexasInstruments/edgeai-tidl-tools.git
+ #export DEVICE=j7
+ #export DEVICE=am62
  cd edgeai-tidl-tools
  source ./setup.sh
 ```
@@ -58,7 +61,7 @@ source ./setup.sh
 ./scripts/run_python_examples.sh
 ```
 
-  - This script would run only inference of example models when executed on target device like J7ES EVM or SK. So this script must be first executed on PC to generate the artifacts needed for inference and then copy below folders from PC to target device before running this script on device
+  - This script would run only inference of example models when executed on target device like J7ES, AM62 EVM or SK. So this script must be first executed on PC to generate the artifacts needed for inference and then copy below folders from PC to target device before running this script on device
 ```
 ./model-artifacts
 ./models

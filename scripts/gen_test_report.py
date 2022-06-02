@@ -70,14 +70,37 @@ ref_outputs_base_dir = 'test_data'
 rt_base_dir_py = 'examples/osrt_python/'
 rt_base_dir_bash = 'scripts'
 
-test_configs = [
-                {'script_name':'tflrt_delegate.py', 'script_dir':'tfl','lang':'py', 'rt_type':'tfl-py'},
-                {'script_name':'onnxrt_ep.py', 'script_dir':'ort','lang':'py', 'rt_type':'ort-py'},
-                #{'script_name':'dlr_inference_example.py', 'script_dir':'tvm_dlr','lang':'py', 'rt_type':'dlr-py'},
-                {'script_name':'run_tfl_models.sh', 'script_dir':'osrt_cpp_scripts/','lang':'bash','rt_type':'tfl-cpp'},
-                {'script_name':'run_onnx_models.sh', 'script_dir':'osrt_cpp_scripts/','lang':'bash','rt_type':'ort-cpp'},
-                #{'script_name':'run_dlr_models.sh', 'script_dir':'osrt_cpp_scripts/','lang':'bash','rt_type':'dlr-cpp'},
-    ]
+try:
+    DEVICE = os.environ['DEVICE']
+except:
+    print('DEVICE env variable not found')
+    exit(-1)
+
+if DEVICE != "am62" and DEVICE != "j7" :
+    print('DEVICE env variable no correct use j7 or am62')
+    exit(-1)
+
+global test_configs
+if DEVICE == "am62":
+    test_configs = [
+                    {'script_name':'tflrt_delegate.py', 'script_dir':'tfl','lang':'py', 'rt_type':'tfl-py'},
+                    {'script_name':'onnxrt_ep.py', 'script_dir':'ort','lang':'py', 'rt_type':'ort-py'},
+                    #{'script_name':'dlr_inference_example.py', 'script_dir':'tvm_dlr','lang':'py', 'rt_type':'dlr-py'},
+                    {'script_name':'run_tfl_models.sh', 'script_dir':'osrt_cpp_scripts/','lang':'bash','rt_type':'tfl-cpp'},
+                    {'script_name':'run_onnx_models.sh', 'script_dir':'osrt_cpp_scripts/','lang':'bash','rt_type':'ort-cpp'},
+                    #{'script_name':'run_dlr_models.sh', 'script_dir':'osrt_cpp_scripts/','lang':'bash','rt_type':'dlr-cpp'},
+        ]
+elif DEVICE == "j7" :
+    test_configs = [
+                    {'script_name':'tflrt_delegate.py', 'script_dir':'tfl','lang':'py', 'rt_type':'tfl-py'},
+                    {'script_name':'onnxrt_ep.py', 'script_dir':'ort','lang':'py', 'rt_type':'ort-py'},
+                    {'script_name':'dlr_inference_example.py', 'script_dir':'tvm_dlr','lang':'py', 'rt_type':'dlr-py'},
+                    {'script_name':'run_tfl_models.sh', 'script_dir':'osrt_cpp_scripts/','lang':'bash','rt_type':'tfl-cpp'},
+                    {'script_name':'run_onnx_models.sh', 'script_dir':'osrt_cpp_scripts/','lang':'bash','rt_type':'ort-cpp'},
+                    {'script_name':'run_dlr_models.sh', 'script_dir':'osrt_cpp_scripts/','lang':'bash','rt_type':'dlr-cpp'},
+        ]
+
+
 currIdx = 0
 if platform.machine() == 'aarch64':
     device = 'j7es'
