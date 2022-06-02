@@ -40,22 +40,22 @@ compile_tflite_2.8(){
     cmake --build . -j
     
     #cross compilation for arm
-    mkdir tflite_build_arm
-    cd tflite_build_arm
-    ARMCC_PREFIX=$ARM64_GCC_PATH/bin/aarch64-none-linux-gnu-    
-    ARMCC_FLAGS="-funsafe-math-optimizations"
-    cmake -DCMAKE_C_COMPILER=${ARMCC_PREFIX}gcc \
-    -DCMAKE_CXX_COMPILER=${ARMCC_PREFIX}g++ \
-    -DCMAKE_C_FLAGS="${ARMCC_FLAGS}" \
-    -DCMAKE_CXX_FLAGS="${ARMCC_FLAGS}" \
-    -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON \
-    -DCMAKE_SYSTEM_NAME=Linux \
-    -DTFLITE_ENABLE_XNNPACK=ON \
-    -DCMAKE_SYSTEM_PROCESSOR=aarch64 \
-    -DBUILD_SHARED_LIBS=ON \
-    ../tensorflow_src/tensorflow/lite/
+    # mkdir tflite_build_arm
+    # cd tflite_build_arm
+    # ARMCC_PREFIX=$ARM64_GCC_PATH/bin/aarch64-none-linux-gnu-    
+    # ARMCC_FLAGS="-funsafe-math-optimizations"
+    # cmake -DCMAKE_C_COMPILER=${ARMCC_PREFIX}gcc \
+    # -DCMAKE_CXX_COMPILER=${ARMCC_PREFIX}g++ \
+    # -DCMAKE_C_FLAGS="${ARMCC_FLAGS}" \
+    # -DCMAKE_CXX_FLAGS="${ARMCC_FLAGS}" \
+    # -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON \
+    # -DCMAKE_SYSTEM_NAME=Linux \
+    # -DTFLITE_ENABLE_XNNPACK=ON \
+    # -DCMAKE_SYSTEM_PROCESSOR=aarch64 \
+    # -DBUILD_SHARED_LIBS=ON \
+    # ../tensorflow_src/tensorflow/lite/
 
-    cmake --build . -j 
+    # cmake --build . -j 
 }
 
 download_tflite_2.8(){
@@ -80,16 +80,16 @@ download_tflite2.4(){
 
 compile_opencv(){
     cd $HOME
-    cp -r opencv-4.1.0/cmake opencv-4.1.0/cmake_static 
+    #cp -r opencv-4.1.0/cmake opencv-4.1.0/cmake_static 
     if [[ $arch == x86_64 ]]; then
         cd opencv-4.1.0/cmake/
         cmake -DBUILD_opencv_highgui:BOOL="1" -DBUILD_opencv_videoio:BOOL="0" -DWITH_IPP:BOOL="0" -DWITH_WEBP:BOOL="1" -DWITH_OPENEXR:BOOL="1" -DWITH_IPP_A:BOOL="0" -DBUILD_WITH_DYNAMIC_IPP:BOOL="0" -DBUILD_opencv_cudacodec:BOOL="0" -DBUILD_PNG:BOOL="1" -DBUILD_opencv_cudaobjdetect:BOOL="0" -DBUILD_ZLIB:BOOL="1" -DBUILD_TESTS:BOOL="0" -DWITH_CUDA:BOOL="0" -DBUILD_opencv_cudafeatures2d:BOOL="0" -DBUILD_opencv_cudaoptflow:BOOL="0" -DBUILD_opencv_cudawarping:BOOL="0" -DINSTALL_TESTS:BOOL="0" -DBUILD_TIFF:BOOL="1" -DBUILD_JPEG:BOOL="1" -DBUILD_opencv_cudaarithm:BOOL="0" -DBUILD_PERF_TESTS:BOOL="0" -DBUILD_opencv_cudalegacy:BOOL="0" -DBUILD_opencv_cudaimgproc:BOOL="0" -DBUILD_opencv_cudastereo:BOOL="0" -DBUILD_opencv_cudafilters:BOOL="0" -DBUILD_opencv_cudabgsegm:BOOL="0" -DBUILD_SHARED_LIBS:BOOL="0" -DWITH_ITT=OFF ../
         make -j 32
         cd -
-        cd opencv-4.1.0/cmake_static
-        cmake -DWITH_OPENEXR=OFF -DOPENCV_GENERATE_PKGCONFIG=ON BUILD_JASPER=ON -DBUILD_JPEG:BOOL="1" -DBUILD_SHARED_LIBS=OFF -DCMAKE_C_COMPILER=$ARM64_GCC_PATH/bin/aarch64-none-linux-gnu-gcc -DCMAKE_CXX_COMPILER=$ARM64_GCC_PATH/bin/aarch64-none-linux-gnu-g++ -DCMAKE_TOOLCHAIN_FILE=../platforms/linux/arm-gnueabi.toolchain.cmake ../
-        make -j32
-        cd -
+        # cd opencv-4.1.0/cmake_static
+        # cmake -DWITH_OPENEXR=OFF -DOPENCV_GENERATE_PKGCONFIG=ON BUILD_JASPER=ON -DBUILD_JPEG:BOOL="1" -DBUILD_SHARED_LIBS=OFF -DCMAKE_C_COMPILER=$ARM64_GCC_PATH/bin/aarch64-none-linux-gnu-gcc -DCMAKE_CXX_COMPILER=$ARM64_GCC_PATH/bin/aarch64-none-linux-gnu-g++ -DCMAKE_TOOLCHAIN_FILE=../platforms/linux/arm-gnueabi.toolchain.cmake ../
+        # make -j32
+        # cd -
     fi
 }
 download_opencv(){
@@ -219,6 +219,7 @@ SCRIPTDIR=`pwd`
 
 skip_cpp_deps=0
 skip_arm_gcc_download=0
+skip_armnn=0
 
 POSITIONAL=()
 while [[ $# -gt 0 ]]
@@ -266,6 +267,11 @@ else
     echo 'Processor Architecture "'$arch'" is Not Supported '
 return
 fi
+device=am62
+if [[ $device == j7 ]]; then
+    export DEVICE=J7
+elif [[ $device == am62 ]]; then
+    export DEVICE=am62
 
 ######################################################################
 # Installing dependencies
@@ -319,14 +325,18 @@ if [ $skip_cpp_deps -eq 0 ]; then
     elif [[  $device == am62 ]]; then
         echo "Device am62: Downloading tflite 2.8"
         download_tflite_2.8
+        if [[ $arch == x86_64 ]]; then
+            compile_tflite_2.8
+        fi
     else
         echo 'unknown device: "'$device'"'
         return
     fi
     # opencv headers availbale as part of fs in am62
-    if [[ $device != am62 ]]; then
+    if [[ $device == am62 ]]; then
         cd $HOME
         download_opencv
+        compile_opencv
     fi
 fi
 

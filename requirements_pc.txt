@@ -1,5 +1,6 @@
 numpy
 pyyaml
+protobuf==3.19.4
 onnx==1.9.0
 tflite
 pillow==8.2.0

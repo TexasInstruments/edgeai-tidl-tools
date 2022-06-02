@@ -49,6 +49,11 @@ idx = 0
 nthreads = 0
 run_count = 0
 
+DEVICE = os.environ["DEVICE"]
+
+if(DEVICE == "am62"):
+    args.disable_offload = True
+    args.compile = False
 
 def get_benchmark_output(interpreter):
     benchmark_dict = interpreter.get_TI_benchmark_data()
@@ -211,7 +216,8 @@ def run_model(model, mIdx):
             if not os.path.exists(output_images_folder):
                 os.makedirs(output_images_folder)
             images[j].save(output_images_folder + output_file_name, "JPEG") 
-    else :
+    
+    if args.compile or args.disable_offload :
         gen_param_yaml(delegate_options['artifacts_folder'], config, int(height), int(width))
     log = f'\n \nCompleted_Model : {mIdx+1:5d}, Name : {model:50s}, Total time : {total_proc_time/(i+1):10.2f}, Offload Time : {sub_graphs_time/(i+1):10.2f} , DDR RW MBs : 0, Output File : {output_file_name} \n \n ' #{classes} \n \n'
     print(log) 
