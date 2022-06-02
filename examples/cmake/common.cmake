@@ -310,36 +310,18 @@ if((${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" AND ${
   set(CMAKE_CXX_COMPILER ${ARMCC_PREFIX}g++)
 
   link_directories(
-                  # opencv libraries
-                  ${OPENCV_INSTALL_DIR}/cmake_static/lib
-                  ${OPENCV_INSTALL_DIR}/cmake_static/3rdparty/lib
-                  ${OPENCV_INSTALL_DIR}/cmake_static/3rdparty/libjasper/CMakeFiles/libjasper.dir                  
                   #AM62 targetfs
                   ${TARGET_FS_PATH}/usr/lib
                   ${TARGET_FS_PATH}/usr/lib/glib-2.0
                   ${TARGET_FS_PATH}/usr/lib/python3.8/site-packages  
-                  
-                  #tesnorflow and dependencies
-                  ${TENSORFLOW_INSTALL_DIR}/tflite_build_arm
-                  ${TENSORFLOW_INSTALL_DIR}/tflite_build_arm/_deps/ruy-build/ruy
-                  ${TENSORFLOW_INSTALL_DIR}/tflite_build_arm/pthreadpool
-                  ${TENSORFLOW_INSTALL_DIR}/tflite_build_arm/_deps/fft2d-build
-                  ${TENSORFLOW_INSTALL_DIR}/tflite_build_arm/_deps/cpuinfo-build
-                  ${TENSORFLOW_INSTALL_DIR}/tflite_build_arm/_deps/flatbuffers-build
-                  ${TENSORFLOW_INSTALL_DIR}/tflite_build_arm/_deps/clog-build
-                  ${TENSORFLOW_INSTALL_DIR}/tflite_build_arm/_deps/farmhash-build
-                  ${TENSORFLOW_INSTALL_DIR}/tflite_build_arm/_deps/xnnpack-build
-
 
   )
   set(SYSTEM_LINK_LIBS
                   tensorflow-lite
                   z
-                  tegra_hal
                   opencv_imgproc
                   opencv_imgcodecs
                   opencv_core
-                  libjasper
                   jpeg
                   webp
                   png16
@@ -348,15 +330,14 @@ if((${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" AND ${
                   dl
                   dlr
                   yaml-cpp
-                  flatbuffers
                   fft2d_fftsg2d
                   fft2d_fftsg
                   cpuinfo
-                  clog
                   farmhash
                   XNNPACK
                   pthreadpool
                   pthread
+                  tbb
   )
   include_directories(
                   ${PROJECT_SOURCE_DIR}
@@ -372,17 +353,16 @@ if((${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" AND ${
                   ${TENSORFLOW_INSTALL_DIR}/tensorflow_src
                   ${TENSORFLOW_INSTALL_DIR}/tflite_build/flatbuffers/include
 
-                  ${ONNXRT_INSTALL_DIR}/include
-                  ${ONNXRT_INSTALL_DIR}/include/onnxruntime
-                  ${ONNXRT_INSTALL_DIR}/include/onnxruntime/core/session                    
+                  ${TARGET_FS_PATH}/usr/include/onnxruntime
+                  ${TARGET_FS_PATH}/usr/include/onnxruntime/core/session                    
                   ${DLR_INSTALL_DIR}/include
                   ${DLR_INSTALL_DIR}/3rdparty/tvm/3rdparty/dlpack/include
-                  ${OPENCV_INSTALL_DIR}/modules/core/include
-                  ${OPENCV_INSTALL_DIR}/modules/highgui/include
-                  ${OPENCV_INSTALL_DIR}/modules/imgcodecs/include
-                  ${OPENCV_INSTALL_DIR}/modules/videoio/include
-                  ${OPENCV_INSTALL_DIR}/modules/imgproc/include
-                  ${OPENCV_INSTALL_DIR}/cmake
+                  ${TARGET_FS_PATH}/usr/include/opencv4/opencv2/core/include
+                  ${TARGET_FS_PATH}/usr/include/opencv4/opencv2/highgui/include
+                  ${TARGET_FS_PATH}/usr/include/opencv4/opencv2/imgcodecs/include
+                  ${TARGET_FS_PATH}/usr/include/opencv4/opencv2/videoio/include
+                  ${TARGET_FS_PATH}/usr/include/opencv4/opencv2/imgproc/include
+                  #${TARGET_FS_PATH}/usr/include/opencv4/opencv2/cmake
                   
                   PUBLIC ${PROJECT_SOURCE_DIR}/post_process
                   PUBLIC ${PROJECT_SOURCE_DIR}/pre_process
@@ -646,6 +626,7 @@ if(ARMNN_ENABLE)
   )
   link_directories(
     #armnn lib need to remove once added to filesystem
+    /home/root
     ${ARMNN_PATH}/build
     ${ARMNN_PATH}/build/delegate
   )
