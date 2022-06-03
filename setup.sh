@@ -217,7 +217,7 @@ download_armnn_lib(){
     mkdir $TIDL_TARGET_LIBS
     cd $TIDL_TARGET_LIBS
     wget https://github.com/TexasInstruments/edgeai-tidl-tools/releases/download/08_03_00_19/libarmnnDelegate.so
-    # wget https://github.com/TexasInstruments/edgeai-tidl-tools/releases/download/08_02_00_01-rc1/libarmnn.so
+    wget https://github.com/TexasInstruments/edgeai-tidl-tools/releases/download/08_03_00_19/libarmnn.so
 }
 
 SCRIPTDIR=`pwd`
