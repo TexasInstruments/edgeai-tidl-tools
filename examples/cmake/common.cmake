@@ -45,11 +45,13 @@ if(NOT DLR_INSTALL_DIR)
   endif()
 endif()
 
-if(NOT OPENCV_INSTALL_DIR)
-  if (EXISTS $ENV{HOME}/opencv-4.1.0)
-    set(OPENCV_INSTALL_DIR $ENV{HOME}/opencv-4.1.0)
-  else()
-     message(WARNING "OPENCV_INSTALL_DIR is not set(: ignore the warning if device is am62)")
+if (${HOST_CPU} STREQUAL  "x86")
+  if(NOT OPENCV_INSTALL_DIR)
+    if (EXISTS $ENV{HOME}/opencv-4.1.0)
+      set(OPENCV_INSTALL_DIR $ENV{HOME}/opencv-4.1.0)
+    else()
+      message(WARNING "OPENCV_INSTALL_DIR is not set")
+    endif()
   endif()
 endif()
 
@@ -529,13 +531,6 @@ if( ((${TARGET_DEVICE} STREQUAL  "j7") AND (${TARGET_CPU} STREQUAL  "arm" AND ${
   #disable xnn tflite 2.4
   add_compile_options(-DXNN_ENABLE=0)
   
-  if(NOT ARMNN_PATH)
-    if (EXISTS $ENV{HOME}/armnn)
-      set(ARMNN_PATH $ENV{HOME}/armnn)
-    else()
-      message(WARNING "ARMNN_PATH is not set")
-    endif()
-  endif()
 
   set(CMAKE_C_COMPILER gcc)
   set(CMAKE_CXX_COMPILER g++)
@@ -589,13 +584,6 @@ if( ((${TARGET_DEVICE} STREQUAL  "j7") AND (${TARGET_CPU} STREQUAL  "arm" AND ${
                   ${ONNXRT_INSTALL_DIR}/include/onnxruntime/core/session                    
                   ${DLR_INSTALL_DIR}/include
                   ${DLR_INSTALL_DIR}/3rdparty/tvm/3rdparty/dlpack/include
-                  #opencv
-                  ${OPENCV_INSTALL_DIR}/modules/core/include
-                  ${OPENCV_INSTALL_DIR}/modules/highgui/include
-                  ${OPENCV_INSTALL_DIR}/modules/imgcodecs/include
-                  ${OPENCV_INSTALL_DIR}/modules/videoio/include
-                  ${OPENCV_INSTALL_DIR}/modules/imgproc/include
-                  ${OPENCV_INSTALL_DIR}/cmake
                   $ENV{TIDL_TOOLS_PATH}
                   PUBLIC ${PROJECT_SOURCE_DIR}/post_process
                   PUBLIC ${PROJECT_SOURCE_DIR}/pre_process
