@@ -357,7 +357,7 @@ if [ $skip_cpp_deps -eq 0 ]; then
     fi
 
     download_opencv
-    if  [[$arch == x86_64 ]] ; then
+    if  [[ $arch == x86_64 ]] ; then
         cd $HOME        
         compile_opencv
     fi
