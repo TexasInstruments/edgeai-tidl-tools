@@ -2,6 +2,7 @@
 
 time=$(date)
 echo "Current time is $time" > report.txt 
+export DEVICE=j7
 source ./setup.sh
 mkdir build && cd build
 cmake ../examples

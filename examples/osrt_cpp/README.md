@@ -41,7 +41,7 @@
 
 
     | HOST CPU        | TARGET CPU           | TARGET DEVICE  | CMAKE OPTIONS  |
-    | ------- |:------:| -----:|:------------:|
+    | ------- |:------:| :-----:|:------------:|
     | X86      | X86 | AM62 | TARGET_DEVICE=am62 |
     | X86      | X86 | J7 | <none> |
     | X86      | ARM | AM62 | TARGET_DEVICE=am62<br> TARGET_CPU=arm |
