@@ -394,16 +394,12 @@ if((${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" AND ${
               /usr/lib/aarch64-linux-gnu/glib-2.0/include
               /usr/include/opencv4/
               /usr/include/processor_sdk/vision_apps/
-              
+              #onnx headers from fs
+              /usr/include/onnxruntime/core/session
               #tflite
               ${TENSORFLOW_INSTALL_DIR}/
               ${FLATBUFFERS_DIR}/include
 
-              ${ONNXRT_INSTALL_DIR}/include
-              ${ONNXRT_INSTALL_DIR}/include/onnxruntime
-              ${ONNXRT_INSTALL_DIR}/include/onnxruntime/core/session                    
-              ${DLR_INSTALL_DIR}/include
-              ${DLR_INSTALL_DIR}/3rdparty/tvm/3rdparty/dlpack/include
               PUBLIC ${PROJECT_SOURCE_DIR}/post_process
               PUBLIC ${PROJECT_SOURCE_DIR}/pre_process
               PUBLIC ${PROJECT_SOURCE_DIR}/utils

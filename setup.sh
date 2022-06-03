@@ -205,7 +205,6 @@ compile_armnn(){
 download_armnn_repo(){    
     export BASEDIR=~/ArmNNDelegate
     mkdir $BASEDIR    
-    git clone "https://review.mlplatform.org/ml/armnn" 
     git clone --depth 1 --single-branch -b branches/armnn_22_02 https://review.mlplatform.org/ml/armnn
     cd armnn
     git checkout branches/armnn_22_02
