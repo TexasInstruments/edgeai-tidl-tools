@@ -213,7 +213,7 @@ download_armnn_repo(){
 }
 
 download_armnn_lib(){    
-    export TIDL_TARGET_LIBS = $SCRIPTDIR/tidl_target_libs
+    export TIDL_TARGET_LIBS=$SCRIPTDIR/tidl_target_libs
     mkdir $TIDL_TARGET_LIBS
     cd $TIDL_TARGET_LIBS
     # wget https://github.com/TexasInstruments/edgeai-tidl-tools/releases/download/08_02_00_01-rc1/libarmnnDelegate.so

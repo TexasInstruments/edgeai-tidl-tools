@@ -4,13 +4,13 @@ import platform
 import numpy as np
 from PIL import Image, ImageFont, ImageDraw, ImageEnhance
 import yaml
+import shutil
 
 if platform.machine() == 'aarch64':
     numImages = 100
 else : 
     import requests
     import onnx
-    import shutil
     numImages = 3
 
     # directory reach
