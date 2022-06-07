@@ -82,6 +82,7 @@ if DEVICE != "am62" and DEVICE != "j7" :
 
 global test_configs
 if DEVICE == "am62":
+    device = 'am62'
     test_configs = [
                     {'script_name':'tflrt_delegate.py', 'script_dir':'tfl','lang':'py', 'rt_type':'tfl-py'},
                     {'script_name':'onnxrt_ep.py', 'script_dir':'ort','lang':'py', 'rt_type':'ort-py'},
@@ -91,6 +92,7 @@ if DEVICE == "am62":
                     #{'script_name':'run_dlr_models.sh', 'script_dir':'osrt_cpp_scripts/','lang':'bash','rt_type':'dlr-cpp'},
         ]
 elif DEVICE == "j7" :
+    device = 'j7es'
     test_configs = [
                     {'script_name':'tflrt_delegate.py', 'script_dir':'tfl','lang':'py', 'rt_type':'tfl-py'},
                     {'script_name':'onnxrt_ep.py', 'script_dir':'ort','lang':'py', 'rt_type':'ort-py'},
@@ -102,9 +104,7 @@ elif DEVICE == "j7" :
 
 
 currIdx = 0
-if platform.machine() == 'aarch64':
-    device = 'j7es'
-else:
+if platform.machine() != 'aarch64':
     device = 'pc'
 
 
