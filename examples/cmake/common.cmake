@@ -41,7 +41,7 @@ if(NOT DLR_INSTALL_DIR)
   if (EXISTS $ENV{HOME}/neo-ai-dlr)
     set(DLR_INSTALL_DIR $ENV{HOME}/neo-ai-dlr)
   else()
-     message(WARNING "DLR_INSTALL_DIR is not set (: ignore the warning if device is am62)")
+     message(WARNING "DLR_INSTALL_DIR is not set")
   endif()
 endif()
 
@@ -291,13 +291,11 @@ if((${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" AND ${
   #disable xnn tflite 2.8
   add_compile_options(-DXNN_ENABLE=1)
 
-  if(NOT ARM64_GCC_PATH)
+  if(NOT ARM64GCC_PATH)
     if (EXISTS $ENV{HOME}/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu)
-      set(ARM64_GCC_PATH $ENV{HOME}/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu)
-    elseif(DEFINED  ENV{ARM64_GCC_PATH})
-      set(ARM64_GCC_PATH $ENV{ARM64_GCC_PATH})
+      set(ARM64GCC_PATH $ENV{HOME}/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu)
     else()
-     message(WARNING "ARM64_GCC_PATH is not set")
+     message(WARNING "ARM64GCC_PATH is not set")
     endif()
   endif()
 
@@ -309,7 +307,7 @@ if((${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" AND ${
     endif()
   endif()
 
-  set(ARMCC_PREFIX ${ARM64_GCC_PATH}/bin/aarch64-none-linux-gnu-)
+  set(ARMCC_PREFIX ${ARM64GCC_PATH}/bin/aarch64-none-linux-gnu-)
   set(CMAKE_C_COMPILER ${ARMCC_PREFIX}gcc)
   set(CMAKE_CXX_COMPILER ${ARMCC_PREFIX}g++)
 
@@ -439,13 +437,11 @@ if((${TARGET_DEVICE} STREQUAL  "j7") AND (${TARGET_CPU} STREQUAL  "arm" AND ${HO
   add_compile_options(-DDEVICE_J7=1)
   #disable xnn tflite 2.4
   add_compile_options(-DXNN_ENABLE=0)
-  if(NOT ARM64_GCC_PATH)
+  if(NOT ARM64GCC_PATH)
     if (EXISTS $ENV{HOME}/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu)
-      set(ARM64_GCC_PATH $ENV{HOME}/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu)
-    elseif(DEFINED  ENV{ARM64_GCC_PATH})
-      set(ARM64_GCC_PATH $ENV{ARM64_GCC_PATH})
+      set(ARM64GCC_PATH $ENV{HOME}/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu)
     else()
-     message(WARNING "ARM64_GCC_PATH is not set")
+     message(WARNING "ARM64GCC_PATH is not set")
     endif()
   endif()
 
@@ -458,7 +454,7 @@ if((${TARGET_DEVICE} STREQUAL  "j7") AND (${TARGET_CPU} STREQUAL  "arm" AND ${HO
   endif()
 
 
-  set(ARMCC_PREFIX ${ARM64_GCC_PATH}/bin/aarch64-none-linux-gnu-)
+  set(ARMCC_PREFIX ${ARM64GCC_PATH}/bin/aarch64-none-linux-gnu-)
   set(CMAKE_C_COMPILER ${ARMCC_PREFIX}gcc)
   set(CMAKE_CXX_COMPILER ${ARMCC_PREFIX}g++)
 
@@ -539,12 +535,15 @@ if( ((${TARGET_DEVICE} STREQUAL  "j7") AND (${TARGET_CPU} STREQUAL  "arm" AND ${
   set(CMAKE_C_COMPILER gcc)
   set(CMAKE_CXX_COMPILER g++)
 
-  link_directories(
+  link_directories(  
+                  $ENV{HOME}/required_lib_18/
+                  $ENV{HOME}/required_lib_18/opencv/
+                  $ENV{HOME}/required_lib_20/
                   /usr/lib 
                   /usr/local/dlr
                   /usr/lib/aarch64-linux-gnu
                   /usr/lib/python3.8/site-packages/dlr/
-                  $ENV{HOME}/.local/dlr/                 
+                  $ENV{HOME}/.local/dlr/                  
   )
   set(SYSTEM_LINK_LIBS
                   opencv_imgproc
@@ -617,7 +616,7 @@ if(ARMNN_ENABLE)
     /home/root
     ${ARMNN_PATH}/build
     ${ARMNN_PATH}/build/delegate
-    $ENV{TIDL_TARGET_LIBS}
+    ${TIDL_TARGET_LIBS}
   )
 endif()        
 
