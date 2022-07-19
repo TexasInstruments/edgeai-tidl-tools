@@ -68,11 +68,11 @@ RUN apt-get update && apt-get install -y \
     rm -rf /var/lib/apt/lists/*
 
 # install gcc-9: add-apt-repository needs env variables http_proxy and https_proxy in a proxy network
-RUN add-apt-repository -y ppa:ubuntu-toolchain-r/test && \
-    apt-get update && apt-get install -y --no-install-recommends \
-    gcc-9 g++-9 && \
-    update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 90 --slave /usr/bin/g++ g++ /usr/bin/g++-9 && \
-    rm -rf /var/lib/apt/lists/*
+# RUN add-apt-repository -y ppa:ubuntu-toolchain-r/test && \
+#     apt-get update && apt-get install -y --no-install-recommends \
+#     gcc-9 g++-9 && \
+#     update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 90 --slave /usr/bin/g++ g++ /usr/bin/g++-9 && \
+#     rm -rf /var/lib/apt/lists/*
 
 #=========================================================================
 FROM ubuntu-stage2 AS ubuntu-stage3
