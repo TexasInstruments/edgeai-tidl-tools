@@ -45,6 +45,8 @@ if(NOT DLR_INSTALL_DIR)
   endif()
 endif()
 
+# Set this var in case of ubuntu 18 conainer on J721E
+set(OPENCV_INSTALL_DIR $ENV{OPENCV_INSTALL_DIR})
 if (${HOST_CPU} STREQUAL  "x86")
   if(NOT OPENCV_INSTALL_DIR)
     if (EXISTS $ENV{HOME}/opencv-4.1.0)
@@ -581,6 +583,17 @@ if( ((${TARGET_DEVICE} STREQUAL  "j7") AND (${TARGET_CPU} STREQUAL  "arm" AND ${
                   #tesnorflow2.4  and dependencies
                   ${TENSORFLOW_INSTALL_DIR}
                   ${TENSORFLOW_INSTALL_DIR}/tensorflow/lite/tools/make/downloads/flatbuffers/include
+                  
+                  #opencv header for ubuntu 18 container on j721E
+                  ${OPENCV_INSTALL_DIR}/modules/highgui/include/                  
+                  ${OPENCV_INSTALL_DIR}/modules/imgcodecs/include/
+                  ${OPENCV_INSTALL_DIR}/modules/videoio/include/
+                  ${OPENCV_INSTALL_DIR}/modules/core/include/
+                  ${OPENCV_INSTALL_DIR}/build/
+                  ${OPENCV_INSTALL_DIR}/modules/imgproc/include/
+
+                  #opencv header for ubuntu 18 container on j721E
+                  ${OPENCV_INSTALL_DIR}
 
                   ${ONNXRT_INSTALL_DIR}/include
                   ${ONNXRT_INSTALL_DIR}/include/onnxruntime

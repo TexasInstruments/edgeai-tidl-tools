@@ -71,12 +71,13 @@ RUN apt-get install -y \
     corkscrew \
     libglib2.0-dev
 
+RUN pip3 install Cython 
+    
 RUN pip3 install \
         jupyterlab \
         PyYAML \
         Dlr \
-        pillow \
-        numpy 
+        pillow 
 
 #setup entrypoint to run the demo application
 ENTRYPOINT ["/usr/bin/entrypoint.sh"]

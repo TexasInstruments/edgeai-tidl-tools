@@ -69,6 +69,12 @@ RUN apt-get install -y \
 RUN apt-get install -y \
         libjpeg-dev
 
+RUN pip3 install Cython
+RUN pip3 install pillow \
+    PyYAML  \
+    Dlr 
+RUN apt-get update -y && apt-get install -y python3-opencv
+
 #setup entrypoint to run the demo application
 ENTRYPOINT ["/usr/bin/entrypoint.sh"]
 
