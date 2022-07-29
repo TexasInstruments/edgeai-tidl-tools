@@ -1,0 +1,25 @@
+ARG REPO_LOCATION=''
+FROM ${REPO_LOCATION}ubuntu:18.04
+ARG USE_PROXY=none
+RUN bash -c 'if [ $USE_PROXY = "ti" ]; then echo "Acquire::http::proxy \"http://webproxy.ext.ti.com:80\";" > /etc/apt/apt.conf; fi'
+
+ENV ftp_proxy http://webproxy.ext.ti.com:80
+ENV http_proxy http://webproxy.ext.ti.com:80
+ENV https_proxy http://webproxy.ext.ti.com:80
+ENV no_proxy ti.com
+
+# timezone setup
+ENV TZ=US/Central
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+
+# baseline
+RUN apt-get update
+RUN apt-get install -y python3 python3-pip
+
+RUN ln -s /usr/bin/pip3 /usr/bin/pip
+RUN ln -s /usr/bin/python3 /usr/bin/python
+
+# ubuntu package dependencies
+RUN apt install -y git wget nano zip pkg-config libgtk-3-dev swig libjpeg-dev zlib1g-dev python3-dev python3-numpy curl
+RUN pip3 install numpy pybind11

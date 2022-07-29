@@ -2,39 +2,74 @@
 
 SCRIPTDIR=`pwd`
 
-
-export DEVICE=j7
-pip3 install /mnt/onnx_artifacts/arm/tfl_3.8/tflite_runtime-2.4.0-py3-none-linux_aarch64.whl
-pip3 install /mnt/onnx_artifacts/arm/onnxruntime-1.7.0-cp38-cp38-linux_aarch64.whl
-
 cd $HOME
+if [ ! -d required_lib_20 ];then
+    mkdir required_lib_20
+fi
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/required_lib_20
+export DEVICE=j7
+#For libdlr.so showing error 
+export LD_PRELOAD=/usr/lib/aarch64-linux-gnu/libgomp.so.1
+
+cp  /host/mnt/work/edgeaitidltools/edgeai-tidl-tools/dockers/release_tar/u_20/u_20_pywhl.tar.gz .
+tar -xf  u_20_pywhl.tar.gz
+rm  u_20_pywhl.tar.gz
+cd u_20_pywhl
+pip3 install --upgrade --force-reinstall dlr-1.10.0-py3-none-any.whl
+pip3 install onnxruntime_tidl-1.7.0-cp38-cp38-linux_aarch64.whl
+pip3 install --upgrade --force-reinstall tflite_runtime-2.4.0-py3-none-linux_aarch64.whl
+cd $HOME
+
 if [  ! -d tensorflow ];then
-    git clone --depth 1 --single-branch -b tidl-j7 https://github.com/TexasInstruments/tensorflow.git
-    mkdir -p tensorflow/tensorflow/lite/tools/make/downloads
-    cd tensorflow/tensorflow/lite/tools/make/downloads
-    wget https://github.com/google/flatbuffers/archive/v1.12.0.tar.gz
-    tar -xzf v1.12.0.tar.gz
-    rm v1.12.0.tar.gz
-    mv  flatbuffers-1.12.0 flatbuffers
+    cp  /host/mnt/work/edgeaitidltools/edgeai-tidl-tools/dockers/release_tar/u_20/tflite_2.4_u20.tar.gz .
+    tar xf tflite_2.4_u20.tar.gz
+    rm tflite_2.4_u20.tar.gz
+    cp tflite_2.4_u20/libtidl_tfl_delegate.so* $HOME/required_lib_20/
+    cp tflite_2.4_u20/libtensorflow-lite.a  $HOME/required_lib_20/
+    mv tflite_2.4_u20/tensorflow .
+    rm -r tflite_2.4_u20
     cd $HOME
 fi
+
 if [  ! -d opencv4 ];then
-    cp -r /mnt/work/psdkra_new/targetfs/usr/include/opencv4 .
+    cp  /host/mnt/work/edgeaitidltools/edgeai-tidl-tools/dockers/release_tar/u_20/opencv_4.2.0_u20.tar.gz .
+    tar -xf opencv_4.2.0_u20.tar.gz
+    rm opencv_4.2.0_u20.tar.gz
+    cp opencv_4.2.0_u20/opencv $HOME/required_lib_20/
+    mv opencv_4.2.0_u20/opencv-4.2.0 .
+    cd opencv-4.2.0
     export OPENCV_INSTALL_DIR=$(pwd)
     cd $HOME
+    rm -r opencv_4.2.0_u20
 fi
-cd ~/opencv4
+
+cd ~/opencv-4.2.0
 export OPENCV_INSTALL_DIR=$(pwd)
 cd $HOME
+
 if [  ! -d onnxruntime ];then
-    git clone --depth 1 --single-branch -b tidl-j7 https://github.com/TexasInstruments/onnxruntime.git
+    # wget the tar here
+    #cp for temp to simulate wget
+    cp  /host/mnt/work/edgeaitidltools/edgeai-tidl-tools/dockers/release_tar/u_20/onnx_1.7.0_u20.tar.gz .
+    tar xf onnx_1.7.0_u20.tar.gz
+    rm onnx_1.7.0_u20.tar.gz
+    cp -r  onnx_1.7.0_u20/libonnxruntime.so* $HOME/required_lib_20/
+    cp -r  onnx_1.7.0_u20/libtidl_onnxrt_EP.so* $HOME/required_lib_20/
+    cd $HOME/required_lib_20/
+    ln -s libonnxruntime.so libonnxruntime.so.1.7.0
+    cd $HOME
+    mv onnx_1.7.0_u20/onnxruntime .
+    rm -r onnx_1.7.0_u20
     cd $HOME
 fi
+
 if [  ! -d neo-ai-dlr ];then
-    git clone --depth 1 --single-branch -b tidl-j7 https://github.com/TexasInstruments/neo-ai-dlr
-    cd neo-ai-dlr
-    git submodule init
-    git submodule update --init --recursive
+    cp  /host/mnt/work/edgeaitidltools/edgeai-tidl-tools/dockers/release_tar/u_20/dlr_1.10.0_u20.tar.gz .
+    tar xf dlr_1.10.0_u20.tar.gz 
+    rm dlr_1.10.0_u20.tar.gz 
+    cp -r  dlr_1.10.0_u20/libdlr.so* $HOME/required_lib_20/
+    mv dlr_1.10.0_u20/neo-ai-dlr .
+    rm -r dlr_1.10.0_u20
     cd $HOME
 fi
 
@@ -43,28 +78,6 @@ cd $SCRIPTDIR/../../tidl_tools
 export TIDL_TOOLS_PATH=$(pwd)
 cd $HOME
 
-
-if [  ! -d required_lib_20 ];then
-    cp -r /mnt/temp/container/required_lib_20  required_lib_20
-    cd ~/required_lib_20 
-    # required_lib_18 contents:
-    # Taken from qemu ubuntu 20 compilation
-    # libdlr.so*  
-    # libonnxruntime.so -> libonnxruntime.so.1.7.0* 
-    # libonnxruntime.so.1.7.0* 
-    
-
-    # Taken from j7 target fs
-    # libtensorflow-lite.a 
-    # libtidl_onnxrt_EP.so* 
-    # libtidl_tfl_delegate.so* 
-    # libti_rpmsg_char.so* 
-    # libti_rpmsg_char.so.0 -> libti_rpmsg_char.so*
-    # libvx_tidl_rt.so* 
-    # libvx_tidl_rt.so.1.0 -> libvx_tidl_rt.so*      
-fi
-cd ~/required_lib_20
-export LD_LIBRARY_PATH=$(pwd)
 
 cd /usr/lib/aarch64-linux-gnu/
 if [  ! -L libopencv_imgcodecs.so ];then
@@ -82,19 +95,17 @@ fi
 if [  ! -L libtiff.so ];then
     ln -s libtiff.so.5 libtiff.so
 fi
-
-if [  ! -d /usr/dlr ];then
+cd /usr/lib/
+if [  ! -L libti_rpmsg_char.so.0 ];then
+    ln -s /host/usr/lib/libti_rpmsg_char.so.0.4.0* libti_rpmsg_char.so.0
+fi
+if [  ! -L libvx_tidl_rt.so ];then
+    ln -s /host/usr/lib/libvx_tidl_rt.so.1.0  libvx_tidl_rt.so
+    ln -s libvx_tidl_rt.so libvx_tidl_rt.so.1.0
+fi
+if [  ! -f /usr/dlr/libdlr.so ];then
     mkdir /usr/dlr
     cp ~/required_lib_20/libdlr.so /usr/dlr/
 fi
 
-if [ ! -d  /usr/local/lib/python3.8/dist-packages/dlr/counter/ccm_config.json ];then
-    rm /usr/local/lib/python3.8/dist-packages/dlr/counter/ccm_config.json
-    cd /usr/local/lib/python3.8/dist-packages/dlr/counter/
-    echo "{\"enable_phone_home\" : false}" > ccm_config.json
-    cd $HOME
-fi
-
-rm -r  /usr/lib/python3/dist-packages/numpy*
-pip3 install numpy
 cd $SCRIPTDIR

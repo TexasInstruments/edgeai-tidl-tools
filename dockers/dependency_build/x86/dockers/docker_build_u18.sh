@@ -30,53 +30,26 @@
 #  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-if [ "$USE_PROXY" = "1" ]; then
-	# apt proxy
-	if [ ! -f /etc/apt/apt.conf ]; then
-		echo "Acquire::http::proxy \"http://webproxy.ext.ti.com:80\";" > /etc/apt/apt.conf
-	fi
+DOCKERTAG=ubuntu18
+DOCKERFILE=Dockerfile
 
-	# wget proxy
-	if [ ! -f ~/.wgetrc ]; then
-		cat > ~/.wgetrc << EOF
-http_proxy=http://webproxy.ext.ti.com:80
-https_proxy=http://webproxy.ext.ti.com:80
-ftp_proxy=http://webproxy.ext.ti.com:80
-noproxy=ti.com
-EOF
-	fi
-
-	# pip3 proxy
-	if [ ! -f ~/.config/pip/pip.conf ]; then
-		mkdir -p ~/.config/pip/
-		cat > ~/.config/pip/pip.conf << EOF
-[global]
-proxy = http://webproxy.ext.ti.com
-EOF
-	fi
-
-	#git proxy
-	cat << END >> ~/.gitconfig
-[core]
-        gitproxy = none for ti.com
-        gitproxy = /home/$USER/git-proxy.sh
-[http]
-        proxy = http://webproxy.ext.ti.com:80
-[https]
-        proxy = http://webproxy.ext.ti.com:80
-END
-
-   cat << END >> ~/git-proxy.sh
-#!/bin/sh
-exec /usr/bin/corkscrew webproxy.ext.ti.com 80 $*
-END
-
-   chmod +x ~/git-proxy.sh
-
+# modify the server and proxy URLs as requied
+ping bitbucket.itg.ti.com -c 1 > /dev/null 2>&1
+if [ "$?" -eq "0" ]; then
+    USE_PROXY=1
+    REPO_LOCATION=artifactory.itg.ti.com/docker-public/library/
+    HTTP_PROXY=http://webproxy.ext.ti.com:80
 else
-	rm -rf /etc/apt/apt.conf
-	rm -rf ~/.wgetrc
-	rm -rf ~/.config/pip/pip.conf
-	rm -rf ~/.gitconfig ~/git-proxy.sh
+    REPO_LOCATION=''
+    USE_PROXY=0
 fi
+
+# Build docker image
+docker build \
+    -t $DOCKERTAG \
+    --build-arg USE_PROXY=$USE_PROXY \
+    --build-arg REPO_LOCATION=$REPO_LOCATION \
+    --build-arg HTTP_PROXY=$HTTP_PROXY \
+    --no-cache \
+    -f $DOCKERFILE .
 

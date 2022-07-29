@@ -592,7 +592,7 @@ if( ((${TARGET_DEVICE} STREQUAL  "j7") AND (${TARGET_CPU} STREQUAL  "arm" AND ${
                   ${OPENCV_INSTALL_DIR}/build/
                   ${OPENCV_INSTALL_DIR}/modules/imgproc/include/
 
-                  #opencv header for ubuntu 18 container on j721E
+                  #opencv header for ubuntu 20 container on j721E
                   ${OPENCV_INSTALL_DIR}
 
                   ${ONNXRT_INSTALL_DIR}/include

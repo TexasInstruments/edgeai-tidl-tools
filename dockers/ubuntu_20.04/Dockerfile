@@ -76,7 +76,7 @@ RUN pip3 install Cython
 RUN pip3 install \
         jupyterlab \
         PyYAML \
-        Dlr \
+        numpy \
         pillow 
 
 #setup entrypoint to run the demo application

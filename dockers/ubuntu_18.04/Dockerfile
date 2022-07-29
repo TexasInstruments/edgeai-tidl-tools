@@ -72,8 +72,10 @@ RUN apt-get install -y \
 RUN pip3 install Cython
 RUN pip3 install pillow \
     PyYAML  \
-    Dlr 
-RUN apt-get update -y && apt-get install -y python3-opencv
+    numpy \
+    protobuf==3.19
+
+RUN apt-get install -y python3-opencv
 
 #setup entrypoint to run the demo application
 ENTRYPOINT ["/usr/bin/entrypoint.sh"]

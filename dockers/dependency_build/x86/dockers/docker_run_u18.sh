@@ -30,53 +30,25 @@
 #  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-if [ "$USE_PROXY" = "ti" ]; then
-	# apt proxy
-	if [ ! -f /etc/apt/apt.conf ]; then
-		echo "Acquire::http::proxy \"http://192.91.66.131:80\";" > /etc/apt/apt.conf
-	fi
+DOCKERTAG=ubuntu18
 
-	# wget proxy
-	if [ ! -f ~/.wgetrc ]; then
-		cat > ~/.wgetrc << EOF
-http_proxy=http://192.91.66.131:80
-https_proxy=http://192.91.66.131:80
-ftp_proxy=http://192.91.66.131:80
-noproxy=ti.com
-EOF
-	fi
-
-	# pip3 proxy
-	if [ ! -f ~/.config/pip/pip.conf ]; then
-		mkdir -p ~/.config/pip/
-		cat > ~/.config/pip/pip.conf << EOF
-[global]
-proxy = http://192.91.66.131
-EOF
-	fi
-
-	#git proxy
-	cat << END >> ~/.gitconfig
-[core]
-        gitproxy = none for ti.com
-        gitproxy = /home/$USER/git-proxy.sh
-[http]
-        proxy = http://192.91.66.131:80
-[https]
-        proxy = http://192.91.66.131:80
-END
-
-   cat << END >> ~/git-proxy.sh
-#!/bin/sh
-exec /usr/bin/corkscrew 192.91.66.131 80 $*
-END
-
-   chmod +x ~/git-proxy.sh
-
+if [ "$#" -lt 1 ]; then
+    CMD=/bin/bash
 else
-	rm -rf /etc/apt/apt.conf
-	rm -rf ~/.wgetrc
-	rm -rf ~/.config/pip/pip.conf
-	rm -rf ~/.gitconfig ~/git-proxy.sh
+    CMD="$@"
 fi
 
+# Modify the server and proxy URLs as requied
+ping bitbucket.itg.ti.com -c 1 > /dev/null 2>&1
+if [ "$?" -eq "0" ]; then
+    USE_PROXY=1
+else
+    USE_PROXY=0
+fi
+
+docker run -it --rm \
+    -v $(pwd)/..:/root/dlrt-build \
+    --network host \
+    --env USE_PROXY=$USE_PROXY \
+    $DOCKERTAG \
+    $CMD

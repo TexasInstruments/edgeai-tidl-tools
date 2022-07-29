@@ -33,15 +33,15 @@
 if [ "$USE_PROXY" = "ti" ]; then
 	# apt proxy
 	if [ ! -f /etc/apt/apt.conf ]; then
-		echo "Acquire::http::proxy \"http://webproxy.ext.ti.com:80\";" > /etc/apt/apt.conf
+		echo "Acquire::http::proxy \"http://192.91.66.131:80\";" > /etc/apt/apt.conf
 	fi
 
 	# wget proxy
 	if [ ! -f ~/.wgetrc ]; then
 		cat > ~/.wgetrc << EOF
-http_proxy=http://webproxy.ext.ti.com:80
-https_proxy=http://webproxy.ext.ti.com:80
-ftp_proxy=http://webproxy.ext.ti.com:80
+http_proxy=http://192.91.66.131:80
+https_proxy=http://192.91.66.131:80
+ftp_proxy=http://192.91.66.131:80
 noproxy=ti.com
 EOF
 	fi
@@ -51,7 +51,7 @@ EOF
 		mkdir -p ~/.config/pip/
 		cat > ~/.config/pip/pip.conf << EOF
 [global]
-proxy = http://webproxy.ext.ti.com
+proxy = http://192.91.66.131
 EOF
 	fi
 
@@ -61,14 +61,14 @@ EOF
         gitproxy = none for ti.com
         gitproxy = /home/$USER/git-proxy.sh
 [http]
-        proxy = http://webproxy.ext.ti.com:80
+        proxy = http://192.91.66.131:80
 [https]
-        proxy = http://webproxy.ext.ti.com:80
+        proxy = http://192.91.66.131:80
 END
 
    cat << END >> ~/git-proxy.sh
 #!/bin/sh
-exec /usr/bin/corkscrew webproxy.ext.ti.com 80 $*
+exec /usr/bin/corkscrew 192.91.66.131 80 $*
 END
 
    chmod +x ~/git-proxy.sh
