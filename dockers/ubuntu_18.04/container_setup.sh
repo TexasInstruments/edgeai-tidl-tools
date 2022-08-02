@@ -12,19 +12,20 @@ export DEVICE=j7
 #For libdlr.so showing error 
 export LD_PRELOAD=/usr/lib/aarch64-linux-gnu/libgomp.so.1
 
-cp  /host/mnt/work/edgeaitidltools/edgeai-tidl-tools/dockers/release_tar/u_18/u_18_pywhl.tar.gz .
-tar -xf  u_18_pywhl.tar.gz
-rm  u_18_pywhl.tar.gz
-cd u_18_pywhl
+if [ ! -d u_18_pywhl ];then
+    mkdir u_18_pywhl
+fi
+cd u_18_pywhl   
+wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/ubuntu18_04/pywhl/dlr-1.10.0-py3-none-any.whl
+wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/ubuntu18_04/pywhl/onnxruntime_tidl-1.7.0-cp36-cp36m-linux_aarch64.whl
+wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/ubuntu18_04/pywhl/tflite_runtime-2.4.0-py3-none-linux_aarch64.whl
 pip3 install --upgrade --force-reinstall dlr-1.10.0-py3-none-any.whl
 pip3 install protobuf==3.19
 pip3 install onnxruntime_tidl-1.7.0-cp36-cp36m-linux_aarch64.whl
 pip3 install --upgrade --force-reinstall tflite_runtime-2.4.0-py3-none-linux_aarch64.whl
 cd $HOME
 if [  ! -d tensorflow ];then
-    # wget the tar here
-    #cp for temp to simulate wget
-    cp  /host/mnt/work/edgeaitidltools/edgeai-tidl-tools/dockers/release_tar/u_18/tflite_2.4_u18.tar.gz .
+    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/ubuntu18_04/tflite_2.4_u18.tar.gz
     tar xf tflite_2.4_u18.tar.gz 
     rm tflite_2.4_u18.tar.gz
     
@@ -37,9 +38,7 @@ if [  ! -d tensorflow ];then
 fi
 if [  ! -d opencv-4.2.0 ];then
 
-    # wget the tar here
-    #cp for temp to simulate wget
-    cp  /host/mnt/work/edgeaitidltools/edgeai-tidl-tools/dockers/release_tar/u_18/opencv_4.2.0_u18.tar.gz .
+    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/ubuntu18_04/opencv_4.2.0_u18.tar.gz
     tar xf opencv_4.2.0_u18.tar.gz  
     rm opencv_4.2.0_u18.tar.gz
     cp -r  opencv_4.2.0_u18/opencv $HOME/required_lib_18/
@@ -54,9 +53,7 @@ cd ~/opencv-4.2.0
 export OPENCV_INSTALL_DIR=$(pwd)
 cd $HOME
 if [  ! -d onnxruntime ];then
-    # wget the tar here
-    #cp for temp to simulate wget
-    cp  /host/mnt/work/edgeaitidltools/edgeai-tidl-tools/dockers/release_tar/u_18/onnx_1.7.0_u18.tar.gz .
+    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/ubuntu18_04/onnx_1.7.0_u18.tar.gz
     tar xf onnx_1.7.0_u18.tar.gz
     rm onnx_1.7.0_u18.tar.gz
     cp -r  onnx_1.7.0_u18/libonnxruntime.so* $HOME/required_lib_18/
@@ -70,7 +67,7 @@ if [  ! -d onnxruntime ];then
     cd $HOME
 fi
 if [  ! -d neo-ai-dlr ];then
-    cp  /host/mnt/work/edgeaitidltools/edgeai-tidl-tools/dockers/release_tar/u_18/dlr_1.10.0_u18.tar.gz .
+    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/ubuntu18_04/dlr_1.10.0_u18.tar.gz
     tar xf dlr_1.10.0_u18.tar.gz 
     rm dlr_1.10.0_u18.tar.gz 
     cp -r  dlr_1.10.0_u18/libdlr.so* $HOME/required_lib_18/
