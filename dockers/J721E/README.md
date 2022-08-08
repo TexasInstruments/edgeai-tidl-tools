@@ -1,5 +1,5 @@
-# Ubuntu 20 Docker Setup
-- [Ubuntu 20 Docker Setup](#u20-docker-setups)
+# J721E Setup
+- [J721E Setup](#j721e-setups)
   - [Introduction](#introduction)
   - [Setup](#setup)
   - [Copying the libraries](#copying-the-libraries)
@@ -8,24 +8,16 @@
 
 ## Introduction
 
-   - This folder have instructions on how to build and deploy docker images on Target(Tested on J7ES) 
+   - This folder have instructions on how to setup J721E by installing required dependencies.
       
 
 ## Setup
-- On target run the following. This will create the image and log in to the docker container
-- Make sure no existing container is running by ``` docker container ls ```
+- On target run the following. This will download and install required python and system dependencies.
   ```
-  cd edgeai-tidl-tools/dockers/ubuntu_20.04
-  ./docker_build.sh
-  ./docker_run.sh*
+  cd edgeai-tidl-tools/dockers/J721E
+  ./j7_setup.sh
   ```
-- Host(In this case J7ES device file system ) volume is mounted at /host inside container
-- Run the commands inside container   
-
-  ```
-  cd /host/<path_to_edge_ai_tidl_tools>/dockers/ubuntu_20.04
-  source container_stup.sh # This will take car of addition dependencies 
-  ```
+- The script will display a list of shell variables need to be exported in the end. Copy these vars in your shell.
 
 ## Running the examples
 - Run the python model compile on PC  [Model Compilation on PC](../../examples/osrt_cpp/README.md#model-compilation-on-pc)

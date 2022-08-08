@@ -1,5 +1,5 @@
-# QEMU Docker Setup
-- [QEMU Docker Setup](#qemu-docker-setups)
+# X86 Docker Setup
+- [X86 Docker Setup](#x86-docker-setups)
   - [Introduction](#introduction)
   - [Setup](#setup)
   - [Copying the libraries](#copying-the-libraries)
@@ -8,37 +8,26 @@
 
 ## Introduction
 
-   - This folder consist of following qemu docker setups needed for building aarch64 libraries on Ubuntu 18.04 and Ubuntu 20.04 using QEMU emulation on X86
-      - dlr
-      - onnxruntime
-      - opencv
+   - This folder consist of following x86 docker setups needed for building aarch64 libraries on Ubuntu 18.04 docker
+      - tflite_2.4
   - The commands in this folder are intended to run on x86 PC
   - Libraries generated need to copied to the target machine after the build.
 
 ## Setup
-- Few packages need to be installed for qemu emulation
-  ```
-  sudo apt-get install qemu binfmt-support qemu-user-static
-  ```
+
 - To start the aarch64 Ubuntu18 container on X86 PC
 
   ```
-  cd qemu
-  ./qemu_init.sh # This step will execute the registering scripts
-  ./opencv_prepare.sh # This will dwld required files for opencv build
-  ./onnxrt_prepare.sh # This will dwld required files for onnxrt build
-  ./dlr_prepare.sh # This will dwld required files for dlr build
+  ./tflite_2.4_prepare.sh # This step will download dependencies for tflite_2.4 compilation
   cd docker
-  ./docker_build.sh # This step will build the docker image
-  ./docker_run.sh # This step will run the container and log you in
+  ./docker_build_u18.sh # This step will build the docker image needed only once
+  ./docker_run_u18.sh # This step will run the container and log you in
   ```
 - The container volume is mounted to host machine at /root/dlrt-build directory to  access the building script.
 - Inside the container run the commands to build teh libraries.
     ```
     cd ~/dlrt-build/
-    ./opencv_build.sh
-    ./onnxrt_build.sh
-    ./dlr_build.sh
+    ./tflite_2.4_build.sh # this step will cross compile tflite_2.4 for aarch64
     ```
 
 

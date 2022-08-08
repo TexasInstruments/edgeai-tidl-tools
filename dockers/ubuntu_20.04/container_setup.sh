@@ -101,7 +101,7 @@ if [  ! -L libtiff.so ];then
 fi
 cd /usr/lib/
 if [  ! -L libti_rpmsg_char.so.0 ];then
-    ln -s /host/usr/lib/libti_rpmsg_char.so.0.4.0* libti_rpmsg_char.so.0
+    ln -s /host/usr/lib/libti_rpmsg_char.so.0.4.1 libti_rpmsg_char.so.0
 fi
 if [  ! -L libvx_tidl_rt.so ];then
     ln -s /host/usr/lib/libvx_tidl_rt.so.1.0  libvx_tidl_rt.so

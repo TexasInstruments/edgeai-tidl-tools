@@ -8,7 +8,7 @@
 
 ## Introduction
 
-   - This folder have instructions on how to build and deploy docker images on Target(Tested on J7ES) 
+   - This folder have instructions on how to build and deploy Ubuntu 18.04 docker images on Target(Tested on J7ES) 
       
 
 ## Setup
@@ -24,7 +24,7 @@
 
   ```
   cd /host/<path_to_edge_ai_tidl_tools>/dockers/ubuntu_18.04
-  source container_stup.sh # This will take car of addition dependencies 
+  source container_stup.sh # This will take care of additional dependencies 
   ```
 
 ## Running the examples

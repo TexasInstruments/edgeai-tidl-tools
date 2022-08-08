@@ -48,6 +48,7 @@ fi
 
 docker run -it --rm \
     -v $(pwd)/..:/root/dlrt-build \
+    -v ~:/host \
     --network host \
     --env USE_PROXY=$USE_PROXY \
     $DOCKERTAG \
