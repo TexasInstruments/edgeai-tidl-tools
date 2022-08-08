@@ -75,10 +75,8 @@ RUN pip3 install pillow \
     numpy \
     protobuf==3.19
 
-RUN apt-get install -y python3-opencv  protobuf-compiler libprotobuf-dev
+RUN apt-get install -y python3-opencv
 
-RUN pip3 install pytest-runner 
-RUN pip3 install onnx==1.9.0
 
 #setup entrypoint to run the demo application
 ENTRYPOINT ["/usr/bin/entrypoint.sh"]

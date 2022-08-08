@@ -77,8 +77,7 @@ RUN pip3 install \
         jupyterlab \
         PyYAML \
         numpy \
-        pillow \
-        onnx        
+        pillow      
 
 #setup entrypoint to run the demo application
 ENTRYPOINT ["/usr/bin/entrypoint.sh"]
