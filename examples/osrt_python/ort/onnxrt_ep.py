@@ -153,6 +153,10 @@ def run_model(model, mIdx):
 
     if(args.compile == True):
         input_image = calib_images
+        import onnx
+        log = f'\nRunning shape inference on model {config["model_path"]} \n'
+        print(log)
+        onnx.shape_inference.infer_shapes_path(config['model_path'], config['model_path'])
     else:
         input_image = test_images
     
