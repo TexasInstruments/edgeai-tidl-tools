@@ -541,6 +541,7 @@ if( ((${TARGET_DEVICE} STREQUAL  "j7") AND (${TARGET_CPU} STREQUAL  "arm" AND ${
                   $ENV{HOME}/required_lib_18/
                   $ENV{HOME}/required_lib_18/opencv/
                   $ENV{HOME}/required_lib_20/
+                  $ENV{HOME}/required_libs/
                   /usr/lib 
                   /usr/local/dlr
                   /usr/lib/aarch64-linux-gnu
@@ -562,11 +563,6 @@ if( ((${TARGET_DEVICE} STREQUAL  "j7") AND (${TARGET_CPU} STREQUAL  "arm" AND ${
                   webp
                   png16
                   tiff
-                  onnxruntime
-                  dl
-                  dlr
-                  yaml-cpp
-                  vx_tidl_rt
   )
   include_directories(
                   ${PROJECT_SOURCE_DIR}
