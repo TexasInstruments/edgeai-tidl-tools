@@ -25,14 +25,14 @@ pip3 install --upgrade --force-reinstall dlr-1.10.0-py3-none-any.whl
 pip3 install onnxruntime_tidl-1.7.0-cp38-cp38-linux_aarch64.whl
 pip3 install --upgrade --force-reinstall tflite_runtime-2.4.0-py3-none-linux_aarch64.whl
 cd $HOME
-
+rm -r u_20_pywhl
 if [  ! -d tensorflow ];then
     wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/ubuntu20_04/tflite_2.4_u20.tar.gz
     tar xf tflite_2.4_u20.tar.gz
     rm tflite_2.4_u20.tar.gz
     cp tflite_2.4_u20/libtidl_tfl_delegate.so* $HOME/required_lib_20/
     cp tflite_2.4_u20/libtensorflow-lite.a  $HOME/required_lib_20/
-    mv tflite_2.4_u20/tensorflow .
+    mv tflite_2.4_u20/tensorflow /usr/include/
     rm -r tflite_2.4_u20
     cd $HOME
 fi
@@ -42,7 +42,7 @@ if [  ! -d opencv4 ];then
     tar -xf opencv_4.2.0_u20.tar.gz
     rm opencv_4.2.0_u20.tar.gz
     cp opencv_4.2.0_u20/opencv $HOME/required_lib_20/
-    mv opencv_4.2.0_u20/opencv-4.2.0 .
+    mv opencv_4.2.0_u20/opencv-4.2.0 /usr/include/
     cd opencv-4.2.0
     export OPENCV_INSTALL_DIR=$(pwd)
     cd $HOME
@@ -62,7 +62,7 @@ if [  ! -d onnxruntime ];then
     cd $HOME/required_lib_20/
     ln -s libonnxruntime.so libonnxruntime.so.1.7.0
     cd $HOME
-    mv onnx_1.7.0_u20/onnxruntime .
+    mv onnx_1.7.0_u20/onnxruntime /usr/include/
     rm -r onnx_1.7.0_u20
     cd $HOME
 fi
@@ -72,7 +72,7 @@ if [  ! -d neo-ai-dlr ];then
     tar xf dlr_1.10.0_u20.tar.gz 
     rm dlr_1.10.0_u20.tar.gz 
     cp -r  dlr_1.10.0_u20/libdlr.so* $HOME/required_lib_20/
-    mv dlr_1.10.0_u20/neo-ai-dlr .
+    mv dlr_1.10.0_u20/neo-ai-dlr /usr/include/
     rm -r dlr_1.10.0_u20
     cd $HOME
 fi
@@ -111,5 +111,8 @@ if [  ! -f /usr/dlr/libdlr.so ];then
     mkdir /usr/dlr
     cp ~/required_lib_20/libdlr.so /usr/dlr/
 fi
+
+cp $HOME/required_lib_20/* /usr/lib/
+ln -s /usr/lib/libonnxruntime.so /usr/lib/libonnxruntime.so.1.7.0
 
 cd $SCRIPTDIR

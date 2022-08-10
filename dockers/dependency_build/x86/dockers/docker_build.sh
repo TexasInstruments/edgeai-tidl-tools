@@ -30,25 +30,34 @@
 #  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-DOCKERTAG=arm64v8-ubuntu18-py36
 
-if [ "$#" -lt 1 ]; then
-    CMD=/bin/bash
-else
-    CMD="$@"
-fi
 
-# Modify the server and proxy URLs as requied
+# modify the server and proxy URLs as requied
 ping bitbucket.itg.ti.com -c 1 > /dev/null 2>&1
 if [ "$?" -eq "0" ]; then
     USE_PROXY=1
+    REPO_LOCATION=artifactory.itg.ti.com/docker-public/library/
+    HTTP_PROXY=http://webproxy.ext.ti.com:80
 else
+    REPO_LOCATION=''
     USE_PROXY=0
 fi
 
-docker run -it --rm \
-    -v $(pwd)/..:/root/dlrt-build \
-    --network host \
-    --env USE_PROXY=$USE_PROXY \
-    $DOCKERTAG \
-    $CMD
+if [ $# -ne 1 ];then
+    echo "usage ./docker_build ubuntu18"
+    exit
+else
+    echo "Building $1 docker container" 
+fi
+
+DOCKERTAG=$1
+DOCKERFILE=Dockerfile-$1
+# Build docker image
+docker build \
+    -t $DOCKERTAG \
+    --build-arg USE_PROXY=$USE_PROXY \
+    --build-arg REPO_LOCATION=$REPO_LOCATION \
+    --build-arg HTTP_PROXY=$HTTP_PROXY \
+    --no-cache \
+    -f $DOCKERFILE .
+

@@ -1,91 +1,62 @@
 #!/bin/bash
 
+#  Copyright (C) 2021 Texas Instruments Incorporated - http://www.ti.com/
+#
+#  Redistribution and use in source and binary forms, with or without
+#  modification, are permitted provided that the following conditions
+#  are met:
+#
+#    Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+#
+#    Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the
+#    distribution.
+#
+#    Neither the name of Texas Instruments Incorporated nor the names of
+#    its contributors may be used to endorse or promote products derived
+#    from this software without specific prior written permission.
+#
+#  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+#  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+#  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+#  A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+#  OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+#  LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#  DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+#  THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+#  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-if (( $# < 1 ));then
-echo "usage ./install_j7_targetfs /path/to/targetfs/"
+
+ping bitbucket.itg.ti.co -c 1 > /dev/null 2>&1
+if [ "$?" -eq "0" ]; then
+    USE_PROXY=1
+    REPO_LOCATION=artifactory.itg.ti.com/docker-public-arm
+    HTTP_PROXY=http://webproxy.ext.ti.com:80
+else
+    REPO_LOCATION=arm64v8
+    USE_PROXY=0
 fi
 
-
-SCRIPTDIR=`pwd`
-TARGET_FS_PATH=$1
-echo "installing dependedcies at $TARGET_FS_PATH"
-cd $TARGET_FS_PATH/home/root
-if [ ! -d required_libs ];then
-    mkdir required_libs
+if [ $# -lt 1 ];then
+    echo "usage ./install_j7_targetfs.sh /mount/path/to/targetfs"
+    exit
+else
+    echo "installing OSRt fs deprendency at $1" 
 fi
 
-if [ ! -d arago_j7_pywhl ];then
-    mkdir arago_j7_pywhl
-fi
-cd $TARGET_FS_PATH/home/root/arago_j7_pywhl
+DOCKERTAG=arm64v8-ubuntu20
+CMD=/bin/bash
 
-wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/psdkr/pywhl/dlr-1.10.0-py3-none-any.whl
-wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/psdkr/pywhl/onnxruntime_tidl-1.7.0-cp38-cp38-linux_aarch64.whl
-wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/psdkr/pywhl/tflite_runtime-2.4.0-py3-none-linux_aarch64.whl
 
-ln -s /usr/bin/pip3 /usr/bin/pip3.8 
-pip3 install --upgrade --force-reinstall dlr-1.10.0-py3-none-any.whl  --prefix $TARGET_FS_PATH/usr --disable-pip-version-check
-pip3 install onnxruntime_tidl-1.7.0-cp38-cp38-linux_aarch64.whl  --prefix $TARGET_FS_PATH/usr --disable-pip-version-check
-pip3 install --upgrade --force-reinstall tflite_runtime-2.4.0-py3-none-linux_aarch64.whl  --prefix $TARGET_FS_PATH/usr --disable-pip-version-check
-cd $TARGET_FS_PATH/home/root
-
-if [  ! -d tensorflow ];then
-    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/psdkr/tflite_2.4_aragoj7.tar.gz
-    tar xf tflite_2.4_aragoj7.tar.gz
-    rm tflite_2.4_aragoj7.tar.gz
-    cp tflite_2.4_aragoj7/libtidl_tfl_delegate.so* $TARGET_FS_PATH/home/root/required_libs/
-    cp tflite_2.4_aragoj7/libtensorflow-lite.a  $TARGET_FS_PATH/home/root/required_libs/
-    mv tflite_2.4_aragoj7/tensorflow .
-    rm -r tflite_2.4_aragoj7
-    cd $TARGET_FS_PATH/home/root
-fi
-
-if [  ! -d opencv-4.2.0 ];then
-    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/psdkr/opencv_4.2.0_aragoj7.tar.gz
-    tar -xf opencv_4.2.0_aragoj7.tar.gz
-    rm opencv_4.2.0_aragoj7.tar.gz
-    cp opencv_4.2.0_aragoj7/opencv $TARGET_FS_PATH/home/root/required_libs/
-    mv opencv_4.2.0_aragoj7/opencv-4.2.0 .
-    cd $TARGET_FS_PATH/home/root
-    rm -r opencv_4.2.0_aragoj7
-fi
-
-if [  ! -d onnxruntime ];then
-    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/psdkr/onnx_1.7.0_aragoj7.tar.gz
-    tar xf onnx_1.7.0_aragoj7.tar.gz
-    rm onnx_1.7.0_aragoj7.tar.gz
-    cp -r  onnx_1.7.0_aragoj7/libonnxruntime.so*  $TARGET_FS_PATH/home/root/required_libs/
-    cp -r  onnx_1.7.0_aragoj7/libtidl_onnxrt_EP.so*  $TARGET_FS_PATH/home/root/required_libs/
-    cd  $TARGET_FS_PATH/home/root/required_libs/
-    ln -s libonnxruntime.so libonnxruntime.so.1.7.0
-    cd  $TARGET_FS_PATH/home/root
-    mv onnx_1.7.0_aragoj7/onnxruntime .
-    rm -r onnx_1.7.0_aragoj7
-    cd  $TARGET_FS_PATH/home/root
-fi
-
-if [  ! -d neo-ai-dlr ];then
-    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/psdkr/dlr_1.10.0_aragoj7.tar.gz
-    tar xf dlr_1.10.0_aragoj7.tar.gz 
-    rm dlr_1.10.0_aragoj7.tar.gz 
-    cp -r  dlr_1.10.0_aragoj7/libdlr.so* $TARGET_FS_PATH/home/root/required_libs/
-    mv dlr_1.10.0_aragoj7/neo-ai-dlr .
-    rm -r dlr_1.10.0_aragoj7
-    cd $TARGET_FS_PATH/home/root/
-fi
-
-if [  ! -f  $TARGET_FS_PATH/usr/dlr/libdlr.so ];then
-    mkdir  $TARGET_FS_PATH/usr/dlr
-    cp  $TARGET_FS_PATH/home/root/required_libs/libdlr.so  $TARGET_FS_PATH/usr/dlr/
-fi
-
-echo "export the following vars in target machine"
-cd $SCRIPTDIR/../../tidl_tools
-temp=`pwd`
-echo "export TIDL_TOOLS_PATH=${temp}"
-cd ~/opencv-4.2.0
-temp=`pwd`
-echo "export OPENCV_INSTALL_DIR=${temp}"
-echo "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/required_libs"
-echo "export DEVICE=j7"
-cd $SCRIPTDIR
+docker run -it --rm \
+    -v $(pwd)/../../../../edgeai-tidl-tools:/root/edgeai-tidl-tools \
+    -v /:/host \
+    --network host \
+    --env USE_PROXY=$USE_PROXY \
+    --platform=linux/arm64 \
+    $DOCKERTAG \
+    /bin/bash -c "/root/edgeai-tidl-tools/dockers/dependency_build/qemu/targetfs_load.sh  /host/$1"

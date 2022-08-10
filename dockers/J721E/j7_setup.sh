@@ -20,14 +20,14 @@ pip3 install --upgrade --force-reinstall dlr-1.10.0-py3-none-any.whl
 pip3 install onnxruntime_tidl-1.7.0-cp38-cp38-linux_aarch64.whl
 pip3 install --upgrade --force-reinstall tflite_runtime-2.4.0-py3-none-linux_aarch64.whl
 cd $HOME
-
+rm -r arago_j7_pywhl
 if [  ! -d tensorflow ];then
     wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/psdkr/tflite_2.4_aragoj7.tar.gz
     tar xf tflite_2.4_aragoj7.tar.gz
     rm tflite_2.4_aragoj7.tar.gz
     cp tflite_2.4_aragoj7/libtidl_tfl_delegate.so* $HOME/required_libs/
     cp tflite_2.4_aragoj7/libtensorflow-lite.a  $HOME/required_libs/
-    mv tflite_2.4_aragoj7/tensorflow .
+    mv tflite_2.4_aragoj7/tensorflow /usr/include/
     rm -r tflite_2.4_aragoj7
     cd $HOME
 fi
@@ -37,7 +37,7 @@ if [  ! -d opencv-4.2.0 ];then
     tar -xf opencv_4.2.0_aragoj7.tar.gz
     rm opencv_4.2.0_aragoj7.tar.gz
     cp opencv_4.2.0_aragoj7/opencv $HOME/required_libs/
-    mv opencv_4.2.0_aragoj7/opencv-4.2.0 .
+    mv opencv_4.2.0_aragoj7/opencv-4.2.0 /usr/include/
     cd opencv-4.2.0
     cd $HOME
     rm -r opencv_4.2.0_aragoj7
@@ -52,7 +52,7 @@ if [  ! -d onnxruntime ];then
     cd $HOME/required_libs/
     ln -s libonnxruntime.so libonnxruntime.so.1.7.0
     cd $HOME
-    mv onnx_1.7.0_aragoj7/onnxruntime .
+    mv onnx_1.7.0_aragoj7/onnxruntime /usr/include/
     rm -r onnx_1.7.0_aragoj7
     cd $HOME
 fi
@@ -62,7 +62,7 @@ if [  ! -d neo-ai-dlr ];then
     tar xf dlr_1.10.0_aragoj7.tar.gz 
     rm dlr_1.10.0_aragoj7.tar.gz 
     cp -r  dlr_1.10.0_aragoj7/libdlr.so* $HOME/required_libs/
-    mv dlr_1.10.0_aragoj7/neo-ai-dlr .
+    mv dlr_1.10.0_aragoj7/neo-ai-dlr /usr/include/
     rm -r dlr_1.10.0_aragoj7
     cd $HOME
 fi

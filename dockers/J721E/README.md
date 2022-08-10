@@ -8,11 +8,11 @@
 
 ## Introduction
 
-   - This folder have instructions on how to setup J721E by installing required dependencies.
+   - This folder have instructions on how to setup J721E by downloading and installing required dependencies.
       
 
 ## Setup
-- On target run the following. This will download and install required python and system dependencies.
+- On the target run the following. This will download and install required python and system dependencies.
   ```
   cd edgeai-tidl-tools/dockers/J721E
   ./j7_setup.sh
