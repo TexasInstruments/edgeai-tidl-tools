@@ -9,36 +9,20 @@
 ## Introduction
 
    - This folder consist of following x86 docker setups needed for building (cross-compiling) aarch64 libraries on Ubuntu 18.04 docker for arago linux
-      - tflite_2.4
+      - tflite_2.4 (Used in native arago and Ubuntu containers)
       - onnxrt
       - dlr
-  - The xx_prepare.sh commands in this folder are intended to run on docker host PC
-  - The xx_build.sh commands in this folder are intended to run on docker container
   - Libraries generated need to copied to the target machine after the build.
 
 ## Setup
-- To download the dependency for building onnxrt, tflite2.4 and dlr run
+- To build the dependency for building onnxrt, opencv and dlr run
 
   ```
-  ./tflite_2.4_prepare.sh # This step will download dependencies for tflite_2.4 cross-compilation
-  ./dlr_prepare.sh # This step will download dependencies for dlr cross-compilation
-  ./onnxrt_prepare.sh # This step will download dependencies for onnxrt cross-compilation
-  ```
-- To start the Ubuntu18 container on X86 PC
+  ./build_tflite_2.4.sh ubuntu18 # This will dwld required files and cross compile tflite_2.4 for aarch64 Ubuntu18.04
+  ./build_onnxrt.sh ubuntu18# This will dwld required files and cross compile onnxrt for aarch64 Ubuntu18.04
+  ./build_dlr.sh ubuntu18 # This will dwld required files and cross compile dlr for aarch64 Ubuntu18.04
 
   ```
-  cd docker
-  ./docker_build.sh ubuntu18 # This step will build the docker image needed only once
-  ./docker_run.sh ubuntu18# This step will run the container and log you in
-  ```
-- The container volume is mounted to host machine at /root/dlrt-build directory to  access the building script.
-- Inside the container run the commands to build the libraries.
-    ```
-    cd ~/dlrt-build/
-    ./tflite_2.4_build.sh # this step will cross compile tflite_2.4 for aarch64
-    ./dlr_buld.sh # this step will cross compile onnxrt for aarch64
-    ./onnxrt_build.sh # this step will cross compile onnxrt for aarch64
-    ```
 
 
 ## Copying the libraries

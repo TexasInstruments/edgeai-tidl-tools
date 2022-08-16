@@ -87,6 +87,18 @@ else
     echo "To redo the setup delete: /usr/include/neo-ai-dlr and run this script again"
 fi
 
+if [  ! -f  $TARGET_FS_PATH/usr/include/itidl_rt.h ];then
+    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/tidl_tools.tar.gz
+    tar xf tidl_tools.tar.gz
+    rm tidl_tools.tar.gz
+    cp tidl_tools/itidl_rt.h  $TARGET_FS_PATH/usr/include/
+    cp  tidl_tools/itvm_rt.h  $TARGET_FS_PATH/usr/include/
+    cd $ $TARGET_FS_PATH/home/root/
+else
+    echo "skipping itidl_rt.h setup: found /usr/include/itidl_rt.h"
+    echo "To redo the setup delete: /usr/include/itidl_rt.h and run this script again"
+fi
+
 if [  ! -f  $TARGET_FS_PATH/usr/dlr/libdlr.so ];then
     mkdir  $TARGET_FS_PATH/usr/dlr
     cp  $TARGET_FS_PATH/usr/lib/libdlr.so  $TARGET_FS_PATH/usr/dlr/

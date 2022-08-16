@@ -13,8 +13,6 @@
       - dlr
       - onnxruntime
       - opencv
-  - The xx_prepare.sh commands in this folder are intended to run on docker host PC
-  - The xx_build.sh commands in this folder are intended to run on docker container
   - Libraries generated need to copied to the target machine after the build.
   - For installing required dependencies on J721E target fs
 
@@ -23,40 +21,21 @@
   ```
   sudo apt-get install qemu binfmt-support qemu-user-static
   ```
-- To start the aarch64 Ubuntu18 container on X86 PC
+
+- To build the dependency for building onnxrt, opencv and dlr run
 
   ```
-  cd qemu
-  ./qemu_init.sh # This step will execute the registering scripts
+  ./build_opencv.sh ubuntu18 # This will dwld required files for opencv and build the libraries for Ubunut18.04 arm
+  ./build_opencv.sh ubuntu20 # This will dwld required files for opencv and build the libraries for Ubunut20.04 arm
+  ./build_onnxrt.sh ubuntu18# This will dwld required files for onnxrt build and build the libraries,py whls for Ubunut18.04 arm
+  ./build_onnxrt.sh ubuntu18# This will dwld required files for onnxrt build and build the libraries,py whls for Ubunut20.04 arm
+  ./build_dlr.sh ubuntu18 # This will dwld required files for dlr build and build the libraries,py whls for Ubunut18.04 arm
+  ./build_dlr.sh ubuntu20 # This will dwld required files for dlr build and build the libraries,py whls for Ubunut20.04 arm
   ```
 
-- To download the dependency for building onnxrt, opencv and dlr run
-
-  ```
-  ./opencv_prepare.sh # This will dwld required files for opencv build
-  ./onnxrt_prepare.sh # This will dwld required files for onnxrt build
-  ./dlr_prepare.sh # This will dwld required files for dlr build
-  ```
-- To start the arm UbuntuX container on X86 PC, based on your requirement build and run teh required container by changing the script argument
-
-  ```
-  cd docker
-  ./docker_build.sh ubuntu18 # This step will build the docker image needed only once
-  ./docker_build.sh ubuntu20 # This step will build the docker image needed only once
-  ./docker_run.sh ubuntu18# This step will run the container and log you in
-  ./docker_run.sh ubuntu20# This step will run the container and log you in
-  ```
-- The container volume is mounted to host machine at /root/dlrt-build directory to  access the building script.
-- Inside the container run the commands to build the libraries.
-    ```
-    cd ~/dlrt-build/
-    ./opencv_build.sh
-    ./onnxrt_build.sh
-    ./dlr_build.sh
-    ```
 
 ## Installing to TargetFs
-- To Install the deoendeency libs and python wheels to target fs 
+- To Install the dependency libs and python wheels to target fs 
   ```
   ./install_j7_targetfs.sh /home/path/to/targetfs/
   ```

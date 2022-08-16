@@ -13,7 +13,7 @@
       - [J721E arago linux setup](../J721E/README.md) 
    - OSRT dependencies(libs and python whls) for native arago, Ubuntu 18.04 and Ubuntu 20.04 docker containers are generated using the scripts inside the folders
       - qemu (dependencies for Ubuntu Docker containers )
-      - x86 (dependencies for native arago linux)
+      - x86 (cross compilation of dependencies for native arago linux)
 
 
 
