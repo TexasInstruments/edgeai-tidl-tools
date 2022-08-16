@@ -30,28 +30,30 @@
 #  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+
 ping bitbucket.itg.ti.co -c 1 > /dev/null 2>&1
 if [ "$?" -eq "0" ]; then
     USE_PROXY=1
 else
     USE_PROXY=0
 fi
+#To dwld the src files
+./tflite_2.4_prepare.sh
 
 if [ $# -lt 1 ];then
-    echo "usage ./docker_run ubuntu18"
-    echo "usage ./docker_run ubuntu20"
+    echo "usage ./build_tflite_2.4.sh ubuntu18"
+    echo "usage ./build_tflite_2.4.sh ubuntu20"
     exit
 else
-    echo "Running $1 x86 docker container" 
+    echo "cross compiling tflite_2.4 for arago linux and Ubuntu 18.04 an Ubuntu 20.04 docker containers"
 fi
 
 DOCKERTAG=$1
-CMD=/bin/bash
-
 
 docker run -it --rm \
-    -v $(pwd)/..:/root/dlrt-build \
+    -v $(pwd)/:/root/dlrt-build \
+    -v /:/host \
     --network host \
     --env USE_PROXY=$USE_PROXY \
     $DOCKERTAG \
-    $CMD
+    /bin/bash -c "~/dlrt-build/tflite_2.4_build.sh"

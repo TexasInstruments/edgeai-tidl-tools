@@ -17,9 +17,9 @@
   ```
   cd edgeai-tidl-tools/dockers/ubuntu_18.04
   ./docker_build.sh
-  ./docker_run.sh*
+  ./docker_run.sh
   ```
-- Host(In this case J7ES device file system ) volume is mounted at /host inside container
+- Host filesystem (PSDKRA device file system ) volume is mounted at /host inside container
 - Run the commands inside container   
 
   ```
@@ -28,6 +28,6 @@
   ```
 
 ## Running the examples
-- Run the python model compile on PC  [Model Compilation on PC](../../examples/osrt_cpp/README.md#model-compilation-on-pc)
-- Run the python examples inside container  [Run Inference on Target](../../examples/osrt_cpp/README.md#model-compilation-on-pc)
-- Compile the CPP application by following instruction from [here](../../examples/osrt_cpp/README.md#setup)
+- Run the python model compile on PC  [Model Compilation on PC](../../../examples/osrt_python/README.md#model-compilation-on-pc)
+- Run the python examples on target  [Run Inference on Target](../../../examples/osrt_python/README.md#model-inference-on-evm)
+- Compile the CPP application by following instruction from [Compile CPP examples](../../../examples/osrt_cpp/README.md#setup)

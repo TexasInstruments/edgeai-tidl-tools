@@ -39,5 +39,5 @@ EOF
 
 python3 tools/ci_build/build.py --build_dir build_aarch64 --config Release --build_shared_lib --parallel 32 --skip_tests --skip_onnx_tests --use_tidl --build_wheel --path_to_protoc_exe /root/dlrt-build/onnx/protobuf-3.11.3/src/protoc --cmake_extra_defines "CMAKE_TOOLCHAIN_FILE=/root/dlrt-build/onnx/onnxruntime/tools.cmake" "NUMPY_INCLUDE_DIR=/root/dlrt-build/onnx/targetfs/usr/lib/python3.8/site-packages/numpy/core/include" "PYTHON_INCLUDE_DIR=/root/dlrt-build/onnx//targetfs/usr/include;/root/dlrt-build/onnx//targetfs/usr/include/python3.8;/root/dlrt-build/onnx//targetfs/usr/lib/python3.8/site-packages/numpy/core/include" "PYTHON_LIBRARY=/root/dlrt-build/onnx//targetfs/usr/lib/python3.8" "CMAKE_VERBOSE_MAKEFILE:BOOL=ON"
 
-  mv ~/dlrt-build/onnx/onnxruntime/build_aarch64/Release/dist/onnxruntime_tidl-1.7.0-cp38-cp38-linux_x86_64.whl ~/dlrt-build/onnx/onnxruntime/build_aarch64/Release/dist/onnxruntime_tidl-1.7.0-cp38-cp38-linux_aarch64.wh
+  mv ~/dlrt-build/onnx/onnxruntime/build_aarch64/Release/dist/onnxruntime_tidl-1.7.0-cp38-cp38-linux_x86_64.whl ~/dlrt-build/onnx/onnxruntime/build_aarch64/Release/dist/onnxruntime_tidl-1.7.0-cp38-cp38-linux_aarch64.whl
 cd ~/dlrt-build

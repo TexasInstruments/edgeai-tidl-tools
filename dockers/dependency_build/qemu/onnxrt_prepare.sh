@@ -16,8 +16,11 @@ SET(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 SET(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
 SET(CMAKE_FIND_ROOT_PATH /root/targetfs/)
 EOF
-
+if [ ! -d onnxruntime  ];then
 git clone --depth 1 --single-branch -b tidl-j7 https://github.com/TexasInstruments/onnxruntime.git
-cd onnxruntime
-
-
+else
+    cd onnxruntime
+    git clean -fdx
+    cd ../
+fi
+cd ../

@@ -30,28 +30,33 @@
 #  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+
 ping bitbucket.itg.ti.co -c 1 > /dev/null 2>&1
 if [ "$?" -eq "0" ]; then
     USE_PROXY=1
+    REPO_LOCATION=artifactory.itg.ti.com/docker-public-arm
+    HTTP_PROXY=http://webproxy.ext.ti.com:80
 else
+    REPO_LOCATION=arm64v8
     USE_PROXY=0
 fi
+#To dwld the src files
+./onnxrt_prepare.sh
 
 if [ $# -lt 1 ];then
-    echo "usage ./docker_run ubuntu18"
-    echo "usage ./docker_run ubuntu20"
+    echo "usage ./build_onnxrt.sh ubuntu18"
+    echo "usage ./build_onnxrt.sh ubuntu20"
     exit
 else
-    echo "Running $1 x86 docker container" 
+    echo "building onnxrt for $1 arm docker container" 
 fi
 
-DOCKERTAG=$1
-CMD=/bin/bash
-
+DOCKERTAG=arm64v8-$1
 
 docker run -it --rm \
-    -v $(pwd)/..:/root/dlrt-build \
+    -v $(pwd)/:/root/dlrt-build \
+    -v /:/host \
     --network host \
     --env USE_PROXY=$USE_PROXY \
     $DOCKERTAG \
-    $CMD
+    /bin/bash -c "~/dlrt-build/onnxrt_build.sh"

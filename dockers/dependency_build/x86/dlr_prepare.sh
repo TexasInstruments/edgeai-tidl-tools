@@ -43,10 +43,13 @@ if [ ! -d gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu  ];then
     rm gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu.tar.xz
 fi
 
-if [ ! -f dlr_tidl_include  ];then
+if [ ! -d dlr_tidl_include  ];then
     mkdir dlr_tidl_include
-    cp ../../../../tidl_tools/itidl_rt.h dlr_tidl_include
-    cp ../../../../tidl_tools/itvm_rt.h dlr_tidl_include
+    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/tidl_tools.tar.gz
+    tar xf tidl_tools.tar.gz
+    rm tidl_tools.tar.gz
+    cp tidl_tools/itidl_rt.h dlr_tidl_include/
+    cp tidl_tools/itvm_rt.h dlr_tidl_include/
 fi
 
 

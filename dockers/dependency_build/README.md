@@ -7,7 +7,7 @@
 
 ## Introduction
 
-   - This directory is only used to generate the dependencies, for running the edgeai-tidl-tools already built dependencies are fetched refer setting up the env for the same at
+   - This directory is only used to generate the dependencies completely from source. For running the edgeai-tidl-tools the setup script will download and install pre-built dependencies from ti.com. Refer setting setup at
       - [Ubuntu 18.04 docker setup](../ubuntu_18.04/README.md) 
       - [Ubuntu 20.04 docker setup](../ubuntu_20.04/README.md) 
       - [J721E arago linux setup](../J721E/README.md) 
