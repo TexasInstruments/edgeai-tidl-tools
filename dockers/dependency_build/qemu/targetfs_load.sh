@@ -25,10 +25,10 @@ wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/psdkr/pywhl/
 wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/psdkr/pywhl/tflite_runtime-2.4.0-py3-none-linux_aarch64.whl
 
 ln -s /usr/bin/pip3 /usr/bin/pip3.8 
-pip3 install --upgrade --force-reinstall dlr-1.10.0-py3-none-any.whl  --prefix $TARGET_FS_PATH/usr --disable-pip-version-check
-pip3 install onnxruntime_tidl-1.7.0-cp38-cp38-linux_aarch64.whl  --prefix $TARGET_FS_PATH/usr --disable-pip-version-check
-pip3 install --upgrade --force-reinstall tflite_runtime-2.4.0-py3-none-linux_aarch64.whl  --prefix $TARGET_FS_PATH/usr --disable-pip-version-check
-pip3 install --upgrade --force-reinstall numpy  --prefix $TARGET_FS_PATH/usr --disable-pip-version-check
+pip3 install --upgrade --force-reinstall dlr-1.10.0-py3-none-any.whl  --root $TARGET_FS_PATH --disable-pip-version-check
+pip3 install onnxruntime_tidl-1.7.0-cp38-cp38-linux_aarch64.whl  --root $TARGET_FS_PATH --disable-pip-version-check
+pip3 install --upgrade --force-reinstall tflite_runtime-2.4.0-py3-none-linux_aarch64.whl  --root $TARGET_FS_PATH --disable-pip-version-check
+pip3 install --upgrade --force-reinstall --no-cache-dir numpy  --root $TARGET_FS_PATH --disable-pip-version-check
 cd $TARGET_FS_PATH/home/root
 rm -r $TARGET_FS_PATH/home/root/arago_j7_pywhl
 
