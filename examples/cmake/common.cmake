@@ -24,24 +24,18 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/../bin/${CMAKE_BUILD_TYPE
 if(NOT TENSORFLOW_INSTALL_DIR)
   if (EXISTS $ENV{HOME}/tensorflow)
     set(TENSORFLOW_INSTALL_DIR $ENV{HOME}/tensorflow)
-  else()
-     message(WARNING "TENSORFLOW_INSTALL_DIR is not set")
   endif()
 endif()
 
 if(NOT ONNXRT_INSTALL_DIR)
   if (EXISTS $ENV{HOME}/onnxruntime)
     set(ONNXRT_INSTALL_DIR $ENV{HOME}/onnxruntime)
-  else()
-     message(WARNING "ONNXRT_INSTALL_DIR is not set(: ignore the warning if device is am62)")
   endif()
 endif()
 
 if(NOT DLR_INSTALL_DIR)
   if (EXISTS $ENV{HOME}/neo-ai-dlr)
     set(DLR_INSTALL_DIR $ENV{HOME}/neo-ai-dlr)
-  else()
-     message(WARNING "DLR_INSTALL_DIR is not set")
   endif()
 endif()
 
@@ -538,11 +532,18 @@ if( ((${TARGET_DEVICE} STREQUAL  "j7") AND (${TARGET_CPU} STREQUAL  "arm" AND ${
   set(CMAKE_CXX_COMPILER g++)
 
   link_directories(  
-                  $ENV{HOME}/required_lib_18/
-                  $ENV{HOME}/required_lib_18/opencv/
-                  $ENV{HOME}/required_lib_20/
-                  $ENV{HOME}/required_libs/
-                  /usr/lib 
+                  /usr/lib/opencv/
+                  /usr/lib
+                  # Enable these when migrating to tflite 2.8
+                  # /usr/lib/tflite_2.8/ruy-build
+                  # /usr/lib/tflite_2.8/xnnpack-build
+                  # /usr/lib/tflite_2.8/pthreadpool
+                  # /usr/lib/tflite_2.8/fft2d-build
+                  # /usr/lib/tflite_2.8/cpuinfo-build
+                  # /usr/lib/tflite_2.8/flatbuffers-build
+                  # /usr/lib/tflite_2.8/clog-build
+                  # /usr/lib/tflite_2.8/farmhash-build
+                  # Enable these when migrating to tflite 2.8
                   /usr/local/dlr
                   /usr/lib/aarch64-linux-gnu
                   /usr/lib/python3.8/site-packages/dlr/
@@ -563,6 +564,45 @@ if( ((${TARGET_DEVICE} STREQUAL  "j7") AND (${TARGET_CPU} STREQUAL  "arm" AND ${
                   webp
                   png16
                   tiff
+                  # Enable these when migrating to tflite 2.8
+                  # flatbuffers
+                  # fft2d_fftsg2d
+                  # fft2d_fftsg
+                  # cpuinfo
+                  # clog
+                  # farmhash
+                  # ruy_allocator
+                  # ruy_apply_multiplier
+                  # ruy_blocking_counter
+                  # ruy_block_map
+                  # ruy_context
+                  # ruy_context_get_ctx
+                  # ruy_cpuinfo
+                  # ruy_ctx
+                  # ruy_denormal
+                  # ruy_frontend
+                  # ruy_have_built_path_for_avx2_fma
+                  # ruy_have_built_path_for_avx512
+                  # ruy_have_built_path_for_avx
+                  # ruy_kernel_arm
+                  # ruy_kernel_avx2_fma
+                  # ruy_kernel_avx512
+                  # ruy_kernel_avx
+                  # ruy_pack_arm
+                  # ruy_pack_avx2_fma
+                  # ruy_pack_avx512
+                  # ruy_pack_avx
+                  # ruy_prepacked_cache
+                  # ruy_prepare_packed_matrices
+                  # ruy_system_aligned_alloc
+                  # ruy_thread_pool
+                  # ruy_trmul
+                  # ruy_tune
+                  # ruy_wait
+                  # pthreadpool
+                  # #xnn lib
+                  # XNNPACK
+                  # Enable these when migrating to tflite 2.8
   )
   include_directories(
                   ${PROJECT_SOURCE_DIR}
@@ -570,32 +610,24 @@ if( ((${TARGET_DEVICE} STREQUAL  "j7") AND (${TARGET_CPU} STREQUAL  "arm" AND ${
                   ${PROJECT_SOURCE_DIR}/include
                   /usr/local/include
                   /usr/local/dlr
-                  /usr/include/gstreamer-1.0/
-                  /usr/include/glib-2.0/
-                  /usr/lib/aarch64-linux-gnu/glib-2.0/include
                   /usr/include/opencv4/
-                  /usr/include/processor_sdk/vision_apps/
+                  /usr/include/tensorflow
+                  /usr/include/tensorflow/tensorflow/lite/tools/make/downloads/flatbuffers/include
+                  #tflite_2.8
+                  /usr/include/tensorflow/tensorflow/lite/tools/pip_package/gen/tflite_pip/python3/cmake_build/flatbuffers/include
                   
-                  #tesnorflow2.4  and dependencies
-                  ${TENSORFLOW_INSTALL_DIR}
-                  ${TENSORFLOW_INSTALL_DIR}/tensorflow/lite/tools/make/downloads/flatbuffers/include
-                  
-                  #opencv header for ubuntu 18 container on j721E
-                  ${OPENCV_INSTALL_DIR}/modules/highgui/include/                  
-                  ${OPENCV_INSTALL_DIR}/modules/imgcodecs/include/
-                  ${OPENCV_INSTALL_DIR}/modules/videoio/include/
-                  ${OPENCV_INSTALL_DIR}/modules/core/include/
-                  ${OPENCV_INSTALL_DIR}/build/
-                  ${OPENCV_INSTALL_DIR}/modules/imgproc/include/
+                  /usr/include/opencv-4.2.0
+                  /usr/include/opencv-4.2.0/build
+                  /usr/include/opencv-4.2.0/modules/core/include/
+                  /usr/include/opencv-4.2.0/modules/highgui/include/                  
+                  /usr/include/opencv-4.2.0/modules/imgcodecs/include/
+                  /usr/include/opencv-4.2.0/modules/videoio/include/
+                  /usr/include/opencv-4.2.0/modules/imgproc/include/
+                  /usr/include/neo-ai-dlr/include
+                  /usr/include/neo-ai-dlr/3rdparty/tvm/3rdparty/dlpack/include
+                  /usr/include/onnxruntime/include
+                  /usr/include/onnxruntime/include/onnxruntime/core/session
 
-                  #opencv header for ubuntu 20 container on j721E
-                  ${OPENCV_INSTALL_DIR}
-
-                  ${ONNXRT_INSTALL_DIR}/include
-                  ${ONNXRT_INSTALL_DIR}/include/onnxruntime
-                  ${ONNXRT_INSTALL_DIR}/include/onnxruntime/core/session                    
-                  ${DLR_INSTALL_DIR}/include
-                  ${DLR_INSTALL_DIR}/3rdparty/tvm/3rdparty/dlpack/include
                   $ENV{TIDL_TOOLS_PATH}
                   PUBLIC ${PROJECT_SOURCE_DIR}/post_process
                   PUBLIC ${PROJECT_SOURCE_DIR}/pre_process
