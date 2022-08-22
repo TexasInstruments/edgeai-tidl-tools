@@ -67,10 +67,7 @@ if [  ! -d /usr/include/onnxruntime ];then
     wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/psdkr/onnx_1.7.0_aragoj7.tar.gz
     tar xf onnx_1.7.0_aragoj7.tar.gz
     rm onnx_1.7.0_aragoj7.tar.gz
-    cp -r  onnx_1.7.0_aragoj7/libonnxruntime.so* $HOME/required_libs/
-    cd $HOME/required_libs/
-    ln -s libonnxruntime.so libonnxruntime.so.1.7.0
-    cd $HOME
+    cp -r  onnx_1.7.0_aragoj7/libonnxruntime.so $HOME/required_libs/
     mv onnx_1.7.0_aragoj7/onnxruntime /usr/include/
     rm -r onnx_1.7.0_aragoj7
     cd $HOME
@@ -120,6 +117,6 @@ rm -r $HOME/required_libs
 
 echo "export the following vars"
 echo "export DEVICE=j7"
-echo "export TIDL_TOOLS_PATH=""
-echo "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib"
+echo "export TIDL_TOOLS_PATH="
+echo "export LD_LIBRARY_PATH=/usr/lib"
 cd $SCRIPTDIR

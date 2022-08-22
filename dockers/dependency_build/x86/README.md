@@ -15,10 +15,18 @@
   - Libraries generated need to copied to the target machine after the build.
 
 ## Setup
+- To build the docker containers (needed only once)
+  ```
+  cd dockers
+  ./docker_build.sh ubuntu18 #This will build  Ubuntu 18.04 container
+  ./docker_build.sh ubuntu20 #This will build  Ubuntu 20.04 container
+  ```
+  
 - To build the dependency for building onnxrt, opencv and dlr run
 
   ```
-  ./build_tflite_2.4.sh ubuntu18 # This will dwld required files and cross compile tflite_2.4 for aarch64 Ubuntu18.04
+  ./build_tflite_2.4.sh ubuntu18 # This will dwld required files and cross compile tflite_2.4 
+  ./build_tflite_2.8.sh ubuntu18 # This will dwld required files and cross compile tflite_2.8 
   ./build_onnxrt.sh ubuntu18# This will dwld required files and cross compile onnxrt for aarch64 Ubuntu18.04
   ./build_dlr.sh ubuntu18 # This will dwld required files and cross compile dlr for aarch64 Ubuntu18.04
 
@@ -38,5 +46,8 @@
     - tflite_2.4
         - tensorflow/lite/tools/make/gen/linux_aarch64/lib/libtensorflow-lite.a
         - tensorflow/lite/tools/pip_package/gen/tflite_pip/python3/dist/tflite_runtime-2.4.0-py3-none-linux_aarch64.whl
+    - tflite_2.8
+        - tflite_build_arm/libtensorflow-lite.a
+        - tensorflow/lite/tools/pip_package/gen/tflite_pip/python3.8/dist/tflite_runtime-2.8.2-cp38-cp38-linux_aarch64.whl
 
   

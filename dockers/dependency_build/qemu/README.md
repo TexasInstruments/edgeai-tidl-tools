@@ -21,6 +21,12 @@
   ```
   sudo apt-get install qemu binfmt-support qemu-user-static
   ```
+- To build the docker containers (needed only once)
+  ```
+  cd docker
+  ./docker_build_arm.sh ubuntu18 #This will build arm Ubuntu 18.04 container
+  ./docker_build_arm.sh ubuntu20 #This will build arm Ubuntu 20.04 container
+  ```
 
 - To build the dependency for building onnxrt, opencv and dlr run
 
