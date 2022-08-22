@@ -3,10 +3,10 @@
 SCRIPTDIR=`pwd`
 
 cd $HOME
-if [ ! -d required_lib ];then
-    mkdir required_lib
+if [ ! -d required_libs ];then
+    mkdir required_libs
 fi
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/required_lib
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/required_libs
 export DEVICE=j7
 export TIDL_TOOLS_PATH=
 #For libdlr.so showing error 
@@ -36,20 +36,31 @@ fi
 STR=`pip3 list | grep tflite-runtime`
 SUB='tflite-runtime'
 if [[ "$STR" != *"$SUB"* ]]; then
-    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/ubuntu20_04/pywhl/tflite_runtime-2.4.0-py3-none-linux_aarch64.whl
-    pip3 install --upgrade --force-reinstall tflite_runtime-2.4.0-py3-none-linux_aarch64.whl
+    #Enable this for tflite 2.4
+    # wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/ubuntu20_04/pywhl/tflite_runtime-2.4.0-py3-none-linux_aarch64.whl
+    # pip3 install --upgrade --force-reinstall tflite_runtime-2.4.0-py3-none-linux_aarch64.whl
+    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/ubuntu20_04/pywhl/tflite_runtime-2.8.2-cp38-cp38-linux_aarch64.whl
+    pip3 install --upgrade --force-reinstall tflite_runtime-2.8.2-cp38-cp38-linux_aarch64.whl
 fi
 
 cd $HOME
 rm -r u_20_pywhl
 if [  ! -d /usr/include/tensorflow ];then
-    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/ubuntu20_04/tflite_2.4_u20.tar.gz
-    tar xf tflite_2.4_u20.tar.gz
-    rm tflite_2.4_u20.tar.gz
-    cp tflite_2.4_u20/libtidl_tfl_delegate.so* $HOME/required_lib/
-    cp tflite_2.4_u20/libtensorflow-lite.a  $HOME/required_lib/
-    mv tflite_2.4_u20/tensorflow /usr/include/
-    rm -r tflite_2.4_u20
+    #Enable this for tflite 2.4
+    # wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/ubuntu20_04/tflite_2.4_u20.tar.gz
+    # tar xf tflite_2.4_u20.tar.gz
+    # rm tflite_2.4_u20.tar.gz
+    # cp tflite_2.4_u20/libtidl_tfl_delegate.so* $HOME/required_libs/
+    # cp tflite_2.4_u20/libtensorflow-lite.a  $HOME/required_libs/
+    # mv tflite_2.4_u20/tensorflow /usr/include/
+    # rm -r tflite_2.4_u20
+    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/ubuntu20_04/tflite_2.8_aragoj7.tar.gz
+    tar xf tflite_2.8_aragoj7.tar.gz
+    rm tflite_2.8_aragoj7.tar.gz
+    mv tflite_2.8_aragoj7/tensorflow /usr/include
+    mv tflite_2.8_aragoj7/tflite_2.8 /usr/lib/
+    cp ~/tflite_2.8_aragoj7/libtensorflow-lite.a $HOME/required_libs/
+    rm -r tflite_2.8_aragoj7  
     cd $HOME
 else
     echo "skipping tensorflow setup: found /usr/include/tensorflow"
@@ -60,7 +71,7 @@ if [  ! -d /usr/include/opencv-4.2.0 ];then
     wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/ubuntu20_04/opencv_4.2.0_u20.tar.gz
     tar -xf opencv_4.2.0_u20.tar.gz
     rm opencv_4.2.0_u20.tar.gz
-    cp opencv_4.2.0_u20/opencv $HOME/required_lib/
+    cp opencv_4.2.0_u20/opencv $HOME/required_libs/
     mv opencv_4.2.0_u20/opencv-4.2.0 /usr/include/
     cd opencv-4.2.0
     export OPENCV_INSTALL_DIR=$(pwd)
@@ -76,11 +87,8 @@ if [  ! -d /usr/include/onnxruntime ];then
     wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/ubuntu20_04/onnx_1.7.0_u20.tar.gz
     tar xf onnx_1.7.0_u20.tar.gz
     rm onnx_1.7.0_u20.tar.gz
-    cp -r  onnx_1.7.0_u20/libonnxruntime.so* $HOME/required_lib/
-    cp -r  onnx_1.7.0_u20/libtidl_onnxrt_EP.so* $HOME/required_lib/
-    cd $HOME/required_lib/
-    ln -s libonnxruntime.so libonnxruntime.so.1.7.0
-    cd $HOME
+    cp -r  onnx_1.7.0_u20/libonnxruntime.so* $HOME/required_libs/
+    cp -r  onnx_1.7.0_u20/libtidl_onnxrt_EP.so* $HOME/required_libs/
     mv onnx_1.7.0_u20/onnxruntime /usr/include/
     rm -r onnx_1.7.0_u20
     cd $HOME
@@ -93,7 +101,7 @@ if [  ! -d /usr/include/neo-ai-dlr ];then
     wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/ubuntu20_04/dlr_1.10.0_u20.tar.gz
     tar xf dlr_1.10.0_u20.tar.gz 
     rm dlr_1.10.0_u20.tar.gz 
-    cp -r  dlr_1.10.0_u20/libdlr.so* $HOME/required_lib/
+    cp -r  dlr_1.10.0_u20/libdlr.so* $HOME/required_libs/
     mv dlr_1.10.0_u20/neo-ai-dlr /usr/include/
     rm -r dlr_1.10.0_u20
     cd $HOME
@@ -141,7 +149,7 @@ if [  ! -L libvx_tidl_rt.so ];then
 fi
 if [  ! -f /usr/dlr/libdlr.so ];then
     mkdir /usr/dlr
-    cp ~/required_lib/libdlr.so /usr/dlr/
+    cp ~/required_libs/libdlr.so /usr/dlr/
 fi
 
 

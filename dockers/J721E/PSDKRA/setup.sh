@@ -27,8 +27,11 @@ fi
 STR=`pip3 list | grep tflite-runtime`
 SUB='tflite-runtime'
 if [[ "$STR" != *"$SUB"* ]]; then
-    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/psdkr/pywhl/tflite_runtime-2.4.0-py3-none-linux_aarch64.whl
-    pip3 install --upgrade --force-reinstall tflite_runtime-2.4.0-py3-none-linux_aarch64.whl
+    # For enabling 2.4 uncomment these lines
+    # wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/psdkr/pywhl/tflite_runtime-2.4.0-py3-none-linux_aarch64.whl
+    # pip3 install --upgrade --force-reinstall tflite_runtime-2.4.0-py3-none-linux_aarch64.whl
+    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/psdkr/pywhl/tflite_runtime-2.8.2-cp38-cp38-linux_aarch64.whl
+    pip3 install --upgrade --force-reinstall tflite_runtime-2.8.2-cp38-cp38-linux_aarch64.whl
     # to sync with tensor flow build version
     pip3 uninstall  numpy
     pip3 install numpy
@@ -37,12 +40,20 @@ fi
 cd $HOME
 rm -r arago_j7_pywhl
 if [  ! -d /usr/include/tensorflow ];then
-    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/psdkr/tflite_2.4_aragoj7.tar.gz
-    tar xf tflite_2.4_aragoj7.tar.gz
-    rm tflite_2.4_aragoj7.tar.gz
-    cp tflite_2.4_aragoj7/libtensorflow-lite.a  $HOME/required_libs/
-    mv tflite_2.4_aragoj7/tensorflow /usr/include/
-    rm -r tflite_2.4_aragoj7
+    # For enabling 2.4 uncomment below
+    # wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/psdkr/tflite_2.4_aragoj7.tar.gz
+    # tar xf tflite_2.4_aragoj7.tar.gz
+    # rm tflite_2.4_aragoj7.tar.gz
+    # cp tflite_2.4_aragoj7/libtensorflow-lite.a  $HOME/required_libs/
+    # mv tflite_2.4_aragoj7/tensorflow /usr/include/
+    # rm -r tflite_2.4_aragoj7
+    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/psdkr/tflite_2.8_aragoj7.tar.gz
+    tar xf tflite_2.8_aragoj7.tar.gz
+    rm tflite_2.8_aragoj7.tar.gz
+    mv tflite_2.8_aragoj7/tensorflow /usr/include
+    mv tflite_2.8_aragoj7/tflite_2.8 /usr/lib/
+    cp tflite_2.8_aragoj7/libtensorflow-lite.a $HOME/required_libs/
+    rm -r tflite_2.8_aragoj7    
     cd $HOME
 else
     echo "skipping tensorflow setup: found /usr/include/tensorflow"
@@ -108,9 +119,9 @@ if [  ! -f /usr/dlr/libdlr.so ];then
     mkdir /usr/dlr
     cp ~/required_libs/libdlr.so /usr/dlr/
 fi
-if [  ! -f /usr/lib/libonnxruntime.so.1.7.0 ];then
-    ln -s /usr/lib/libonnxruntime.so /usr/lib/libonnxruntime.so.1.7.0
-fi
+
+rm /usr/lib/libonnxruntime.so.1.7.0
+ln -s /usr/lib/libonnxruntime.so /usr/lib/libonnxruntime.so.1.7.0
 
 rm -r $HOME/required_libs
 
