@@ -535,14 +535,14 @@ if( ((${TARGET_DEVICE} STREQUAL  "j7") AND (${TARGET_CPU} STREQUAL  "arm" AND ${
                   /usr/lib/opencv/
                   /usr/lib
                   # Enable these when migrating to tflite 2.8
-                  # /usr/lib/tflite_2.8/ruy-build
-                  # /usr/lib/tflite_2.8/xnnpack-build
-                  # /usr/lib/tflite_2.8/pthreadpool
-                  # /usr/lib/tflite_2.8/fft2d-build
-                  # /usr/lib/tflite_2.8/cpuinfo-build
-                  # /usr/lib/tflite_2.8/flatbuffers-build
-                  # /usr/lib/tflite_2.8/clog-build
-                  # /usr/lib/tflite_2.8/farmhash-build
+                  /usr/lib/tflite_2.8/ruy-build
+                  /usr/lib/tflite_2.8/xnnpack-build
+                  /usr/lib/tflite_2.8/pthreadpool
+                  /usr/lib/tflite_2.8/fft2d-build
+                  /usr/lib/tflite_2.8/cpuinfo-build
+                  /usr/lib/tflite_2.8/flatbuffers-build
+                  /usr/lib/tflite_2.8/clog-build
+                  /usr/lib/tflite_2.8/farmhash-build
                   # Enable these when migrating to tflite 2.8
                   /usr/local/dlr
                   /usr/lib/aarch64-linux-gnu
@@ -565,43 +565,43 @@ if( ((${TARGET_DEVICE} STREQUAL  "j7") AND (${TARGET_CPU} STREQUAL  "arm" AND ${
                   png16
                   tiff
                   # Enable these when migrating to tflite 2.8
-                  # flatbuffers
-                  # fft2d_fftsg2d
-                  # fft2d_fftsg
-                  # cpuinfo
-                  # clog
-                  # farmhash
-                  # ruy_allocator
-                  # ruy_apply_multiplier
-                  # ruy_blocking_counter
-                  # ruy_block_map
-                  # ruy_context
-                  # ruy_context_get_ctx
-                  # ruy_cpuinfo
-                  # ruy_ctx
-                  # ruy_denormal
-                  # ruy_frontend
-                  # ruy_have_built_path_for_avx2_fma
-                  # ruy_have_built_path_for_avx512
-                  # ruy_have_built_path_for_avx
-                  # ruy_kernel_arm
-                  # ruy_kernel_avx2_fma
-                  # ruy_kernel_avx512
-                  # ruy_kernel_avx
-                  # ruy_pack_arm
-                  # ruy_pack_avx2_fma
-                  # ruy_pack_avx512
-                  # ruy_pack_avx
-                  # ruy_prepacked_cache
-                  # ruy_prepare_packed_matrices
-                  # ruy_system_aligned_alloc
-                  # ruy_thread_pool
-                  # ruy_trmul
-                  # ruy_tune
-                  # ruy_wait
-                  # pthreadpool
-                  # #xnn lib
-                  # XNNPACK
+                  flatbuffers
+                  fft2d_fftsg2d
+                  fft2d_fftsg
+                  cpuinfo
+                  clog
+                  farmhash
+                  ruy_allocator
+                  ruy_apply_multiplier
+                  ruy_blocking_counter
+                  ruy_block_map
+                  ruy_context
+                  ruy_context_get_ctx
+                  ruy_cpuinfo
+                  ruy_ctx
+                  ruy_denormal
+                  ruy_frontend
+                  ruy_have_built_path_for_avx2_fma
+                  ruy_have_built_path_for_avx512
+                  ruy_have_built_path_for_avx
+                  ruy_kernel_arm
+                  ruy_kernel_avx2_fma
+                  ruy_kernel_avx512
+                  ruy_kernel_avx
+                  ruy_pack_arm
+                  ruy_pack_avx2_fma
+                  ruy_pack_avx512
+                  ruy_pack_avx
+                  ruy_prepacked_cache
+                  ruy_prepare_packed_matrices
+                  ruy_system_aligned_alloc
+                  ruy_thread_pool
+                  ruy_trmul
+                  ruy_tune
+                  ruy_wait
+                  pthreadpool
+                  #xnn lib
+                  XNNPACK
                   # Enable these when migrating to tflite 2.8
   )
   include_directories(
