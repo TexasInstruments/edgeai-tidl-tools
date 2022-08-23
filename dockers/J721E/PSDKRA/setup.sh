@@ -15,13 +15,13 @@ STR=`pip3 list | grep dlr`
 SUB='dlr'
 
 if [[ "$STR" != *"$SUB"* ]]; then
-    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/psdkr/pywhl/dlr-1.10.0-py3-none-any.whl
+    wget --proxy off https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/psdkr/pywhl/dlr-1.10.0-py3-none-any.whl
     pip3 install --upgrade --force-reinstall dlr-1.10.0-py3-none-any.whl
 fi
 STR=`pip3 list | grep onnxruntime-tidl`
 SUB='onnxruntime-tidl'
 if [[ "$STR" != *"$SUB"* ]]; then
-    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/psdkr/pywhl/onnxruntime_tidl-1.7.0-cp38-cp38-linux_aarch64.whl
+    wget --proxy off  https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/psdkr/pywhl/onnxruntime_tidl-1.7.0-cp38-cp38-linux_aarch64.whl
     pip3 install onnxruntime_tidl-1.7.0-cp38-cp38-linux_aarch64.whl
 fi
 STR=`pip3 list | grep tflite-runtime`
@@ -30,7 +30,7 @@ if [[ "$STR" != *"$SUB"* ]]; then
     # For enabling 2.4 uncomment these lines
     # wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/psdkr/pywhl/tflite_runtime-2.4.0-py3-none-linux_aarch64.whl
     # pip3 install --upgrade --force-reinstall tflite_runtime-2.4.0-py3-none-linux_aarch64.whl
-    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/psdkr/pywhl/tflite_runtime-2.8.2-cp38-cp38-linux_aarch64.whl
+    wget --proxy off https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/psdkr/pywhl/tflite_runtime-2.8.2-cp38-cp38-linux_aarch64.whl
     pip3 install --upgrade --force-reinstall tflite_runtime-2.8.2-cp38-cp38-linux_aarch64.whl
     # to sync with tensor flow build version
     pip3 uninstall  numpy
