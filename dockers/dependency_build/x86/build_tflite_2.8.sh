@@ -31,6 +31,7 @@
 #  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 # ./tflite_2.8/tensorflow_src/tensorflow/tensorflow/lite/tools/pip_package/gen/tflite_pip/python3/dist/tflite_runtime-2.8.0-cp36-cp36m-linux_aarch64.whl
+# ./tflite_2.8/tensorflow_src/tensorflow/tensorflow/lite/tools/pip_package/gen/tflite_pip/python3/dist/tflite_runtime-2.8.2-cp36-cp36m-linux_x86_64.whl
 ping bitbucket.itg.ti.com -c 1 > /dev/null 2>&1
 if [ "$?" -eq "0" ]; then
     USE_PROXY=1
@@ -75,3 +76,24 @@ else
     make -C tensorflow/lite/tools/pip_package docker-build   TENSORFLOW_TARGET=aarch64 PYTHON_VERSION=3.8 
     
 fi
+
+# #x86 build
+cd ../../
+if [ !-d  tflite_build ];then
+rm -r  tflite_build
+fi
+mkdir tflite_build
+cd tflite_build
+cmake ../tensorflow_src/tensorflow/tensorflow/lite/
+cmake --build . -j
+numpy_loc=$(python3  << EOF
+import numpy 
+print(numpy.__file__)
+EOF
+)
+suffix="__init__.py"
+numpy_loc=${numpy_loc%"$suffix"}
+export C_INCLUDE_PATH=$numpy_loc/core/include/
+export CPLUS_INCLUDE_PATH=$numpy_loc/core/include/
+cd ../
+PYTHON=python3 tensorflow_src/tensorflow/tensorflow/lite/tools/pip_package/build_pip_package_with_cmake.sh native

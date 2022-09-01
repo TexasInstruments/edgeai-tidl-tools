@@ -217,9 +217,16 @@ if(${TARGET_DEVICE} STREQUAL  "j7" AND  (${TARGET_CPU} STREQUAL  "x86" AND ${HOS
                   /usr/lib/aarch64-linux-gnu
                   /usr/lib/python3.8/site-packages/dlr/
                   $ENV{HOME}/.local/dlr/                 
-                  #tesnorflow2.4  and dependencies
-                  ${TENSORFLOW_INSTALL_DIR}
-                  ${TENSORFLOW_INSTALL_DIR}/tensorflow/lite/tools/make/downloads/flatbuffers/include
+                  # Enable these when migrating to tflite 2.8
+                  $ENV{TIDL_TOOLS_PATH}/tflite_2.8_x86/ruy-build/ruy
+                  $ENV{TIDL_TOOLS_PATH}/tflite_2.8_x86/xnnpack-build
+                  $ENV{TIDL_TOOLS_PATH}/tflite_2.8_x86/pthreadpool
+                  $ENV{TIDL_TOOLS_PATH}/tflite_2.8_x86/fft2d-build
+                  $ENV{TIDL_TOOLS_PATH}/tflite_2.8_x86/cpuinfo-build
+                  $ENV{TIDL_TOOLS_PATH}/tflite_2.8_x86/flatbuffers-build
+                  $ENV{TIDL_TOOLS_PATH}/tflite_2.8_x86/clog-build
+                  $ENV{TIDL_TOOLS_PATH}/tflite_2.8_x86/farmhash-build
+                  # Enable these when migrating to tflite 2.8
 
                   #tidl tools lib
                   $ENV{TIDL_TOOLS_PATH}
@@ -236,7 +243,46 @@ if(${TARGET_DEVICE} STREQUAL  "j7" AND  (${TARGET_CPU} STREQUAL  "x86" AND ${HOS
                   IlmImf
                   zlib
                   libjasper
-                  dlr
+                  # dlr
+                  # Enable these when migrating to tflite 2.8
+                  flatbuffers
+                  fft2d_fftsg2d
+                  fft2d_fftsg
+                  cpuinfo
+                  clog
+                  farmhash
+                  ruy_allocator
+                  ruy_apply_multiplier
+                  ruy_blocking_counter
+                  ruy_block_map
+                  ruy_context
+                  ruy_context_get_ctx
+                  ruy_cpuinfo
+                  ruy_ctx
+                  ruy_denormal
+                  ruy_frontend
+                  ruy_have_built_path_for_avx2_fma
+                  ruy_have_built_path_for_avx512
+                  ruy_have_built_path_for_avx
+                  ruy_kernel_arm
+                  ruy_kernel_avx2_fma
+                  ruy_kernel_avx512
+                  ruy_kernel_avx
+                  ruy_pack_arm
+                  ruy_pack_avx2_fma
+                  ruy_pack_avx512
+                  ruy_pack_avx
+                  ruy_prepacked_cache
+                  ruy_prepare_packed_matrices
+                  ruy_system_aligned_alloc
+                  ruy_thread_pool
+                  ruy_trmul
+                  ruy_tune
+                  ruy_wait
+                  pthreadpool
+                  #xnn lib
+                  XNNPACK
+                  # Enable these when migrating to tflite 2.8
                   tensorflow-lite
                   onnxruntime
                   vx_tidl_rt
@@ -257,11 +303,8 @@ if(${TARGET_DEVICE} STREQUAL  "j7" AND  (${TARGET_CPU} STREQUAL  "x86" AND ${HOS
                   /usr/include/opencv4/
                   /usr/include/processor_sdk/vision_apps/
                   
-                  #tflite 2.4
-                  ${TENSORFLOW_INSTALL_DIR}
-                  ${TENSORFLOW_INSTALL_DIR}/tensorflow/lite/tools/make/downloads/flatbuffers/include
-                  ${TENSORFLOW_INSTALL_DIR}/tensorflow/lite/tools/make/downloads/flatbuffers/flatbuffers-1.12.0/include
-                  ${TENSORFLOW_INSTALL_DIR}/tensorflow/lite/tools/make/downloads/flatbuffers-1.12.0/include
+                  #tflite 2.8
+                  ${TENSORFLOW_INSTALL_DIR}/tensorflow/lite/tools/pip_package/gen/tflite_pip/python3/cmake_build/flatbuffers/include/                  
 
                   ${ONNXRT_INSTALL_DIR}/include
                   ${ONNXRT_INSTALL_DIR}/include/onnxruntime

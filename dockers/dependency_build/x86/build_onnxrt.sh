@@ -57,3 +57,7 @@ docker run -it --rm \
     --env USE_PROXY=$USE_PROXY \
     $DOCKERTAG \
     /bin/bash -c "~/dlrt-build/onnxrt_build.sh"
+
+#x86 build
+cd onnx/onnxruntime/
+python3 tools/ci_build/build.py --build_dir build_x86_64 --config Release --build_shared_lib --parallel 32 --skip_tests --skip_onnx_tests --use_tidl --build_wheel
