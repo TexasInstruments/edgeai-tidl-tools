@@ -22,23 +22,24 @@ cd $TARGET_FS_PATH/home/root/arago_j7_pywhl
 
 wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/psdkr/pywhl/dlr-1.10.0-py3-none-any.whl
 wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/psdkr/pywhl/onnxruntime_tidl-1.7.0-cp38-cp38-linux_aarch64.whl
-wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/psdkr/pywhl/tflite_runtime-2.4.0-py3-none-linux_aarch64.whl
+wget --proxy off https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/psdkr/pywhl/tflite_runtime-2.8.2-cp38-cp38-linux_aarch64.whl
 
 ln -s /usr/bin/pip3 /usr/bin/pip3.8 
 pip3 install --upgrade --force-reinstall dlr-1.10.0-py3-none-any.whl  --root $TARGET_FS_PATH --disable-pip-version-check
 pip3 install onnxruntime_tidl-1.7.0-cp38-cp38-linux_aarch64.whl  --root $TARGET_FS_PATH --disable-pip-version-check
-pip3 install --upgrade --force-reinstall tflite_runtime-2.4.0-py3-none-linux_aarch64.whl  --root $TARGET_FS_PATH --disable-pip-version-check
+pip3 install --upgrade --force-reinstall tflite_runtime-2.8.2-cp38-cp38-linux_aarch64.whl  --root $TARGET_FS_PATH --disable-pip-version-check
 pip3 install --upgrade --force-reinstall --no-cache-dir numpy  --root $TARGET_FS_PATH --disable-pip-version-check
 cd $TARGET_FS_PATH/home/root
 rm -r $TARGET_FS_PATH/home/root/arago_j7_pywhl
 
 if [  ! -d $TARGET_FS_PATH/usr/include/tensorflow ];then
-    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/psdkr/tflite_2.4_aragoj7.tar.gz
-    tar xf tflite_2.4_aragoj7.tar.gz
-    rm tflite_2.4_aragoj7.tar.gz
-    cp tflite_2.4_aragoj7/libtensorflow-lite.a  $TARGET_FS_PATH/usr/lib/
-    mv tflite_2.4_aragoj7/tensorflow $TARGET_FS_PATH/usr/include/
-    rm -r tflite_2.4_aragoj7
+    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/psdkr/tflite_2.8_aragoj7.tar.gz
+    tar xf tflite_2.8_aragoj7.tar.gz
+    rm tflite_2.8_aragoj7.tar.gz
+    mv tflite_2.8_aragoj7/tensorflow  $TARGET_FS_PATH/usr/include
+    mv tflite_2.8_aragoj7/tflite_2.8  $TARGET_FS_PATH/usr/lib/
+    cp tflite_2.8_aragoj7/libtensorflow-lite.a $TARGET_FS_PATH/usr/lib/
+    rm -r tflite_2.8_aragoj7 
     cd $TARGET_FS_PATH/home/root
 else
     echo "skipping tensorflow setup: found /usr/include/tensorflow"
