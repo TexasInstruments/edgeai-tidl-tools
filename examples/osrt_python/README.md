@@ -2,7 +2,7 @@
 
 - [Python Examples](#python-examples)
   - [Introduction](#introduction)
-  - [OSRT based user work flow](#osrt-based-user-work-flow)
+  - [User Work Flow](#osrt-based-user-work-flow)
   - [Model Compilation on PC](#model-compilation-on-pc)
   - [Model Inference on EVM](#model-inference-on-evm)
   - [User options for TFLite and ONNX Runtime](#user-options-for-tflite-and-onnx-runtime)

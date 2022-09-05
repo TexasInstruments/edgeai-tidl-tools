@@ -7,6 +7,7 @@ parent = os.path.dirname(current)
 # setting path
 sys.path.append(parent)
 from common_utils import *
+from model_configs import *
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--no-offload', dest='offload', action='store_false', help='do not offload to TIDL')

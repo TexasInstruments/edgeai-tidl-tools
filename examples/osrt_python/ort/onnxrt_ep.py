@@ -16,6 +16,7 @@ parent = os.path.dirname(current)
 # setting path
 sys.path.append(parent)
 from common_utils import *
+from model_configs import *
 
 required_options = {
 "tidl_tools_path":tidl_tools_path,
@@ -49,7 +50,16 @@ idx = 0
 nthreads = 0
 run_count = 0
 
-DEVICE = os.environ["DEVICE"]
+if "DEVICE" in os.environ:
+    DEVICE = os.environ["DEVICE"]
+else:
+    print("Please export DEVICE var to proceed")
+    exit(-1)
+
+if (platform.machine() == 'aarch64'  and args.compile == True):
+    print("Compilation of models is only supported on x86 machine \n\
+        Please do the compilation on PC and copy artifacts for running on TIDL devices " )
+    exit(-1)
 
 if(DEVICE == "am62"):
     args.disable_offload = True
@@ -93,12 +103,12 @@ def infer_image(sess, image_files, config):
       input_data[i] = temp_input_data[0] 
   if floating_model:
     input_data = np.float32(input_data)
-    for mean, scale, ch in zip(config['mean'], config['std'], range(input_data.shape[1])):
+    for mean, scale, ch in zip(config['mean'], config['scale'], range(input_data.shape[1])):
         input_data[:,ch,:,:] = ((input_data[:,ch,:,:]- mean) * scale)
   else:
     input_data = np.uint8(input_data)
     config['mean'] = [0, 0, 0]
-    config['std']  = [1, 1, 1]
+    config['scale']  = [1, 1, 1]
   
   start_time = time.time()
   output = list(sess.run(None, {input_name: input_data}))

@@ -9,6 +9,7 @@ parent = os.path.dirname(current)
 # setting path
 sys.path.append(parent)
 from common_utils import *
+from model_configs import *
 
 output_images_folder = '../../../output_images/'
 

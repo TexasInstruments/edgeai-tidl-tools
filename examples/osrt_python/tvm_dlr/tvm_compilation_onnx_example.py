@@ -7,6 +7,7 @@ parent = os.path.dirname(current)
 # setting path
 sys.path.append(parent)
 from common_utils import *
+from model_configs import *
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--no-offload', dest='offload', action='store_false', help='do not offload to TIDL')
@@ -89,7 +90,7 @@ def preprocess_for_onnx_mobilenetv2(image_path):
     # hard coding config values 
     config = {
             'mean': [0, 0, 0],
-            'std' :[1, 1 , 1],
+            'scale' :[1, 1 , 1],
             'data_layout': 'NCHW',
             'resize' : [224, 224],
             'crop' : [224, 224],
