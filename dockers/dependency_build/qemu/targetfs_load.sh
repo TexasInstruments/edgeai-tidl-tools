@@ -22,7 +22,7 @@ cd $TARGET_FS_PATH/home/root/arago_j7_pywhl
 
 wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/psdkr/pywhl/dlr-1.10.0-py3-none-any.whl
 wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/psdkr/pywhl/onnxruntime_tidl-1.7.0-cp38-cp38-linux_aarch64.whl
-wget --proxy off https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/psdkr/pywhl/tflite_runtime-2.8.2-cp38-cp38-linux_aarch64.whl
+wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/psdkr/pywhl/tflite_runtime-2.8.2-cp38-cp38-linux_aarch64.whl
 
 ln -s /usr/bin/pip3 /usr/bin/pip3.8 
 pip3 install --upgrade --force-reinstall dlr-1.10.0-py3-none-any.whl  --root $TARGET_FS_PATH --disable-pip-version-check
