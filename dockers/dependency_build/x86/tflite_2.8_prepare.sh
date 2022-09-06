@@ -14,7 +14,7 @@ if [ ! -d tensorflow  ];then
 else 
     cd tensorflow
     git checkout  tidl-j7-2.8
-    # git clean -fdx
+    git clean -fdx
     cd -
 fi
 cd ../

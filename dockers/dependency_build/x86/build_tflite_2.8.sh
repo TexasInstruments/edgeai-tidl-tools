@@ -30,8 +30,10 @@
 #  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-# ./tflite_2.8/tensorflow_src/tensorflow/tensorflow/lite/tools/pip_package/gen/tflite_pip/python3/dist/tflite_runtime-2.8.0-cp36-cp36m-linux_aarch64.whl
-# ./tflite_2.8/tensorflow_src/tensorflow/tensorflow/lite/tools/pip_package/gen/tflite_pip/python3/dist/tflite_runtime-2.8.2-cp36-cp36m-linux_x86_64.whl
+# ./tensorflow_src/tensorflow/tensorflow/lite/tools/pip_package/gen/tflite_pip/python3.6/dist/tflite_runtime-2.8.2-cp36-cp36m-linux_aarch64.whl
+# ./tensorflow_src/tensorflow/tensorflow/lite/tools/pip_package/gen/tflite_pip/python3/dist/tflite_runtime-2.8.2-cp36-cp36m-linux_x86_64.whl
+# ./tensorflow_src/tensorflow/tensorflow/lite/tools/pip_package/gen/tflite_pip/python3.8/dist/tflite_runtime-2.8.2-cp38-cp38-linux_aarch64.whl
+
 ping bitbucket.itg.ti.com -c 1 > /dev/null 2>&1
 if [ "$?" -eq "0" ]; then
     USE_PROXY=1
@@ -58,9 +60,9 @@ docker run -it --rm \
     $DOCKERTAG \
     /bin/bash -c "~/dlrt-build/tflite_2.8_build.sh"
 
-
+# keeping the py whl cretion in docker host coz requires docker
 if [ $USE_PROXY -eq "1" ];then
-    #inside ti network
+    echo "inside ti network:using proxy"
     cd tflite_2.8/tensorflow_src/tensorflow/
     git checkout tensorflow/lite/tools/pip_package/Dockerfile.py3
     cat << EOF >  add.txt
@@ -70,30 +72,15 @@ EOF
     sed -i '/FROM ${IMAGE}/r add.txt' tensorflow/lite/tools/pip_package/Dockerfile.py3
     rm add.txt
     make -C tensorflow/lite/tools/pip_package docker-build   TENSORFLOW_TARGET=aarch64 PYTHON_VERSION=3.8 BASE_IMAGE=artifactory.itg.ti.com/docker-public/library/ubuntu:18.04
+    sed -i 's/RUN python3 get-pip.py/RUN apt-get install -y python3-pip python-dev/g' tensorflow/lite/tools/pip_package/Dockerfile.py3
+    sed -i 's/RUN rm get-pip.py//g ' tensorflow/lite/tools/pip_package/Dockerfile.py3
+    make -C tensorflow/lite/tools/pip_package docker-build   TENSORFLOW_TARGET=aarch64 PYTHON_VERSION=3.6 BASE_IMAGE=artifactory.itg.ti.com/docker-public/library/ubuntu:18.04
     
 else
     cd tflite_2.8/tensorflow_src/tensorflow/
-    make -C tensorflow/lite/tools/pip_package docker-build   TENSORFLOW_TARGET=aarch64 PYTHON_VERSION=3.8 
+    make -C tensorflow/lite/tools/pip_package docker-build   TENSORFLOW_TARGET=aarch64 PYTHON_VERSION=3.8
+    sed -i 's/RUN python3 get-pip.py/RUN apt-get install -y python3-pip python-dev/g' tensorflow/lite/tools/pip_package/Dockerfile.py3
+    sed -i 's/RUN rm get-pip.py//g ' tensorflow/lite/tools/pip_package/Dockerfile.py3 
+    make -C tensorflow/lite/tools/pip_package docker-build   TENSORFLOW_TARGET=aarch64 PYTHON_VERSION=3.6
     
 fi
-
-# #x86 build
-cd ../../
-if [ !-d  tflite_build ];then
-rm -r  tflite_build
-fi
-mkdir tflite_build
-cd tflite_build
-cmake ../tensorflow_src/tensorflow/tensorflow/lite/
-cmake --build . -j
-numpy_loc=$(python3  << EOF
-import numpy 
-print(numpy.__file__)
-EOF
-)
-suffix="__init__.py"
-numpy_loc=${numpy_loc%"$suffix"}
-export C_INCLUDE_PATH=$numpy_loc/core/include/
-export CPLUS_INCLUDE_PATH=$numpy_loc/core/include/
-cd ../
-PYTHON=python3 tensorflow_src/tensorflow/tensorflow/lite/tools/pip_package/build_pip_package_with_cmake.sh native
