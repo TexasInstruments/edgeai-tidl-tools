@@ -52,7 +52,7 @@ DOCKERTAG=arm64v8-ubuntu20
 CMD=/bin/bash
 
 
-docker run -it --rm \
+docker run --privileged --rm \
     -v $(pwd)/../../../../edgeai-tidl-tools:/root/edgeai-tidl-tools \
     -v /:/host \
     --network host \
