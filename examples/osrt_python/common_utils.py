@@ -38,6 +38,7 @@ calibration_frames = 2
 calibration_iterations = 5
 output_feature_16bit_names_list = ""#"conv1_2, fire9/concat_1"
 params_16bit_names_list = "" #"fire3/squeeze1x1_2"
+mixed_precision_factor = -1
 
 quantization_scale_type = 0
 high_resolution_optimization = 0
@@ -67,6 +68,7 @@ optional_options = {
 "advanced_options:calibration_iterations": calibration_iterations,
 "advanced_options:output_feature_16bit_names_list" : output_feature_16bit_names_list,
 "advanced_options:params_16bit_names_list" : params_16bit_names_list,
+"advanced_options:mixed_precision_factor" :  mixed_precision_factor,
 "advanced_options:quantization_scale_type": quantization_scale_type,
 #"object_detection:meta_layers_names_list" : meta_layers_names_list,  -- read from models_configs dictionary below
 #"object_detection:meta_arch_type" : meta_arch_type,                  -- read from models_configs dictionary below
