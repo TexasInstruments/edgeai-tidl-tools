@@ -1,20 +1,14 @@
 #!/bin/bash
 # This script should be run inside the CONTAINER
 # Outputs:
-# - neo-ai-dlr/python/dist/dlr-1.10.0-py3-none-any.whl
-# - neo-ai-dlr/python/build/lib/dlr/libdlr.so
-# - tvm/python/dist/tvm-0.9.dev0-cp39-cp39-linux_x86_64.whl (.so are inside the pip whl)
-# - tvm/build_x86/libtvm.so*
+# - neo-ai-dlr/python/dist/aarch_whl/dlr-1.10.0-py3-none-any.whl (.so are inside the pip whl)
+# - neo-ai-dlr/python/dist/x86_whl/dlr-1.10.0-py3-none-any.whl (.so are inside the pip whl)
+# - tvm/python/dist/tvm-0.9.dev0-cp36-cp36-linux_x86_64.whl (.so are inside the pip whl)
 
 cd $HOME
-chown root:root -R /root/dlrt-build/dlr/
-cp ~/dlrt-build/dlr/miniconda.sh .
-bash ~/miniconda.sh -b -p $HOME/miniconda 
-source /root/miniconda/bin/activate 
-conda init 
-source /root/.bashrc 
+chown root:root -R /root/dlrt-build/dlr/ 
 
-cp dlrt-build/dlr/cmake-3.22.1-linux-x86_64.sh .
+cp ~/dlrt-build/dlr/cmake-3.22.1-linux-x86_64.sh .
 chmod +x cmake-3.22.1-linux-x86_64.sh 
 mkdir /usr/bin/cmake
 ./cmake-3.22.1-linux-x86_64.sh --skip-license --prefix=/usr/bin/cmake
@@ -52,6 +46,8 @@ make clean; make -j$(nproc)
 # build python package in $DLR_HOME/python/dist
 cd ..; rm -f build; ln -s build_x86 build
 cd python; python3 ./setup.py bdist_wheel; ls dist
+mkdir dist/x86_whl
+mv dist/dlr-1.10.0-py3-none-any.whl dist/x86_whl/
 
 #dlr aarch
 cd ~/dlrt-build/dlr/neo-ai-dlr
@@ -61,5 +57,7 @@ make clean; make -j$(nproc)
 # build python package in $DLR_HOME/python/dist
 cd ..; rm -f build; ln -s build_aarch64 build
 cd python; python3 ./setup.py bdist_wheel; ls dist
+mkdir dist/aarch_whl
+mv dist/dlr-1.10.0-py3-none-any.whl dist/aarch_whl/
 
 cd ~/dlrt-build

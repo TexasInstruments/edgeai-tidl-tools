@@ -41,8 +41,7 @@ fi
 ./dlr_prepare.sh
 
 if [ $# -lt 1 ];then
-    echo "usage ./build_dlr.sh ubuntu18"
-    echo "usage ./build_dlr.sh ubuntu20"
+    echo "usage ./build_dlr.sh ubuntu18"    
     exit
 else
     echo "cross compiling dlr for arago linux" 

@@ -8,9 +8,6 @@ if [ ! -d dlr ];then
 fi
 cd dlr
 
-if [ ! -f miniconda.sh   ];then
-    wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh 
-fi
 
 if [ ! -f cmake-3.22.1-linux-x86_64.sh ];then
     wget https://github.com/Kitware/CMake/releases/download/v3.22.1/cmake-3.22.1-linux-x86_64.sh
@@ -48,7 +45,6 @@ if [ ! -d neo-ai-dlr  ];then
     cd neo-ai-dlr
     git submodule init
     git submodule update --init --recursive
-    mkdir build
     cd ../
 fi
 
