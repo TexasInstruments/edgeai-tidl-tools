@@ -59,4 +59,4 @@ docker run -it --rm \
     --network host \
     --env USE_PROXY=$USE_PROXY \
     $DOCKERTAG \
-    /bin/bash -c "~/dlrt-build/dlr_build.sh"
+    /bin/bash -c "~/dlrt-build/dlr_build.sh $1" 
