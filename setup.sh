@@ -301,7 +301,7 @@ elif [[ $arch == aarch64 ]]; then
     fi
 fi
 if [[ -z "$TIDL_TOOLS_PATH" ]]; then
-    wget https://github.com/TexasInstruments/edgeai-tidl-tools/releases/download/08_02_00_01-rc1/tidl_tools.tar.gz
+    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/tidl_tools.tar.gz
     tar -xzf tidl_tools.tar.gz
     rm tidl_tools.tar.gz
     cd  tidl_tools
