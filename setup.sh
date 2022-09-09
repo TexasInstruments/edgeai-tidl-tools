@@ -32,17 +32,10 @@
 
 compile_opencv(){
     cd $TIDL_TOOLS_PATH/osrt_deps
-    #cp -r opencv-4.1.0/cmake opencv-4.1.0/cmake_static 
-    if [[ $arch == x86_64 ]]; then
-        cd opencv-4.1.0/cmake/
-        cmake -DBUILD_opencv_highgui:BOOL="1" -DBUILD_opencv_videoio:BOOL="0" -DWITH_IPP:BOOL="0" -DWITH_WEBP:BOOL="1" -DWITH_OPENEXR:BOOL="1" -DWITH_IPP_A:BOOL="0" -DBUILD_WITH_DYNAMIC_IPP:BOOL="0" -DBUILD_opencv_cudacodec:BOOL="0" -DBUILD_PNG:BOOL="1" -DBUILD_opencv_cudaobjdetect:BOOL="0" -DBUILD_ZLIB:BOOL="1" -DBUILD_TESTS:BOOL="0" -DWITH_CUDA:BOOL="0" -DBUILD_opencv_cudafeatures2d:BOOL="0" -DBUILD_opencv_cudaoptflow:BOOL="0" -DBUILD_opencv_cudawarping:BOOL="0" -DINSTALL_TESTS:BOOL="0" -DBUILD_TIFF:BOOL="1" -DBUILD_JPEG:BOOL="1" -DBUILD_opencv_cudaarithm:BOOL="0" -DBUILD_PERF_TESTS:BOOL="0" -DBUILD_opencv_cudalegacy:BOOL="0" -DBUILD_opencv_cudaimgproc:BOOL="0" -DBUILD_opencv_cudastereo:BOOL="0" -DBUILD_opencv_cudafilters:BOOL="0" -DBUILD_opencv_cudabgsegm:BOOL="0" -DBUILD_SHARED_LIBS:BOOL="0" -DWITH_ITT=OFF ../
-        make -j 32
-        cd -
-        # cd opencv-4.1.0/cmake_static
-        # cmake -DWITH_OPENEXR=OFF -DOPENCV_GENERATE_PKGCONFIG=ON BUILD_JASPER=ON -DBUILD_JPEG:BOOL="1" -DBUILD_SHARED_LIBS=OFF -DCMAKE_C_COMPILER=$ARM64_GCC_PATH/bin/aarch64-none-linux-gnu-gcc -DCMAKE_CXX_COMPILER=$ARM64_GCC_PATH/bin/aarch64-none-linux-gnu-g++ -DCMAKE_TOOLCHAIN_FILE=../platforms/linux/arm-gnueabi.toolchain.cmake ../
-        # make -j32
-        # cd -
-    fi
+    cd opencv-4.1.0/cmake/
+    cmake -DBUILD_opencv_highgui:BOOL="1" -DBUILD_opencv_videoio:BOOL="0" -DWITH_IPP:BOOL="0" -DWITH_WEBP:BOOL="1" -DWITH_OPENEXR:BOOL="1" -DWITH_IPP_A:BOOL="0" -DBUILD_WITH_DYNAMIC_IPP:BOOL="0" -DBUILD_opencv_cudacodec:BOOL="0" -DBUILD_PNG:BOOL="1" -DBUILD_opencv_cudaobjdetect:BOOL="0" -DBUILD_ZLIB:BOOL="1" -DBUILD_TESTS:BOOL="0" -DWITH_CUDA:BOOL="0" -DBUILD_opencv_cudafeatures2d:BOOL="0" -DBUILD_opencv_cudaoptflow:BOOL="0" -DBUILD_opencv_cudawarping:BOOL="0" -DINSTALL_TESTS:BOOL="0" -DBUILD_TIFF:BOOL="1" -DBUILD_JPEG:BOOL="1" -DBUILD_opencv_cudaarithm:BOOL="0" -DBUILD_PERF_TESTS:BOOL="0" -DBUILD_opencv_cudalegacy:BOOL="0" -DBUILD_opencv_cudaimgproc:BOOL="0" -DBUILD_opencv_cudastereo:BOOL="0" -DBUILD_opencv_cudafilters:BOOL="0" -DBUILD_opencv_cudabgsegm:BOOL="0" -DBUILD_SHARED_LIBS:BOOL="0" -DWITH_ITT=OFF ../
+    make -j 32
+    cd -
 }
 
 compile_armnn(){
@@ -222,9 +215,9 @@ fi
 # ######################################################################
 # # Installing dependencies
 echo 'Installing python packages...'
-# if [[ $arch == x86_64 ]]; then
-#     pip3 install -r ./requirements_pc.txt
-# fi
+if [[ $arch == x86_64 ]]; then
+    pip3 install -r ./requirements_pc.txt
+fi
 if [[ -z "$TIDL_TOOLS_PATH" ]]; then
     wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/tidl_tools.tar.gz
     tar -xzf tidl_tools.tar.gz
@@ -280,8 +273,7 @@ if [ $skip_cpp_deps -eq 0 ]; then
             wget https://github.com/opencv/opencv/archive/4.1.0.zip
             unzip 4.1.0.zip  
             rm 4.1.0.zip
-            if  [[ $arch == x86_64 ]] ; then
-                cd $HOME        
+            if  [[ $arch == x86_64 ]] ; then      
                 compile_opencv
             fi
         else
