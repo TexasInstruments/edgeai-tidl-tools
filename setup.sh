@@ -211,6 +211,20 @@ else
 return
 fi
 
+if [ -z "$DEVICE" ];then
+    echo "DEVICE not defined. Run either of below commands"
+    echo "export DEVICE=j7"
+    echo "export DEVICE=am62"
+    return
+else 
+    if [ $DEVICE != j7 ] && [ $DEVICE != am62 ]; then
+        echo "DEVICE shell var not set correctly. Set"
+        echo "export DEVICE=j7"
+        echo "export DEVICE=am62"
+        return
+    fi
+fi
+
 
 # ######################################################################
 # # Installing dependencies
@@ -227,7 +241,6 @@ if [[ -z "$TIDL_TOOLS_PATH" ]]; then
     cd ..
 fi
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$TIDL_TOOLS_PATH:$TIDL_TOOLS_PATH/osrt_deps
-export DEVICE=j7
 
 if [[ $arch == x86_64 && $skip_arm_gcc_download -eq 0 ]]; then
     if [ ! -d gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu ];then
