@@ -297,9 +297,9 @@ if [ $skip_cpp_deps -eq 0 ]; then
         #dlr
         if [ ! -d neo-ai-dlr ];then
             wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/x86_64/dlr_1.10.0_u18.tar.gz
-            tar -xf dlr_1.10.0_x86.tar.gz
-            cp dlr_1.10.0_x86//neo-ai-dlr . -r
-            rm dlr_1.10.0_x86.tar.gz  dlr_1.10.0_x86  -r
+            tar -xf dlr_1.10.0_u18.tar.gz
+            cp dlr_1.10.0_u18/neo-ai-dlr . -r
+            rm dlr_1.10.0_u18.tar.gz  dlr_1.10.0_u18  -r
         else
             echo "skipping neo-ai-dlr setup: found $TIDL_TOOLS_PATH/osrt_deps/neo-ai-dlr"
             echo "To redo the setup delete:$TIDL_TOOLS_PATH/osrt_deps/neo-ai-dlr and run this script again"
