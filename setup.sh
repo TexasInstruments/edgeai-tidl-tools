@@ -262,7 +262,7 @@ if [ $skip_cpp_deps -eq 0 ]; then
             tar -xf onnx_1.7.0_u18.tar.gz
             cp onnx_1.7.0_u18/libonnxruntime.so .
             cp onnx_1.7.0_u18/onnxruntime . -r 
-            ln -s libonnxruntime.so.1.7.0 libonnxruntime.so
+            ln -s libonnxruntime.so libonnxruntime.so.1.7.0
             rm onnx_1.7.0_u18.tar.gz  onnx_1.7.0_u18   -r
         else
             echo "skipping onnxruntime setup: found $TIDL_TOOLS_PATH/osrt_deps/onnxruntime"
