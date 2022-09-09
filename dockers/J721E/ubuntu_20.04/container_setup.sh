@@ -36,9 +36,6 @@ fi
 STR=`pip3 list | grep tflite-runtime`
 SUB='tflite-runtime'
 if [[ "$STR" != *"$SUB"* ]]; then
-    #Enable this for tflite 2.4
-    # wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/ubuntu20_04/pywhl/tflite_runtime-2.4.0-py3-none-linux_aarch64.whl
-    # pip3 install --upgrade --force-reinstall tflite_runtime-2.4.0-py3-none-linux_aarch64.whl
     wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/ubuntu20_04/pywhl/tflite_runtime-2.8.2-cp38-cp38-linux_aarch64.whl
     pip3 install --upgrade --force-reinstall tflite_runtime-2.8.2-cp38-cp38-linux_aarch64.whl
 fi
@@ -46,14 +43,6 @@ fi
 cd $HOME
 rm -r u_20_pywhl
 if [  ! -d /usr/include/tensorflow ];then
-    #Enable this for tflite 2.4
-    # wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/ubuntu20_04/tflite_2.4_u20.tar.gz
-    # tar xf tflite_2.4_u20.tar.gz
-    # rm tflite_2.4_u20.tar.gz
-    # cp tflite_2.4_u20/libtidl_tfl_delegate.so* $HOME/required_libs/
-    # cp tflite_2.4_u20/libtensorflow-lite.a  $HOME/required_libs/
-    # mv tflite_2.4_u20/tensorflow /usr/include/
-    # rm -r tflite_2.4_u20
     wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/ubuntu20_04/tflite_2.8_aragoj7.tar.gz
     tar xf tflite_2.8_aragoj7.tar.gz
     rm tflite_2.8_aragoj7.tar.gz
@@ -101,7 +90,7 @@ if [  ! -d /usr/include/neo-ai-dlr ];then
     wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/ubuntu20_04/dlr_1.10.0_u20.tar.gz
     tar xf dlr_1.10.0_u20.tar.gz 
     rm dlr_1.10.0_u20.tar.gz 
-    cp -r  dlr_1.10.0_u20/libdlr.so* $HOME/required_libs/
+    cp -r  /usr/local/lib/python3.8/dist-packages/dlr/libdlr.so $HOME/required_libs/
     mv dlr_1.10.0_u20/neo-ai-dlr /usr/include/
     rm -r dlr_1.10.0_u20
     cd $HOME
