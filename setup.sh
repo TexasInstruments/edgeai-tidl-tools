@@ -29,57 +29,9 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ######################################################################
-compile_tflite_2.8(){
-    cd $HOME/tensorflow
-    export TENSORFLOW_INSTALL_DIR=$(pwd)
-
-    #native compialtion for x86
-    mkdir tflite_build
-    cd tflite_build
-    cmake ../tensorflow_src/tensorflow/lite
-    cmake --build . -j
-    
-    #cross compilation for arm
-    # mkdir tflite_build_arm
-    # cd tflite_build_arm
-    # ARMCC_PREFIX=$ARM64_GCC_PATH/bin/aarch64-none-linux-gnu-    
-    # ARMCC_FLAGS="-funsafe-math-optimizations"
-    # cmake -DCMAKE_C_COMPILER=${ARMCC_PREFIX}gcc \
-    # -DCMAKE_CXX_COMPILER=${ARMCC_PREFIX}g++ \
-    # -DCMAKE_C_FLAGS="${ARMCC_FLAGS}" \
-    # -DCMAKE_CXX_FLAGS="${ARMCC_FLAGS}" \
-    # -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON \
-    # -DCMAKE_SYSTEM_NAME=Linux \
-    # -DTFLITE_ENABLE_XNNPACK=ON \
-    # -DCMAKE_SYSTEM_PROCESSOR=aarch64 \
-    # -DBUILD_SHARED_LIBS=ON \
-    # ../tensorflow_src/tensorflow/lite/
-
-    # cmake --build . -j 
-}
-
-download_tflite_2.8(){
-    cd $HOME
-    mkdir tensorflow    
-    cd tensorflow
-    export TENSORFLOW_INSTALL_DIR=$(pwd)
-    git clone --depth 1 --single-branch -b v2.8.0 https://github.com/tensorflow/tensorflow.git tensorflow_src
-
-}
-
-download_tflite2.4(){
-    cd $HOME
-    git clone --depth 1 --single-branch -b tidl-j7 https://github.com/TexasInstruments/tensorflow.git
-    mkdir -p tensorflow/tensorflow/lite/tools/make/downloads
-    cd tensorflow/tensorflow/lite/tools/make/downloads
-    wget https://github.com/google/flatbuffers/archive/v1.12.0.tar.gz
-    tar -xzf v1.12.0.tar.gz
-    rm v1.12.0.tar.gz
-    mv  flatbuffers-1.12.0 flatbuffers
-}
 
 compile_opencv(){
-    cd $HOME
+    cd $TIDL_TOOLS_PATH/osrt_deps
     #cp -r opencv-4.1.0/cmake opencv-4.1.0/cmake_static 
     if [[ $arch == x86_64 ]]; then
         cd opencv-4.1.0/cmake/
@@ -92,15 +44,7 @@ compile_opencv(){
         # cd -
     fi
 }
-download_opencv(){
-    cd $HOME
-    wget https://github.com/opencv/opencv/archive/4.1.0.zip
-    unzip 4.1.0.zip
-    cd opencv-4.1.0
-    export OPENCV_INSTALL_DIR=$(pwd)
-    cd -   
-    rm 4.1.0.zip
-}
+
 compile_armnn(){
     #requires tflite2.8 to be build first
     cd $HOME
@@ -274,32 +218,13 @@ else
 return
 fi
 
-if [ -z "$DEVICE" ];then
-    echo "DEVICE not defined. Run either of below commands"
-    echo "export DEVICE=j7"
-    echo "export DEVICE=am62"
-    return
-else 
-    if [ $DEVICE != j7 ] && [ $DEVICE != am62 ]; then
-        echo "DEVICE shell var not set correctly. Set"
-        echo "export DEVICE=j7"
-        echo "export DEVICE=am62"
-        return
-    fi
-fi
 
-######################################################################
-# Installing dependencies
+# ######################################################################
+# # Installing dependencies
 echo 'Installing python packages...'
-if [[ $arch == x86_64 ]]; then
-    pip3 install -r ./requirements_pc.txt
-elif [[ $arch == aarch64 ]]; then
-    if [[ $DEVICE == j7 ]]; then
-        pip3 install -r ./requirements_j7.txt
-    elif [[ $DEVICE == am62 ]]; then
-        echo "using python packages from filesytem "
-    fi
-fi
+# if [[ $arch == x86_64 ]]; then
+#     pip3 install -r ./requirements_pc.txt
+# fi
 if [[ -z "$TIDL_TOOLS_PATH" ]]; then
     wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/tidl_tools.tar.gz
     tar -xzf tidl_tools.tar.gz
@@ -308,67 +233,92 @@ if [[ -z "$TIDL_TOOLS_PATH" ]]; then
     export TIDL_TOOLS_PATH=$(pwd)
     cd ..
 fi
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$TIDL_TOOLS_PATH:$TIDL_TOOLS_PATH/osrt_deps
+export DEVICE=j7
 
-
-if [[ $arch == x86_64 ]]; then
-    if [ $skip_arm_gcc_download -eq 0 ]; then
+if [[ $arch == x86_64 && $skip_arm_gcc_download -eq 0 ]]; then
+    if [ ! -d gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu ];then
         wget https://developer.arm.com/-/media/Files/downloads/gnu-a/9.2-2019.12/binrel/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu.tar.xz
         tar -xf gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu.tar.xz
         export ARM64_GCC_PATH=$(pwd)/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu
+    else
+        echo "skipping gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu download: found $(pwd)/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu"
     fi
 fi
 
 if [ $skip_cpp_deps -eq 0 ]; then
     if [[ $arch == x86_64 ]]; then
-        cd  $TIDL_TOOLS_PATH
-        wget https://github.com/TexasInstruments/edgeai-tidl-tools/releases/download/08_02_00_01-rc1/libonnxruntime.so.1.7.0
-        wget https://github.com/TexasInstruments/edgeai-tidl-tools/releases/download/08.00.00-rc2/libtensorflow-lite.a
-        ln -s libonnxruntime.so.1.7.0 libonnxruntime.so
-        export LD_LIBRARY_PATH=$TIDL_TOOLS_PATH
-        cd -
-    fi
-    cd $HOME
-    git clone --depth 1 --single-branch -b tidl-j7 https://github.com/TexasInstruments/neo-ai-dlr
-    cd neo-ai-dlr
-    git submodule init
-    git submodule update --init --recursive
-    cd ..
-    git clone --depth 1 --single-branch -b tidl-j7 https://github.com/TexasInstruments/onnxruntime.git
-    if [[ $DEVICE == j7 ]]; then
-        echo "Device j7: Downloading tflite 2.4"
-        download_tflite2.4
-    elif [[  $DEVICE == am62 ]]; then
-        echo "Device am62: Downloading tflite 2.8"
-        download_tflite_2.8
-        if [[ $arch == x86_64 ]]; then
-            #to update the cmake
-            cd $SCRIPTDIR
-            wget https://github.com/Kitware/CMake/releases/download/v3.22.1/cmake-3.22.1-linux-x86_64.sh
-            chmod u+x cmake-3.22.1-linux-x86_64.sh 
-            mkdir $SCRIPTDIR/cmake
-            ./cmake-3.22.1-linux-x86_64.sh --skip-license --prefix=$SCRIPTDIR/cmake
-            export PATH=$SCRIPTDIR/cmake/bin:$PATH
-
-            compile_tflite_2.8
+        mkdir  $TIDL_TOOLS_PATH/osrt_deps
+        cd  $TIDL_TOOLS_PATH/osrt_deps
+        # onnx
+        if [ ! -d onnxruntime ];then
+            wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/x86_64/onnx_1.7.0_u18.tar.gz
+            tar -xf onnx_1.7.0_u18.tar.gz
+            cp onnx_1.7.0_u18/libonnxruntime.so .
+            cp onnx_1.7.0_u18/onnxruntime . -r 
+            ln -s libonnxruntime.so.1.7.0 libonnxruntime.so
+            rm onnx_1.7.0_u18.tar.gz  onnx_1.7.0_u18   -r
+        else
+            echo "skipping onnxruntime setup: found $TIDL_TOOLS_PATH/osrt_deps/onnxruntime"
+            echo "To redo the setup delete:$TIDL_TOOLS_PATH/osrt_deps/onnxruntime and run this script again"
         fi
-    else
-        echo 'unknown DEVICE: "'$DEVICE'"'
-        return
-    fi
+        # tflite_2.8
+        if [ ! -d tensorflow ];then
+            wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/x86_64/tflite_2.8_u18.tar.gz
+            tar -xf tflite_2.8_u18.tar.gz        
+            cp tflite_2.8_u18/libtensorflow-lite.a .
+            cp tflite_2.8_u18/tensorflow/ . -r
+            cp tflite_2.8_u18/build/ tflite_2.8_x86 -r
+            rm tflite_2.8_u18.tar.gz  tflite_2.8_u18  -r
+        else
+            echo "skipping tensorflow setup: found $TIDL_TOOLS_PATH/osrt_deps/tensorflow"
+            echo "To redo the setup delete:$TIDL_TOOLS_PATH/osrt_deps/tensorflow and run this script again"
+        fi
 
-    download_opencv
-    if  [[ $arch == x86_64 ]] ; then
-        cd $HOME        
-        compile_opencv
-    fi
+        #opencv
+        if [ ! -d  opencv-4.1.0 ];then
+            wget https://github.com/opencv/opencv/archive/4.1.0.zip
+            unzip 4.1.0.zip  
+            rm 4.1.0.zip
+            if  [[ $arch == x86_64 ]] ; then
+                cd $HOME        
+                compile_opencv
+            fi
+        else
+            echo "skipping opencv-4.1.0 setup: found $TIDL_TOOLS_PATH/osrt_deps/opencv-4.1.0"
+            echo "To redo the setup delete:$TIDL_TOOLS_PATH/osrt_deps/opencv-4.1.0 and run this script again"
+        fi
+
+        #dlr
+        if [ ! -d neo-ai-dlr ];then
+            wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/x86_64/dlr_1.10.0_x86.tar.gz
+            tar -xf dlr_1.10.0_x86.tar.gz
+            cp dlr_1.10.0_x86//neo-ai-dlr . -r
+            rm dlr_1.10.0_x86.tar.gz  dlr_1.10.0_x86  -r
+        else
+            echo "skipping neo-ai-dlr setup: found $TIDL_TOOLS_PATH/osrt_deps/neo-ai-dlr"
+            echo "To redo the setup delete:$TIDL_TOOLS_PATH/osrt_deps/neo-ai-dlr and run this script again"
+        fi
+
+dlr_loc=$(python3  << EOF
+import dlr 
+print(dlr.__file__)
+EOF
+)
+        suffix="__init__.py"
+        dlr_loc=${dlr_loc%"$suffix"}
+        cp $dlr_loc/libdlr.so .
+
+    fi  
+
 fi
 
-if [ $skip_armnn -eq 0 ]; then
-    if [[ $arch == x86_64 ]]; then
-        download_armnn_repo
-        download_armnn_lib
-    fi
-fi
+# if [ $skip_armnn -eq 0 ]; then
+#     if [[ $arch == x86_64 ]]; then
+#         download_armnn_repo
+#         download_armnn_lib
+#     fi
+# fi
 
 cd $SCRIPTDIR
 

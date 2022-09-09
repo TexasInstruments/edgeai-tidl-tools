@@ -22,34 +22,31 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/../bin/${CMAKE_BUILD_TYPE
 
 
 if(NOT TENSORFLOW_INSTALL_DIR)
-  if (EXISTS $ENV{HOME}/tensorflow)
-    set(TENSORFLOW_INSTALL_DIR $ENV{HOME}/tensorflow)
+  if (EXISTS $ENV{TIDL_TOOLS_PATH}/osrt_deps/tensorflow)
+    set(TENSORFLOW_INSTALL_DIR $ENV{TIDL_TOOLS_PATH}/osrt_deps/tensorflow)
   endif()
 endif()
 
 if(NOT ONNXRT_INSTALL_DIR)
-  if (EXISTS $ENV{HOME}/onnxruntime)
-    set(ONNXRT_INSTALL_DIR $ENV{HOME}/onnxruntime)
+  if (EXISTS $ENV{TIDL_TOOLS_PATH}/osrt_deps//onnxruntime)
+    set(ONNXRT_INSTALL_DIR $ENV{TIDL_TOOLS_PATH}/osrt_deps/onnxruntime)
   endif()
 endif()
 
 if(NOT DLR_INSTALL_DIR)
-  if (EXISTS $ENV{HOME}/neo-ai-dlr)
-    set(DLR_INSTALL_DIR $ENV{HOME}/neo-ai-dlr)
+  if (EXISTS $ENV{TIDL_TOOLS_PATH}/osrt_deps/neo-ai-dlr)
+    set(DLR_INSTALL_DIR $ENV{TIDL_TOOLS_PATH}/osrt_deps/neo-ai-dlr)
   endif()
 endif()
 
-# Set this var in case of ubuntu 18 conainer on J721E
-set(OPENCV_INSTALL_DIR $ENV{OPENCV_INSTALL_DIR})
-if (${HOST_CPU} STREQUAL  "x86")
-  if(NOT OPENCV_INSTALL_DIR)
-    if (EXISTS $ENV{HOME}/opencv-4.1.0)
-      set(OPENCV_INSTALL_DIR $ENV{HOME}/opencv-4.1.0)
-    else()
-      message(WARNING "OPENCV_INSTALL_DIR is not set")
-    endif()
+if(NOT OPENCV_INSTALL_DIR)
+  if (EXISTS $ENV{TIDL_TOOLS_PATH}/osrt_deps/opencv-4.1.0)
+    set(OPENCV_INSTALL_DIR $ENV{TIDL_TOOLS_PATH}/osrt_deps/opencv-4.1.0)
+  else()
+    message(WARNING "OPENCV_INSTALL_DIR is not set")
   endif()
 endif()
+
 
 if(ARMNN_ENABLE)
   if( ${TARGET_CPU} STREQUAL  "x86" OR ${TARGET_DEVICE} STREQUAL "j7" )
@@ -201,8 +198,6 @@ endif()
 if(${TARGET_DEVICE} STREQUAL  "j7" AND  (${TARGET_CPU} STREQUAL  "x86" AND ${HOST_CPU} STREQUAL  "x86"))
   message(STATUS "Compiling for x86 with j7 config")
   add_compile_options(-DDEVICE_J7=1)
-  #disable xnn tflite 2.4
-  add_compile_options(-DXNN_ENABLE=0)
   set(CMAKE_C_COMPILER gcc)
   set(CMAKE_CXX_COMPILER g++)
 
@@ -213,23 +208,21 @@ if(${TARGET_DEVICE} STREQUAL  "j7" AND  (${TARGET_CPU} STREQUAL  "x86" AND ${HOS
                   ${OPENCV_INSTALL_DIR}/modules/core/include
                   #common
                   /usr/lib 
-                  /usr/local/dlr
-                  /usr/lib/aarch64-linux-gnu
-                  /usr/lib/python3.8/site-packages/dlr/
-                  $ENV{HOME}/.local/dlr/                 
+                  /usr/lib/aarch64-linux-gnu                  
                   # Enable these when migrating to tflite 2.8
-                  $ENV{TIDL_TOOLS_PATH}/tflite_2.8_x86/ruy-build/ruy
-                  $ENV{TIDL_TOOLS_PATH}/tflite_2.8_x86/xnnpack-build
-                  $ENV{TIDL_TOOLS_PATH}/tflite_2.8_x86/pthreadpool
-                  $ENV{TIDL_TOOLS_PATH}/tflite_2.8_x86/fft2d-build
-                  $ENV{TIDL_TOOLS_PATH}/tflite_2.8_x86/cpuinfo-build
-                  $ENV{TIDL_TOOLS_PATH}/tflite_2.8_x86/flatbuffers-build
-                  $ENV{TIDL_TOOLS_PATH}/tflite_2.8_x86/clog-build
-                  $ENV{TIDL_TOOLS_PATH}/tflite_2.8_x86/farmhash-build
+                  $ENV{TIDL_TOOLS_PATH}/osrt_deps/tflite_2.8_x86/ruy-build/ruy
+                  $ENV{TIDL_TOOLS_PATH}/osrt_deps/tflite_2.8_x86/xnnpack-build
+                  $ENV{TIDL_TOOLS_PATH}/osrt_deps/tflite_2.8_x86/pthreadpool
+                  $ENV{TIDL_TOOLS_PATH}/osrt_deps/tflite_2.8_x86/fft2d-build
+                  $ENV{TIDL_TOOLS_PATH}/osrt_deps/tflite_2.8_x86/cpuinfo-build
+                  $ENV{TIDL_TOOLS_PATH}/osrt_deps/tflite_2.8_x86/flatbuffers-build
+                  $ENV{TIDL_TOOLS_PATH}/osrt_deps/tflite_2.8_x86/clog-build
+                  $ENV{TIDL_TOOLS_PATH}/osrt_deps/tflite_2.8_x86/farmhash-build
                   # Enable these when migrating to tflite 2.8
 
                   #tidl tools lib
                   $ENV{TIDL_TOOLS_PATH}
+                  $ENV{TIDL_TOOLS_PATH}/osrt_deps
 
   )
   set(SYSTEM_LINK_LIBS
@@ -243,7 +236,7 @@ if(${TARGET_DEVICE} STREQUAL  "j7" AND  (${TARGET_CPU} STREQUAL  "x86" AND ${HOS
                   IlmImf
                   zlib
                   libjasper
-                  # dlr
+                  dlr
                   # Enable these when migrating to tflite 2.8
                   flatbuffers
                   fft2d_fftsg2d
@@ -305,6 +298,7 @@ if(${TARGET_DEVICE} STREQUAL  "j7" AND  (${TARGET_CPU} STREQUAL  "x86" AND ${HOS
                   
                   #tflite 2.8
                   ${TENSORFLOW_INSTALL_DIR}/tensorflow/lite/tools/pip_package/gen/tflite_pip/python3/cmake_build/flatbuffers/include/                  
+                  ${TENSORFLOW_INSTALL_DIR}/
 
                   ${ONNXRT_INSTALL_DIR}/include
                   ${ONNXRT_INSTALL_DIR}/include/onnxruntime
@@ -678,11 +672,6 @@ if( ((${TARGET_DEVICE} STREQUAL  "j7") AND (${TARGET_CPU} STREQUAL  "arm" AND ${
   )
 endif()
 
-if (EXISTS $ENV{CONDA_PREFIX}/dlr)
-link_directories(
-                 $ENV{CONDA_PREFIX}/dlr
-                 )
-endif()
 
 if(ARMNN_ENABLE)
   include_directories(
