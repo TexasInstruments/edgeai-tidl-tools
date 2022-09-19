@@ -147,5 +147,9 @@ if [   -d $HOME/required_libs ];then
     ln -s /usr/lib/libonnxruntime.so /usr/lib/libonnxruntime.so.1.7.0
 fi
 
+#Cleanup
+cd $HOME
+rm -rf required_libs
+rm -rf tidl_tools
 
 cd $SCRIPTDIR

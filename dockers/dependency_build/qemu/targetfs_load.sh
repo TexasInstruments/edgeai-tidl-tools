@@ -94,7 +94,7 @@ if [  ! -f  $TARGET_FS_PATH/usr/include/itidl_rt.h ];then
     rm tidl_tools.tar.gz
     cp tidl_tools/itidl_rt.h  $TARGET_FS_PATH/usr/include/
     cp  tidl_tools/itvm_rt.h  $TARGET_FS_PATH/usr/include/
-    cd $ $TARGET_FS_PATH/home/root/
+    cd $TARGET_FS_PATH/home/root/
 else
     echo "skipping itidl_rt.h setup: found /usr/include/itidl_rt.h"
     echo "To redo the setup delete: /usr/include/itidl_rt.h and run this script again"
@@ -104,6 +104,11 @@ if [  ! -f  $TARGET_FS_PATH/usr/dlr/libdlr.so ];then
     mkdir  $TARGET_FS_PATH/usr/dlr
     cp  $TARGET_FS_PATH/usr/lib/libdlr.so  $TARGET_FS_PATH/usr/dlr/
 fi
+
+#Cleanup
+cd $TARGET_FS_PATH/home/root/
+rm -rf required_libs
+rm -rf tidl_tools
 
 echo "export the following vars with correc value in target machine"
 echo "export TIDL_TOOLS_PATH="
