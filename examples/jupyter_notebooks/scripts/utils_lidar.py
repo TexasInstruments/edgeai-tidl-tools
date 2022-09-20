@@ -68,6 +68,7 @@ def voxelization(lidar_data=[], params=[], voxel_data=[], indices=[], scale_fact
         channel_pitch = params['max_points_per_voxel'] * line_pitch
         x_offset = params['voxel_size_x'] / 2 + params['min_x']
         y_offset = params['voxel_size_y'] / 2 + params['min_y']
+        z_offset = params['voxel_size_z'] / 2 + params['min_z']
 
         for i in range(num_non_empty_voxels):
             x = 0
@@ -85,7 +86,7 @@ def voxelization(lidar_data=[], params=[], voxel_data=[], indices=[], scale_fact
 
             voxel_center_y = (int)(indices[0][i] / params['num_voxel_x'])
             voxel_center_x = (int)(indices[0][i] - ((int)(voxel_center_y)) * params['num_voxel_x'])
-
+            voxel_center_z = 0
 
             voxel_center_x *= params['voxel_size_x']
             voxel_center_x += x_offset
@@ -93,17 +94,22 @@ def voxelization(lidar_data=[], params=[], voxel_data=[], indices=[], scale_fact
             voxel_center_y *= params['voxel_size_y']
             voxel_center_y += y_offset
 
+            voxel_center_z *= params['voxel_size_z']
+            voxel_center_z += z_offset
+
             for j in range(num_points[i]):
                 voxel_data[4][j][i] = voxel_data[0][j][i] - x_avg
                 voxel_data[5][j][i] = voxel_data[1][j][i] - y_avg
                 voxel_data[6][j][i] = voxel_data[2][j][i] - z_avg
                 voxel_data[7][j][i] = voxel_data[0][j][i] - voxel_center_x * scale_fact
                 voxel_data[8][j][i] = voxel_data[1][j][i] - voxel_center_y * scale_fact
+                voxel_data[9][j][i] = voxel_data[2][j][i] - voxel_center_z * scale_fact
 
             #/*looks like bug in python mmdetection3d code, hence below code is to mimic the mmdetect behaviour*/
             for j in range (num_points[i]):
                 voxel_data[0][j][i] = voxel_data[7][j][i]
                 voxel_data[1][j][i] = voxel_data[8][j][i]
+                voxel_data[2][j][i] = voxel_data[9][j][i]
 
         # Number of points in each voxel is not given to algorithm, here '-1' acts as marker position, as zero is valid entry
         indices[0][num_non_empty_voxels] = -1
@@ -317,3 +323,4 @@ def align_img_and_pc(img, pts, calib_dir_lines):
     lidr_2_img = P @ R_cam_to_rect @ Tr_velo_to_cam
 
     return points, lidr_2_img
+
