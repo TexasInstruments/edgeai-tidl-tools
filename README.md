@@ -22,7 +22,7 @@ This repository contains examples developed for Deep learning runtime (DLRT) off
  ## Supported Devices
 - Following table shows the devices supported by this repository
 - Device with hardware acceleration have TI-DSP and MMA(Matrix Multiplier Accelerator) for faster execution. 
-  | DEVICE  | Hardware Accelerate |
+  | DEVICE  | Hardware Acceleration |
     | ------- |:------:|
     |J721E |:heavy_check_mark:|
     |AM62 |:x:|
