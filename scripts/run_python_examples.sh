@@ -15,12 +15,14 @@ if [ -z "$DEVICE" ];then
     echo "DEVICE not defined. Run either of below commands"
     echo "export DEVICE=j7"
     echo "export DEVICE=am62"
+    echo "export DEVICE=am62a"
     return
 else 
-    if [ $DEVICE != j7 ] && [ $DEVICE != am62 ]; then
+    if [ $DEVICE != j7 ] && [ $DEVICE != am62 ] && [ $DEVICE != am62a ]; then
         echo "DEVICE shell var not set correctly. Set"
         echo "export DEVICE=j7"
         echo "export DEVICE=am62"
+        echo "export DEVICE=am62a"
         return
     fi
 fi
@@ -46,7 +48,7 @@ if [[ $DEVICE == j7 ]]; then
     fi
     python3  dlr_inference_example.py 
     cd $CURDIR
-elif [[ $DEVICE == am62 ]]; then
+elif [[ $DEVICE == am62 || $DEVICE == am62a]]; then
     cd $CURDIR/examples/osrt_python/tfl
     python3 tflrt_delegate.py
     cd $CURDIR/examples/osrt_python/ort

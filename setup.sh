@@ -206,8 +206,25 @@ else
 return
 fi
 
-#######################################################################
-## Installing dependencies
+if [ -z "$DEVICE" ];then
+    echo "DEVICE not defined. Run either of below commands"
+    echo "export DEVICE=j7"
+    echo "export DEVICE=am62"
+    echo "export DEVICE=am62a"
+    return
+else 
+    if [ $DEVICE != j7 ] && [ $DEVICE != am62 ] && [ $DEVICE != am62a ]; then
+        echo "DEVICE shell var not set correctly. Set"
+        echo "export DEVICE=j7"
+        echo "export DEVICE=am62"
+        echo "export DEVICE=am62a"
+        return
+    fi
+fi
+
+
+# ######################################################################
+# # Installing dependencies
 echo 'Installing python packages...'
 if [[ $arch == x86_64 ]]; then
     #TODO8.5 update the link inside requirement PC
