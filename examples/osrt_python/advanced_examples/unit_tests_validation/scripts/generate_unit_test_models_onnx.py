@@ -1,3 +1,5 @@
+## This script contains some examples of creating unit layer level test cases for ONNX models
+
 import torch
 import torch.nn as nn
 import onnx
@@ -11,7 +13,7 @@ input3 = torch.randn(1, 3, 1, 1)
 input4 = torch.randn(11, 1, 128)
 
 models_path = "../unit_test_models/"
-
+"""
 #------------------------------------------------------------------------------------------
 class AvgPoolTest(nn.Module):
     def __init__(self):
@@ -43,7 +45,7 @@ if __name__ == "__main__":
     onnx_model = onnx.load(models_path + "add_eltwise.onnx")
     model_simp, check = simplify(onnx_model)
     onnx.save(model_simp, models_path + "add_eltwise.onnx")
-
+"""
 #------------------------------------------------------------------------------------------
 class AddNonEltTest(nn.Module):
     def forward(self,x, y):

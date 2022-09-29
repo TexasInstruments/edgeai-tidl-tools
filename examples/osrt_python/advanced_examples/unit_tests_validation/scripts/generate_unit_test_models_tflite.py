@@ -1,3 +1,5 @@
+## This script contains some examples of creating unit layer level test cases for tflite models
+
 import tensorflow as tf
 import numpy as np
 from tensorflow import keras

@@ -23,16 +23,10 @@ required_options = {
 parser = argparse.ArgumentParser()
 parser.add_argument('-c','--compile', action='store_true', help='Run in Model compilation mode')
 parser.add_argument('-d','--disable_offload', action='store_true',  help='Disable offload to TIDL')
-parser.add_argument('-u','--unit_test', action='store_true', help='Run unit test case')
 
 args = parser.parse_args()
 os.environ["TIDL_RT_PERFSTATS"] = "1"
 
-calib_images = ['../../../../../test_data/airshow.jpg',
-                '../../../../../test_data/ADE_val_00001801.jpg']
-class_test_images = ['../../../../../test_data/airshow.jpg']
-od_test_images    = ['../../../../../test_data/ADE_val_00001801.jpg']
-seg_test_images   = ['../../../../../test_data/ADE_val_00001801.jpg']
 sem = multiprocessing.Semaphore(0)
 if platform.machine() == 'aarch64':
     ncpus = 1
@@ -71,47 +65,17 @@ def get_benchmark_output(interpreter):
 
 
 
-def infer_image(interpreter, image_files, config):
+def infer_image(interpreter):
   input_details = interpreter.get_input_details()
   output_details = interpreter.get_output_details()
-  if args.unit_test:
-    for i in range(len(input_details)):
-        np.random.seed(0)
-        input_data = np.random.rand(*input_details[i]['shape']).astype(input_details[i]['dtype'])
-        new_height = 1
-        new_width = 1
-        imgs    = Image.open(image_files[i]).convert('RGB').resize((1, 1), PIL.Image.LANCZOS)
-        interpreter.allocate_tensors()
-        interpreter.set_tensor(input_details[i]['index'], input_data)
-  else:
-    floating_model = input_details[0]['dtype'] == np.float32
-    batch = input_details[0]['shape'][0]
-    height = input_details[0]['shape'][1]
-    width  = input_details[0]['shape'][2]
-    channel = input_details[0]['shape'][3]
-    new_height = height  #valid height for modified resolution for given network
-    new_width = width  #valid width for modified resolution for given network
-    imgs    = []
-    # copy image data in input_data if num_batch is more than 1 
-    shape = [batch, new_height, new_width, channel]
-    input_data = np.zeros(shape)
-    for i in range(batch):
-        imgs.append(Image.open(image_files[i]).convert('RGB').resize((new_width, new_height), PIL.Image.LANCZOS))
-        temp_input_data = np.expand_dims(imgs[i], axis=0)  
-        input_data[i] = temp_input_data[0] 
-    if floating_model:
-        input_data = np.float32(input_data)
-        for mean, scale, ch in zip(config['mean'], config['std'], range(input_data.shape[3])):
-            input_data[:,:,:, ch] = ((input_data[:,:,:, ch]- mean) * scale)
-    else:
-        input_data = np.uint8(input_data)
-        config['mean'] = [0, 0, 0]
-        config['std']  = [1, 1, 1]
+  outputs = {}
 
-    interpreter.resize_tensor_input(input_details[0]['index'], [batch, new_height, new_width, channel])
+  for i in range(len(input_details)):
+    np.random.seed(0)
+    input_data = np.random.rand(*input_details[i]['shape']).astype(input_details[i]['dtype'])
     interpreter.allocate_tensors()
-    interpreter.set_tensor(input_details[0]['index'], input_data)
-  
+    interpreter.set_tensor(input_details[i]['index'], input_data)
+ 
   start_time = time.time()
   #interpreter invoke call
   interpreter.invoke()
@@ -123,22 +87,15 @@ def infer_image(interpreter, image_files, config):
   else:
     copy_time = proc_time = sub_graphs_proc_time = ddr_write = ddr_read  = 0
     proc_time = (stop_time - start_time) * 1000000000
-  outputs = [interpreter.get_tensor(output_detail['index']) for output_detail in output_details]
-  return imgs, outputs, proc_time, sub_graphs_proc_time, ddr_write, ddr_read, new_height, new_width
+  for output_detail in output_details:
+    outputs[output_detail['index']] = interpreter.get_tensor(output_detail['index'])
+
+  ## can return output name and corresponding tensor as dictionary, and save using output name to identify which output
+  return outputs, proc_time, sub_graphs_proc_time, ddr_write, ddr_read
 
 def run_model(model, mIdx):
     print("\nRunning_Model : ", model)
-    #set input images for demo
-    if platform.machine() != 'aarch64':
-        download_model(models_configs, model)
     config = models_configs[model]
- 
-    if config['model_type'] == 'classification':
-        test_images = class_test_images
-    elif config['model_type'] == 'od':
-        test_images = od_test_images
-    elif config['model_type'] == 'seg':
-        test_images = seg_test_images
 
     #set delegate options
     delegate_options = {}
@@ -158,16 +115,6 @@ def run_model(model, mIdx):
             [os.remove(os.path.join(root, f)) for f in files]
             [os.rmdir(os.path.join(root, d)) for d in dirs]
 
-    if(args.compile == True):
-        input_image = calib_images
-    else:
-        input_image = test_images 
-
-    numFrames = config['num_images']
-    if(args.compile):
-        if numFrames > delegate_options['advanced_options:calibration_frames']:
-            numFrames = delegate_options['advanced_options:calibration_frames']
-
     ############   set interpreter  ################################
     if args.disable_offload : 
         interpreter = tflite.Interpreter(model_path=config['model_path'], num_threads=2, experimental_preserve_all_tensors=True)
@@ -180,71 +127,37 @@ def run_model(model, mIdx):
     ################################################################
     
     # run interpreter
-    for i in range(numFrames):
-        start_index = i%len(input_image)
-        input_details = interpreter.get_input_details()
-        batch = input_details[0]['shape'][0]
-        input_images = []
-        #for batch > 1 input images will be more than one in single input tensor
-        for j in range(batch):
-            input_images.append(input_image[(start_index+j)%len(input_image)])
-        imgs, output, proc_time, sub_graph_time, ddr_write, ddr_read, new_height, new_width  = infer_image(interpreter, input_images, config)
-        total_proc_time = total_proc_time + proc_time if ('total_proc_time' in locals()) else proc_time
-        sub_graphs_time = sub_graphs_time + sub_graph_time if ('sub_graphs_time' in locals()) else sub_graph_time
-        total_ddr_write = total_ddr_write + ddr_write if ('total_ddr_write' in locals()) else ddr_write
-        total_ddr_read  = total_ddr_read + ddr_read if ('total_ddr_read' in locals()) else ddr_read
+    outputs, proc_time, sub_graph_time, ddr_write, ddr_read  = infer_image(interpreter)
+    total_proc_time = total_proc_time + proc_time if ('total_proc_time' in locals()) else proc_time
+    sub_graphs_time = sub_graphs_time + sub_graph_time if ('sub_graphs_time' in locals()) else sub_graph_time
+    total_ddr_write = total_ddr_write + ddr_write if ('total_ddr_write' in locals()) else ddr_write
+    total_ddr_read  = total_ddr_read + ddr_read if ('total_ddr_read' in locals()) else ddr_read
     total_proc_time = total_proc_time/1000000
     sub_graphs_time = sub_graphs_time/1000000
-    output_file_name = "py_out_"+model+'_'+os.path.basename(input_image[i%len(input_image)])
     
+    #### Example code to save intermediate layer outputs for comparison with TIDL outputs
+    ##
     # for t in interpreter.get_tensor_details():
     #     print(interpreter.get_tensor(t['index']))
+    #
     # ip = interpreter.get_tensor(20)
-    # ip = np.transpose(ip,[0,3,1,2])
-    # ip.tofile("/home/a0230315/workarea/edgeai/edgeai-tidl-tools-clean/examples/osrt_python/advanced_examples/unit_tests_validation/traces_ref/OUT20.bin")
+    # ip = np.transpose(ip,[0,3,1,2]) ## TIDL output in NCHW format and Tflite traces in NHWC format --  if number of input dimensions = 4, else transpose not needed
+    # ip.tofile("PATH/edgeai-tidl-tools/examples/osrt_python/advanced_examples/unit_tests_validation/traces_ref/OUT20.bin")
+    
     # output post processing
     if(args.compile == False):  # post processing enabled only for inference
-        images = []
-        if(args.unit_test):
-            out = np.array(output, dtype = np.float32)
+        for output_index, output_tensor in outputs.items():
+            out = np.array(output_tensor, dtype = np.float32)
             if(args.disable_offload):
-                out.tofile('../outputs/output_ref/tflite/' + os.path.basename(config['model_path']) + '.bin')
+                out.tofile('../outputs/output_ref/tflite/' + os.path.basename(config['model_path']) + '_' + str(output_index) + '.bin') # save as model name + output name
             else:
-                out.tofile('../outputs/output_test/tflite/' + os.path.basename(config['model_path']) + '.bin')
-        else:
-            if config['model_type'] == 'classification':
-                for j in range(batch):         
-                    classes, image = get_class_labels(output[0][j],imgs[j])
-                    images.append(image)
-                    print("\n", classes)
-            elif config['model_type'] == 'od':
-                for j in range(batch):
-                    classes, image = det_box_overlay(output, imgs[j], config['od_type'])
-                    images.append(image)
-            elif config['model_type'] == 'seg':
-                for j in range(batch):
-                    classes, image = seg_mask_overlay(output[0][j], imgs[j])
-                    images.append(image)
-            else:
-                print("Not a valid model type")
-
-            for j in range(batch):
-                output_file_name = "py_out_"+model+'_'+os.path.basename(input_images[j])
-                # print("\nSaving image to ", output_images_folder)
-                # if not os.path.exists(output_images_folder):
-                #     os.makedirs(output_images_folder)
-                # images[j].save(output_images_folder + output_file_name, "JPEG")
-        
-            if (args.compile or args.disable_offload):
-                gen_param_yaml(delegate_options['artifacts_folder'], config, int(new_height), int(new_width))
-    log = f'\n \nCompleted_Model : {mIdx+1:5d}, Name : {model:50s}, Total time : {total_proc_time/(i+1):10.2f}, Offload Time : {sub_graphs_time/(i+1):10.2f} , DDR RW MBs : {(total_ddr_write+total_ddr_read)/(i+1):10.2f}, Output File : {output_file_name}\n \n ' #{classes} \n \n'
-    print(log) 
+                out.tofile('../outputs/output_test/tflite/' + os.path.basename(config['model_path']) + '_' + str(output_index) + '.bin')
+    print('Completed model - ', os.path.basename(config['model_path']))
     if ncpus > 1:
         sem.release()
 
-models = ['cl-tfl-mobilenet_v1_1.0_224', 'ss-tfl-deeplabv3_mnv2_ade20k_float', 'od-tfl-ssd_mobilenet_v2_300_float']
 models = ['add_const']
-models = ['converted_model_2D_W9_keras']
+
 log = f'Running {len(models)} Models - {models}\n'
 print(log)
 
