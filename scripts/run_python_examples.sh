@@ -48,12 +48,24 @@ if [[ $DEVICE == j7 ]]; then
     fi
     python3  dlr_inference_example.py 
     cd $CURDIR
-elif [[ $DEVICE == am62 || $DEVICE == am62a]]; then
+elif [[ $DEVICE == am62 ]]; then
     cd $CURDIR/examples/osrt_python/tfl
     python3 tflrt_delegate.py
     cd $CURDIR/examples/osrt_python/ort
     python3 onnxrt_ep.py 
     cd $CURDIR
+elif [[ $DEVICE == am62a ]]; then
+    cd $CURDIR/examples/osrt_python/tfl
+    if [[ $arch == x86_64 ]]; then
+    python3 tflrt_delegate.py -c
+    fi
+    python3 tflrt_delegate.py
+    cd $CURDIR/examples/osrt_python/ort
+    if [[ $arch == x86_64 ]]; then
+    python3 onnxrt_ep.py -c
+    fi
+    python3 onnxrt_ep.py
+    cd $CURDIR    
 fi
 
 
