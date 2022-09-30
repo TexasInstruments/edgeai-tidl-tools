@@ -240,6 +240,15 @@ if [[ -z "$TIDL_TOOLS_PATH" ]]; then
     export TIDL_TOOLS_PATH=$(pwd)
     cd ..
 fi
+
+
+if grep -q avx /proc/cpuinfo; then
+    echo "AVX support found"
+else
+    echo "AVX support not found exiting"
+    return
+fi
+
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$TIDL_TOOLS_PATH:$TIDL_TOOLS_PATH/osrt_deps
 
 if [[ $arch == x86_64 && $skip_arm_gcc_download -eq 0 ]]; then
