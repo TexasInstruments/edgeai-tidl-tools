@@ -204,7 +204,6 @@ int RunInference(Settings* s) {
     printf("Invoke  : ERROR: Unable to open network file %s \n", net_name);
     return -1;
   }
-  sTIDLRT_PerfStats_t *stats = 
   prms.stats = (sTIDLRT_PerfStats_t*)malloc(sizeof(sTIDLRT_PerfStats_t));
 
   fseek(fp_network, 0, SEEK_END);
@@ -244,12 +243,11 @@ int RunInference(Settings* s) {
   status = TIDLRT_setTensorDefault(in[j]);
   in[j]->layout = TIDLRT_LT_NHWC;
   //strcpy((char *)in[j]->name, tensor->name);
-  in[j]->elementType = TIDLRT_Float32;
-  int32_t in_tensor_szie = 224 * 224 * 3 * sizeof(float);
+  in[j]->elementType = TIDLRT_Uint8;
+  int32_t in_tensor_szie = 224 * 224 * 3 * sizeof(uint8_t);
 
   if (s->device_mem)
   { 
-      in_ptrs[j] =
       in[j]->ptr =  TIDLRT_allocSharedMem(64, in_tensor_szie);
       in[j]->memType = TIDLRT_MEM_SHARED;
   }
@@ -268,7 +266,6 @@ int RunInference(Settings* s) {
 
   if (s->device_mem)
   { 
-      out_ptrs[j] =
       out[j]->ptr =  TIDLRT_allocSharedMem(64, out_tensor_szie);
       out[j]->memType = TIDLRT_MEM_SHARED;
   }
@@ -277,8 +274,7 @@ int RunInference(Settings* s) {
       out[j]->ptr =  malloc(out_tensor_szie);
   }
 
-  status = preprocImage<float>(s->input_image_name, (float*)in[j]->ptr, 224, 224, 3, s->input_mean, s->input_std);
-
+  status = preprocImage<uint8_t>(s->input_image_name, (uint8_t*)in[j]->ptr, 224, 224, 3, s->input_mean, s->input_std);
   LOG(INFO) << "invoked \n";
 
   struct timeval start_time, stop_time;
@@ -326,14 +322,14 @@ int RunInference(Settings* s) {
     {
       if (in_ptrs[i])
       {
-        TIDLRT_freeSharedMem(in_ptrs[i]);
+        TIDLRT_freeSharedMem(in[i]->ptr);
       }
     }
     for (uint32_t i = 0; i < 1; i++)
     {
       if (out_ptrs[i])
       {
-        TIDLRT_freeSharedMem(out_ptrs[i]);
+        TIDLRT_freeSharedMem(in[i]->ptr);
       }
     }
   }

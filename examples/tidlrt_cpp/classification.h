@@ -75,8 +75,8 @@ struct Settings {
   bool gl_backend = false;
   bool hexagon_delegate = false;
   int loop_count = 1;
-  float input_mean = 127.5f;
-  float input_std = 127.5f;
+  float input_mean = 0;
+  float input_std = 1;
   std::string artifact_path = "";
   std::string input_image_name = "./grace_hopper.bmp";
   std::string labels_file_name = "./labels.txt";
