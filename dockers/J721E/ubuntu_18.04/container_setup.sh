@@ -143,7 +143,10 @@ if [   -d $HOME/required_libs ];then
     ln -s  /usr/lib/libtidl_tfl_delegate.so.1.0 /usr/lib/libtidl_tfl_delegate.so
 fi
 
-# rm -r $HOME/required_libs
+#Cleanup
+cd $HOME
+rm -rf required_libs
+rm -rf tidl_tools
 
 
 cd $SCRIPTDIR

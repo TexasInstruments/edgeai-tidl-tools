@@ -123,8 +123,10 @@ fi
 rm /usr/lib/libonnxruntime.so.1.7.0
 ln -s /usr/lib/libonnxruntime.so /usr/lib/libonnxruntime.so.1.7.0
 
-rm -r $HOME/required_libs
-
+#Cleanup
+cd $HOME
+rm -rf required_libs
+rm -rf tidl_tools
 
 echo "export the following vars"
 echo "export DEVICE=j7"
