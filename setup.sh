@@ -242,10 +242,10 @@ if [[ -z "$TIDL_TOOLS_PATH" ]]; then
 fi
 
 
-if grep -q avx /proc/cpuinfo; then
-    echo "AVX support found"
+if grep -q avx2 /proc/cpuinfo; then
+    echo "AVX2 support found"
 else
-    echo "AVX support not found exiting"
+    echo "AVX2 support not found exiting"
     return
 fi
 
