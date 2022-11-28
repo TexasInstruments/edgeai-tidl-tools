@@ -62,7 +62,9 @@ optional_options = {
 "tensor_bits":tensor_bits,
 "debug_level":debug_level,
 "max_num_subgraphs":max_num_subgraphs,
-"deny_list":"", #"MaxPool",
+"deny_list":"", #"MaxPool","1,43","GlobalAveragePool" 
+"deny_list:layer_type":"GlobalAveragePool,Flatten", #"MaxPool',"MaxPool,GlobalAveragePool","1,43",'GlobalAveragePool,Flatten"
+"deny_list:layer_name":"",#"GlobalAveragePool_97,Flatten_98", "19,18,22","MobilenetV2/expanded_conv_2d/add"
 "accuracy_level":accuracy_level,
 "advanced_options:calibration_frames": calibration_frames,
 "advanced_options:calibration_iterations": calibration_iterations,
