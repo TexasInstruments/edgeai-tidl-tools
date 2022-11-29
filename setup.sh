@@ -30,7 +30,7 @@
 
 ######################################################################
 
-# Test Mirror -2 
+# Test Mirror - 3 
 compile_opencv(){
     cd $TIDL_TOOLS_PATH/osrt_deps
     cd opencv-4.1.0/cmake/
