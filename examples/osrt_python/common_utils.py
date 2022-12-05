@@ -29,7 +29,6 @@ else :
 artifacts_folder = '../../../model-artifacts/'
 output_images_folder = '../../../output_images/'
 
-
 tensor_bits = 8
 debug_level = 0
 max_num_subgraphs = 16
@@ -39,11 +38,16 @@ calibration_iterations = 5
 output_feature_16bit_names_list = ""#"conv1_2, fire9/concat_1"
 params_16bit_names_list = "" #"fire3/squeeze1x1_2"
 mixed_precision_factor = -1
-
 quantization_scale_type = 0
 high_resolution_optimization = 0
 pre_batchnorm_fold = 1
 ti_internal_nc_flag = 1601
+
+DEVICE = os.environ["DEVICE"]
+if(DEVICE != "am62a"):
+    data_convert = 3
+else:
+    data_convert = 0
 
 #set to default accuracy_level 1
 activation_clipping = 1
@@ -82,7 +86,7 @@ optional_options = {
 "advanced_options:activation_clipping" : activation_clipping,
 "advanced_options:weight_clipping" : weight_clipping,
 "advanced_options:bias_calibration" : bias_calibration,
-"advanced_options:add_data_convert_ops" : 3,
+"advanced_options:add_data_convert_ops" : data_convert,
 "advanced_options:channel_wise_quantization" : channel_wise_quantization
 }
 
