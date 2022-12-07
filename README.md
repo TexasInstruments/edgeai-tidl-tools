@@ -7,6 +7,9 @@ This repository contains examples developed for Deep learning runtime (DLRT) off
 - [EdgeAI TIDL Tools and Examples](#edgeai-tidl-tools-and-examples)
   - [Introduction](#introduction)
   - [Setup](#setup)
+    - [J721E Setup](#j721e-setup)
+    - [AM62 AMRNN Setup](#am62-setup)
+    - [Advanced Setup Options](#advanced-setup-options)
   - [Python Examples](#python-examples)
   - [CPP Examples](#cpp-examples)
   - [Validated Examples](#validated-examples)
@@ -33,15 +36,42 @@ This repository contains examples developed for Deep learning runtime (DLRT) off
   - We have also validated under docker container in PC. Refer [Dockerfile](./Dockerfile) for the list of dependencies installed on top of ubuntu 18.04 base line
     - Make sure you have all permission set for the current directory before proceeding 
   - Run the below script to install the dependent components on your machine and set all the required environments
-  - setup.sh uses the env variable DEVICE. set the same prior to sourcing setup.sh
  ```
  git clone https://github.com/TexasInstruments/edgeai-tidl-tools.git
- #export DEVICE=j7
- #export DEVICE=am62
  cd edgeai-tidl-tools
  source ./setup.sh
 ```
- 
+### J721E Setup
+  - If you are planning to do inference in the J721E device refer [here](./examples/osrt_python/README.md#model-inference-on-evm) for setting up of device with required dependencies 
+### AM62 Setup
+  - If you are planning to do inference in the AM62 device with armnn delegate for tflite run below setup on AM62 device
+  ```
+  source ./setup.sh --load_armnn
+  ```
+### Advanced Setup Options
+  - If you are planning to validate only  python examples and avoid running CPP examples, invoke the setup script with below option
+   
+```
+ source ./setup.sh --skip_cpp_deps
+```
+  - If you have the ARM GCC tools chain already installed in your machine, invoke the setup script with below option and set "ARM64_GCC_PATH" environment variable
+   
+```
+export ARM64_GCC_PATH=$(pwd)/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu
+source ./setup.sh --skip_arm_gcc_download
+```
+  - If you are planning to do inference with armnn delegate for tflite run  setup with below option
+
+```
+source ./setup.sh --load_armnn
+```
+
+  - If you are building the PSDK-RTOS from source and updating any of the TIDL tools during the development, then set  "TIDL_TOOLS_PATH" environment variable before starting setup script
+   
+```
+export TIDL_TOOLS_PATH=$PSDKR_INSTALL_PATH/tidl_j7_xx_xx_xx_xx/tidl_tools
+source ./setup.sh
+```
  
 
 ## Python Examples

@@ -30,14 +30,6 @@
 
 ######################################################################
 
-# Test Mirror - 4 
-compile_opencv(){
-    cd $TIDL_TOOLS_PATH/osrt_deps
-    cd opencv-4.1.0/cmake/
-    cmake -DBUILD_opencv_highgui:BOOL="1" -DBUILD_opencv_videoio:BOOL="0" -DWITH_IPP:BOOL="0" -DWITH_WEBP:BOOL="1" -DWITH_OPENEXR:BOOL="1" -DWITH_IPP_A:BOOL="0" -DBUILD_WITH_DYNAMIC_IPP:BOOL="0" -DBUILD_opencv_cudacodec:BOOL="0" -DBUILD_PNG:BOOL="1" -DBUILD_opencv_cudaobjdetect:BOOL="0" -DBUILD_ZLIB:BOOL="1" -DBUILD_TESTS:BOOL="0" -DWITH_CUDA:BOOL="0" -DBUILD_opencv_cudafeatures2d:BOOL="0" -DBUILD_opencv_cudaoptflow:BOOL="0" -DBUILD_opencv_cudawarping:BOOL="0" -DINSTALL_TESTS:BOOL="0" -DBUILD_TIFF:BOOL="1" -DBUILD_JPEG:BOOL="1" -DBUILD_opencv_cudaarithm:BOOL="0" -DBUILD_PERF_TESTS:BOOL="0" -DBUILD_opencv_cudalegacy:BOOL="0" -DBUILD_opencv_cudaimgproc:BOOL="0" -DBUILD_opencv_cudastereo:BOOL="0" -DBUILD_opencv_cudafilters:BOOL="0" -DBUILD_opencv_cudabgsegm:BOOL="0" -DBUILD_SHARED_LIBS:BOOL="0" -DWITH_ITT=OFF ../
-    make -j 32
-    cd -
-}
 
 compile_armnn(){
     #requires tflite2.8 to be build first
@@ -104,13 +96,13 @@ compile_armnn(){
     ARMCC_PREFIX=$ARM64_GCC_PATH/bin/aarch64-none-linux-gnu-\
     ARMCC_FLAGS="-funsafe-math-optimizations" \
     cmake -DCMAKE_C_COMPILER=${ARMCC_PREFIX}gcc \
-      -DCMAKE_CXX_COMPILER=${ARMCC_PREFIX}g++ \
-      -DCMAKE_C_FLAGS="${ARMCC_FLAGS}" -DCMAKE_CXX_FLAGS="${ARMCC_FLAGS}" \
-      -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON  -DCMAKE_SYSTEM_NAME=Linux \
-      -DTFLITE_ENABLE_XNNPACK=ON \
-      -DCMAKE_SYSTEM_PROCESSOR=aarch64 \
-      $BASEDIR/tensorflow/tensorflow/lite/ 
-      
+    -DCMAKE_CXX_COMPILER=${ARMCC_PREFIX}g++ \
+    -DCMAKE_C_FLAGS="${ARMCC_FLAGS}" -DCMAKE_CXX_FLAGS="${ARMCC_FLAGS}" \
+    -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON  -DCMAKE_SYSTEM_NAME=Linux \
+    -DTFLITE_ENABLE_XNNPACK=ON \
+    -DCMAKE_SYSTEM_PROCESSOR=aarch64 \
+    $BASEDIR/tensorflow/tensorflow/lite/ 
+    
     cmake --build .
 
     #finally build armnn
@@ -163,7 +155,8 @@ SCRIPTDIR=`pwd`
 
 skip_cpp_deps=0
 skip_arm_gcc_download=0
-skip_armnn=0
+load_armnn=0
+
 
 POSITIONAL=()
 while [[ $# -gt 0 ]]
@@ -176,8 +169,8 @@ case $key in
     --skip_arm_gcc_download)
     skip_arm_gcc_download=1
     ;;
-    --skip_armnn)
-    skip_armnn=1
+    --load_armnn)
+    load_armnn=1
     ;;
     -h|--help)
     echo Usage: $0 [options]
@@ -185,13 +178,14 @@ case $key in
     echo Options,
     echo --skip_cpp_deps            Skip Downloading or Compiling dependencies for CPP examples
     echo --skip_arm_gcc_download            Skip Downloading or setting environment variable  for ARM64_GCC_PATH
-    echo --skip_armnn_compile            Skip amrnn cross compilation  for arm
+    echo --load_armnn           load amrnn libs  for arm
     exit 0
     ;;
 esac
 shift # past argument
 done
 set -- "${POSITIONAL[@]}" # restore positional parameters
+
 
 
 version_match=`python3 -c 'import sys;r=0 if sys.version_info >= (3,6) else 1;print(r)'`
@@ -212,44 +206,22 @@ else
 return
 fi
 
-if [ -z "$DEVICE" ];then
-    echo "DEVICE not defined. Run either of below commands"
-    echo "export DEVICE=j7"
-    echo "export DEVICE=am62"
-    return
-else 
-    if [ $DEVICE != j7 ] && [ $DEVICE != am62 ]; then
-        echo "DEVICE shell var not set correctly. Set"
-        echo "export DEVICE=j7"
-        echo "export DEVICE=am62"
-        return
-    fi
-fi
-
-
-# ######################################################################
-# # Installing dependencies
+#######################################################################
+## Installing dependencies
 echo 'Installing python packages...'
 if [[ $arch == x86_64 ]]; then
+    #TODO8.5 update the link inside requirement PC
     pip3 install -r ./requirements_pc.txt
 fi
 if [[ -z "$TIDL_TOOLS_PATH" ]]; then
-    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/tidl_tools.tar.gz
+    #TODO8.5 update the link
+    wget http://gtweb.dal.design.ti.com/nightly_builds/tidl-osrt-build/327-2022-12-07_01-29-33/artifacts/output/tidl_tools/tidl_tools.tar.gz
     tar -xzf tidl_tools.tar.gz
     rm tidl_tools.tar.gz
     cd  tidl_tools
     export TIDL_TOOLS_PATH=$(pwd)
     cd ..
 fi
-
-
-if grep -q avx2 /proc/cpuinfo; then
-    echo "AVX2 support found"
-else
-    echo "AVX2 support not found exiting"
-    return
-fi
-
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$TIDL_TOOLS_PATH:$TIDL_TOOLS_PATH/osrt_deps
 
 if [[ $arch == x86_64 && $skip_arm_gcc_download -eq 0 ]]; then
@@ -267,49 +239,58 @@ if [ $skip_cpp_deps -eq 0 ]; then
         mkdir  $TIDL_TOOLS_PATH/osrt_deps
         cd  $TIDL_TOOLS_PATH/osrt_deps
         # onnx
-        if [ ! -d onnxruntime ];then
-            wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/x86_64/onnx_1.7.0_u18.tar.gz
-            tar -xf onnx_1.7.0_u18.tar.gz
-            cp onnx_1.7.0_u18/libonnxruntime.so .
-            cp onnx_1.7.0_u18/onnxruntime . -r 
+        if [ ! -d onnx_1.7.0_x86_u18 ];then
+            rm onnx_1.7.0_x86_u18.tar.gz
+            # wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/x86_64/onnx_1.7.0_u18.tar.gz
+            wget http://gtweb.dal.design.ti.com/nightly_builds/tidl-osrt-build/326-2022-12-06_23-27-59/artifacts/output/onnx/onnx_1.7.0_x86_u18.tar.gz
+            tar -xf onnx_1.7.0_x86_u18.tar.gz
+            cp onnx_1.7.0_x86_u18/libonnxruntime.so .
+            cp onnx_1.7.0_x86_u18/onnxruntime . -r 
             ln -s libonnxruntime.so libonnxruntime.so.1.7.0
-            rm onnx_1.7.0_u18.tar.gz  onnx_1.7.0_u18   -r
+            rm onnx_1.7.0_x86_u18.tar.gz    -r
         else
             echo "skipping onnxruntime setup: found $TIDL_TOOLS_PATH/osrt_deps/onnxruntime"
             echo "To redo the setup delete:$TIDL_TOOLS_PATH/osrt_deps/onnxruntime and run this script again"
         fi
         # tflite_2.8
-        if [ ! -d tensorflow ];then
-            wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/x86_64/tflite_2.8_u18.tar.gz
-            tar -xf tflite_2.8_u18.tar.gz        
-            cp tflite_2.8_u18/libtensorflow-lite.a .
-            cp tflite_2.8_u18/tensorflow/ . -r
-            cp tflite_2.8_u18/build/ tflite_2.8_x86 -r
-            rm tflite_2.8_u18.tar.gz  tflite_2.8_u18  -r
+        if [ ! -d tflite_2.8_x86_u18 ];then
+            rm tflite_2.8_x86_u18.tar.gz
+            #TODO8.5 update the link
+            # wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/x86_64/tflite_2.8_u18.tar.gz
+            wget http://gtweb.dal.design.ti.com/nightly_builds/tidl-osrt-build/326-2022-12-06_23-27-59/artifacts/output/tflite_2.8/tflite_2.8_x86_u18.tar.gz
+            tar -xf tflite_2.8_x86_u18.tar.gz        
+            cp tflite_2.8_x86_u18/libtensorflow-lite.a .
+            cp tflite_2.8_x86_u18/tensorflow/ . -r
+            cp tflite_2.8_x86_u18/build/ tflite_2.8_x86 -r
+            rm tflite_2.8_x86_u18.tar.gz   -r
         else
             echo "skipping tensorflow setup: found $TIDL_TOOLS_PATH/osrt_deps/tensorflow"
             echo "To redo the setup delete:$TIDL_TOOLS_PATH/osrt_deps/tensorflow and run this script again"
         fi
 
         #opencv
-        if [ ! -d  opencv-4.1.0 ];then
-            wget https://github.com/opencv/opencv/archive/4.1.0.zip
-            unzip 4.1.0.zip  
-            rm 4.1.0.zip
-            if  [[ $arch == x86_64 ]] ; then      
-                compile_opencv
-            fi
+        if [ ! -d  opencv_4.2.0_x86_u18 ];then
+            rm opencv_4.2.0_x86_u18.tar.gz
+            #TODO8.5 update the link
+            wget http://gtweb.dal.design.ti.com/nightly_builds/tidl-osrt-build/326-2022-12-06_23-27-59/artifacts/output/opencv/opencv_4.2.0_x86_u18.tar.gz
+            tar -xf opencv_4.2.0_x86_u18.tar.gz 
+            cp opencv_4.2.0_x86_u18/opencv-4.2.0 . -r
+            cp opencv_4.2.0_x86_u18/opencv .  -r 
+            rm opencv_4.2.0_x86_u18.tar.gz
         else
-            echo "skipping opencv-4.1.0 setup: found $TIDL_TOOLS_PATH/osrt_deps/opencv-4.1.0"
-            echo "To redo the setup delete:$TIDL_TOOLS_PATH/osrt_deps/opencv-4.1.0 and run this script again"
+            echo "skipping opencv-4.2.0 setup: found $TIDL_TOOLS_PATH/osrt_deps/opencv-4.2.0_x86_u18"
+            echo "To redo the setup delete:$TIDL_TOOLS_PATH/osrt_deps/opencv-4.2.0_x86_u18 and run this script again"
         fi
 
         #dlr
-        if [ ! -d neo-ai-dlr ];then
-            wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/x86_64/dlr_1.10.0_u18.tar.gz
-            tar -xf dlr_1.10.0_u18.tar.gz
-            cp dlr_1.10.0_u18/neo-ai-dlr . -r
-            rm dlr_1.10.0_u18.tar.gz  dlr_1.10.0_u18  -r
+        if [ ! -d dlr_1.10.0_x86_u18 ];then
+            rm dlr_1.10.0_x86_u18.tar.gz
+            #TODO8.5 update the link
+            # wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/x86_64/dlr_1.10.0_u18.tar.gz
+            wget http://gtweb.dal.design.ti.com/nightly_builds/tidl-osrt-build/326-2022-12-06_23-27-59/artifacts/output/dlr/dlr_1.10.0_x86_u18.tar.gz
+            tar -xf dlr_1.10.0_x86_u18.tar.gz
+            cp dlr_1.10.0_x86_u18/neo-ai-dlr . -r
+            rm dlr_1.10.0_x86_u18.tar.gz   -r
         else
             echo "skipping neo-ai-dlr setup: found $TIDL_TOOLS_PATH/osrt_deps/neo-ai-dlr"
             echo "To redo the setup delete:$TIDL_TOOLS_PATH/osrt_deps/neo-ai-dlr and run this script again"
@@ -328,17 +309,15 @@ EOF
 
 fi
 
-# if [ $skip_armnn -eq 0 ]; then
-#     if [[ $arch == x86_64 ]]; then
-#         download_armnn_repo
-#         download_armnn_lib
-#     fi
-# fi
+if [ $load_armnn -eq 1 ]; then
+    if [[ $arch == x86_64 ]]; then
+        if [ ! -d armnn ];then
+            download_armnn_repo
+        fi 
+        if [ ! -f $SCRIPTDIR/tidl_target_libs/libarmnnDelegate.so ];then
+            download_armnn_lib
+        fi 
+    fi
+fi
 
 cd $SCRIPTDIR
-
-
-
-
-
-

@@ -34,6 +34,7 @@
     ```
 ## Validation on Target
 <<<<<<< HEAD
+<<<<<<< HEAD
 - Build and run steps remains same for PC emulation and target. Copy the below folders from PC to the EVM where this repo is cloned before running the examples
 
 =======
@@ -43,6 +44,9 @@
 - Build and run steps remains same for PC emulation and target. Copy the below folders from PC to the EVM where this repo is cloned before running the examples
 >>>>>>> README link fix TIDL-2747
 >>>>>>> README link fix TIDL-2747
+=======
+- Build and run steps remains same for PC emulation and target. Copy the below folders from PC to the EVM where this repo is cloned before running the examples
+>>>>>>> need link update
   
     ```
     ./model-artifacts

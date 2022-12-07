@@ -27,9 +27,6 @@ fi
 STR=`pip3 list | grep tflite-runtime`
 SUB='tflite-runtime'
 if [[ "$STR" != *"$SUB"* ]]; then
-    # For enabling 2.4 uncomment these lines
-    # wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/psdkr/pywhl/tflite_runtime-2.4.0-py3-none-linux_aarch64.whl
-    # pip3 install --upgrade --force-reinstall tflite_runtime-2.4.0-py3-none-linux_aarch64.whl
     wget --proxy off https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/psdkr/pywhl/tflite_runtime-2.8.2-cp38-cp38-linux_aarch64.whl
     pip3 install --upgrade --force-reinstall tflite_runtime-2.8.2-cp38-cp38-linux_aarch64.whl
     # to sync with tensor flow build version
@@ -40,13 +37,6 @@ fi
 cd $HOME
 rm -r arago_j7_pywhl
 if [  ! -d /usr/include/tensorflow ];then
-    # For enabling 2.4 uncomment below
-    # wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/psdkr/tflite_2.4_aragoj7.tar.gz
-    # tar xf tflite_2.4_aragoj7.tar.gz
-    # rm tflite_2.4_aragoj7.tar.gz
-    # cp tflite_2.4_aragoj7/libtensorflow-lite.a  $HOME/required_libs/
-    # mv tflite_2.4_aragoj7/tensorflow /usr/include/
-    # rm -r tflite_2.4_aragoj7
     wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/psdkr/tflite_2.8_aragoj7.tar.gz
     tar xf tflite_2.8_aragoj7.tar.gz
     rm tflite_2.8_aragoj7.tar.gz
