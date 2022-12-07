@@ -110,8 +110,10 @@ The following options are set to default values, to be specified if modification
 | tensor_bits        | Number of bits for TIDL tensor and weights - 8/16       | 8                          |
 | debug_level        | 0 - no debug, 1 - rt debug prints, >=2 - increasing levels of debug and trace dump | 0                          |
 | max_num_subgraphs  | offload up to \<num\> tidl subgraphs                    | 16                         |                  
-| deny_list          | force disable offload of a particular operator to TIDL [^2] | ""  - Empty list       |
-| accuracy_level     | 0 - basic calibration, 1 - higher accuracy(advanced bias calibration), 9 - user defined [^3] | 1                    | 
+| deny_list          | force disable offload of a particular operator to TIDL using layer type [^2]  | ""  - Empty list       |
+| deny_list:layer_type | force disable offload of a particular operator to TIDL using layer type [^2] | ""  - Empty list      |
+| deny_list:layer_name | force disable offload of a particular operator to TIDL using layer name [^2] . For ONNX runtime, in case layer name is not present as part of layer, output name corresponding to output(0) can be specified | ""  - Empty list      |
+| accuracy_level       | 0 - basic calibration, 1 - higher accuracy(advanced bias calibration), 9 - user defined [^3] | 1                    | 
 | advanced_options:calibration_frames              | Number of frames to be used for calibration - min 10 frames recommended | 20                 |
 | advanced_options:calibration_iterations          | Number of bias calibration iterations                               | 50                 |
 | advanced_options:output_feature_16bit_names_list | List of names of the layers (comma separated string) as in the original model whose feature/activation output user wants to be in 16 bit  [^4] | ""            |
@@ -137,7 +139,8 @@ Below options will be overwritten only if accuracy_level = 9, else will be disca
 |advanced_options:bias_calibration           | 0 for disable, 1 for enable                       | 1                          |
 |advanced_options:channel_wise_quantization  | 0 for disable, 1 for enable                       | 0                          |
 
-- [^1]: This is not the name of the parameter of the layer but is expected to be the output name of the layer. Note that, if a given layers feature/activations is in 16 bit then parameters will automatically become 16 bit even if its not part of this list  \n- [^2]: Denylist is a string of comma separated numbers which represent the operators as identified in tflite builtin ops. Please refer [Tflite builtin ops](https://github.com/tensorflow/tensorflow/blob/r2.3/tensorflow/lite/builtin_ops.h)  , e.g. deny_list = "1, 2" to deny offloading 'AveragePool2d' and 'Concatenation' operators to TIDL. \n
+- [^1]: This is not the name of the parameter of the layer but is expected to be the output name of the layer. Note that, if a given layers feature/activations is in 16 bit then parameters will automatically become 16 bit even if its not part of this list  \n
+- [^2]: Denylist is a string of comma separated numbers which represent the operators as identified in tflite builtin ops. Please refer [Tflite builtin ops](https://github.com/tensorflow/tensorflow/blob/r2.3/tensorflow/lite/builtin_ops.h)  , e.g. deny_list = "1, 2" to deny offloading 'AveragePool2d' and 'Concatenation' operators to TIDL. \n
 - [^3]: Advanced calibration options can be specified by setting accuracy_level = 9. \n
 - [^4]: Note that if for a given layer feature/activations is in 16 bit then parameters will automatically become 16 bit and user need not specify them as part of "advanced_options:params_16bit_names_list". Example format - "conv1_2, fire9/concat_1" \n
 

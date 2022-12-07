@@ -63,6 +63,8 @@ optional_options = {
 "debug_level":debug_level,
 "max_num_subgraphs":max_num_subgraphs,
 "deny_list":"", #"MaxPool"
+"deny_list:layer_type":"", 
+"deny_list:layer_name":"",
 "model_type":"",#OD
 "accuracy_level":accuracy_level,
 "advanced_options:calibration_frames": calibration_frames,
