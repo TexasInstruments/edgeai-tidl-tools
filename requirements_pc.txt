@@ -10,9 +10,8 @@ opencv-python==4.2.0.34
 pytest
 graphviz
 git+https://github.com/kumardesappan/caffe2onnx
-#TODO8.5 update the link
-https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/x86_64/pywhl/dlr-1.10.0-py3-none-any.whl
-https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/x86_64/pywhl/tvm-1.11.1.dev335+g13a4007ca-cp36-cp36m-linux_x86_64.whl
-https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/x86_64/pywhl/onnxruntime_tidl-1.7.0-cp36-cp36m-linux_x86_64.whl
-https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/x86_64/pywhl/tflite_runtime-2.8.2-cp36-cp36m-linux_x86_64.whl
+https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/ubuntu18_04_x86_64/pywhl/dlr-1.10.0-py3-none-any.whl
+https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/ubuntu18_04_x86_64/pywhl/tvm-0.9.dev0-cp36-cp36m-linux_x86_64.whl
+https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/ubuntu18_04_x86_64/pywhl/onnxruntime_tidl-1.7.0-cp36-cp36m-linux_x86_64.whl
+https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/ubuntu18_04_x86_64/pywhl/tflite_runtime-2.8.2-cp36-cp36m-linux_x86_64.whl
 

@@ -19,8 +19,7 @@ cd u_18_pywhl
 STR=`pip3 list | grep dlr`
 SUB='dlr'
 if [[ "$STR" != *"$SUB"* ]]; then
-    #TODO8.5 update the link
-    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/ubuntu18_04/pywhl/dlr-1.10.0-py3-none-any.whl
+    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/ubuntu18_04/pywhl/dlr-1.10.0-py3-none-any.whl
     pip3 install --upgrade --force-reinstall dlr-1.10.0-py3-none-any.whl
     cp /usr/local/dlr/libdlr.so $HOME/required_libs
 fi
@@ -29,22 +28,19 @@ pip3 install protobuf==3.19
 STR=`pip3 list | grep onnxruntime-tidl`
 SUB='onnxruntime-tidl'
 if [[ "$STR" != *"$SUB"* ]]; then
-    #TODO8.5 update the link
-    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/ubuntu18_04/pywhl/onnxruntime_tidl-1.7.0-cp36-cp36m-linux_aarch64.whl
+    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/ubuntu18_04/pywhl/onnxruntime_tidl-1.7.0-cp36-cp36m-linux_aarch64.whl
     pip3 install onnxruntime_tidl-1.7.0-cp36-cp36m-linux_aarch64.whl
 fi
 STR=`pip3 list | grep tflite-runtime`
 SUB='tflite-runtime'
 if [[ "$STR" != *"$SUB"* ]]; then
-    #TODO8.5 update the link
-    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/ubuntu18_04/pywhl/tflite_runtime-2.8.2-cp36-cp36m-linux_aarch64.whl
+    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/ubuntu18_04/pywhl/tflite_runtime-2.8.2-cp36-cp36m-linux_aarch64.whl
     pip3 install --upgrade --force-reinstall tflite_runtime-2.8.2-cp38-cp38-linux_aarch64.whl
 fi
 cd $HOME
 rm -r u_18_pywhl
 if [  ! -d /usr/include/tensorflow ];then
-    #TODO8.5 update the link
-    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/ubuntu18_04/tflite_2.8_u18.tar.gz
+    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/ubuntu18_04/tflite_2.8_u18.tar.gz
     tar xf tflite_2.8_aragoj7.tar.gz
     rm tflite_2.8_aragoj7.tar.gz
     mv tflite_2.8_aragoj7/tensorflow /usr/include
@@ -58,8 +54,7 @@ else
 fi
 
 if [  ! -d /usr/include/opencv-4.2.0 ];then
-    #TODO8.5 update the link
-    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/ubuntu18_04/opencv_4.2.0_u18.tar.gz
+    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/ubuntu18_04/opencv_4.2.0_u18.tar.gz
     tar xf opencv_4.2.0_u18.tar.gz  
     rm opencv_4.2.0_u18.tar.gz
     cp -r  opencv_4.2.0_u18/opencv $HOME/required_libs/
@@ -73,8 +68,7 @@ fi
 
 cd $HOME
 if [  ! -d /usr/include/onnxruntime ];then
-    #TODO8.5 update the link
-    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/ubuntu18_04/onnx_1.7.0_u18.tar.gz
+    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/ubuntu18_04/onnx_1.7.0_u18.tar.gz
     tar xf onnx_1.7.0_u18.tar.gz
     rm onnx_1.7.0_u18.tar.gz
     cp -r  onnx_1.7.0_u18/libonnxruntime.so* $HOME/required_libs/    
@@ -87,8 +81,7 @@ else
 fi
 
 if [  ! -d /usr/include/neo-ai-dlr ];then
-    #TODO8.5 update the link
-    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/ubuntu18_04/dlr_1.10.0_u18.tar.gz
+    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/ubuntu18_04/dlr_1.10.0_u18.tar.gz
     tar xf dlr_1.10.0_u18.tar.gz 
     rm dlr_1.10.0_u18.tar.gz 
     mv dlr_1.10.0_u18/neo-ai-dlr /usr/include/
@@ -100,8 +93,7 @@ else
 fi
 
 if [  ! -f /usr/include/itidl_rt.h ];then
-    #TODO8.5 update the link
-    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/tidl_tools.tar.gz
+    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/tidl_tools.tar.gz
     tar xf tidl_tools.tar.gz
     rm tidl_tools.tar.gz
     cp tidl_tools/itidl_rt.h /usr/include/

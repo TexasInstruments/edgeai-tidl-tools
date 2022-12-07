@@ -214,8 +214,7 @@ if [[ $arch == x86_64 ]]; then
     pip3 install -r ./requirements_pc.txt
 fi
 if [[ -z "$TIDL_TOOLS_PATH" ]]; then
-    #TODO8.5 update the link
-    wget http://gtweb.dal.design.ti.com/nightly_builds/tidl-osrt-build/327-2022-12-07_01-29-33/artifacts/output/tidl_tools/tidl_tools.tar.gz
+    wget  https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/tidl_tools.tar.gz
     tar -xzf tidl_tools.tar.gz
     rm tidl_tools.tar.gz
     cd  tidl_tools
@@ -241,7 +240,6 @@ if [ $skip_cpp_deps -eq 0 ]; then
         # onnx
         if [ ! -d onnx_1.7.0_x86_u18 ];then
             rm onnx_1.7.0_x86_u18.tar.gz
-            # wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/x86_64/onnx_1.7.0_u18.tar.gz
             wget http://gtweb.dal.design.ti.com/nightly_builds/tidl-osrt-build/326-2022-12-06_23-27-59/artifacts/output/onnx/onnx_1.7.0_x86_u18.tar.gz
             tar -xf onnx_1.7.0_x86_u18.tar.gz
             cp onnx_1.7.0_x86_u18/libonnxruntime.so .
@@ -255,9 +253,7 @@ if [ $skip_cpp_deps -eq 0 ]; then
         # tflite_2.8
         if [ ! -d tflite_2.8_x86_u18 ];then
             rm tflite_2.8_x86_u18.tar.gz
-            #TODO8.5 update the link
-            # wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/x86_64/tflite_2.8_u18.tar.gz
-            wget http://gtweb.dal.design.ti.com/nightly_builds/tidl-osrt-build/326-2022-12-06_23-27-59/artifacts/output/tflite_2.8/tflite_2.8_x86_u18.tar.gz
+            wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/ubuntu18_04_x86_64/tflite_2.8_x86_u18.tar.gz
             tar -xf tflite_2.8_x86_u18.tar.gz        
             cp tflite_2.8_x86_u18/libtensorflow-lite.a .
             cp tflite_2.8_x86_u18/tensorflow/ . -r
@@ -271,8 +267,7 @@ if [ $skip_cpp_deps -eq 0 ]; then
         #opencv
         if [ ! -d  opencv_4.2.0_x86_u18 ];then
             rm opencv_4.2.0_x86_u18.tar.gz
-            #TODO8.5 update the link
-            wget http://gtweb.dal.design.ti.com/nightly_builds/tidl-osrt-build/326-2022-12-06_23-27-59/artifacts/output/opencv/opencv_4.2.0_x86_u18.tar.gz
+            wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/ubuntu18_04_x86_64/opencv_4.2.0_x86_u18.tar.gz
             tar -xf opencv_4.2.0_x86_u18.tar.gz 
             cp opencv_4.2.0_x86_u18/opencv-4.2.0 . -r
             cp opencv_4.2.0_x86_u18/opencv .  -r 
@@ -285,9 +280,7 @@ if [ $skip_cpp_deps -eq 0 ]; then
         #dlr
         if [ ! -d dlr_1.10.0_x86_u18 ];then
             rm dlr_1.10.0_x86_u18.tar.gz
-            #TODO8.5 update the link
-            # wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_04_00_00/x86_64/dlr_1.10.0_u18.tar.gz
-            wget http://gtweb.dal.design.ti.com/nightly_builds/tidl-osrt-build/326-2022-12-06_23-27-59/artifacts/output/dlr/dlr_1.10.0_x86_u18.tar.gz
+            wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/ubuntu18_04_x86_64/dlr_1.10.0_x86_u18.tar.gz
             tar -xf dlr_1.10.0_x86_u18.tar.gz
             cp dlr_1.10.0_x86_u18/neo-ai-dlr . -r
             rm dlr_1.10.0_x86_u18.tar.gz   -r
