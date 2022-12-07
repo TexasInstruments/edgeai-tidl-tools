@@ -126,7 +126,7 @@ The following options are set to default values, to be specified if modification
 | object_detection:top_k                           | Override "detections_per_class" parameter threshold in tflite detection post processing layer| Read from model |
 | object_detection:keep_top_k                      | Override "max_detections" parameter threshold in tflite detection post processing layer      | Read from model |
 | ti_internal_nc_flag                              | internal use only                                                                            | -               |
-| model_type                                       | This option is meant for objection detection models and is expected to be set to "OD" if network is object detection, and compilation throws warning asking to explicitly specify this option  as "OD  |
+| model_type                                       | This option is meant for objection detection models and is expected to be set to "OD" if network is object detection, and compilation throws warning asking to explicitly specify this option as "OD"  |  "" - Empty list      |
 
 Below options will be overwritten only if accuracy_level = 9, else will be discarded. For accuracy level 9, specified options will be overwritten, rest will be set to default values. For accuracy_level = 0/1, these are preset internally.
 
