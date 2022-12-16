@@ -41,12 +41,12 @@ cd $HOME
 rm -r u_18_pywhl
 if [  ! -d /usr/include/tensorflow ];then
     wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/ubuntu18_04/tflite_2.8_u18.tar.gz
-    tar xf tflite_2.8_aragoj7.tar.gz
-    rm tflite_2.8_aragoj7.tar.gz
-    mv tflite_2.8_aragoj7/tensorflow /usr/include
-    mv tflite_2.8_aragoj7/tflite_2.8 /usr/lib/
-    cp tflite_2.8_aragoj7/libtensorflow-lite.a $HOME/required_libs/
-    rm -r tflite_2.8_aragoj7    
+    tar xf tflite_2.8_u18.tar.gz
+    rm tflite_2.8_u18.tar.gz
+    mv tflite_2.8_u18/tensorflow /usr/include
+    mv tflite_2.8_u18/tflite_2.8 /usr/lib/
+    cp tflite_2.8_u18/libtensorflow-lite.a $HOME/required_libs/
+    rm -r tflite_2.8_u18    
     cd $HOME
 else
     echo "skipping tensorflow setup: found /usr/include/tensorflow"
@@ -83,7 +83,11 @@ fi
 if [  ! -d /usr/include/neo-ai-dlr ];then
     wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/ubuntu18_04/dlr_1.10.0_u18.tar.gz
     tar xf dlr_1.10.0_u18.tar.gz 
-    rm dlr_1.10.0_u18.tar.gz 
+    rm dlr_1.10.0_u18.tar.gz
+    cd dlr_1.10.0_u18
+    unzip dlr-1.10.0-py3-none-any.whl
+    cp ./dlr/libdlr.so $HOME/required_libs/
+    cd - 
     mv dlr_1.10.0_u18/neo-ai-dlr /usr/include/
     rm -r dlr_1.10.0_u18
     cd $HOME
@@ -119,7 +123,7 @@ if [  ! -L libtiff.so ];then
 fi
 cd /usr/lib/
 if [  ! -L libti_rpmsg_char.so.0 ];then
-    ln -s /host/usr/lib/libti_rpmsg_char.so.0.4.1 libti_rpmsg_char.so.0
+    ln -s /host/usr/lib/libti_rpmsg_char.so libti_rpmsg_char.so.0
 fi
 if [  ! -L libvx_tidl_rt.so ];then
     ln -s /host/usr/lib/libvx_tidl_rt.so.1.0  libvx_tidl_rt.so
@@ -130,6 +134,9 @@ if [  ! -L libtidl_onnxrt_EP.so ];then
 fi
 if [  ! -L libtidl_tfl_delegate.so.1.0 ];then
     ln -s /host/usr/lib/libtidl_tfl_delegate.so.1.0  libtidl_tfl_delegate.so.1.0
+fi
+if [  ! -L libtivision_apps.so.8.5.0 ];then
+    ln -s /host/usr/lib/libtivision_apps.so  libtivision_apps.so.8.5.0
 fi
 
 if [  ! -f /usr/dlr/libdlr.so ];then

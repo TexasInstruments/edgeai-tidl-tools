@@ -16,28 +16,28 @@ SUB='dlr'
 
 if [[ "$STR" != *"$SUB"* ]]; then
     wget --proxy off  https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/psdkr/pywhl/dlr-1.10.0-py3-none-any.whl
-    pip3 install --upgrade --force-reinstall dlr-1.10.0-py3-none-any.whl
+    yes | pip3 install --upgrade --force-reinstall dlr-1.10.0-py3-none-any.whl
 fi
 STR=`pip3 list | grep onnxruntime-tidl`
 SUB='onnxruntime-tidl'
 if [[ "$STR" != *"$SUB"* ]]; then
     wget --proxy off  https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/psdkr/pywhl/onnxruntime_tidl-1.7.0-cp38-cp38-linux_aarch64.whl
-    pip3 install onnxruntime_tidl-1.7.0-cp38-cp38-linux_aarch64.whl
+    yes | pip3 install onnxruntime_tidl-1.7.0-cp38-cp38-linux_aarch64.whl
 fi
 STR=`pip3 list | grep tflite-runtime`
 SUB='tflite-runtime'
 if [[ "$STR" != *"$SUB"* ]]; then
     wget --proxy off https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/psdkr/pywhl/tflite_runtime-2.8.2-cp38-cp38-linux_aarch64.whl
-    pip3 install --upgrade --force-reinstall tflite_runtime-2.8.2-cp38-cp38-linux_aarch64.whl
+    yes | pip3 install --upgrade --force-reinstall tflite_runtime-2.8.2-cp38-cp38-linux_aarch64.whl
     # to sync with tensor flow build version
-    pip3 uninstall  numpy
-    pip3 install numpy
+    y | pip3 uninstall  numpy
+    yes | pip3 install numpy
 fi
 
 cd $HOME
 rm -r arago_j7_pywhl
 if [  ! -d /usr/include/tensorflow ];then
-    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/psdkr/tflite_2.8_aragoj7.tar.gz
+    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/psdkr/tflite_2.8_aragoj7.tar.gz --proxy off
     tar xf tflite_2.8_aragoj7.tar.gz
     rm tflite_2.8_aragoj7.tar.gz
     mv tflite_2.8_aragoj7/tensorflow /usr/include
@@ -50,22 +50,9 @@ else
     echo "To redo the setup delete: /usr/include/tensorflow and run this script again"
 fi
 
-if [  ! -d /usr/include/opencv-4.2.0 ];then
-    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/psdkr/opencv_4.2.0_aragoj7.tar.gz
-    tar -xf opencv_4.2.0_aragoj7.tar.gz
-    rm opencv_4.2.0_aragoj7.tar.gz
-    cp opencv_4.2.0_aragoj7/opencv $HOME/required_libs/
-    mv opencv_4.2.0_aragoj7/opencv-4.2.0 /usr/include/
-    cd opencv-4.2.0
-    cd $HOME
-    rm -r opencv_4.2.0_aragoj7
-else
-    echo "skipping opencv-4.2.0 setup: found /usr/include/opencv-4.2.0"
-    echo "To redo the setup delete: /usr/include/opencv-4.2.0 and run this script again"
-fi
 
 if [  ! -d /usr/include/onnxruntime ];then
-    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/psdkr/onnx_1.7.0_aragoj7.tar.gz
+    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/psdkr/onnx_1.7.0_aragoj7.tar.gz --proxy off
     tar xf onnx_1.7.0_aragoj7.tar.gz
     rm onnx_1.7.0_aragoj7.tar.gz
     cp -r  onnx_1.7.0_aragoj7/libonnxruntime.so $HOME/required_libs/
@@ -78,10 +65,13 @@ else
 fi
 
 if [  ! -d /usr/include/neo-ai-dlr ];then
-    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/psdkr/dlr_1.10.0_aragoj7.tar.gz
+    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/psdkr/dlr_1.10.0_aragoj7.tar.gz --proxy off
     tar xf dlr_1.10.0_aragoj7.tar.gz 
     rm dlr_1.10.0_aragoj7.tar.gz 
-    cp -r  dlr_1.10.0_aragoj7/libdlr.so* $HOME/required_libs/
+    cd dlr_1.10.0_aragoj7
+    unzip dlr-1.10.0-py3-none-any.whl
+    cp ./dlr/libdlr.so $HOME/required_libs/
+    cd -
     mv dlr_1.10.0_aragoj7/neo-ai-dlr /usr/include/
     rm -r dlr_1.10.0_aragoj7
     cd $HOME
@@ -91,7 +81,7 @@ else
 fi
 
 if [  ! -f /usr/include/itidl_rt.h ];then
-    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/tidl_tools.tar.gz
+    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/tidl_tools.tar.gz --proxy off
     tar xf tidl_tools.tar.gz
     rm tidl_tools.tar.gz
     cp tidl_tools/itidl_rt.h /usr/include/
@@ -102,17 +92,18 @@ else
     echo "To redo the setup delete: /usr/include/itidl_rt.h and run this script again"
 fi
 
-if [   -d ~/required_libs ];then
-    cp ~/required_libs/* /usr/lib/    
+if [ -d ~/required_libs ];then
+    cp -r ~/required_libs/* /usr/lib/    
 fi
+
 if [  ! -f /usr/dlr/libdlr.so ];then
     mkdir /usr/dlr
     cp ~/required_libs/libdlr.so /usr/dlr/
 fi
 
-rm /usr/lib/libonnxruntime.so.1.7.0
-ln -s /usr/lib/libonnxruntime.so /usr/lib/libonnxruntime.so.1.7.0
-
+if [  ! -f /usr/lib/libonnxruntime.so.1.7.0 ];then
+    ln -s /usr/lib/libonnxruntime.so /usr/lib/libonnxruntime.so.1.7.0
+fi
 #Cleanup
 cd $HOME
 rm -rf required_libs

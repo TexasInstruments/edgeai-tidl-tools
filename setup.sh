@@ -232,9 +232,13 @@ if [[ $arch == x86_64 ]]; then
 fi
 if [[ -z "$TIDL_TOOLS_PATH" ]]; then
     wget  https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/tidl_tools.tar.gz
+    # wget http://gtweb.dal.design.ti.com/nightly_builds/tidl-osrt-build/327-2022-12-07_01-29-33/artifacts/output/tidl_tools/tidl_tools.tar.gz
     tar -xzf tidl_tools.tar.gz
     rm tidl_tools.tar.gz
     cd  tidl_tools
+    if [ ! -L libvx_tidl_rt.so.1.0 ];then
+         ln -s  libvx_tidl_rt.so libvx_tidl_rt.so.1.0
+    fi 
     export TIDL_TOOLS_PATH=$(pwd)
     cd ..
 fi
@@ -253,6 +257,7 @@ fi
 if [ $skip_cpp_deps -eq 0 ]; then
     if [[ $arch == x86_64 ]]; then
         mkdir  $TIDL_TOOLS_PATH/osrt_deps
+        mkdir  $TIDL_TOOLS_PATH/yaml-cpp
         cd  $TIDL_TOOLS_PATH/osrt_deps
         # onnx
         if [ ! -d onnx_1.7.0_x86_u18 ];then
@@ -274,7 +279,7 @@ if [ $skip_cpp_deps -eq 0 ]; then
             tar -xf tflite_2.8_x86_u18.tar.gz        
             cp tflite_2.8_x86_u18/libtensorflow-lite.a .
             cp tflite_2.8_x86_u18/tensorflow/ . -r
-            cp tflite_2.8_x86_u18/build/ tflite_2.8_x86 -r
+            cp tflite_2.8_x86_u18/tflite_2.8/ tflite_2.8_x86 -r
             rm tflite_2.8_x86_u18.tar.gz   -r
         else
             echo "skipping tensorflow setup: found $TIDL_TOOLS_PATH/osrt_deps/tensorflow"

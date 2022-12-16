@@ -7,11 +7,7 @@ IF(NOT CMAKE_BUILD_TYPE)
   SET(CMAKE_BUILD_TYPE Release)
 ENDIF()
 
-
-
-
 message(STATUS "CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE} PROJECT_NAME = ${PROJECT_NAME}")
-
 
 SET(CMAKE_FIND_LIBRARY_PREFIXES "" "lib")
 SET(CMAKE_FIND_LIBRARY_SUFFIXES ".a" ".lib" ".so")
@@ -20,33 +16,58 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/../lib/${CMAKE_BUILD_TYPE
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/../bin/${CMAKE_BUILD_TYPE})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/../bin/${CMAKE_BUILD_TYPE})
 
-
 if(NOT TENSORFLOW_INSTALL_DIR)
-  if (EXISTS $ENV{TIDL_TOOLS_PATH}/osrt_deps/tensorflow)
-    set(TENSORFLOW_INSTALL_DIR $ENV{TIDL_TOOLS_PATH}/osrt_deps/tensorflow)
+  if (EXISTS $ENV{TIDL_TOOLS_PATH}/osrt_deps/tflite_2.8/)
+    set(TENSORFLOW_INSTALL_DIR $ENV{TIDL_TOOLS_PATH}/osrt_deps/tflite_2.8/tflite_2.8)
+    message (STATUS  "setting TENSORFLOW_INSTALL_DIR path:${TENSORFLOW_INSTALL_DIR}")
+  elseif (EXISTS $ENV{TIDL_TOOLS_PATH}/osrt_deps/tflite_2.8_x86_u18/)
+    set(TENSORFLOW_INSTALL_DIR $ENV{TIDL_TOOLS_PATH}/osrt_deps/tflite_2.8_x86_u18/tflite_2.8)
+    message (STATUS  "setting TENSORFLOW_INSTALL_DIR path:${TENSORFLOW_INSTALL_DIR}")
+  else()
+    # avoid warning in case of j7 device which have this in filesystem
+    if( NOT ((${TARGET_DEVICE} STREQUAL  "j7") AND (${TARGET_CPU} STREQUAL  "arm" AND ${HOST_CPU} STREQUAL  "arm"))  )
+      message (WARNING  "TENSORFLOW_INSTALL_DIR is not set")
+    endif()
   endif()
 endif()
 
 if(NOT ONNXRT_INSTALL_DIR)
-  if (EXISTS $ENV{TIDL_TOOLS_PATH}/osrt_deps//onnxruntime)
+  if (EXISTS $ENV{TIDL_TOOLS_PATH}/osrt_deps/onnxruntime)
     set(ONNXRT_INSTALL_DIR $ENV{TIDL_TOOLS_PATH}/osrt_deps/onnxruntime)
+  else()
+    # avoid warning in case of j7 device which have this in filesystem
+    if( NOT ((${TARGET_DEVICE} STREQUAL  "j7") AND (${TARGET_CPU} STREQUAL  "arm" AND ${HOST_CPU} STREQUAL  "arm"))  )
+      message (WARNING  "ONNXRT_INSTALL_DIR is not set")
+    endif()
   endif()
 endif()
 
 if(NOT DLR_INSTALL_DIR)
   if (EXISTS $ENV{TIDL_TOOLS_PATH}/osrt_deps/neo-ai-dlr)
     set(DLR_INSTALL_DIR $ENV{TIDL_TOOLS_PATH}/osrt_deps/neo-ai-dlr)
+    message (STATUS  "setting DLR_INSTALL_DIR path:${DLR_INSTALL_DIR}")
+  else()
+    # avoid warning in case of j7 device which have this in filesystem
+    if( NOT ((${TARGET_DEVICE} STREQUAL  "j7") AND (${TARGET_CPU} STREQUAL  "arm" AND ${HOST_CPU} STREQUAL  "arm"))  )
+      message (WARNING  "DLR_INSTALL_DIR is not set")
+    endif()
   endif()
 endif()
 
 if(NOT OPENCV_INSTALL_DIR)
-  if (EXISTS $ENV{TIDL_TOOLS_PATH}/osrt_deps/opencv-4.1.0)
-    set(OPENCV_INSTALL_DIR $ENV{TIDL_TOOLS_PATH}/osrt_deps/opencv-4.1.0)
-  else()
-    message(WARNING "OPENCV_INSTALL_DIR is not set")
+  if (EXISTS $ENV{TIDL_TOOLS_PATH}/osrt_deps/opencv-4.2.0/)
+    set(OPENCV_INSTALL_DIR $ENV{TIDL_TOOLS_PATH}/osrt_deps/opencv-4.2.0/)
+    message (STATUS  "setting OPENCV_INSTALL_DIR path:${OPENCV_INSTALL_DIR}")
+  elseif (EXISTS $ENV{TIDL_TOOLS_PATH}/osrt_deps/opencv-4.1.0/)
+    set(OPENCV_INSTALL_DIR $ENV{TIDL_TOOLS_PATH}/osrt_deps/opencv-4.1.0/)
+    message (STATUS  "setting opencv path:${OPENCV_INSTALL_DIR}")
+  else ()
+    # avoid warning in case of j7 device which have this in filesystem
+    if( NOT ((${TARGET_DEVICE} STREQUAL  "j7") AND (${TARGET_CPU} STREQUAL  "arm" AND ${HOST_CPU} STREQUAL  "arm"))  )
+      message (WARNING  "OPENCV_INSTALL_DIR is not set")
+    endif()
   endif()
 endif()
-
 
 if(ARMNN_ENABLE)
   if( ${TARGET_CPU} STREQUAL  "x86" OR ${TARGET_DEVICE} STREQUAL "j7" )
@@ -65,13 +86,54 @@ if(ARMNN_ENABLE)
     endif()
   endif()
 
+set ( TFLITE_2_8_LIBS 
+            # Enable these when migrating to tflite 2.8
+            flatbuffers
+            fft2d_fftsg2d
+            fft2d_fftsg
+            cpuinfo
+            clog
+            farmhash
+            ruy_allocator
+            ruy_apply_multiplier
+            ruy_blocking_counter
+            ruy_block_map
+            ruy_context
+            ruy_context_get_ctx
+            ruy_cpuinfo
+            ruy_ctx
+            ruy_denormal
+            ruy_frontend
+            ruy_have_built_path_for_avx2_fma
+            ruy_have_built_path_for_avx512
+            ruy_have_built_path_for_avx
+            ruy_kernel_arm
+            ruy_kernel_avx2_fma
+            ruy_kernel_avx512
+            ruy_kernel_avx
+            ruy_pack_arm
+            ruy_pack_avx2_fma
+            ruy_pack_avx512
+            ruy_pack_avx
+            ruy_prepacked_cache
+            ruy_prepare_packed_matrices
+            ruy_system_aligned_alloc
+            ruy_thread_pool
+            ruy_trmul
+            ruy_tune
+            ruy_wait
+            pthreadpool
+            #xnn lib
+            XNNPACK
+            # Enable these when migrating to tflite 2.8 
+)
+
 if(${TARGET_DEVICE} STREQUAL  "am62" AND  (${TARGET_CPU} STREQUAL  "x86" AND ${HOST_CPU} STREQUAL  "x86"))
   message(STATUS "Compiling for x86 with am62 config")
   add_compile_options(-DDEVICE_AM62=1)
   set(CMAKE_C_COMPILER gcc)
   set(CMAKE_CXX_COMPILER g++)
   add_compile_options(-DDEVICE_AM62=1)
-  #enbale xnn since tflite 2.8
   add_compile_options(-DXNN_ENABLE=1)
 
   include_directories(
@@ -333,22 +395,22 @@ if(${TARGET_DEVICE} STREQUAL  "j7" AND  (${TARGET_CPU} STREQUAL  "x86" AND ${HOS
 
   link_directories(
                   # opencv libraries
-                  ${OPENCV_INSTALL_DIR}/cmake/lib
-                  ${OPENCV_INSTALL_DIR}/cmake/3rdparty/lib
-                  ${OPENCV_INSTALL_DIR}/modules/core/include
+                  $ENV{TIDL_TOOLS_PATH}/osrt_deps/opencv/
+                  ${OPENCV_INSTALL_DIR}/cmake/lib/
+                  ${OPENCV_INSTALL_DIR}/cmake/3rdparty/lib/
                   #common
                   /usr/lib 
                   /usr/lib/aarch64-linux-gnu                  
-                  # Enable these when migrating to tflite 2.8
-                  $ENV{TIDL_TOOLS_PATH}/osrt_deps/tflite_2.8_x86/ruy-build/ruy
-                  $ENV{TIDL_TOOLS_PATH}/osrt_deps/tflite_2.8_x86/xnnpack-build
-                  $ENV{TIDL_TOOLS_PATH}/osrt_deps/tflite_2.8_x86/pthreadpool
-                  $ENV{TIDL_TOOLS_PATH}/osrt_deps/tflite_2.8_x86/fft2d-build
-                  $ENV{TIDL_TOOLS_PATH}/osrt_deps/tflite_2.8_x86/cpuinfo-build
-                  $ENV{TIDL_TOOLS_PATH}/osrt_deps/tflite_2.8_x86/flatbuffers-build
-                  $ENV{TIDL_TOOLS_PATH}/osrt_deps/tflite_2.8_x86/clog-build
-                  $ENV{TIDL_TOOLS_PATH}/osrt_deps/tflite_2.8_x86/farmhash-build
-                  # Enable these when migrating to tflite 2.8
+                  
+                  ${TENSORFLOW_INSTALL_DIR}/ruy-build/ruy
+                  ${TENSORFLOW_INSTALL_DIR}/ruy-build/
+                  ${TENSORFLOW_INSTALL_DIR}/xnnpack-build
+                  ${TENSORFLOW_INSTALL_DIR}/pthreadpool
+                  ${TENSORFLOW_INSTALL_DIR}/fft2d-build
+                  ${TENSORFLOW_INSTALL_DIR}/cpuinfo-build
+                  ${TENSORFLOW_INSTALL_DIR}/flatbuffers-build
+                  ${TENSORFLOW_INSTALL_DIR}/clog-build
+                  ${TENSORFLOW_INSTALL_DIR}/farmhash-build
 
                   #tidl tools lib
                   $ENV{TIDL_TOOLS_PATH}
@@ -359,53 +421,8 @@ if(${TARGET_DEVICE} STREQUAL  "j7" AND  (${TARGET_CPU} STREQUAL  "x86" AND ${HOS
                   opencv_imgproc
                   opencv_imgcodecs
                   opencv_core
-                  libtiff 
-                  libwebp
-                  libpng
-                  libjpeg-turbo
-                  IlmImf
-                  zlib
-                  libjasper
                   dlr
-                  # Enable these when migrating to tflite 2.8
-                  flatbuffers
-                  fft2d_fftsg2d
-                  fft2d_fftsg
-                  cpuinfo
-                  clog
-                  farmhash
-                  ruy_allocator
-                  ruy_apply_multiplier
-                  ruy_blocking_counter
-                  ruy_block_map
-                  ruy_context
-                  ruy_context_get_ctx
-                  ruy_cpuinfo
-                  ruy_ctx
-                  ruy_denormal
-                  ruy_frontend
-                  ruy_have_built_path_for_avx2_fma
-                  ruy_have_built_path_for_avx512
-                  ruy_have_built_path_for_avx
-                  ruy_kernel_arm
-                  ruy_kernel_avx2_fma
-                  ruy_kernel_avx512
-                  ruy_kernel_avx
-                  ruy_pack_arm
-                  ruy_pack_avx2_fma
-                  ruy_pack_avx512
-                  ruy_pack_avx
-                  ruy_prepacked_cache
-                  ruy_prepare_packed_matrices
-                  ruy_system_aligned_alloc
-                  ruy_thread_pool
-                  ruy_trmul
-                  ruy_tune
-                  ruy_wait
-                  pthreadpool
-                  #xnn lib
-                  XNNPACK
-                  # Enable these when migrating to tflite 2.8
+                  ${TFLITE_2_8_LIBS}
                   tensorflow-lite
                   onnxruntime
                   vx_tidl_rt
@@ -418,29 +435,26 @@ if(${TARGET_DEVICE} STREQUAL  "j7" AND  (${TARGET_CPU} STREQUAL  "x86" AND ${HOS
                   ${PROJECT_SOURCE_DIR}
                   ${PROJECT_SOURCE_DIR}/..
                   ${PROJECT_SOURCE_DIR}/include
-                  /usr/local/include
-                  /usr/local/dlr
-                  /usr/include/gstreamer-1.0/
-                  /usr/include/glib-2.0/
-                  /usr/lib/aarch64-linux-gnu/glib-2.0/include
-                  /usr/include/opencv4/
-                  /usr/include/processor_sdk/vision_apps/
                   
                   #tflite 2.8
-                  ${TENSORFLOW_INSTALL_DIR}/tensorflow/lite/tools/pip_package/gen/tflite_pip/python3/cmake_build/flatbuffers/include/                  
-                  ${TENSORFLOW_INSTALL_DIR}/
+                  $ENV{TIDL_TOOLS_PATH}/osrt_deps/tensorflow
+                  $ENV{TIDL_TOOLS_PATH}/osrt_deps/tensorflow/tensorflow/lite/tools/pip_package/gen/tflite_pip/python3/cmake_build/flatbuffers/include/
 
                   ${ONNXRT_INSTALL_DIR}/include
                   ${ONNXRT_INSTALL_DIR}/include/onnxruntime
                   ${ONNXRT_INSTALL_DIR}/include/onnxruntime/core/session                    
                   ${DLR_INSTALL_DIR}/include
                   ${DLR_INSTALL_DIR}/3rdparty/tvm/3rdparty/dlpack/include
-                  ${OPENCV_INSTALL_DIR}/modules/core/include
-                  ${OPENCV_INSTALL_DIR}/modules/highgui/include
-                  ${OPENCV_INSTALL_DIR}/modules/imgcodecs/include
-                  ${OPENCV_INSTALL_DIR}/modules/videoio/include
-                  ${OPENCV_INSTALL_DIR}/modules/imgproc/include
-                  ${OPENCV_INSTALL_DIR}/cmake
+
+                  ${OPENCV_INSTALL_DIR}/
+                  ${OPENCV_INSTALL_DIR}/build
+                  ${OPENCV_INSTALL_DIR}/modules/core/include/
+                  ${OPENCV_INSTALL_DIR}/modules/highgui/include/                  
+                  ${OPENCV_INSTALL_DIR}/modules/imgcodecs/include/
+                  ${OPENCV_INSTALL_DIR}/modules/videoio/include/
+                  ${OPENCV_INSTALL_DIR}/modules/imgproc/include/
+                  ${OPENCV_INSTALL_DIR}/cmake/
+
                   $ENV{TIDL_TOOLS_PATH}
                   PUBLIC ${PROJECT_SOURCE_DIR}/post_process
                   PUBLIC ${PROJECT_SOURCE_DIR}/pre_process
@@ -451,7 +465,6 @@ endif()
 if((${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" AND ${HOST_CPU} STREQUAL  "x86") )
   message(STATUS "cross compiling for AM62")
   add_compile_options(-DDEVICE_AM62=1)
-  #disable xnn tflite 2.8
   add_compile_options(-DXNN_ENABLE=1)
 
   if(NOT ARM64GCC_PATH)
@@ -634,7 +647,6 @@ if((${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" AND ${
     endif()
   endif()
   add_compile_options(-DDEVICE_AM62=1)
-  #disable xnn tflite 2.8
   add_compile_options(-DXNN_ENABLE=1)
 
   include_directories(
@@ -747,19 +759,24 @@ endif()
 if((${TARGET_DEVICE} STREQUAL  "j7") AND (${TARGET_CPU} STREQUAL  "arm" AND ${HOST_CPU} STREQUAL  "x86") )
   message(STATUS "cross compiling for J7")
   add_compile_options(-DDEVICE_J7=1)
-  #disable xnn tflite 2.4
-  add_compile_options(-DXNN_ENABLE=0)
+  add_compile_options(-DXNN_ENABLE=1)
+
   if(NOT ARM64GCC_PATH)
     if (EXISTS $ENV{HOME}/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu)
       set(ARM64GCC_PATH $ENV{HOME}/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu)
+      message (STATUS  "setting ARM64GCC_PATH path:${ARM64GCC_PATH}")
     else()
      message(WARNING "ARM64GCC_PATH is not set")
     endif()
   endif()
 
   if(NOT TARGET_FS_PATH)
-    if (EXISTS $ENV{HOME}/targetfs)
+    if (EXISTS $ENV{TARGET_FS_PATH}) 
+      set(TARGET_FS_PATH $ENV{TARGET_FS_PATH})
+      message (STATUS  "setting TARGET_FS_PATH path:${TARGET_FS_PATH}")
+    elseif (EXISTS $ENV{HOME}/targetfs)
       set(TARGET_FS_PATH $ENV{HOME}/targetfs)
+      message (STATUS  "setting TARGET_FS_PATH path:${TARGET_FS_PATH}")
     else()
       message(WARNING "TARGET_FS_PATH is not set")
     endif()
@@ -775,7 +792,16 @@ if((${TARGET_DEVICE} STREQUAL  "j7") AND (${TARGET_CPU} STREQUAL  "arm" AND ${HO
                   ${TARGET_FS_PATH}/usr/lib
                   ${TARGET_FS_PATH}/usr/lib/glib-2.0
                   ${TARGET_FS_PATH}/usr/lib/python3.8/site-packages  
-
+                  # Enable these when migrating to tflite 2.8
+                  ${TARGET_FS_PATH}/usr/lib/tflite_2.8/ruy-build
+                  ${TARGET_FS_PATH}/usr/lib/tflite_2.8/xnnpack-build
+                  ${TARGET_FS_PATH}/usr/lib/tflite_2.8/pthreadpool
+                  ${TARGET_FS_PATH}/usr/lib/tflite_2.8/fft2d-build
+                  ${TARGET_FS_PATH}/usr/lib/tflite_2.8/cpuinfo-build
+                  ${TARGET_FS_PATH}/usr/lib/tflite_2.8/flatbuffers-build
+                  ${TARGET_FS_PATH}/usr/lib/tflite_2.8/clog-build
+                  ${TARGET_FS_PATH}/usr/lib/tflite_2.8/farmhash-build
+                  # Enable these when migrating to tflite 2.8
   )
   set(SYSTEM_LINK_LIBS
                   tensorflow-lite
@@ -794,23 +820,34 @@ if((${TARGET_DEVICE} STREQUAL  "j7") AND (${TARGET_CPU} STREQUAL  "arm" AND ${HO
                   dl
                   dlr
                   yaml-cpp
+                  tivision_apps
+                  GLESv2
+                  EGL
+                  gbm
+                  glapi
+                  expat
+                  drm
+                  wayland-client
+                  wayland-server
                   pthread
                   vx_tidl_rt
                   ti_rpmsg_char
+                  ${TFLITE_2_8_LIBS}
   )
+  # configure_file(${TARGET_FS_PATH}/usr/include/yaml-cpp/ ${TIDL_TOOLS_PATH}/ COPYONLY)
+  # file(COPY /home/a0496663/work/temp/TA/85rc9/ti-processor-sdk-rtos-j721e-evm-08_05_00_09-prebuilt/targetfs//usr/include/yaml-cpp/ DESTINATION /home/a0496663/work/edgeaitidltools/85_rel_test/edgeai-tidl-tools/tidl_tools)
   include_directories(
                   ${PROJECT_SOURCE_DIR}
                   ${PROJECT_SOURCE_DIR}/..
                   ${PROJECT_SOURCE_DIR}/include
-
+                  ${DLR_INSTALL_DIR}/include                
+                  ${DLR_INSTALL_DIR}/3rdparty/tvm/3rdparty/dlpack/include
                   ${TARGET_FS_PATH}/usr/include
-                  ${TARGET_FS_PATH}/usr/include/gstreamer-1.0/
-                  ${TARGET_FS_PATH}/usr/include/opencv4/
-                  ${TARGET_FS_PATH}/usr/include/processor_sdk/vision_apps/
                   
-                  #tesnorflow2.4  and dependencies
+                  #tesnorflow2.8  and dependencies
                   ${TENSORFLOW_INSTALL_DIR}
-                  ${TENSORFLOW_INSTALL_DIR}/tensorflow/lite/tools/make/downloads/flatbuffers/include
+                  ${TENSORFLOW_INSTALL_DIR}/../tensorflow
+                  ${TENSORFLOW_INSTALL_DIR}/../tensorflow/tensorflow/lite/tools//pip_package/gen/tflite_pip/python3/cmake_build/flatbuffers/include
 
                   #armnn
                   ${ARMNN_PATH}/delegate/include
@@ -819,14 +856,13 @@ if((${TARGET_DEVICE} STREQUAL  "j7") AND (${TARGET_CPU} STREQUAL  "arm" AND ${HO
                   ${ONNXRT_INSTALL_DIR}/include
                   ${ONNXRT_INSTALL_DIR}/include/onnxruntime
                   ${ONNXRT_INSTALL_DIR}/include/onnxruntime/core/session                    
-                  ${DLR_INSTALL_DIR}/include
-                  ${DLR_INSTALL_DIR}/3rdparty/tvm/3rdparty/dlpack/include
                   ${OPENCV_INSTALL_DIR}/modules/core/include
                   ${OPENCV_INSTALL_DIR}/modules/highgui/include
                   ${OPENCV_INSTALL_DIR}/modules/imgcodecs/include
                   ${OPENCV_INSTALL_DIR}/modules/videoio/include
                   ${OPENCV_INSTALL_DIR}/modules/imgproc/include
                   ${OPENCV_INSTALL_DIR}/cmake
+                  ${OPENCV_INSTALL_DIR}/build/
                   
                   PUBLIC ${PROJECT_SOURCE_DIR}/post_process
                   PUBLIC ${PROJECT_SOURCE_DIR}/pre_process
@@ -840,15 +876,14 @@ endif()
 if( ((${TARGET_DEVICE} STREQUAL  "j7") AND (${TARGET_CPU} STREQUAL  "arm" AND ${HOST_CPU} STREQUAL  "arm"))  )
   message(NOTICE "native compiling for J7")
   add_compile_options(-DDEVICE_J7=1)
-  #disable xnn tflite 2.4
-  add_compile_options(-DXNN_ENABLE=0)
+  add_compile_options(-DXNN_ENABLE=1)
   
 
   set(CMAKE_C_COMPILER gcc)
   set(CMAKE_CXX_COMPILER g++)
 
   link_directories(  
-                  /usr/lib/opencv/
+                  /usr/lib/opencv/ #for container
                   /usr/lib
                   # Enable these when migrating to tflite 2.8
                   /usr/lib/tflite_2.8/ruy-build
@@ -863,6 +898,7 @@ if( ((${TARGET_DEVICE} STREQUAL  "j7") AND (${TARGET_CPU} STREQUAL  "arm" AND ${
                   /usr/local/dlr
                   /usr/lib/aarch64-linux-gnu
                   /usr/lib/python3.8/site-packages/dlr/
+                  /usr/local/lib/python3.6/dist-packages/dlr/
                   $ENV{HOME}/.local/dlr/                  
   )
   set(SYSTEM_LINK_LIBS
@@ -880,74 +916,37 @@ if( ((${TARGET_DEVICE} STREQUAL  "j7") AND (${TARGET_CPU} STREQUAL  "arm" AND ${
                   webp
                   png16
                   tiff
-                  # Enable these when migrating to tflite 2.8
-                  flatbuffers
-                  fft2d_fftsg2d
-                  fft2d_fftsg
-                  cpuinfo
-                  clog
-                  farmhash
-                  ruy_allocator
-                  ruy_apply_multiplier
-                  ruy_blocking_counter
-                  ruy_block_map
-                  ruy_context
-                  ruy_context_get_ctx
-                  ruy_cpuinfo
-                  ruy_ctx
-                  ruy_denormal
-                  ruy_frontend
-                  ruy_have_built_path_for_avx2_fma
-                  ruy_have_built_path_for_avx512
-                  ruy_have_built_path_for_avx
-                  ruy_kernel_arm
-                  ruy_kernel_avx2_fma
-                  ruy_kernel_avx512
-                  ruy_kernel_avx
-                  ruy_pack_arm
-                  ruy_pack_avx2_fma
-                  ruy_pack_avx512
-                  ruy_pack_avx
-                  ruy_prepacked_cache
-                  ruy_prepare_packed_matrices
-                  ruy_system_aligned_alloc
-                  ruy_thread_pool
-                  ruy_trmul
-                  ruy_tune
-                  ruy_wait
-                  pthreadpool
-                  #xnn lib
-                  XNNPACK
-                  # Enable these when migrating to tflite 2.8
+                  ${ADV_UTILS_LIB}
+                  ${TFLITE_2_8_LIBS}
   )
   include_directories(
+                  /usr/include
+                  /usr/local/include
+                  /usr/local/dlr
+                  /usr/include/tensorflow/lite/tools/pip_package/gen/tflite_pip/python3/cmake_build/flatbuffers/include/
                   ${PROJECT_SOURCE_DIR}
                   ${PROJECT_SOURCE_DIR}/..
                   ${PROJECT_SOURCE_DIR}/include
-                  /usr/local/include
-                  /usr/local/dlr
                   /usr/include/opencv4/
-                  /usr/include/tensorflow
-                  /usr/include/tensorflow/tensorflow/lite/tools/make/downloads/flatbuffers/include
-                  #tflite_2.8
-                  /usr/include/tensorflow/tensorflow/lite/tools/pip_package/gen/tflite_pip/python3/cmake_build/flatbuffers/include
+                  /usr/include/opencv-4.2.0/# for container
+                  /usr/include/opencv-4.2.0/build# for container
+                  /usr/include/opencv-4.2.0/modules/core/include/# for container
+                  /usr/include/opencv-4.2.0/modules/highgui/include/                  # for container
+                  /usr/include/opencv-4.2.0/modules/imgcodecs/include/# for container
+                  /usr/include/opencv-4.2.0/modules/videoio/include/# for container
+                  /usr/include/opencv-4.2.0/modules/imgproc/include/# for container
+                  /usr/include/opencv-4.2.0/cmake/# for container
+                  /usr/include/tensorflow/tensorflow/lite/tools/pip_package/gen/tflite_pip/python3/cmake_build/flatbuffers/include/ #for container
+
                   
-                  /usr/include/opencv-4.2.0
-                  /usr/include/opencv-4.2.0/build
-                  /usr/include/opencv-4.2.0/modules/core/include/
-                  /usr/include/opencv-4.2.0/modules/highgui/include/                  
-                  /usr/include/opencv-4.2.0/modules/imgcodecs/include/
-                  /usr/include/opencv-4.2.0/modules/videoio/include/
-                  /usr/include/opencv-4.2.0/modules/imgproc/include/
+                  /usr/include/tensorflow
                   /usr/include/neo-ai-dlr/include
                   /usr/include/neo-ai-dlr/3rdparty/tvm/3rdparty/dlpack/include
                   /usr/include/onnxruntime/include
                   /usr/include/onnxruntime/include/onnxruntime/core/session
-
-                  $ENV{TIDL_TOOLS_PATH}
                   PUBLIC ${PROJECT_SOURCE_DIR}/post_process
                   PUBLIC ${PROJECT_SOURCE_DIR}/pre_process
-                  PUBLIC ${PROJECT_SOURCE_DIR}/utils
+                  PUBLIC ${PROJECT_SOURCE_DIR}/utils/include
   )
 endif()
 
@@ -965,7 +964,6 @@ if(ARMNN_ENABLE)
   )
   link_directories(
     #armnn lib need to remove once added to filesystem
-    /home/root
     ${ARMNN_PATH}/build
     ${ARMNN_PATH}/build/delegate
     ${TIDL_TARGET_LIBS}

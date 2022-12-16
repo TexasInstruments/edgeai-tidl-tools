@@ -44,12 +44,12 @@ cd $HOME
 rm -r u_20_pywhl
 if [  ! -d /usr/include/tensorflow ];then
     wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/ubuntu20_04/tflite_2.8_u20.tar.gz
-    tar xf tflite_2.8_aragoj7.tar.gz
-    rm tflite_2.8_aragoj7.tar.gz
-    mv tflite_2.8_aragoj7/tensorflow /usr/include
-    mv tflite_2.8_aragoj7/tflite_2.8 /usr/lib/
-    cp ~/tflite_2.8_aragoj7/libtensorflow-lite.a $HOME/required_libs/
-    rm -r tflite_2.8_aragoj7  
+    tar xf tflite_2.8_u20.tar.gz
+    rm tflite_2.8_u20.tar.gz
+    mv tflite_2.8_u20/tensorflow /usr/include
+    mv tflite_2.8_u20/tflite_2.8 /usr/lib/
+    cp ~/tflite_2.8_u20/libtensorflow-lite.a $HOME/required_libs/
+    rm -r tflite_2.8_u20  
     cd $HOME
 else
     echo "skipping tensorflow setup: found /usr/include/tensorflow"
@@ -90,6 +90,10 @@ if [  ! -d /usr/include/neo-ai-dlr ];then
     wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/ubuntu20_04/dlr_1.10.0_u20.tar.gz
     tar xf dlr_1.10.0_u20.tar.gz 
     rm dlr_1.10.0_u20.tar.gz 
+    cd dlr_1.10.0_u20
+    unzip dlr-1.10.0-py3-none-any.whl
+    cp ./dlr/libdlr.so $HOME/required_libs/
+    cd - 
     cp -r  /usr/local/lib/python3.8/dist-packages/dlr/libdlr.so $HOME/required_libs/
     mv dlr_1.10.0_u20/neo-ai-dlr /usr/include/
     rm -r dlr_1.10.0_u20
@@ -130,7 +134,7 @@ if [  ! -L libtiff.so ];then
 fi
 cd /usr/lib/
 if [  ! -L libti_rpmsg_char.so.0 ];then
-    ln -s /host/usr/lib/libti_rpmsg_char.so.0.4.1 libti_rpmsg_char.so.0
+    ln -s /host/usr/lib/libti_rpmsg_char.so libti_rpmsg_char.so.0
 fi
 if [  ! -L libvx_tidl_rt.so ];then
     ln -s /host/usr/lib/libvx_tidl_rt.so.1.0  libvx_tidl_rt.so
@@ -139,6 +143,12 @@ fi
 if [  ! -f /usr/dlr/libdlr.so ];then
     mkdir /usr/dlr
     cp ~/required_libs/libdlr.so /usr/dlr/
+fi
+if [  ! -L libtivision_apps.so.8.5.0 ];then
+    ln -s /host/usr/lib/libtivision_apps.so  libtivision_apps.so.8.5.0
+fi
+if [  ! -L libtidl_tfl_delegate.so ];then
+    ln -s /host/usr/lib/libtidl_tfl_delegate.so  libtidl_tfl_delegate.so
 fi
 
 
