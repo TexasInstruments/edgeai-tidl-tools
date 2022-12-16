@@ -76,7 +76,7 @@ RUN pip3 install pillow \
     protobuf==3.19
 
 RUN apt-get install -y python3-opencv
-RUN apt-get libegl1 libgles2-mesa libglu1 libdevil-dev
+RUN apt-get install -y libegl1 libgles2-mesa libglu1 libdevil-dev
 
 #setup entrypoint to run the demo application
 ENTRYPOINT ["/usr/bin/entrypoint.sh"]

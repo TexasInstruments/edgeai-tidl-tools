@@ -72,6 +72,7 @@ RUN apt-get install -y \
     libglib2.0-dev
 
 RUN pip3 install Cython 
+RUN apt-get install -y libegl1 libgles2-mesa libglu1 libdevil-dev
     
 RUN pip3 install \
         jupyterlab \

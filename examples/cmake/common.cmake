@@ -834,8 +834,6 @@ if((${TARGET_DEVICE} STREQUAL  "j7") AND (${TARGET_CPU} STREQUAL  "arm" AND ${HO
                   ti_rpmsg_char
                   ${TFLITE_2_8_LIBS}
   )
-  # configure_file(${TARGET_FS_PATH}/usr/include/yaml-cpp/ ${TIDL_TOOLS_PATH}/ COPYONLY)
-  # file(COPY /home/a0496663/work/temp/TA/85rc9/ti-processor-sdk-rtos-j721e-evm-08_05_00_09-prebuilt/targetfs//usr/include/yaml-cpp/ DESTINATION /home/a0496663/work/edgeaitidltools/85_rel_test/edgeai-tidl-tools/tidl_tools)
   include_directories(
                   ${PROJECT_SOURCE_DIR}
                   ${PROJECT_SOURCE_DIR}/..
