@@ -247,3 +247,69 @@ def tidlTfliteModelOptimize(in_model_path, out_model_path, scaleList=[0.0078125,
     modelBuf = b2.Output() 
     newFile = open(out_model_path, "wb")
     newFile.write(modelBuf)
+
+replacement_dict = {
+    "batch_norm": "bn",
+    "batchnorm": "bn",
+    "depthwise_conv": "dwc",
+    "depthwise": "dw",
+    "inverted_bottleneck": "invb",
+    "conv": "c",
+    "MobileNetV3LargeNOSE": "MobV3L",
+    "project": "proj",
+    "DeepLab": "DL",
+    "PanopticDL": "Pano",
+    "semantic_decoder": "dec",
+    "semantic_head": "hd",
+    "pointwise": "pt",
+    "Conv": "C",
+}
+
+
+def tidlTfliteModelNamePruner(in_model_path, out_model_path, use_number_as_tensor_names=True):
+    #Open the tflite model
+    print(in_model_path)
+    modelBin = open(in_model_path, 'rb').read()
+    if modelBin is None:
+        print(f'Error: Could not open file {in_model_path}')
+        return
+    modelBin = bytearray(modelBin)
+    model = tflite_model.Model.Model.GetRootAsModel(modelBin, 0)
+    modelT = tflite_model.Model.ModelT.InitFromObj(model)
+
+    if use_number_as_tensor_names:
+        for (tensor_idx,new_tensor) in enumerate(modelT.subgraphs[0].tensors):
+            new_tensor.name = bytearray(str(tensor_idx), 'utf-8')
+    else:
+        num_layers_with_long_name = 0
+        for (op_idx,operator) in enumerate(modelT.subgraphs[0].operators):
+            print("op_idx: {}".format(op_idx))
+            new_tensor = modelT.subgraphs[0].tensors[operator.outputs[0]]
+            new_tensor.name = bytearray((str(new_tensor.name, 'utf-8')), 'utf-8')
+
+            if len(new_tensor.name) > 255:
+                modified_name = str(new_tensor.name, 'utf-8')
+                for existing_name,new_name in replacement_dict.items():
+                    modified_name = modified_name.replace(existing_name, new_name)
+
+                if len(modified_name) > 255:
+                    print("{} : {} : {}".format(len(modified_name), num_layers_with_long_name, modified_name))
+                    num_layers_with_long_name += 1
+
+                new_tensor.name = bytearray((modified_name + str("_org")), 'utf-8')
+            assert(len(new_tensor.name) < 512)
+
+    # Packs the object class into another flatbuffer.
+    b2 = flatbuffers.Builder(0)
+    b2.Finish(modelT.Pack(b2), b"TFL3")
+    modelBuf = b2.Output()
+    newFile = open(out_model_path, "wb")
+    newFile.write(modelBuf)
+
+    return
+	
+	
+if __name__ == "__main__":
+    in_model_path = '/data/hdd/a0875091/files/work/github/deeplab2_proj/Model_Output/stored/2022-12-03-mobv3-large-os16-semseg-se-no-preproc.tflite'
+    out_model_path = in_model_path.replace('.tflite', '_names_stripped.tflite')
+    tidlTfliteModelNamePruner(in_model_path, out_model_path)
