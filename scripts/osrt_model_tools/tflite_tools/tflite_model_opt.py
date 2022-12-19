@@ -310,6 +310,6 @@ def tidlTfliteModelNamePruner(in_model_path, out_model_path, use_number_as_tenso
 	
 	
 if __name__ == "__main__":
-    in_model_path = '/data/hdd/a0875091/files/work/github/deeplab2_proj/Model_Output/stored/2022-12-03-mobv3-large-os16-semseg-se-no-preproc.tflite'
+    in_model_path = './model.tflite'
     out_model_path = in_model_path.replace('.tflite', '_names_stripped.tflite')
     tidlTfliteModelNamePruner(in_model_path, out_model_path)
