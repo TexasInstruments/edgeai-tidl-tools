@@ -231,7 +231,12 @@ if [[ $arch == x86_64 ]]; then
     pip3 install -r ./requirements_pc.txt
 fi
 if [[ -z "$TIDL_TOOLS_PATH" ]]; then
-    wget  https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/tidl_tools.tar.gz
+    if  [ $DEVICE == am62a ];then
+        echo 'Downloading tidl tools for AM62A device ...'
+        wget  https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_25/tidl_tools.tar.gz
+    else
+        wget  https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/tidl_tools.tar.gz
+    fi
     # wget http://gtweb.dal.design.ti.com/nightly_builds/tidl-osrt-build/327-2022-12-07_01-29-33/artifacts/output/tidl_tools/tidl_tools.tar.gz
     tar -xzf tidl_tools.tar.gz
     rm tidl_tools.tar.gz
@@ -242,6 +247,7 @@ if [[ -z "$TIDL_TOOLS_PATH" ]]; then
     export TIDL_TOOLS_PATH=$(pwd)
     cd ..
 fi
+
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$TIDL_TOOLS_PATH:$TIDL_TOOLS_PATH/osrt_deps
 
 if [[ $arch == x86_64 && $skip_arm_gcc_download -eq 0 ]]; then
