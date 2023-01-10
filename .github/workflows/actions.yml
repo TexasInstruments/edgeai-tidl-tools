@@ -12,6 +12,8 @@ jobs:
         uses: actions/checkout@v2
       - name: Docker Run
         uses: ./ # Uses an action in the root directory
+        with:
+          options: --shm-size=4096m 
       - name: Archive results
         uses: actions/upload-artifact@v2
         with:
