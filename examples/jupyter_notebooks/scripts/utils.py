@@ -13,13 +13,13 @@ from PIL import Image, ImageFont, ImageDraw, ImageEnhance
 Jacinto_ai_benchmark for getting preprocessing configurations
 for all supported prebuilt models
 """
-from jai_benchmark.config_settings import ConfigSettings
-from jai_benchmark.utils import get_name_key_pair_list
+from edgeai_benchmark.config_settings import ConfigSettings
+from edgeai_benchmark.utils import get_name_key_pair_list
 from configs import select_configs
-from jai_benchmark.sessions.tflitert_session import TFLiteRTSession
-from jai_benchmark.sessions.tvmdlr_session import TVMDLRSession
-from jai_benchmark.sessions.onnxrt_session import ONNXRTSession
-from jai_benchmark.utils.artifacts_id_to_model_name import model_id_artifacts_pair
+from edgeai_benchmark.sessions.tflitert_session import TFLiteRTSession
+from edgeai_benchmark.sessions.tvmdlr_session import TVMDLRSession
+from edgeai_benchmark.sessions.onnxrt_session import ONNXRTSession
+from edgeai_benchmark.utils.artifacts_id_to_model_name import model_id_artifacts_pair
 
 import os
 import sys
