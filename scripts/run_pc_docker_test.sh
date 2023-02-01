@@ -63,10 +63,6 @@ if [[ "$(docker images -q $DOCKER_TAG 2> /dev/null)" == "" ]]; then
 else
     echo "Using existing docker image"
 fi
-# docker run --rm  -it -v $(pwd)/:/root/edgeai-tidl-tools -v /:/host --env SOC=am62a  --network host --name $DOCKER_TAG  --shm-size=2gb  $DOCKER_TAG  /bin/bash
+docker run --rm  -it -v $(pwd)/:/root/edgeai-tidl-tools -v /:/host --env SOC=am62a  --network host --name $DOCKER_TAG  --shm-size=2gb  $DOCKER_TAG  /bin/bash
 docker run --rm  -it -v $(pwd)/:/root/edgeai-tidl-tools -v /:/host --env SOC=am68pa  --network host --name $DOCKER_TAG  --shm-size=2gb  $DOCKER_TAG  /bin/bash
 # docker run --rm  -it -v $(pwd)/:/root/edgeai-tidl-tools -v /:/host --env SOC=am68  --network host --name $DOCKER_TAG  --shm-size=2gb  $DOCKER_TAG  /bin/bash
-
-
-# docker run -it -v $(pwd):/root/edgeai-tidl-tools     -v /:/host  --env SOC=J721E  --network host  $DOCKER_TAG  /bin/bash
-# docker run -it -v $(pwd):/root/edgeai-tidl-tools     -v /:/host  --env SOC=J721E  --network host  $DOCKER_TAG  /bin/bash
