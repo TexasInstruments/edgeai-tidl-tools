@@ -50,10 +50,10 @@ idx = 0
 nthreads = 0
 run_count = 0
 
-if "DEVICE" in os.environ:
-    DEVICE = os.environ["DEVICE"]
+if "SOC" in os.environ:
+    SOC = os.environ["SOC"]
 else:
-    print("Please export DEVICE var to proceed")
+    print("Please export SOC var to proceed")
     exit(-1)
 
 if (platform.machine() == 'aarch64'  and args.compile == True):
@@ -61,7 +61,7 @@ if (platform.machine() == 'aarch64'  and args.compile == True):
         Please do the compilation on PC and copy artifacts for running on TIDL devices " )
     exit(-1)
 
-if(DEVICE == "am62"):
+if(SOC == "am62"):
     args.disable_offload = True
     args.compile = False
 

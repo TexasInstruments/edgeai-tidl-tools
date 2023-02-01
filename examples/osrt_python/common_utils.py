@@ -43,8 +43,8 @@ high_resolution_optimization = 0
 pre_batchnorm_fold = 1
 ti_internal_nc_flag = 1601
 
-DEVICE = os.environ["DEVICE"]
-if(DEVICE != "am62a"):
+SOC = os.environ["SOC"]
+if(SOC != "am62a"):
     data_convert = 3
 else:
     data_convert = 0

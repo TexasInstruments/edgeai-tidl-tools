@@ -155,6 +155,7 @@ SCRIPTDIR=`pwd`
 
 skip_cpp_deps=0
 skip_arm_gcc_download=0
+skip_x86_python_install=0
 load_armnn=0
 
 
@@ -169,6 +170,9 @@ case $key in
     --skip_arm_gcc_download)
     skip_arm_gcc_download=1
     ;;
+    --skip_x86_python_install)
+    skip_x86_python_install=1
+    ;;
     --load_armnn)
     load_armnn=1
     ;;
@@ -178,6 +182,7 @@ case $key in
     echo Options,
     echo --skip_cpp_deps            Skip Downloading or Compiling dependencies for CPP examples
     echo --skip_arm_gcc_download            Skip Downloading or setting environment variable  for ARM64_GCC_PATH
+    echo --skip_x86_python_install            Skip installing of python packages    
     echo --load_armnn           load amrnn libs  for arm
     exit 0
     ;;
@@ -206,41 +211,51 @@ else
 return
 fi
 
-if [ -z "$DEVICE" ];then
-    echo "DEVICE not defined. Run either of below commands"
-    echo "export DEVICE=j7"
-    echo "export DEVICE=am62"
-    echo "export DEVICE=am62a"
+if [ -z "$SOC" ];then
+    echo "SOC not defined. Run either of below commands"
+    echo "export SOC=am62"
+    echo "export SOC=am62a"
+    echo "export SOC=am68a"
+    echo "export SOC=am68pa"
+    echo "export SOC=am69a"
     return
-else 
-    if [ $DEVICE != j7 ] && [ $DEVICE != am62 ] && [ $DEVICE != am62a ]; then
-        echo "DEVICE shell var not set correctly. Set"
-        echo "export DEVICE=j7"
-        echo "export DEVICE=am62"
-        echo "export DEVICE=am62a"
-        return
-    fi
 fi
-
+REL=08_05_00_30
 
 # ######################################################################
 # # Installing dependencies
-echo 'Installing python packages...'
-if [[ $arch == x86_64 ]]; then
-    #TODO8.5 update the link inside requirement PC
+if [[ $arch == x86_64 && $skip_x86_python_install -eq 0 ]]; then   
+    echo 'Installing python packages...'
     pip3 install -r ./requirements_pc.txt
 fi
 if [[ -z "$TIDL_TOOLS_PATH" ]]; then
-    if  [ $DEVICE == am62a ];then
-        echo 'Downloading tidl tools for AM62A device ...'
-        wget  https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_25/tidl_tools.tar.gz
+    rm tidl_tools.tar.gz
+    if  [ $SOC == am62a ];then
+        echo 'Downloading tidl tools for AM62A SOC ...'
+        wget  https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/TIDL_TOOLS/AM62A/tidl_tools.tar.gz
+    elif  [ $SOC == am68pa ];then
+        echo 'Downloading tidl tools for AM67A SOC ...'
+        wget  https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/TIDL_TOOLS/AM68PA/tidl_tools.tar.gz
+    elif  [ $SOC == am68a ];then
+        echo 'Downloading tidl tools for AM68A SOC ...'
+        wget  https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/TIDL_TOOLS/AM68A/tidl_tools.tar.gz
+        
+    elif  [ $SOC == am69a ];then
+        echo 'Downloading tidl tools for AM69A SOC ...'
+        wget  https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/TIDL_TOOLS/AM69A/tidl_tools.tar.gz
     else
-        wget  https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/tidl_tools.tar.gz
+        echo "SOC shell var not set correctly($SOC). Set"
+        echo "export SOC=am62"
+        echo "export SOC=am62a"
+        echo "export SOC=am68pa"
+        echo "export SOC=am68a"
+        echo "export SOC=am69a"
+        return 
     fi
     tar -xzf tidl_tools.tar.gz
-    rm tidl_tools.tar.gz
+    rm tidl_tools.tar.gz    
     cd  tidl_tools
-    if [ ! -L libvx_tidl_rt.so.1.0 ];then
+    if [[ ! -L libvx_tidl_rt.so.1.0 && ! -f libvx_tidl_rt.so.1.0 ]];then
          ln -s  libvx_tidl_rt.so libvx_tidl_rt.so.1.0
     fi 
     export TIDL_TOOLS_PATH=$(pwd)
@@ -266,8 +281,8 @@ if [ $skip_cpp_deps -eq 0 ]; then
         cd  $TIDL_TOOLS_PATH/osrt_deps
         # onnx
         if [ ! -d onnx_1.7.0_x86_u18 ];then
-            rm onnx_1.7.0_x86_u18.tar.gz
-            wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/ubuntu18_04_x86_64/onnx_1.7.0_x86_u18.tar.gz
+            rm onnx_1.7.0_x86_u18.tar.gz            
+            wget  https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/onnx_1.7.0_x86_u18.tar.gz
             tar -xf onnx_1.7.0_x86_u18.tar.gz
             cp onnx_1.7.0_x86_u18/libonnxruntime.so .
             cp onnx_1.7.0_x86_u18/onnxruntime . -r 
@@ -280,7 +295,7 @@ if [ $skip_cpp_deps -eq 0 ]; then
         # tflite_2.8
         if [ ! -d tflite_2.8_x86_u18 ];then
             rm tflite_2.8_x86_u18.tar.gz
-            wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/ubuntu18_04_x86_64/tflite_2.8_x86_u18.tar.gz
+            wget  https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/tflite_2.8_x86_u18.tar.gz
             tar -xf tflite_2.8_x86_u18.tar.gz        
             cp tflite_2.8_x86_u18/libtensorflow-lite.a .
             cp tflite_2.8_x86_u18/tensorflow/ . -r
@@ -294,7 +309,7 @@ if [ $skip_cpp_deps -eq 0 ]; then
         #opencv
         if [ ! -d  opencv_4.2.0_x86_u18 ];then
             rm opencv_4.2.0_x86_u18.tar.gz
-            wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/ubuntu18_04_x86_64/opencv_4.2.0_x86_u18.tar.gz
+            wget  https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/opencv_4.2.0_x86_u18.tar.gz
             tar -xf opencv_4.2.0_x86_u18.tar.gz 
             cp opencv_4.2.0_x86_u18/opencv-4.2.0 . -r
             cp opencv_4.2.0_x86_u18/opencv .  -r 
@@ -307,7 +322,7 @@ if [ $skip_cpp_deps -eq 0 ]; then
         #dlr
         if [ ! -d dlr_1.10.0_x86_u18 ];then
             rm dlr_1.10.0_x86_u18.tar.gz
-            wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/ubuntu18_04_x86_64/dlr_1.10.0_x86_u18.tar.gz
+            wget  https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/dlr_1.10.0_x86_u18.tar.gz
             tar -xf dlr_1.10.0_x86_u18.tar.gz
             cp dlr_1.10.0_x86_u18/neo-ai-dlr . -r
             rm dlr_1.10.0_x86_u18.tar.gz   -r

@@ -11,23 +11,16 @@ echo 'Processor Architecture "'$arch'" is Not Supported '
 return
 fi
 
-if [ -z "$DEVICE" ];then
-    echo "DEVICE not defined. Run either of below commands"
-    echo "export DEVICE=j7"
-    echo "export DEVICE=am62"
-    echo "export DEVICE=am62a"
-    return
-else 
-    if [ $DEVICE != j7 ] && [ $DEVICE != am62 ] && [ $DEVICE != am62a ]; then
-        echo "DEVICE shell var not set correctly. Set"
-        echo "export DEVICE=j7"
-        echo "export DEVICE=am62"
-        echo "export DEVICE=am62a"
-        return
-    fi
+if [ -z "$SOC" ];then
+    echo "SOC not defined. Run either of below commands"
+    echo "export SOC=am62"
+    echo "export SOC=am62a"
+    echo "export SOC=am68a"
+    echo "export SOC=am68pa"
+    echo "export SOC=am69a"
 fi
 
-if [[ $DEVICE == j7 ]]; then
+if [[ $SOC == am68pa ]]; then
     cd $CURDIR/examples/osrt_python/tfl
     if [[ $arch == x86_64 ]]; then
     python3 tflrt_delegate.py -c
@@ -48,13 +41,55 @@ if [[ $DEVICE == j7 ]]; then
     fi
     python3  dlr_inference_example.py 
     cd $CURDIR
-elif [[ $DEVICE == am62 ]]; then
+elif [[ $SOC == am68a ]]; then
+    cd $CURDIR/examples/osrt_python/tfl
+    if [[ $arch == x86_64 ]]; then
+    python3 tflrt_delegate.py -c
+    fi
+    python3 tflrt_delegate.py
+    cd $CURDIR/examples/osrt_python/ort
+    if [[ $arch == x86_64 ]]; then
+    python3 onnxrt_ep.py -c
+    fi
+    python3 onnxrt_ep.py
+    cd $CURDIR/examples/osrt_python/tvm_dlr
+    if [[ $arch == x86_64 ]]; then
+    python3  tvm_compilation_onnx_example.py --pc-inference
+    python3  tvm_compilation_tflite_example.py --pc-inference
+    python3  tvm_compilation_onnx_example.py
+    python3  tvm_compilation_tflite_example.py
+    python3  tvm_compilation_mxnet_example.py
+    fi
+    python3  dlr_inference_example.py 
+    cd $CURDIR
+elif [[ $SOC == am69a ]]; then
+    cd $CURDIR/examples/osrt_python/tfl
+    if [[ $arch == x86_64 ]]; then
+    python3 tflrt_delegate.py -c
+    fi
+    python3 tflrt_delegate.py
+    cd $CURDIR/examples/osrt_python/ort
+    if [[ $arch == x86_64 ]]; then
+    python3 onnxrt_ep.py -c
+    fi
+    python3 onnxrt_ep.py
+    cd $CURDIR/examples/osrt_python/tvm_dlr
+    if [[ $arch == x86_64 ]]; then
+    python3  tvm_compilation_onnx_example.py --pc-inference
+    python3  tvm_compilation_tflite_example.py --pc-inference
+    python3  tvm_compilation_onnx_example.py
+    python3  tvm_compilation_tflite_example.py
+    python3  tvm_compilation_mxnet_example.py
+    fi
+    python3  dlr_inference_example.py 
+    cd $CURDIR    
+elif [[ $SOC == am62 ]]; then
     cd $CURDIR/examples/osrt_python/tfl
     python3 tflrt_delegate.py
     cd $CURDIR/examples/osrt_python/ort
     python3 onnxrt_ep.py 
     cd $CURDIR
-elif [[ $DEVICE == am62a ]]; then
+elif [[ $SOC == am62a ]]; then
     cd $CURDIR/examples/osrt_python/tfl
     if [[ $arch == x86_64 ]]; then
     python3 tflrt_delegate.py -c

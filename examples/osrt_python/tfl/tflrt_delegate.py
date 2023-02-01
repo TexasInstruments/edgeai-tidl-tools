@@ -41,10 +41,10 @@ else:
 idx = 0
 nthreads = 0
 run_count = 0
-if "DEVICE" in os.environ:
-    DEVICE = os.environ["DEVICE"]
+if "SOC" in os.environ:
+    SOC = os.environ["SOC"]
 else:
-    print("Please export DEVICE var to proceed")
+    print("Please export SOC var to proceed")
     exit(-1)
 
 if (platform.machine() == 'aarch64'  and args.compile == True):
@@ -52,7 +52,7 @@ if (platform.machine() == 'aarch64'  and args.compile == True):
         Please do the compilation on PC and copy artifacts for running on TIDL devices " )
     exit(-1)
 
-if(DEVICE == "am62"):
+if(SOC == "am62"):
     args.disable_offload = True
     args.compile = False
 
@@ -115,7 +115,7 @@ def infer_image(interpreter, image_files, config):
   interpreter.invoke()
   stop_time = time.time()
 
-  if(DEVICE != "am62"):
+  if(SOC != "am62"):
     copy_time, proc_time, sub_graphs_proc_time, ddr_write, ddr_read  = get_benchmark_output(interpreter)
     proc_time = proc_time - copy_time
   else:

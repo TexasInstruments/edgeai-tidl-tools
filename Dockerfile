@@ -1,10 +1,10 @@
-FROM ubuntu:18.04
-#FROM artifactory.itg.ti.com/docker-public/library/ubuntu:18.04
-#RUN echo "Acquire::http::proxy \"http://webproxy.ext.ti.com:80\";" > /etc/apt/apt.conf
-#ENV ftp_proxy http://webproxy.ext.ti.com:80
-#ENV http_proxy http://webproxy.ext.ti.com:80
-#ENV https_proxy http://webproxy.ext.ti.com:80
-#ENV no_proxy ti.com
+# FROM ubuntu:18.04
+FROM artifactory.itg.ti.com/docker-public/library/ubuntu:18.04
+RUN echo "Acquire::http::proxy \"http://webproxy.ext.ti.com:80\";" > /etc/apt/apt.conf
+ENV ftp_proxy http://webproxy.ext.ti.com:80
+ENV http_proxy http://webproxy.ext.ti.com:80
+ENV https_proxy http://webproxy.ext.ti.com:80
+ENV no_proxy ti.com
  
 # baseline
 RUN apt-get update
@@ -23,12 +23,12 @@ COPY entrypoint.sh /entrypoint.sh
 COPY requirements_pc.txt /requirements_pc.txt
 RUN  pip3 install -r /requirements_pc.txt
 
-RUN  echo "#!/bin/bash" > /dev_entrypoint.sh
-RUN  echo "echo Starting Dev Container" >> /dev_entrypoint.sh
-RUN  chmod +x /dev_entrypoint.sh
-ARG MODE=test
+# RUN  echo "#!/bin/bash" > /dev_entrypoint.sh
+# RUN  echo "echo Starting Dev Container" >> /dev_entrypoint.sh
+# RUN  chmod +x /dev_entrypoint.sh
+# ARG MODE=test
 
-RUN bash -c 'if [ $MODE = "dev" ]; then cp /dev_entrypoint.sh /curr_entrypoint.sh; else cp  /entrypoint.sh /curr_entrypoint.sh; fi'
+# RUN bash -c 'if [ $MODE = "dev" ]; then cp /dev_entrypoint.sh /curr_entrypoint.sh; else cp  /entrypoint.sh /curr_entrypoint.sh; fi'
 
 # Code file to execute when the docker container starts up (`entrypoint.sh`)
-ENTRYPOINT ["/curr_entrypoint.sh"]
+ENTRYPOINT ["/root/edgeai-tidl-tools/entrypoint.sh"]
