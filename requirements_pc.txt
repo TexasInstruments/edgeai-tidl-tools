@@ -10,8 +10,4 @@ opencv-python==4.2.0.34
 pytest
 graphviz
 git+https://github.com/kumardesappan/caffe2onnx
-https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_30/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/dlr-1.10.0-py3-none-any.whl
-https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_30/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/tvm-0.9.dev0-cp36-cp36m-linux_x86_64.whl
-https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_30/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/onnxruntime_tidl-1.7.0-cp36-cp36m-linux_x86_64.whl
-https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_30/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/tflite_runtime-2.8.2-cp36-cp36m-linux_x86_64.whl
 

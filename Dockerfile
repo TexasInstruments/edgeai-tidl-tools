@@ -1,6 +1,9 @@
 # FROM ubuntu:18.04
-FROM artifactory.itg.ti.com/docker-public/library/ubuntu:18.04
-RUN echo "Acquire::http::proxy \"http://webproxy.ext.ti.com:80\";" > /etc/apt/apt.conf
+ARG REPO_LOCATION=''
+FROM ${REPO_LOCATION}ubuntu:18.04
+ARG USE_PROXY=none
+RUN bash -c 'if [ $USE_PROXY = "ti" ]; then echo "Acquire::http::proxy \"http://webproxy.ext.ti.com:80\";" > /etc/apt/apt.conf; fi'
+# RUN bash -c 'if [ $USE_PROXY = "ti" ]; then export ftp_proxy=http://webproxy.ext.ti.com:80; export http_proxy=http://webproxy.ext.ti.com:80;export https_proxy=http://webproxy.ext.ti.com:80;export no_proxy=ti.com; fi'
 ENV ftp_proxy http://webproxy.ext.ti.com:80
 ENV http_proxy http://webproxy.ext.ti.com:80
 ENV https_proxy http://webproxy.ext.ti.com:80

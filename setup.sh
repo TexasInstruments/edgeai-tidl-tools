@@ -228,6 +228,13 @@ if [[ $arch == x86_64 && $skip_x86_python_install -eq 0 ]]; then
     echo 'Installing python packages...'
     pip3 install -r ./requirements_pc.txt
 fi
+if [[ $arch == x86_64  ]]; then
+    echo 'Installing python osrt packages...'
+    pip3 install https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/dlr-1.10.0-py3-none-any.whl
+    pip3 install https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/tvm-0.9.dev0-cp36-cp36m-linux_x86_64.whl
+    pip3 install https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/onnxruntime_tidl-1.7.0-cp36-cp36m-linux_x86_64.whl
+    pip3 install https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/tflite_runtime-2.8.2-cp36-cp36m-linux_x86_64.whl
+fi
 if [[ -z "$TIDL_TOOLS_PATH" ]]; then
     rm tidl_tools.tar.gz
     if  [ $SOC == am62a ];then

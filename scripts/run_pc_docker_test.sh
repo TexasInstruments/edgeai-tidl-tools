@@ -56,10 +56,10 @@
 # OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 # OF THE POSSIBILITY OF SUCH DAMAGE.
 
-DOCKER_TAG=ubuntu18-test2
+DOCKER_TAG=ubuntu18-test
 if [[ "$(docker images -q $DOCKER_TAG 2> /dev/null)" == "" ]]; then
   echo "building docker image"
-  sudo docker build -t $DOCKER_TAG  -f Dockerfile .
+  sudo docker build --build-arg REPO_LOCATION=artifactory.itg.ti.com/docker-public/library/ --build-arg USE_PROXY=ti -t $DOCKER_TAG  -f Dockerfile .
 else
     echo "Using existing docker image"
 fi

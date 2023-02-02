@@ -16,8 +16,10 @@ cd ..
 source ./scripts/run_python_examples.sh
 python3 ./scripts/gen_test_report.py
 mkdir -p test_reports/$SOC/output_images
+mkdir -p test_reports/$SOC/model-artifacts
 mv output_images/* test_reports/$SOC/output_images
 mv test_report_pc.csv test_reports/$SOC/
+mv model-artifacts/* test_reports/$SOC/model-artifacts
 mv ~/report.txt test_reports/$SOC/
 # ls -l
 
