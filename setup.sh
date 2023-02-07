@@ -71,7 +71,7 @@ compile_armnn(){
     
     #build flatbuffers
     cd $BASEDIR
-    wget -O flatbuffers-1.12.0.tar.gz https://github.com/google/flatbuffers/archive/v1.12.0.tar.gz
+    wget --quiet  -O flatbuffers-1.12.0.tar.gz https://github.com/google/flatbuffers/archive/v1.12.0.tar.gz
     tar xf flatbuffers-1.12.0.tar.gz
     cd flatbuffers-1.12.0
     rm -f CMakeCache.txt
@@ -146,9 +146,45 @@ download_armnn_lib(){
     export TIDL_TARGET_LIBS=$SCRIPTDIR/tidl_target_libs
     mkdir $TIDL_TARGET_LIBS
     cd $TIDL_TARGET_LIBS
-    wget https://github.com/TexasInstruments/edgeai-tidl-tools/releases/download/08_03_00_19/libarmnnDelegate.so
-    wget https://github.com/TexasInstruments/edgeai-tidl-tools/releases/download/08_03_00_19/libarmnn.so
+    wget --quiet  https://github.com/TexasInstruments/edgeai-tidl-tools/releases/download/08_03_00_19/libarmnnDelegate.so
+    wget --quiet  https://github.com/TexasInstruments/edgeai-tidl-tools/releases/download/08_03_00_19/libarmnn.so
 }
+
+pip_install_local()
+{
+    if [ -f $LOCAL_PATH/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/$1 ];then
+        echo "Local file  found. Installing $LOCAL_PATH/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/$1"
+        pip3 install --force-reinstall $LOCAL_PATH/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/$1
+    else
+        echo "Local file not found at $LOCAL_PATH/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/$1. Installing default  https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/$1"
+        pip3 install --force-reinstall  https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/$1
+    fi
+}
+
+cp_tidl_tools()
+{    
+    if [ -f $LOCAL_PATH/TIDL_TOOLS/$1/tidl_tools.tar.gz ];then
+        echo "Local file  found. Copying $LOCAL_PATH/TIDL_TOOLS/$1/tidl_tools.tar.gz"
+        cp $LOCAL_PATH/TIDL_TOOLS/$1/tidl_tools.tar.gz .
+        
+    else
+        echo "Local file not found at $LOCAL_PATH/TIDL_TOOLS/$1/tidl_tools.tar.gz . Downloading  default   https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/TIDL_TOOLS/$1/tidl_tools.tar.gz"
+        wget --quiet  https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/TIDL_TOOLS/$1/tidl_tools.tar.gz
+    fi
+}
+
+cp_osrt_lib()
+{ 
+    if [ -f $LOCAL_PATH/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/$1 ];then
+        echo "Local file  found. Copying $LOCAL_PATH/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/$1"
+        cp  $LOCAL_PATH/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/$1 .
+        
+    else
+        echo "Local file not found at  $LOCAL_PATH/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/$1 . Downloading  default https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/$1"
+        wget --quiet  https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/$1
+    fi
+}
+
 
 SCRIPTDIR=`pwd`
 
@@ -156,6 +192,7 @@ SCRIPTDIR=`pwd`
 skip_cpp_deps=0
 skip_arm_gcc_download=0
 skip_x86_python_install=0
+use_local=0
 load_armnn=0
 
 
@@ -173,6 +210,9 @@ case $key in
     --skip_x86_python_install)
     skip_x86_python_install=1
     ;;
+    --use_local)
+    use_local=1
+    ;;    
     --load_armnn)
     load_armnn=1
     ;;
@@ -183,6 +223,7 @@ case $key in
     echo --skip_cpp_deps            Skip Downloading or Compiling dependencies for CPP examples
     echo --skip_arm_gcc_download            Skip Downloading or setting environment variable  for ARM64_GCC_PATH
     echo --skip_x86_python_install            Skip installing of python packages    
+    echo --use_local            use OSRT packages and tidl_tools from localPath if present
     echo --load_armnn           load amrnn libs  for arm
     exit 0
     ;;
@@ -211,6 +252,16 @@ else
 return
 fi
 
+if [[ $use_local == 1 ]];then
+    if [ -z "$LOCAL_PATH" ];then
+        echo "LOCAL_PATH not defined. set LOCAL_PATH to/your/path/08_XX_XX_XX/"        
+        return
+    else
+        echo "using OSRT from LOCAL_PATH:$LOCAL_PATH"
+    fi
+    
+fi
+
 if [ -z "$SOC" ];then
     echo "SOC not defined. Run either of below commands"
     echo "export SOC=am62"
@@ -229,27 +280,56 @@ if [[ $arch == x86_64 && $skip_x86_python_install -eq 0 ]]; then
     pip3 install -r ./requirements_pc.txt
 fi
 if [[ $arch == x86_64  ]]; then
-    echo 'Installing python osrt packages...'
-    pip3 install https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/dlr-1.10.0-py3-none-any.whl
-    pip3 install https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/tvm-0.9.dev0-cp36-cp36m-linux_x86_64.whl
-    pip3 install https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/onnxruntime_tidl-1.7.0-cp36-cp36m-linux_x86_64.whl
-    pip3 install https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/tflite_runtime-2.8.2-cp36-cp36m-linux_x86_64.whl
+    if [[ $use_local == 1 ]];then
+        echo 'Installing python osrt packages from local...'
+        pip_install_local dlr-1.10.0-py3-none-any.whl
+        pip_install_local tvm-0.9.dev0-cp36-cp36m-linux_x86_64.whl
+        pip_install_local onnxruntime_tidl-1.7.0-cp36-cp36m-linux_x86_64.whl
+        pip_install_local tflite_runtime-2.8.2-cp36-cp36m-linux_x86_64.whl
+    else
+        echo 'Installing python osrt packages...'
+        pip3 install https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/dlr-1.10.0-py3-none-any.whl
+        pip3 install https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/tvm-0.9.dev0-cp36-cp36m-linux_x86_64.whl
+        pip3 install https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/onnxruntime_tidl-1.7.0-cp36-cp36m-linux_x86_64.whl
+        pip3 install https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/tflite_runtime-2.8.2-cp36-cp36m-linux_x86_64.whl
+    fi
 fi
-if [[ -z "$TIDL_TOOLS_PATH" ]]; then
-    rm tidl_tools.tar.gz
+
+if [ -z "$TIDL_TOOLS_PATH" ]; then
+    if [ -f tidl_tools.tar.gz ];then
+        rm tidl_tools.tar.gz
+    fi
+    if [ -d tidl_tools ];then
+        rm -r tidl_tools
+    fi
     if  [ $SOC == am62a ];then
-        echo 'Downloading tidl tools for AM62A SOC ...'
-        wget  https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/TIDL_TOOLS/AM62A/tidl_tools.tar.gz
+        if [[ $use_local == 1 ]];then
+            cp_tidl_tools AM62A
+        else
+            echo 'Downloading tidl tools for AM62A SOC ...'
+            wget --quiet   https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/TIDL_TOOLS/AM62A/tidl_tools.tar.gz
+        fi
     elif  [ $SOC == am68pa ];then
-        echo 'Downloading tidl tools for AM67A SOC ...'
-        wget  https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/TIDL_TOOLS/AM68PA/tidl_tools.tar.gz
+        if [[ $use_local == 1 ]];then
+            cp_tidl_tools AM68PA
+        else
+            echo 'Downloading tidl tools for AM67A SOC ...'
+            wget --quiet   https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/TIDL_TOOLS/AM68PA/tidl_tools.tar.gz
+        fi
     elif  [ $SOC == am68a ];then
-        echo 'Downloading tidl tools for AM68A SOC ...'
-        wget  https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/TIDL_TOOLS/AM68A/tidl_tools.tar.gz
-        
+        if [[ $use_local == 1 ]];then
+            cp_tidl_tools AM68A
+        else    
+            echo 'Downloading tidl tools for AM68A SOC ...'
+            wget --quiet   https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/TIDL_TOOLS/AM68A/tidl_tools.tar.gz
+        fi
     elif  [ $SOC == am69a ];then
-        echo 'Downloading tidl tools for AM69A SOC ...'
-        wget  https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/TIDL_TOOLS/AM69A/tidl_tools.tar.gz
+        if [[ $use_local == 1 ]];then
+            cp_tidl_tools AM69A
+        else    
+            echo 'Downloading tidl tools for AM69A SOC ...'
+            wget --quiet   https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/TIDL_TOOLS/AM69A/tidl_tools.tar.gz
+        fi
     else
         echo "SOC shell var not set correctly($SOC). Set"
         echo "export SOC=am62"
@@ -273,7 +353,7 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$TIDL_TOOLS_PATH:$TIDL_TOOLS_PATH/osrt_d
 
 if [[ $arch == x86_64 && $skip_arm_gcc_download -eq 0 ]]; then
     if [ ! -d gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu ];then
-        wget https://developer.arm.com/-/media/Files/downloads/gnu-a/9.2-2019.12/binrel/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu.tar.xz
+        wget --quiet  https://developer.arm.com/-/media/Files/downloads/gnu-a/9.2-2019.12/binrel/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu.tar.xz
         tar -xf gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu.tar.xz
         export ARM64_GCC_PATH=$(pwd)/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu
     else
@@ -283,13 +363,20 @@ fi
 
 if [ $skip_cpp_deps -eq 0 ]; then
     if [[ $arch == x86_64 ]]; then
+        rm -r $TIDL_TOOLS_PATH/osrt_deps
         mkdir  $TIDL_TOOLS_PATH/osrt_deps
         mkdir  $TIDL_TOOLS_PATH/yaml-cpp
         cd  $TIDL_TOOLS_PATH/osrt_deps
         # onnx
         if [ ! -d onnx_1.7.0_x86_u18 ];then
-            rm onnx_1.7.0_x86_u18.tar.gz            
-            wget  https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/onnx_1.7.0_x86_u18.tar.gz
+            if [ -f onnx_1.7.0_x86_u18.tar.gz ];then
+                rm onnx_1.7.0_x86_u18.tar.gz
+            fi
+            if [[ $use_local == 1 ]];then
+                cp_osrt_lib onnx_1.7.0_x86_u18.tar.gz
+            else    
+                wget --quiet   https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/onnx_1.7.0_x86_u18.tar.gz
+            fi
             tar -xf onnx_1.7.0_x86_u18.tar.gz
             cp onnx_1.7.0_x86_u18/libonnxruntime.so .
             cp onnx_1.7.0_x86_u18/onnxruntime . -r 
@@ -301,8 +388,14 @@ if [ $skip_cpp_deps -eq 0 ]; then
         fi
         # tflite_2.8
         if [ ! -d tflite_2.8_x86_u18 ];then
-            rm tflite_2.8_x86_u18.tar.gz
-            wget  https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/tflite_2.8_x86_u18.tar.gz
+            if [ -f tflite_2.8_x86_u18.tar.gz ];then
+                rm tflite_2.8_x86_u18.tar.gz
+            fi
+            if [[ $use_local == 1 ]];then
+                cp_osrt_lib tflite_2.8_x86_u18.tar.gz
+            else    
+                wget --quiet   https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/tflite_2.8_x86_u18.tar.gz
+            fi            
             tar -xf tflite_2.8_x86_u18.tar.gz        
             cp tflite_2.8_x86_u18/libtensorflow-lite.a .
             cp tflite_2.8_x86_u18/tensorflow/ . -r
@@ -315,8 +408,14 @@ if [ $skip_cpp_deps -eq 0 ]; then
 
         #opencv
         if [ ! -d  opencv_4.2.0_x86_u18 ];then
-            rm opencv_4.2.0_x86_u18.tar.gz
-            wget  https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/opencv_4.2.0_x86_u18.tar.gz
+            if [ -f opencv_4.2.0_x86_u18.tar.gz ];then
+                rm opencv_4.2.0_x86_u18.tar.gz
+            fi
+            if [[ $use_local == 1 ]];then
+                cp_osrt_lib opencv_4.2.0_x86_u18.tar.gz
+            else    
+                wget --quiet   https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/opencv_4.2.0_x86_u18.tar.gz
+            fi             
             tar -xf opencv_4.2.0_x86_u18.tar.gz 
             cp opencv_4.2.0_x86_u18/opencv-4.2.0 . -r
             cp opencv_4.2.0_x86_u18/opencv .  -r 
@@ -328,8 +427,14 @@ if [ $skip_cpp_deps -eq 0 ]; then
 
         #dlr
         if [ ! -d dlr_1.10.0_x86_u18 ];then
-            rm dlr_1.10.0_x86_u18.tar.gz
-            wget  https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/dlr_1.10.0_x86_u18.tar.gz
+            if [ -f dlr_1.10.0_x86_u18.tar.gz ];then
+                rm dlr_1.10.0_x86_u18.tar.gz
+            fi            
+            if [[ $use_local == 1 ]];then
+                cp_osrt_lib dlr_1.10.0_x86_u18.tar.gz
+            else    
+                wget --quiet   https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/dlr_1.10.0_x86_u18.tar.gz
+            fi             
             tar -xf dlr_1.10.0_x86_u18.tar.gz
             cp dlr_1.10.0_x86_u18/neo-ai-dlr . -r
             rm dlr_1.10.0_x86_u18.tar.gz   -r

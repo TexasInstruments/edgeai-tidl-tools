@@ -6,7 +6,11 @@ cd /root/edgeai-tidl-tools
 rm -r tidl_tools
 rm -r tidl_tools.tar.gz
 pwd
-source ./setup.sh --skip_x86_python_install
+if [ -z "$LOCAL_PATH" ];then
+    source ./setup.sh --skip_x86_python_install
+else
+    source ./setup.sh --skip_x86_python_install --use_local
+fi
 mkdir build 
 cd build
 rm ../build/* -r
