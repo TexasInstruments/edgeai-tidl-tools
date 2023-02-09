@@ -100,6 +100,14 @@ elif [[ $SOC == am62a ]]; then
     python3 onnxrt_ep.py -c
     fi
     python3 onnxrt_ep.py
+    cd $CURDIR/examples/osrt_python/tvm_dlr
+    if [[ $arch == x86_64 ]]; then
+    python3  tvm_compilation_onnx_example.py --pc-inference
+    python3  tvm_compilation_tflite_example.py --pc-inference
+    python3  tvm_compilation_onnx_example.py
+    python3  tvm_compilation_tflite_example.py
+    fi
+    python3 dlr_inference_example.py
     cd $CURDIR    
 fi
 

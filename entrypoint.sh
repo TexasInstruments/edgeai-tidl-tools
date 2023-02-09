@@ -3,6 +3,7 @@
 time=$(date)
 echo "Current time is $time" > ~/report.txt 
 cd /root/edgeai-tidl-tools
+export ARM64_GCC_PATH=/root/edgeai-tidl-tools/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu
 rm -r tidl_tools
 rm -r tidl_tools.tar.gz
 rm output_images/* 

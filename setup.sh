@@ -271,7 +271,7 @@ if [ -z "$SOC" ];then
     echo "export SOC=am69a"
     return
 fi
-REL=08_05_00_30
+REL=08_06_00_00
 
 # ######################################################################
 # # Installing dependencies
@@ -313,7 +313,7 @@ if [ -z "$TIDL_TOOLS_PATH" ]; then
         if [[ $use_local == 1 ]];then
             cp_tidl_tools AM68PA
         else
-            echo 'Downloading tidl tools for AM67A SOC ...'
+            echo 'Downloading tidl tools for AM68PA SOC ...'
             wget --quiet   https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/TIDL_TOOLS/AM68PA/tidl_tools.tar.gz
         fi
     elif  [ $SOC == am68a ];then

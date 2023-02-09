@@ -47,7 +47,7 @@ SOC = os.environ["SOC"]
 if(SOC != "am62a"):
     data_convert = 3
 else:
-    data_convert = 0
+    data_convert = 3 #temp for RC1 8.6
 
 #set to default accuracy_level 1
 activation_clipping = 1
