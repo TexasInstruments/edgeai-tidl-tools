@@ -108,6 +108,104 @@ models_configs = {
         'session_name' : 'tvmdlr',
         'model_type': 'classification'
     },
+    # benchmark models - For release testing
+    'cl-0000_tflitert_imagenet1k_mlperf_mobilenet_v1_1.0_224_tflite' :{
+        'source' : {'model_url': 'http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models/vision/classification/imagenet1k/tf1-models/mobilenet_v1_1.0_224.tflite', 'opt': True},
+        'model_path' : os.path.join(models_base_path, 'mobilenet_v1_1.0_224.tflite'),
+        'mean': [127.5, 127.5, 127.5],
+        'scale' : [1/127.5, 1/127.5, 1/127.5],
+        'num_images' : numImages,
+        'num_classes': 1000,
+        'session_name' : 'tflitert',
+        'model_type': 'classification'
+    },
+    'cl-3090_tvmdlr_imagenet1k_torchvision_mobilenet_v2_tv_onnx' :{
+        'source' : {'model_url': 'http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models//vision/classification/imagenet1k/torchvision/mobilenet_v2_tv.onnx', 'opt': True,  'infer_shape' : True},
+        'model_path' : os.path.join(models_base_path, 'mobilenet_v2_tv.onnx'),
+        'mean': [123.675, 116.28, 103.53],
+        'scale' : [0.017125, 0.017507, 0.017429],
+        'num_images' : numImages,
+        'num_classes': 1000,
+        'session_name' : 'tvmdlr',
+        'model_type': 'classification'
+    },
+    'od-2020_tflitert_coco_tf1-models_ssdlite_mobiledet_dsp_320x320_coco_20200519_tflite' : { #wrong infer
+        'model_path' : os.path.join(models_base_path,'ssdlite_mobiledet_dsp_320x320_coco_20200519.tflite'),
+        'source' : {'model_url': 'http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models//vision/detection/coco/tf1-models/ssdlite_mobiledet_dsp_320x320_coco_20200519.tflite', 'opt': True},
+        'mean': [127.5, 127.5, 127.5],
+        'scale' : [1/127.5, 1/127.5, 1/127.5],
+        'num_images' : numImages,
+        'num_classes': 91,
+        'model_type': 'od',
+        'session_name' : 'tflitert',
+        'od_type' : 'HasDetectionPostProcLayer'
+    },
+    'od-8020_onnxrt_coco_edgeai-mmdet_ssd_mobilenetv2_lite_512x512_20201214_model_onnx' : { #compile error
+        'model_path' : os.path.join(models_base_path, 'ssd_mobilenetv2_lite_512x512_20201214_model.onnx'),
+        'source' : {'model_url': 'http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models//vision/detection/coco/edgeai-mmdet/ssd_mobilenetv2_lite_512x512_20201214_model.onnx', 'opt': True,  'infer_shape' : True, \
+                    'meta_arch_url' : 'http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models///vision/detection/coco/edgeai-mmdet/ssd_mobilenetv2_lite_512x512_20201214_model.prototxt'},
+        'mean': [0, 0, 0],
+        'scale' : [0.003921568627,0.003921568627,0.003921568627],
+        'num_images' : numImages,
+        'num_classes': 91,
+        'model_type': 'od',
+        'od_type' : 'SSD',
+        'framework' : 'MMDetection',
+        'meta_layers_names_list' : os.path.join(models_base_path, 'ssd-lite_mobilenetv2_fpn.prototxt'),
+        'session_name' : 'onnxrt' ,
+        'meta_arch_type' : 3
+    },
+    'od-8200_onnxrt_coco_edgeai-mmdet_yolox_nano_lite_416x416_20220214_model_onnx' :{  #wrong infer
+        'model_path' : os.path.join(models_base_path, 'yolox_nano_lite_416x416_20220214_model.onnx'),
+        'source' : {'model_url': 'http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models//vision/detection/coco/edgeai-mmdet/yolox_nano_lite_416x416_20220214_model.onnx', 'opt': True,  'infer_shape' : True, \
+                    'meta_arch_url' : 'http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models//vision/detection/coco/edgeai-mmdet/yolox_nano_lite_416x416_20220214_model.prototxt'},
+        'mean': [0, 0, 0],
+        'scale' : [0.003921568627,0.003921568627,0.003921568627],
+        'num_images' : numImages,
+        'num_classes': 91,
+        'model_type': 'od',
+        'od_type' : 'SSD',
+        'framework' : 'MMDetection',
+        'meta_layers_names_list' : os.path.join(models_base_path, 'yolox_nano_lite_416x416_20220214_model.prototxt'),
+        'session_name' : 'onnxrt' ,
+        'meta_arch_type' : 6
+    },
+    'od-8420_onnxrt_widerface_edgeai-mmdet_yolox_s_lite_640x640_20220307_model_onnx' :{  
+        'model_path' : os.path.join(models_base_path, 'yolox_s_lite_640x640_20220307_model.onnx'),
+        'source' : {'model_url': 'http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models//vision/detection/widerface/edgeai-mmdet/yolox_s_lite_640x640_20220307_model.onnx', 'opt': True,  'infer_shape' : True, \
+                    'meta_arch_url' : 'http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models//vision/detection/widerface/edgeai-mmdet/yolox_s_lite_640x640_20220307_model.prototxt'},
+        'mean': [0, 0, 0],
+        'scale' : [0.003921568627,0.003921568627,0.003921568627],
+        'num_images' : numImages,
+        'num_classes': 91,
+        'model_type': 'od',
+        'od_type' : 'SSD',
+        'framework' : 'MMDetection',
+        'meta_layers_names_list' : os.path.join(models_base_path, 'yolox_s_lite_640x640_20220307_model.prototxt'),
+        'session_name' : 'onnxrt' ,
+        'meta_arch_type' : 6
+    },
+    'ss-2580_tflitert_ade20k32_mlperf_deeplabv3_mnv2_ade20k32_float_tflite' : {
+        'model_path' : os.path.join(models_base_path,'deeplabv3_mnv2_ade20k_float.tflite'),
+        'source' : {'model_url': 'http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models//vision/segmentation/ade20k32/mlperf/deeplabv3_mnv2_ade20k32_float.tflite', 'opt': True},
+        'mean': [127.5, 127.5, 127.5],
+        'scale' : [1/127.5, 1/127.5, 1/127.5],
+        'num_images' : numImages,
+        'num_classes': 32,
+        'session_name' : 'tflitert',
+        'model_type': 'seg'
+    },
+    'ss-8610_onnxrt_ade20k32_edgeai-tv_deeplabv3plus_mobilenetv2_edgeailite_512x512_20210308_outby4_onnx' : { # need post process changes
+        'model_path' : os.path.join(models_base_path, 'deeplabv3plus_mobilenetv2_edgeailite_512x512_20210308_outby4.onnx'),
+        'source' : {'model_url': 'http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models//vision/segmentation/ade20k32/edgeai-tv/deeplabv3plus_mobilenetv2_edgeailite_512x512_20210308_outby4.onnx', 'opt': False,  'infer_shape' : True},
+        'mean': [123.675, 116.28, 103.53],
+        'scale' : [0.017125, 0.017507, 0.017429],
+        'num_images' : numImages,
+        'num_classes': 19,
+        'session_name' : 'onnxrt' ,
+        'model_type': 'seg'
+    },
+
     # Caffe Model - Would be converted ot ONNX
     'cl-ort-caffe_mobilenet_v1' : {
         'model_path' : os.path.join(models_base_path, 'caffe_mobilenet_v1.onnx'),
