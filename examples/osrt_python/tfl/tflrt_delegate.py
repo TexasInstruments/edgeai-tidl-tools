@@ -231,9 +231,9 @@ def run_model(model, mIdx):
 
 models = ['cl-tfl-mobilenet_v1_1.0_224', 'ss-tfl-deeplabv3_mnv2_ade20k_float', 'od-tfl-ssd_mobilenet_v2_300_float']
 if ( args.run_model_zoo ):
-    models = ['cl-0000_tflitert_imagenet1k_mlperf_mobilenet_v1_1.0_224_tflite']
-    models = ['od-2020_tflitert_coco_tf1-models_ssdlite_mobiledet_dsp_320x320_coco_20200519_tflite']
-    models = ['ss-2580_tflitert_ade20k32_mlperf_deeplabv3_mnv2_ade20k32_float_tflite']
+    models = ['cl-0000_tflitert_imagenet1k_mlperf_mobilenet_v1_1.0_224_tflite',\
+              'od-2020_tflitert_coco_tf1-models_ssdlite_mobiledet_dsp_320x320_coco_20200519_tflite',\
+              'ss-2580_tflitert_ade20k32_mlperf_deeplabv3_mnv2_ade20k32_float_tflite']
 log = f'Running {len(models)} Models - {models}\n'
 print(log)
 

@@ -219,21 +219,21 @@ def run_model(model, mIdx):
                 classes, image = det_box_overlay(output, imgs[j], config['od_type'], config['framework'])
                 images.append(image)
             
-        # elif config['model_type'] == 'seg':
-        #     for j in range(batch):
-        #         classes, image = seg_mask_overlay(output[0][j],imgs[j])
-        #         images.append(image)
-    #     else:
-    #         print("Not a valid model type")
-    #     for j in range(batch):
-    #         output_file_name = "py_out_"+model+'_'+os.path.basename(input_images[j])
-    #         print("\nSaving image to ", output_images_folder)
-    #         if not os.path.exists(output_images_folder):
-    #             os.makedirs(output_images_folder)
-    #         images[j].save(output_images_folder + output_file_name, "JPEG") 
+        elif config['model_type'] == 'seg':
+            for j in range(batch):
+                classes, image = seg_mask_overlay(output[0][j],imgs[j])
+                images.append(image)
+        else:
+            print("Not a valid model type")
+        for j in range(batch):
+            output_file_name = "py_out_"+model+'_'+os.path.basename(input_images[j])
+            print("\nSaving image to ", output_images_folder)
+            if not os.path.exists(output_images_folder):
+                os.makedirs(output_images_folder)
+            images[j].save(output_images_folder + output_file_name, "JPEG") 
     
-    # if args.compile or args.disable_offload :
-    #     gen_param_yaml(delegate_options['artifacts_folder'], config, int(height), int(width))
+    if args.compile or args.disable_offload :
+        gen_param_yaml(delegate_options['artifacts_folder'], config, int(height), int(width))
     log = f'\n \nCompleted_Model : {mIdx+1:5d}, Name : {model:50s}, Total time : {total_proc_time/(i+1):10.2f}, Offload Time : {sub_graphs_time/(i+1):10.2f} , DDR RW MBs : 0, Output File : {output_file_name} \n \n ' #{classes} \n \n'
     print(log) 
     if ncpus > 1:
@@ -244,11 +244,13 @@ def run_model(model, mIdx):
 
 models = ['cl-ort-resnet18-v1', 'cl-ort-caffe_squeezenet_v1_1', 'ss-ort-deeplabv3lite_mobilenetv2', 'od-ort-ssd-lite_mobilenetv2_fpn']
 if ( args.run_model_zoo ):
-    models = ['od-2020_tflitert_coco_tf1-models_ssdlite_mobiledet_dsp_320x320_coco_20200519_tflite']
-    models = ['od-8020_onnxrt_coco_edgeai-mmdet_ssd_mobilenetv2_lite_512x512_20201214_model_onnx']
-    models = ['od-8200_onnxrt_coco_edgeai-mmdet_yolox_nano_lite_416x416_20220214_model_onnx']
-    models = ['od-8420_onnxrt_widerface_edgeai-mmdet_yolox_s_lite_640x640_20220307_model_onnx']
-    models = ['ss-8610_onnxrt_ade20k32_edgeai-tv_deeplabv3plus_mobilenetv2_edgeailite_512x512_20210308_outby4_onnx']
+    models = [ 'od-8020_onnxrt_coco_edgeai-mmdet_ssd_mobilenetv2_lite_512x512_20201214_model_onnx',\
+             'od-8200_onnxrt_coco_edgeai-mmdet_yolox_nano_lite_416x416_20220214_model_onnx',\
+             'od-8420_onnxrt_widerface_edgeai-mmdet_yolox_s_lite_640x640_20220307_model_onnx',\
+             'ss-8610_onnxrt_ade20k32_edgeai-tv_deeplabv3plus_mobilenetv2_edgeailite_512x512_20210308_outby4_onnx',\
+             'od-8220_onnxrt_coco_edgeai-mmdet_yolox_s_lite_640x640_20220221_model_onnx',\
+             'cl-6360_onnxrt_imagenet1k_fbr-pycls_regnetx-200mf_onnx']
+    models =  ['od-8220_onnxrt_coco_edgeai-mmdet_yolox_s_lite_640x640_20220221_model_onnx']
 log = f'\nRunning {len(models)} Models - {models}\n'
 print(log)
 

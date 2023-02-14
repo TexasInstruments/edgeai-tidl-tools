@@ -119,6 +119,16 @@ models_configs = {
         'session_name' : 'tflitert',
         'model_type': 'classification'
     },
+    'cl-6360_onnxrt_imagenet1k_fbr-pycls_regnetx-200mf_onnx' :{
+        'model_path' : os.path.join(models_base_path, 'regnetx-200mf.onnx'),
+        'source' : {'model_url': 'http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models//vision/classification/imagenet1k/fbr-pycls/regnetx-200mf.onnx', 'opt': True,  'infer_shape' : True},
+        'mean': [123.675, 116.28, 103.53],
+        'scale' : [0.017125, 0.017507, 0.017429],
+        'num_images' : numImages,
+        'num_classes': 1000,
+        'session_name' : 'onnxrt' ,
+        'model_type': 'classification'
+    },
     'cl-3090_tvmdlr_imagenet1k_torchvision_mobilenet_v2_tv_onnx' :{
         'source' : {'model_url': 'http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models//vision/classification/imagenet1k/torchvision/mobilenet_v2_tv.onnx', 'opt': True,  'infer_shape' : True},
         'model_path' : os.path.join(models_base_path, 'mobilenet_v2_tv.onnx'),
@@ -170,6 +180,21 @@ models_configs = {
         'session_name' : 'onnxrt' ,
         'meta_arch_type' : 6
     },
+    'od-8220_onnxrt_coco_edgeai-mmdet_yolox_s_lite_640x640_20220221_model_onnx' :{  # infer wrong
+        'model_path' : os.path.join(models_base_path, 'yolox_s_lite_640x640_20220221_model.onnx'),
+        'source' : {'model_url': 'http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models//vision/detection/coco/edgeai-mmdet/yolox_s_lite_640x640_20220221_model.onnx', 'opt': True,  'infer_shape' : True, \
+                    'meta_arch_url' : 'http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models//vision/detection/coco/edgeai-mmdet/yolox_s_lite_640x640_20220221_model.prototxt'},
+        'mean': [0, 0, 0],
+        'scale' : [0.003921568627,0.003921568627,0.003921568627],
+        'num_images' : numImages,
+        'num_classes': 91,
+        'model_type': 'od',
+        'od_type' : 'SSD',
+        'framework' : 'MMDetection',
+        'meta_layers_names_list' : os.path.join(models_base_path, 'yolox_s_lite_640x640_20220221_model.prototxt'),
+        'session_name' : 'onnxrt' ,
+        'meta_arch_type' : 6
+    },    
     'od-8420_onnxrt_widerface_edgeai-mmdet_yolox_s_lite_640x640_20220307_model_onnx' :{  
         'model_path' : os.path.join(models_base_path, 'yolox_s_lite_640x640_20220307_model.onnx'),
         'source' : {'model_url': 'http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models//vision/detection/widerface/edgeai-mmdet/yolox_s_lite_640x640_20220307_model.onnx', 'opt': True,  'infer_shape' : True, \

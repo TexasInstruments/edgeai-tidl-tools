@@ -15,9 +15,12 @@ parser.add_argument('--num_bits', dest='num_bits', default=8, choices=[8, 16, 32
 parser.add_argument('--num_subgraphs', dest='num_subgraphs_max', default=16, type=int, help='maximum number of TIDL subgraphs for offload (actual number of subgraphs may be less that this)')
 parser.add_argument('--pc-inference', dest='device', action='store_false', help='compile for inference on PC')
 parser.add_argument('--num_calib_images', dest='calib_iters', default=4, type=int, help='number of images to use for calibration')
+parser.add_argument('-z','--run_model_zoo', action='store_true',  help='Run model zoo models')
 args = parser.parse_args()
 
 model_id = 'cl-dlr-onnx_mobilenetv2'
+if ( args.run_model_zoo ):
+    model_id = 'cl-3090_tvmdlr_imagenet1k_torchvision_mobilenet_v2_tv_onnx'
 download_model(models_configs, model_id)
 
 # model specifics

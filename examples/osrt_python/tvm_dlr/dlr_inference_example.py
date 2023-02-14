@@ -3,6 +3,12 @@ import platform
 import os
 import sys
 from PIL import Image
+
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument('-z','--run_model_zoo', action='store_true',  help='Run model zoo models')
+args = parser.parse_args()
 # directory reach
 current = os.path.dirname(os.path.realpath(__file__))
 parent = os.path.dirname(current)
@@ -195,6 +201,8 @@ model_create_and_run(model_output_directory, 'input',
                         postprocess_for_tflite_inceptionnetv3, 0)
 
 model_output_directory = '../../../model-artifacts/cl-dlr-onnx_mobilenetv2'
+if ( args.run_model_zoo ):
+    model_output_directory = '../../../model-artifacts/cl-3090_tvmdlr_imagenet1k_torchvision_mobilenet_v2_tv_onnx'
 if platform.machine() == 'aarch64':
     model_output_directory = model_output_directory+'_device'
 
