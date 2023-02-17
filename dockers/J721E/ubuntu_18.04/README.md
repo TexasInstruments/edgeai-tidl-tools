@@ -24,7 +24,8 @@
 
   ```
   cd /host/<path_to_edge_ai_tidl_tools>/dockers/ubuntu_18.04
-  source container_stup.sh # This will take care of additional dependencies 
+  source container_stup.sh # This will take care of additional dependencies (opencv not included)
+  source container_stup.sh --opencv_install 1 # This will take care of additional dependencies (opencv included)
   ```
 
 ## Running the examples

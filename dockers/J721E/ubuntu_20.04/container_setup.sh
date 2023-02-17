@@ -2,12 +2,39 @@
 
 SCRIPTDIR=`pwd`
 
+SHORT=o:,h
+LONG=opencv_install:,help
+OPTS=$(getopt -a -n weather --options $SHORT --longoptions $LONG -- "$@")
+
+eval set -- "$OPTS"
+opencv_install=0
+while :
+do
+  case "$1" in
+    -o | --opencv_install )
+      opencv_install="$2"
+      shift 2
+      ;;
+    -h | --help)
+      "This is a weather script"
+      exit 2
+      ;;
+    --)
+      shift;
+      break
+      ;;
+    *)
+      echo "Unexpected option: $1"
+      ;;
+  esac
+done
+
 cd $HOME
 if [ ! -d required_libs ];then
     mkdir required_libs
 fi
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/required_libs
-export DEVICE=j7
+export SOC=j7
 export TIDL_TOOLS_PATH=
 #For libdlr.so showing error 
 export LD_PRELOAD=/usr/lib/aarch64-linux-gnu/libgomp.so.1
@@ -22,14 +49,14 @@ rm -r /usr/lib/python3/dist-packages/numpy*
 STR=`pip3 list | grep dlr`
 SUB='dlr'
 if [[ "$STR" != *"$SUB"* ]]; then
-    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/ubuntu20_04/pywhl/dlr-1.10.0-py3-none-any.whl
+    wget --quiet https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/ARM_LINUX/UBUNTU_20_04/dlr-1.10.0-py3-none-any.whl
     pip3 install --upgrade --force-reinstall dlr-1.10.0-py3-none-any.whl
 fi
 
 STR=`pip3 list | grep onnxruntime-tidl`
 SUB='onnxruntime-tidl'
-if [[ "$STR" != *"$SUB"* ]]; then
-    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/ubuntu20_04/pywhl/onnxruntime_tidl-1.7.0-cp38-cp38-linux_aarch64.whl
+if [[ "$STR" != *"$SUB"* ]]; then    
+    wget --quiet https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/ARM_LINUX/UBUNTU_20_04/onnxruntime_tidl-1.7.0-cp38-cp38-linux_aarch64.whl
     pip3 install onnxruntime_tidl-1.7.0-cp38-cp38-linux_aarch64.whl
 fi
 
@@ -37,13 +64,14 @@ STR=`pip3 list | grep tflite-runtime`
 SUB='tflite-runtime'
 if [[ "$STR" != *"$SUB"* ]]; then
     wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/ubuntu20_04/pywhl/tflite_runtime-2.8.2-cp38-cp38-linux_aarch64.whl
+    wget --quiet https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/ARM_LINUX/UBUNTU_20_04/tflite_runtime-2.8.2-cp38-cp38-linux_aarch64.whl
     pip3 install --upgrade --force-reinstall tflite_runtime-2.8.2-cp38-cp38-linux_aarch64.whl
 fi
 
 cd $HOME
 rm -r u_20_pywhl
 if [  ! -d /usr/include/tensorflow ];then
-    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/ubuntu20_04/tflite_2.8_u20.tar.gz
+    wget --quiet https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/ARM_LINUX/UBUNTU_20_04/tflite_2.8_u20.tar.gz
     tar xf tflite_2.8_u20.tar.gz
     rm tflite_2.8_u20.tar.gz
     mv tflite_2.8_u20/tensorflow /usr/include
@@ -57,15 +85,17 @@ else
 fi
 
 if [  ! -d /usr/include/opencv-4.2.0 ];then
-    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/ubuntu20_04/opencv_4.2.0_u20.tar.gz
-    tar -xf opencv_4.2.0_u20.tar.gz
-    rm opencv_4.2.0_u20.tar.gz
-    cp opencv_4.2.0_u20/opencv $HOME/required_libs/
-    mv opencv_4.2.0_u20/opencv-4.2.0 /usr/include/
-    cd opencv-4.2.0
-    export OPENCV_INSTALL_DIR=$(pwd)
-    cd $HOME
-    rm -r opencv_4.2.0_u20
+    if [ $opencv_install -eq 1 ];then
+        wget --quiet https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/ARM_LINUX/UBUNTU_20_04/opencv_4.2.0_u20.tar.gz
+        tar -xf opencv_4.2.0_u20.tar.gz
+        rm opencv_4.2.0_u20.tar.gz
+        cp opencv_4.2.0_u20/opencv $HOME/required_libs/
+        mv opencv_4.2.0_u20/opencv-4.2.0 /usr/include/
+        cd opencv-4.2.0
+        export OPENCV_INSTALL_DIR=$(pwd)
+        cd $HOME
+        rm -r opencv_4.2.0_u20
+    fi
 else
     echo "skipping opencv-4.2.0 setup: found /usr/include/opencv-4.2.0"
     echo "To redo the setup delete: /usr/include/opencv-4.2.0 and run this script again"
@@ -73,7 +103,7 @@ fi
 
 
 if [  ! -d /usr/include/onnxruntime ];then
-    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/ubuntu20_04/onnx_1.7.0_u20.tar.gz
+    wget --quiet https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/ARM_LINUX/UBUNTU_20_04/onnx_1.7.0_u20.tar.gz
     tar xf onnx_1.7.0_u20.tar.gz
     rm onnx_1.7.0_u20.tar.gz
     cp -r  onnx_1.7.0_u20/libonnxruntime.so* $HOME/required_libs/
@@ -87,7 +117,7 @@ else
 fi
 
 if [  ! -d /usr/include/neo-ai-dlr ];then
-    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/ubuntu20_04/dlr_1.10.0_u20.tar.gz
+    wget --quiet https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/ARM_LINUX/UBUNTU_20_04/dlr_1.10.0_u20.tar.gz    
     tar xf dlr_1.10.0_u20.tar.gz 
     rm dlr_1.10.0_u20.tar.gz 
     cd dlr_1.10.0_u20
@@ -105,7 +135,7 @@ fi
 
 
 if [  ! -f /usr/include/itidl_rt.h ];then
-    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/tidl_tools.tar.gz
+    wget --quiet   https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/TIDL_TOOLS/AM68PA/tidl_tools.tar.gz    
     tar xf tidl_tools.tar.gz
     rm tidl_tools.tar.gz
     cp tidl_tools/itidl_rt.h /usr/include/

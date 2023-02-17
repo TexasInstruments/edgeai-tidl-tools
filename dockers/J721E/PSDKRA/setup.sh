@@ -5,7 +5,7 @@ cd $HOME
 if [ ! -d required_libs ];then
     mkdir required_libs
 fi
-export DEVICE=j7
+export SOC=j7
 
 if [ ! -d arago_j7_pywhl ];then
     mkdir arago_j7_pywhl
@@ -110,7 +110,7 @@ rm -rf required_libs
 rm -rf tidl_tools
 
 echo "export the following vars"
-echo "export DEVICE=j7"
+echo "export SOC=j7"
 echo "export TIDL_TOOLS_PATH="
 echo "export LD_LIBRARY_PATH=/usr/lib"
 cd $SCRIPTDIR
