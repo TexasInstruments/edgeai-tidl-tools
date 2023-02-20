@@ -220,7 +220,8 @@ def run_model(model, mIdx):
                 images.append(image)
             
         elif config['model_type'] == 'seg':
-            for j in range(batch):
+            for j in range(batch):                
+                imgs[j] = imgs[j].resize((output[0][j].shape[1], output[0][j].shape[2]),PIL.Image.LANCZOS)
                 classes, image = seg_mask_overlay(output[0][j],imgs[j])
                 images.append(image)
         else:
@@ -244,13 +245,13 @@ def run_model(model, mIdx):
 
 models = ['cl-ort-resnet18-v1', 'cl-ort-caffe_squeezenet_v1_1', 'ss-ort-deeplabv3lite_mobilenetv2', 'od-ort-ssd-lite_mobilenetv2_fpn']
 if ( args.run_model_zoo ):
-    models = [ 'od-8020_onnxrt_coco_edgeai-mmdet_ssd_mobilenetv2_lite_512x512_20201214_model_onnx',\
-             'od-8200_onnxrt_coco_edgeai-mmdet_yolox_nano_lite_416x416_20220214_model_onnx',\
-             'od-8420_onnxrt_widerface_edgeai-mmdet_yolox_s_lite_640x640_20220307_model_onnx',\
+    models = [ 'od-8020_onnxrt_coco_edgeai-mmdet_ssd_mobilenetv2_lite_512x512_20201214_model_onnx',
+             'od-8200_onnxrt_coco_edgeai-mmdet_yolox_nano_lite_416x416_20220214_model_onnx',# not working 
+             'od-8420_onnxrt_widerface_edgeai-mmdet_yolox_s_lite_640x640_20220307_model_onnx',# #not working
              'ss-8610_onnxrt_ade20k32_edgeai-tv_deeplabv3plus_mobilenetv2_edgeailite_512x512_20210308_outby4_onnx',\
-             'od-8220_onnxrt_coco_edgeai-mmdet_yolox_s_lite_640x640_20220221_model_onnx',\
-             'cl-6360_onnxrt_imagenet1k_fbr-pycls_regnetx-200mf_onnx']
-    models =  ['od-8220_onnxrt_coco_edgeai-mmdet_yolox_s_lite_640x640_20220221_model_onnx']
+             'od-8220_onnxrt_coco_edgeai-mmdet_yolox_s_lite_640x640_20220221_model_onnx',#not working \ 
+             'cl-6360_onnxrt_imagenet1k_fbr-pycls_regnetx-200mf_onnx'
+            ]
 log = f'\nRunning {len(models)} Models - {models}\n'
 print(log)
 

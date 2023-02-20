@@ -139,7 +139,7 @@ models_configs = {
         'session_name' : 'tvmdlr',
         'model_type': 'classification'
     },
-    'od-2020_tflitert_coco_tf1-models_ssdlite_mobiledet_dsp_320x320_coco_20200519_tflite' : { #wrong infer
+    'od-2020_tflitert_coco_tf1-models_ssdlite_mobiledet_dsp_320x320_coco_20200519_tflite' : {
         'model_path' : os.path.join(models_base_path,'ssdlite_mobiledet_dsp_320x320_coco_20200519.tflite'),
         'source' : {'model_url': 'http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models//vision/detection/coco/tf1-models/ssdlite_mobiledet_dsp_320x320_coco_20200519.tflite', 'opt': True},
         'mean': [127.5, 127.5, 127.5],
@@ -148,9 +148,11 @@ models_configs = {
         'num_classes': 91,
         'model_type': 'od',
         'session_name' : 'tflitert',
-        'od_type' : 'HasDetectionPostProcLayer'
+        'od_type' : 'HasDetectionPostProcLayer',
+        'object_detection:confidence_threshold': 0.3,
+        'object_detection:top_k': 200
     },
-    'od-8020_onnxrt_coco_edgeai-mmdet_ssd_mobilenetv2_lite_512x512_20201214_model_onnx' : { #compile error
+    'od-8020_onnxrt_coco_edgeai-mmdet_ssd_mobilenetv2_lite_512x512_20201214_model_onnx' : { 
         'model_path' : os.path.join(models_base_path, 'ssd_mobilenetv2_lite_512x512_20201214_model.onnx'),
         'source' : {'model_url': 'http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models//vision/detection/coco/edgeai-mmdet/ssd_mobilenetv2_lite_512x512_20201214_model.onnx', 'opt': True,  'infer_shape' : True, \
                     'meta_arch_url' : 'http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models///vision/detection/coco/edgeai-mmdet/ssd_mobilenetv2_lite_512x512_20201214_model.prototxt'},
