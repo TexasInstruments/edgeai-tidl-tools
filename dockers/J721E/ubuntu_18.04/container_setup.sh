@@ -50,7 +50,7 @@ SUB='dlr'
 if [[ "$STR" != *"$SUB"* ]]; then
     wget --quiet https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/ARM_LINUX/UBUNTU_18_04/dlr-1.10.0-py3-none-any.whl
     pip3 install --upgrade --force-reinstall dlr-1.10.0-py3-none-any.whl
-    cp /usr/local/dlr/libdlr.so $HOME/required_libs
+    cp /usr/local/lib/python3.6/dist-packages/dlr/libdlr.so $HOME/required_libs
 fi
 pip3 install protobuf==3.19
 
@@ -64,7 +64,7 @@ STR=`pip3 list | grep tflite-runtime`
 SUB='tflite-runtime'
 if [[ "$STR" != *"$SUB"* ]]; then
     wget --quiet https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/ARM_LINUX/UBUNTU_18_04/tflite_runtime-2.8.2-cp36-cp36m-linux_aarch64.whl    
-    pip3 install --upgrade --force-reinstall tflite_runtime-2.8.2-cp38-cp38-linux_aarch64.whl
+    pip3 install --upgrade --force-reinstall tflite_runtime-2.8.2-cp36-cp36m-linux_aarch64.whl
 fi
 cd $HOME
 rm -r u_18_pywhl
@@ -74,6 +74,7 @@ if [  ! -d /usr/include/tensorflow ];then
     rm tflite_2.8_u18.tar.gz
     mv tflite_2.8_u18/tensorflow /usr/include
     mv tflite_2.8_u18/tflite_2.8 /usr/lib/
+    mv tflite_2.8_u18/build /usr/lib/
     cp tflite_2.8_u18/libtensorflow-lite.a $HOME/required_libs/
     rm -r tflite_2.8_u18    
     cd $HOME
@@ -156,25 +157,32 @@ if [  ! -L libtiff.so ];then
 fi
 cd /usr/lib/
 if [  ! -L libti_rpmsg_char.so.0 ];then
-    ln -s /host/usr/lib/libti_rpmsg_char.so libti_rpmsg_char.so.0
+    ln -s /host/usr/lib/libti_rpmsg_char.so
+    ln -s /host/usr/lib/libti_rpmsg_char.so.0
 fi
 if [  ! -L libvx_tidl_rt.so ];then
-    ln -s /host/usr/lib/libvx_tidl_rt.so.1.0  libvx_tidl_rt.so
+    ln -s /host/usr/lib/libvx_tidl_rt.so
     ln -s libvx_tidl_rt.so libvx_tidl_rt.so.1.0
 fi
 if [  ! -L libtidl_onnxrt_EP.so ];then
     ln -s /host/usr/lib/libtidl_onnxrt_EP.so  libtidl_onnxrt_EP.so
 fi
 if [  ! -L libtidl_tfl_delegate.so.1.0 ];then
-    ln -s /host/usr/lib/libtidl_tfl_delegate.so.1.0  libtidl_tfl_delegate.so.1.0
+    ln -s /host/usr/lib/libtidl_tfl_delegate.so.1.0
+    ln -s /host/usr/lib/libtidl_tfl_delegate.so
 fi
 if [  ! -L libtivision_apps.so.8.5.0 ];then
     ln -s /host/usr/lib/libtivision_apps.so  libtivision_apps.so.8.5.0
 fi
+if [  ! -L libtivision_apps.so.8.6.0 ];then
+    ln -s /host/usr/lib/libtivision_apps.so  libtivision_apps.so.8.6.0
+fi
 
 if [  ! -f /usr/dlr/libdlr.so ];then
     mkdir /usr/dlr
-    cp ~/required_libs/libdlr.so /usr/dlr/
+    if [  ! -f ~/required_libs/libdlr.so ];then
+        cp ~/required_libs/libdlr.so /usr/dlr/
+    fi
 fi
 
 if [   -d $HOME/required_libs ];then

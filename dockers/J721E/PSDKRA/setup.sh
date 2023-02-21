@@ -6,6 +6,7 @@ if [ ! -d required_libs ];then
     mkdir required_libs
 fi
 export SOC=j7
+REL=08_06_00_00
 
 if [ ! -d arago_j7_pywhl ];then
     mkdir arago_j7_pywhl
@@ -15,19 +16,19 @@ STR=`pip3 list | grep dlr`
 SUB='dlr'
 
 if [[ "$STR" != *"$SUB"* ]]; then
-    wget --proxy off  https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/psdkr/pywhl/dlr-1.10.0-py3-none-any.whl
+    wget --quiet  --proxy off https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/ARM_LINUX/ARAGO//dlr-1.10.0-py3-none-any.whl
     yes | pip3 install --upgrade --force-reinstall dlr-1.10.0-py3-none-any.whl
 fi
 STR=`pip3 list | grep onnxruntime-tidl`
 SUB='onnxruntime-tidl'
 if [[ "$STR" != *"$SUB"* ]]; then
-    wget --proxy off  https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/psdkr/pywhl/onnxruntime_tidl-1.7.0-cp38-cp38-linux_aarch64.whl
+    wget --quiet  --proxy off https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/ARM_LINUX/ARAGO//onnxruntime_tidl-1.7.0-cp38-cp38-linux_aarch64.whl
     yes | pip3 install onnxruntime_tidl-1.7.0-cp38-cp38-linux_aarch64.whl
 fi
 STR=`pip3 list | grep tflite-runtime`
 SUB='tflite-runtime'
 if [[ "$STR" != *"$SUB"* ]]; then
-    wget --proxy off https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/psdkr/pywhl/tflite_runtime-2.8.2-cp38-cp38-linux_aarch64.whl
+    wget --quiet  --proxy off https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/ARM_LINUX/ARAGO//tflite_runtime-2.8.2-cp38-cp38-linux_aarch64.whl
     yes | pip3 install --upgrade --force-reinstall tflite_runtime-2.8.2-cp38-cp38-linux_aarch64.whl
     # to sync with tensor flow build version
     y | pip3 uninstall  numpy
@@ -37,7 +38,7 @@ fi
 cd $HOME
 rm -r arago_j7_pywhl
 if [  ! -d /usr/include/tensorflow ];then
-    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/psdkr/tflite_2.8_aragoj7.tar.gz --proxy off
+    wget --quiet  --proxy off https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/ARM_LINUX/ARAGO//tflite_2.8_aragoj7.tar.gz
     tar xf tflite_2.8_aragoj7.tar.gz
     rm tflite_2.8_aragoj7.tar.gz
     mv tflite_2.8_aragoj7/tensorflow /usr/include
@@ -52,7 +53,7 @@ fi
 
 
 if [  ! -d /usr/include/onnxruntime ];then
-    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/psdkr/onnx_1.7.0_aragoj7.tar.gz --proxy off
+    wget --quiet  --proxy off https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/ARM_LINUX/ARAGO//onnx_1.7.0_aragoj7.tar.gz
     tar xf onnx_1.7.0_aragoj7.tar.gz
     rm onnx_1.7.0_aragoj7.tar.gz
     cp -r  onnx_1.7.0_aragoj7/libonnxruntime.so $HOME/required_libs/
@@ -65,7 +66,7 @@ else
 fi
 
 if [  ! -d /usr/include/neo-ai-dlr ];then
-    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/psdkr/dlr_1.10.0_aragoj7.tar.gz --proxy off
+    wget --quiet  --proxy off https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/ARM_LINUX/ARAGO//dlr_1.10.0_aragoj7.tar.gz
     tar xf dlr_1.10.0_aragoj7.tar.gz 
     rm dlr_1.10.0_aragoj7.tar.gz 
     cd dlr_1.10.0_aragoj7
@@ -80,8 +81,8 @@ else
     echo "To redo the setup delete: /usr/include/neo-ai-dlr and run this script again"
 fi
 
-if [  ! -f /usr/include/itidl_rt.h ];then
-    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/08_05_00_00/tidl_tools.tar.gz --proxy off
+if [  ! -f /usr/include/itidl_rt.h ];then    
+    wget --quiet --proxy off   https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/TIDL_TOOLS/AM68PA/tidl_tools.tar.gz 
     tar xf tidl_tools.tar.gz
     rm tidl_tools.tar.gz
     cp tidl_tools/itidl_rt.h /usr/include/

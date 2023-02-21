@@ -38,7 +38,7 @@ export SOC=j7
 export TIDL_TOOLS_PATH=
 #For libdlr.so showing error 
 export LD_PRELOAD=/usr/lib/aarch64-linux-gnu/libgomp.so.1
-
+REL=08_06_00_00
 if [ ! -d u_20_pywhl ];then
     mkdir u_20_pywhl
 fi
@@ -107,7 +107,6 @@ if [  ! -d /usr/include/onnxruntime ];then
     tar xf onnx_1.7.0_u20.tar.gz
     rm onnx_1.7.0_u20.tar.gz
     cp -r  onnx_1.7.0_u20/libonnxruntime.so* $HOME/required_libs/
-    cp -r  onnx_1.7.0_u20/libtidl_onnxrt_EP.so* $HOME/required_libs/
     mv onnx_1.7.0_u20/onnxruntime /usr/include/
     rm -r onnx_1.7.0_u20
     cd $HOME
@@ -164,11 +163,11 @@ if [  ! -L libtiff.so ];then
 fi
 cd /usr/lib/
 if [  ! -L libti_rpmsg_char.so.0 ];then
-    ln -s /host/usr/lib/libti_rpmsg_char.so libti_rpmsg_char.so.0
+    ln -s /host/usr/lib/libti_rpmsg_char.so
+    ln -s /host/usr/lib/libti_rpmsg_char.so.0
 fi
 if [  ! -L libvx_tidl_rt.so ];then
-    ln -s /host/usr/lib/libvx_tidl_rt.so.1.0  libvx_tidl_rt.so
-    ln -s libvx_tidl_rt.so libvx_tidl_rt.so.1.0
+    ln -s /host/usr/lib/libvx_tidl_rt.so
 fi
 if [  ! -f /usr/dlr/libdlr.so ];then
     mkdir /usr/dlr
@@ -176,6 +175,12 @@ if [  ! -f /usr/dlr/libdlr.so ];then
 fi
 if [  ! -L libtivision_apps.so.8.5.0 ];then
     ln -s /host/usr/lib/libtivision_apps.so  libtivision_apps.so.8.5.0
+fi
+if [  ! -L libtivision_apps.so.8.6.0 ];then
+    ln -s /host/usr/lib/libtivision_apps.so  libtivision_apps.so.8.6.0 
+fi
+if [  ! -L libtidl_onnxrt_EP.so ];then
+    ln -s /host/usr/lib/libtidl_onnxrt_EP.so
 fi
 if [  ! -L libtidl_tfl_delegate.so ];then
     ln -s /host/usr/lib/libtidl_tfl_delegate.so  libtidl_tfl_delegate.so
