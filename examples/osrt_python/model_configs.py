@@ -68,6 +68,20 @@ models_configs = {
         'session_name' : 'tflitert',
         'od_type' : 'HasDetectionPostProcLayer'
     },
+    # SSD Meta architecture based tflite OD model example
+    'od-tfl-ssdlite_mobiledet_dsp_320x320_coco' : {
+        'model_path' : os.path.join(models_base_path,'ssdlite_mobiledet_dsp_320x320_coco_20200519.tflite'),
+        'source' : {'model_url': 'http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models/vision/detection/coco/tf1-models/ssdlite_mobiledet_dsp_320x320_coco_20200519.tflite', 'opt': True},
+        'mean': [127.5, 127.5, 127.5],
+        'scale' : [1/127.5, 1/127.5, 1/127.5],
+        'num_images' : numImages,
+        'num_classes': 91,
+        'model_type': 'od',
+        'session_name' : 'tflitert',
+        'meta_layers_names_list' : os.path.join(models_base_path, 'ssdlite_mobiledet_dsp_320x320_coco_20200519.prototxt'),
+        'meta_arch_type' : 1,
+        'od_type' : 'HasDetectionPostProcLayer'
+    },
     'ss-tfl-deeplabv3_mnv2_ade20k_float' : {
         'model_path' : os.path.join(models_base_path,'deeplabv3_mnv2_ade20k_float.tflite'),
         'source' : {'model_url': 'http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models/vision/segmentation/ade20k32/mlperf/deeplabv3_mnv2_ade20k32_float.tflite', 'opt': True},

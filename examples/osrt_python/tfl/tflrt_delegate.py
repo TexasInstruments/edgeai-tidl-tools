@@ -232,7 +232,7 @@ def run_model(model, mIdx):
     if ncpus > 1:
         sem.release()
 
-models = ['cl-tfl-mobilenet_v1_1.0_224', 'ss-tfl-deeplabv3_mnv2_ade20k_float', 'od-tfl-ssd_mobilenet_v2_300_float']
+models = ['cl-tfl-mobilenet_v1_1.0_224', 'ss-tfl-deeplabv3_mnv2_ade20k_float', 'od-tfl-ssd_mobilenet_v2_300_float', 'od-tfl-ssdlite_mobiledet_dsp_320x320_coco']
 if ( args.run_model_zoo ):
     models = [ 
             'cl-0000_tflitert_imagenet1k_mlperf_mobilenet_v1_1.0_224_tflite',\
