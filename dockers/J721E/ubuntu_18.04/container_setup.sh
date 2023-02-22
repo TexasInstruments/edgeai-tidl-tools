@@ -3,11 +3,12 @@
 SCRIPTDIR=`pwd`
 
 SHORT=o:,h
-LONG=opencv_install:,help
+LONG=opencv_install:,compile_glib2_9:,help
 OPTS=$(getopt -a -n weather --options $SHORT --longoptions $LONG -- "$@")
 
 eval set -- "$OPTS"
 opencv_install=0
+compile_glib2_9=0
 while :
 do
   case "$1" in
@@ -15,9 +16,16 @@ do
       opencv_install="$2"
       shift 2
       ;;
+    -c | --compile_glib2_9 )
+      compile_glib2_9="$2"
+      shift 2
+      ;;
     -h | --help)
-      "This is a weather script"
-      exit 2
+      echo "usage:"
+      echo "source container_setup.sh"
+      echo "source container_setup.sh --opencv_install"
+      echo "source container_setup.sh --compile_glib2_9"
+      break
       ;;
     --)
       shift;
@@ -29,6 +37,23 @@ do
   esac
 done
 
+download_and_compile_glibc(){
+    # in case of Ubunut 18.04 the default glibc is not matching with the tidl lib glibc 
+    # we need to compie the glibc2.9 for usage of same     
+    cd $HOME
+    wget -c https://ftp.gnu.org/gnu/glibc/glibc-2.29.tar.gz
+    apt install gawk bison
+    tar -zxvf glibc-2.29.tar.gz
+    cd glibc-2.29
+    mkdir glibc-build
+    cd glibc-build/
+    ../configure --prefix=/home/cyberithub/glibc-2.29/glibc-build
+    make
+    make install
+}
+if [ $compile_glib2_9 -eq 1 ];then
+    download_and_compile_glibc
+fi
 REL=08_06_00_00
 
 cd $HOME
