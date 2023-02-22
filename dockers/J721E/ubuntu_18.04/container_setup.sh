@@ -50,6 +50,8 @@ download_and_compile_glibc(){
     ../configure --prefix=/home/cyberithub/glibc-2.29/glibc-build
     make
     make install
+    export PATH=/$HOME/glibc-2.29/glibc-build/bin/:/usr/bin/:/bin:/sbin
+    export LD_LIBRARY_PATH=$HOME/glibc-2.29/glibc-build/math:/usr/lib/:/usr/lib/aarch64-linux-gnu/:/lib:/lib/aarch64-linux-gnu://$HOME/glibc-2.29/glibc-build/lib
 }
 if [ $compile_glib2_9 -eq 1 ];then
     download_and_compile_glibc
