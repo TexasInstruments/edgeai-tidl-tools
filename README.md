@@ -7,7 +7,7 @@ This repository contains examples developed for Deep learning runtime (DLRT) off
 - [EdgeAI TIDL Tools and Examples](#edgeai-tidl-tools-and-examples)
   - [Introduction](#introduction)
   - [Setup](#setup)
-    - [J721E Setup](#j721e-setup)
+    - [SOC Device Setup](#device-setup)
     - [AM62 AMRNN Setup](#am62-setup)
     - [Advanced Setup Options](#advanced-setup-options)
   - [Python Examples](#python-examples)
@@ -20,18 +20,21 @@ This repository contains examples developed for Deep learning runtime (DLRT) off
   - [License](#license)
 
 ## Introduction
- The following sections describes the steps to install this repository, dependent components on supported devices and run the examples on the same. Most the steps explained in this page are common for PC emulation and execution on target. If any of the steps is different between PC and target, then same is called out in this document.
+ The following sections describes the steps to install this repository, dependent components on supported devices and run the examples on the same. Most of the steps explained in this page are common for PC emulation and execution on target. If any of the steps is different between PC and target, then same is called out in this document.
 
  ## Supported Devices
 - Following table shows the devices supported by this repository
 - Device with hardware acceleration have TI-DSP and MMA(Matrix Multiplier Accelerator) for faster execution. 
-  | DEVICE  | Hardware Acceleration |
+  | SOC  | Hardware Acceleration |
     | ------- |:------:|
-    |J721E |:heavy_check_mark:|
+    |AM68PA |:heavy_check_mark:|
+    |AM68A |:heavy_check_mark:|
+    |AM69A |:heavy_check_mark:|
+    |AM62A |:heavy_check_mark:|
     |AM62 |:x:|
 
 ## Setup
-  - This repository is validated on Ubuntu 18.04 in PC emulation mode, AM62 EVM and TDA4VM EVM using PSDK-RTOS release
+  - This repository is validated on Ubuntu 18.04 in PC emulation mode, AM62, AM68PA, AM62A, AM68A and AM69A using PSDK-RTOS releases
   - This repository works only with python 3.6 on PC (Which is default in Ubuntu 18.04)
   - We have also validated under docker container in PC. Refer [Dockerfile](./Dockerfile) for the list of dependencies installed on top of ubuntu 18.04 base line
     - Make sure you have all permission set for the current directory before proceeding 
@@ -39,10 +42,11 @@ This repository contains examples developed for Deep learning runtime (DLRT) off
  ```
  git clone https://github.com/TexasInstruments/edgeai-tidl-tools.git
  cd edgeai-tidl-tools
+ export SOC=<Your SOC>
  source ./setup.sh
 ```
-### J721E Setup
-  - If you are planning to do inference in the J721E device refer [here](./examples/osrt_python/README.md#model-inference-on-evm) for setting up of device with required dependencies 
+### SOC Device Setup (not AM62)
+  - If you are planning to do inference in the SOC(not AM62) device refer [here](./examples/osrt_python/README.md#model-inference-on-evm) for setting up of device with required dependencies 
 ### AM62 Setup
   - If you are planning to do inference in the AM62 device with armnn delegate for tflite run below setup on AM62 device
   ```
@@ -53,6 +57,11 @@ This repository contains examples developed for Deep learning runtime (DLRT) off
    
 ```
  source ./setup.sh --skip_cpp_deps
+```
+- If you have already installed the python dependencies in [requirements_pc.txt](./requirements_pc.txt) and want to skip it, invoke the setup script with below option
+   
+```
+ source ./setup.sh --skip_x86_python_install
 ```
   - If you have the ARM GCC tools chain already installed in your machine, invoke the setup script with below option and set "ARM64_GCC_PATH" environment variable
    
@@ -97,11 +106,11 @@ source ./setup.sh
 ## Validated Examples
   - Following table summarizes the validated examples 
 
-    | Example  | Interface |Example  location| AM62   | J721E  |
-    | ------- |:------:|:------:|:------:|:-----:|
-    |tfl | Python | examples/osrt_python/tfl/ | :heavy_check_mark: |:heavy_check_mark:|
-    |ort | Python | examples/osrt_python/ort/ | :heavy_check_mark: |:heavy_check_mark:|
-    |dlr | Python | examples/osrt_python/dlr/ |  |:heavy_check_mark:|
+    | Example  | Interface |Example  location| AM62   | AM68PA  | AM68A  | AM69A  | AM62A  |
+    | ------- |:------:|:------:|:------:|:-----:|:-----:|:-----:|:-----:|
+    |tfl | Python | examples/osrt_python/tfl/ | :heavy_check_mark: |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
+    |ort | Python | examples/osrt_python/ort/ | :heavy_check_mark: |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
+    |dlr | Python | examples/osrt_python/dlr/ |  |:heavy_check_mark:|:heavy_check_mark:||:heavy_check_mark:|
     |tfl | cpp | examples/osrt_cpp/tfl/ | :heavy_check_mark: |:heavy_check_mark:|
     |ort | cpp | examples/osrt_cpp/ort/ | :heavy_check_mark: |:heavy_check_mark:|
     |dlr | cpp | examples/osrt_cpp/dlr/ |  |:heavy_check_mark:|
