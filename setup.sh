@@ -340,7 +340,7 @@ if [ -z "$TIDL_TOOLS_PATH" ]; then
         return 
     fi
     tar -xzf tidl_tools.tar.gz
-    if [ -f tflite_2.8_x86_u18.tar.gz ];then
+    if [ -f tidl_tools.tar.gz ];then
         rm tidl_tools.tar.gz
     fi
     cd  tidl_tools
