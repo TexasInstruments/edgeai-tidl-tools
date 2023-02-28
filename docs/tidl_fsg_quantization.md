@@ -13,15 +13,13 @@ TIDL provides the following quantization options to the user:
 - A. Post Training Quantization (PTQ)
 - B. Guidelines For Training To Get Best Accuracy With Quantization
 - C. Quantization Aware Training (QAT)
-- D. Pre-quantized model*
+- D. Native support for TF-Lite int8 PTQ Models*
 
-* Note : This option is only available for specific devices and specific Open Source Runtime. Refer for supported devices and Open Source Runtime.
+Note : Option D is only available for certain devices (AM62A, AM68A & AM69A)
 
 We recommend to use option 'A' for the network first, if the quantization accuracy loss is not acceptable, then user can try option 'B'. If the result with 'B' is also not acceptable, then user can use option 'C'. Option 'C' shall work most of the time. The only drawback of this solution is that it would need additional effort from the user to re-train the network. For devices which supports option 'D', user can directly use it.
 
  
-![TIDL - Quantization Options ](TIDL_Quant_Options.png)
-
 ## A. Post Training Quantization (PTQ) {#did_tidl_quantization_1}
 
 - Training free Quantization – Most preferred option
@@ -85,8 +83,9 @@ We recommend to use option 'A' for the network first, if the quantization accura
 - Note : The compilation time for running automated mixed precision is high, so recommended to use utilities like <a href="https://www.gnu.org/software/screen/manual/screen.html">screen</a> to run compilation without interruption
 
 ### A.5 Future/Planned Improvements
-- The following options are not supported in current release but are planned for future TIDL releases:
-  - Pre-quantized models with ONNX runtime
+- The following options are not supported in current release but are planned for future TIDL releases (For AM62A, AM68A & AM69A):
+  - Support for asymmetric & non power of 2 scales
+  - Support for efficient per channel 
 	
 
 ## B. Guidelines For Training To Get Best Accuracy With Quantization {#did_tidl_quantization_2}
@@ -107,4 +106,6 @@ Example – CLIP, Minimum, PACT, RelU6 operators.
 - This option has resulted in accuracy drop to be very close to zero for most of the networks.
 - EdgeAI-TorchVision provides tools and examples to do Quantization Aware Training. With the tools provided, you can incorporate Quantization Aware Training in your code base with just a few lines of code change. For detailed documentation and code, please visit <a href="https://github.com/TexasInstruments/edgeai-torchvision/blob/master/docs/pixel2pixel/Quantization.md">Link</a>
 
-## D. Pre-quantized model* {#did_tidl_quantization_4}
+## D. Native support for TensorFlow Lite int8 PTQ Models
+- TF-Lite full-integer quantized models (limited to int8 ops) can be inferred directly on certain devices (AM62A, AM68A & AM69A) without further calibration
+- Refer to <a href="https://www.tensorflow.org/lite/performance/post_training_quantization">Post Training Quantization | TensorFlow Lite</a> for further details on how to quantize TensorFlow Lite models
