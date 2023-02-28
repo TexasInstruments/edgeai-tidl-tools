@@ -14,7 +14,6 @@ TI's Edge AI solution provides the right set of tools for both of these categori
 * [**Model zoo**](https://github.com/TexasInstruments/edgeai-modelzoo): A large collection of pre-trained models for data scientists, which along with TI's Model Selection Tool enables picking the ideal model for TI's embedded devices
 * [**Training and quantization tools**](https://github.com/TexasInstruments/edgeai) for popular frameworks, allowing data scientists to make DNNs more suitable for TI devices
 * [**Edge AI Benchmark**](https://github.com/TexasInstruments/edgeai-benchmark): A python based framework which can allow you to  perform accuracy and performance benchmark. Accuracy benchmark can be performed without development board, but for  performance benchmark, a development board is needed.
-* [**TIDL**](index.html): Optimized inference solutions primarily targeted for compilation and deployment of pre-trained models.
 * [**Edge AI TIDL Tools**](#edgeai-tidl-tools): Edge AI TIDL Tools provided in this repository shall be used for model compilation on X86. Artifacts from compilation process can used for Model inference. Model inference can happen on X86 machine (host emulation mode) or on development board with TI SOC. This repository also provides examples to be directly used on X86 target and can be used on development board with TI SOC. For deployment and execution on the development board, one has to use this package.
 
 The figure below illustrates the work flow of DNN development and deployment on TI devices:
@@ -48,7 +47,6 @@ TIDL provides multiple deployment options with industry defined inference engine
 * **ONNX RunTime**: [ONNX Runtime]( https://www.onnxruntime.ai/) based inference with heterogeneous execution on cortex-A** + C7x-MMA.
 * **TVM/Neo-AI RunTime**: [TVM]( https://tvm.apache.org)/[Neo-AI-DLR]( https://github.com/neo-ai/neo-ai-dlr) based inference with heterogeneous execution on cortex-A** + C7x-MMA
 
-
 >** *AM68PA has cortex-A72 as its MPU, refer to the device TRM to know which cortex-A MPU* it contains.
 
 These heterogeneous execution enables:
@@ -60,12 +58,16 @@ Edge AI TIDL Tools provided in this repository supports model compilation and Mo
 
 <p align="center"> <img src="./docs/tflrt_work_flow.png"> </p>
 
+The below table covers the supported operations with this repository on X86_PC and TI's development board.
+<div align="center">
 
 | Operation  | X86_PC | TI SOC |Python API |CPP API|
-| ------- |-----------|-----------|-----------|-----------|
+| ------- |:-----------:|:-----------:|:-----------:|:-----------:|
 | Model Compilation  | :heavy_check_mark: |:x: | :heavy_check_mark: |:x:|
 | Model Inference  | :heavy_check_mark: | :heavy_check_mark: |:heavy_check_mark: |:heavy_check_mark:|
  
+</div>
+
 ### What IS Supported
 - Benchmark latency and Memory bandwidth of out of box example models (10+)
 - Compile user / custom model for deployment with TIDL
@@ -80,20 +82,22 @@ Edge AI TIDL Tools provided in this repository supports model compilation and Mo
 ### Supported Devicess
 - Following table shows the devices supported by this repository
 - Device with hardware acceleration have TI-DSP and MMA(Matrix Multiplier Accelerator) for faster execution. 
+<div align="center">
 
+| SOC  | Hardware Acceleration |
+| ------- |:------:|
+|AM68PA |:heavy_check_mark:|
+|AM68A |:heavy_check_mark:|
+|AM69A |:heavy_check_mark:|
+|AM62A |:heavy_check_mark:|
+|AM62 |:x:|
 
-  | SOC  | Hardware Acceleration |
-    | ------- |:------:|
-    |AM68PA |:heavy_check_mark:|
-    |AM68A |:heavy_check_mark:|
-    |AM69A |:heavy_check_mark:|
-    |AM62A |:heavy_check_mark:|
-    |AM62 |:x:|
+</div>
 
 ## Setup
 
 > **Note**
-> Please select / checkout to the tag compatible with the SDK version that you are using with the TI's Evaluation board before continuing on the below steps. Refer to [SDK Version compatibility Table](./doc/version_compatibility_table.md) for the tag of your SDK version
+> Please select / checkout to the tag compatible with the SDK version that you are using with the TI's Evaluation board before continuing on the below steps. Refer to [SDK Version compatibility Table](./docs/version_compatibility_table.md) for the tag of your SDK version
 
 <p align="center"> <img src="./docs/git_tag.png"> </p>
 
@@ -101,11 +105,13 @@ Edge AI TIDL Tools provided in this repository supports model compilation and Mo
 ### Pre-requisites to setup on x86_PC
 
  - X86_PC mode for this repository is validated with below configuration.
+<div align="center">
 
 | OS  | Python Version|
 |:-------:|:-----------:|
 |Ubuntu 18.04 |3.6|
 
+</div>
   - We have also validated under docker container in PC. Use [Dockerfile](./Dockerfile) for the list of dependencies installed on top of ubuntu 18.04 base line.
   
 ### Setup on X86_PC and TI's development board
@@ -168,18 +174,18 @@ cmake ../examples && make -j && cd ..
 
 ## Compile and Benchmark Custom Model
 
--  [**New Model Evaluation**](docs/new_model_evaluation.md) : Refer this for a custom model that needs to be evaluated is falling into one of supported out-of-box example tasks categories.
-- [**Custom Model Evaluation**](docs/custom_model_evaluation.md) : Refere this for a custom model task category or input and output format is different from the supported list of tasks
+-  [**New Model Evaluation**](docs/custom_model_evaluation.md#new-model-evaluation) : Refer this for a custom model that needs to be evaluated is falling into one of supported out-of-box example tasks categories.
+- [**Custom Model Evaluation**](docs/custom_model_evaluation.md#custom-model-evaluation) : Refere this for a custom model task category or input and output format is different from the supported list of tasks
 
 ## User Guide
 - [**Python examples**](examples/osrt_python/README.md) - Detailed documentation on all the compile and inference options for TIDL offload for each runtime sessions
 - [**CPP examples**](examples/osrt_cpp/README.md) - Detailed documentation on compiling the CPP examples on X86_PC as well as Development board.
 - [**Jupyter Notebooks**](examples/jupyter_notebooks/README.md) - Interactive step-by-step documented notebooks for pre-compiled models inference.
-- [**Supported Operators and Runtimes**](examples/jupyter_notebooks/README.md) - List of supported operators from TIDL offload and their limitations for each runtime. 
+- [**Supported Operators and Runtimes**](docs/supported_ops_rts_versions.md) - List of supported operators from TIDL offload and their limitations for each runtime. 
 - **Feature Specific Guides**
-  - [**Quantization specification**](examples/jupyter_notebooks/README.md)
-  - [**Object detection Meta architectures**](examples/jupyter_notebooks/README.md)
-  - [**Trouble Shooting Guide**](examples/jupyter_notebooks/README.md)  
+  - [**Quantization specification**](docs/tidl_fsg_quantization.md)
+  - [**Object detection Meta architectures**](docs/tidl_fsg_od_meta_arch.md)
+  - [**Trouble Shooting Guide**](docs/tidl_osr_debug.md)
   - [**Model Optimization**](scripts/README.md)  
 
 ## License
