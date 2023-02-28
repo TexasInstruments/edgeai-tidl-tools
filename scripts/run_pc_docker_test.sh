@@ -111,7 +111,7 @@ if [[ $use_local == 1 ]];then
 fi
 
 DOCKER_TAG=ubuntu18-test
-if [[ "$(docker images -q $DOCKER_TAG 2> /dev/null)" == "" ]]; then
+if [[ "$(sudo docker images -q $DOCKER_TAG 2> /dev/null)" == "" ]]; then
   echo "building docker image"
   sudo docker build --build-arg REPO_LOCATION=artifactory.itg.ti.com/docker-public/library/ --build-arg USE_PROXY=ti -t $DOCKER_TAG  -f Dockerfile .
 else
@@ -122,10 +122,10 @@ run_test()
   DOCKER_TAG=ubuntu18-test
   if [[ $use_local == 1 ]];then
       echo "Running test for $1 with --use_local"
-      docker run --rm  -it -v $(pwd)/:/root/edgeai-tidl-tools -v /:/host --env SOC=$1 --env LOCAL_PATH=/host/$LOCAL_PATH --network host --name $DOCKER_TAG  --shm-size=6gb  $DOCKER_TAG  /bin/bash
+      sudo docker run --rm  -it -v $(pwd)/:/root/edgeai-tidl-tools -v /:/host --env SOC=$1 --env LOCAL_PATH=/host/$LOCAL_PATH --network host --name $DOCKER_TAG  --shm-size=6gb  $DOCKER_TAG  /bin/bash
     else
       echo "Running test for $1"
-      docker run --rm  -it -v $(pwd)/:/root/edgeai-tidl-tools -v /:/host --env SOC=$1  --network host --name $DOCKER_TAG  --shm-size=6gb  $DOCKER_TAG  /bin/bash
+      sudo docker run --rm  -it -v $(pwd)/:/root/edgeai-tidl-tools -v /:/host --env SOC=$1  --network host --name $DOCKER_TAG  --shm-size=6gb  $DOCKER_TAG  /bin/bash
     fi
 }
 if [ $am62a == 1 ];then    

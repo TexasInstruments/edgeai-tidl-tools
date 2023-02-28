@@ -1,0 +1,20 @@
+Name,rt type
+cl-dlr-onnx_mobilenetv2,dlr-py
+cl-dlr-tflite_inceptionnetv3,dlr-py
+cl-dlr-onnx_mobilenetv2,dlr-cpp
+cl-dlr-tflite_inceptionnetv3,dlr-cpp
+cl-tfl-mobilenet_v1_1.0_224,tfl-py
+ss-tfl-deeplabv3_mnv2_ade20k_float,tfl-py
+od-tfl-ssd_mobilenet_v2_300_float,tfl-py
+ss-tfl-deeplabv3_mnv2_ade20k_float,tfl-cpp
+cl-tfl-mobilenet_v1_1.0_224,tfl-cpp
+od-tfl-ssd_mobilenet_v2_300_float,tfl-cpp
+ss-ort-deeplabv3lite_mobilenetv2,ort-cpp
+cl-ort-resnet18-v1,ort-cpp
+od-ort-ssd-lite_mobilenetv2_fpn,ort-cpp
+cl-ort-resnet18-v1,ort-py
+ss-ort-deeplabv3lite_mobilenetv2,ort-py
+od-ort-ssd-lite_mobilenetv2_fpn,ort-py
+cl-ort-caffe_squeezenet_v1_1,ort-py
+
+

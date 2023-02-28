@@ -64,7 +64,7 @@ import platform
 import sys
 final_report = []
 
-enable_debug = True
+enable_debug = False
 
 ref_outputs_base_dir = 'test_data' 
 rt_base_dir_py = 'examples/osrt_python/'
@@ -169,7 +169,10 @@ for test_config in test_configs:
         curr_rt_base_dir= os.path.join(rt_base_dir,test_config['script_dir'])
         cmd = ('python3 '+ script_name)
 
-    curr_ref_outputs_base_dir = ref_outputs_base_dir+'/refs-'+device+'/'
+    if device != 'pc':
+        curr_ref_outputs_base_dir = ref_outputs_base_dir+'/refs-'+device+'/'
+    else:
+        curr_ref_outputs_base_dir = ref_outputs_base_dir+'/refs-'+device+'-'+SOC+'/'
 
     #result = subprocess.run(cmd, cwd=curr_rt_base_dir, shell=True, stdout=subprocess.PIPE, check=True, universal_newlines=True)
     #lines = result.stdout.splitlines()
@@ -182,7 +185,10 @@ for test_config in test_configs:
 
     rt_report = []
     golden_ref_file= ""
-    golden_ref_file = ref_outputs_base_dir+'/golden_ref_'+device+'.csv'
+    if device != 'pc':
+        golden_ref_file = ref_outputs_base_dir+'/golden_ref_'+device+'.csv'
+    else:
+        golden_ref_file = ref_outputs_base_dir+'/golden_ref_'+device+'_'+SOC+'.csv'
     with open(golden_ref_file, 'r') as f:
         ref_report = [{k:v for k, v in row.items()} for row in csv.DictReader(f, skipinitialspace=True)]
     if enable_debug:
@@ -238,11 +244,20 @@ for test_config in test_configs:
                      
 print(final_report)
 if(len(final_report) > 0):
-    keys =final_report[0].keys()
+    if device == 'pc':
+        keys =final_report[0].keys()
+        for i in range(len(final_report)):
+            final_report[i].pop('Total time',None)
+            final_report[i].pop('Offload Time',None)
+            final_report[i].pop('DDR RW MBs',None)
     if 'Output File' not in final_report[0]:
         final_report[0]['Output File'] = ''
 
-    with open('test_report_'+device+'.csv', 'w', newline='')  as output_file:
+    if device != 'pc':
+        report_file = 'test_report_'+device+'.csv'
+    else:
+        report_file = 'test_report_'+device+'_'+ SOC+ '.csv'
+    with open(report_file, 'w', newline='')  as output_file:
         dict_writer = csv.DictWriter(output_file, keys)
         dict_writer.writeheader()
         dict_writer.writerows(final_report)

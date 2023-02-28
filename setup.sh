@@ -340,7 +340,9 @@ if [ -z "$TIDL_TOOLS_PATH" ]; then
         return 
     fi
     tar -xzf tidl_tools.tar.gz
-    rm tidl_tools.tar.gz    
+    if [ -f tflite_2.8_x86_u18.tar.gz ];then
+        rm tidl_tools.tar.gz
+    fi
     cd  tidl_tools
     if [[ ! -L libvx_tidl_rt.so.1.0 && ! -f libvx_tidl_rt.so.1.0 ]];then
          ln -s  libvx_tidl_rt.so libvx_tidl_rt.so.1.0
@@ -363,12 +365,15 @@ fi
 
 if [ $skip_cpp_deps -eq 0 ]; then
     if [[ $arch == x86_64 ]]; then
-        rm -r $TIDL_TOOLS_PATH/osrt_deps
+        if [ -d $TIDL_TOOLS_PATH/osrt_deps ];then
+            rm -r $TIDL_TOOLS_PATH/osrt_deps
+        fi
         mkdir  $TIDL_TOOLS_PATH/osrt_deps
         mkdir  $TIDL_TOOLS_PATH/yaml-cpp
         cd  $TIDL_TOOLS_PATH/osrt_deps
         # onnx
         if [ ! -d onnx_1.7.0_x86_u18 ];then
+            echo "Installing:onnxruntime"
             if [ -f onnx_1.7.0_x86_u18.tar.gz ];then
                 rm onnx_1.7.0_x86_u18.tar.gz
             fi
@@ -388,6 +393,7 @@ if [ $skip_cpp_deps -eq 0 ]; then
         fi
         # tflite_2.8
         if [ ! -d tflite_2.8_x86_u18 ];then
+            echo "Installing:tflite_2.8"
             if [ -f tflite_2.8_x86_u18.tar.gz ];then
                 rm tflite_2.8_x86_u18.tar.gz
             fi
@@ -408,6 +414,7 @@ if [ $skip_cpp_deps -eq 0 ]; then
 
         #opencv
         if [ ! -d  opencv_4.2.0_x86_u18 ];then
+            echo "Installing:opencv"
             if [ -f opencv_4.2.0_x86_u18.tar.gz ];then
                 rm opencv_4.2.0_x86_u18.tar.gz
             fi
@@ -427,6 +434,7 @@ if [ $skip_cpp_deps -eq 0 ]; then
 
         #dlr
         if [ ! -d dlr_1.10.0_x86_u18 ];then
+            echo "Installing:dlr"
             if [ -f dlr_1.10.0_x86_u18.tar.gz ];then
                 rm dlr_1.10.0_x86_u18.tar.gz
             fi            

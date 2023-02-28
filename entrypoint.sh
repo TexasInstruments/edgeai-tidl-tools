@@ -25,10 +25,10 @@ python3 ./scripts/gen_test_report.py
 mkdir -p test_reports/$SOC/output_images
 mkdir -p test_reports/$SOC/model-artifacts
 rm test_reports/$SOC/output_images/*
-rm test_reports/$SOC/test_report_pc.csv
+rm test_reports/$SOC/test_report_pc_$SOC.csv
 rm -r test_reports/$SOC/model-artifacts/*
 cp output_images/* test_reports/$SOC/output_images/
-cp test_report_pc.csv test_reports/$SOC/
+cp test_report_pc_$SOC.csv test_reports/$SOC/
 cp -r  model-artifacts/* test_reports/$SOC/model-artifacts/
 mv ~/report.txt test_reports/$SOC/
 # ls -l
