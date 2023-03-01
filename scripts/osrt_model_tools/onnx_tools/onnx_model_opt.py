@@ -137,3 +137,67 @@ def tidlOnnxModelOptimize(in_model_path, out_model_path, scaleList=[0.0078125,0.
     else:
         print('Converted model is valid!')
         onnx.save_model(model_def, out_model_path)
+
+
+def tidlIsNodeOutputNameUsedInGraph(originalGraph,name):
+    for node in originalGraph.node:
+        if(node.output[0] == name):
+            return True
+    return False
+
+# This function updates intermediate input/output tensor names to be integers starting from 1
+# The graph's final output names are not updated by default to ensure there are no issues in case they are being used for interfacing in any way
+# In case changing graph's output names is desired, set updateGraphOutputNames = True in function call
+def tidlOnnxModelIntermediateNamesPruner(in_model_path, out_model_path, updateGraphOutputNames=False):
+    #Read ONNX Model
+    model = onnx.load_model(in_model_path)
+    op = onnx.OperatorSetIdProto()
+    #Track orginal opset:
+    op.version = model.opset_import[0].version
+    #Get Graph:
+    originalGraph = model.graph
+    
+    nodeIdx = 0
+    for node1 in range(len(originalGraph.node)):
+        #if new name is already used in graph for some output, increment nodeIdx to get different name
+        while(tidlIsNodeOutputNameUsedInGraph(originalGraph, nodeIdx)):
+            nodeIdx += 1
+        newName = str(nodeIdx).encode('utf-8')
+
+        for node2 in range(len(originalGraph.node)):
+            for inputIdx in range(len(originalGraph.node[node2].input)):
+                if(originalGraph.node[node2].input[inputIdx] == originalGraph.node[node1].output[0]):
+                    # Update node input name for corresponding input node's updated output name
+                    originalGraph.node[node2].input[inputIdx] = newName
+        isOutputNode = False
+        for graphOutIdx in range(len(originalGraph.output)):
+            if(originalGraph.output[graphOutIdx].name == originalGraph.node[node1].output[0]):
+                isOutputNode = True
+                if(updateGraphOutputNames):
+                    originalGraph.output[graphOutIdx].name = newName
+        if(isOutputNode):
+            if(updateGraphOutputNames):
+                originalGraph.node[node1].output[0] = newName
+        else:
+            originalGraph.node[node1].output[0] = newName
+        nodeIdx += 1
+    
+    #Construct Model:
+    op.version = 11
+    model_def_noShape = helper.make_model(originalGraph, producer_name='onnx-TIDL', opset_imports=[op])
+    model_def = shape_inference.infer_shapes(model_def_noShape)
+
+    try:
+        onnx.checker.check_model(model_def)
+    except onnx.checker.ValidationError as e:
+        print('Converted model is invalid: %s' % e)
+    else:
+        print('Converted model is valid!')
+        onnx.save_model(model_def, out_model_path)
+    
+    return
+
+if __name__ == "__main__":
+    in_model_path = './model.onnx'
+    out_model_path = in_model_path.replace('.onnx', '_names_stripped.onnx')
+    tidlOnnxModelIntermediateNamesPruner(in_model_path, out_model_path)
