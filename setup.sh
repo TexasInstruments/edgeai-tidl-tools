@@ -288,10 +288,10 @@ if [[ $arch == x86_64  ]]; then
         pip_install_local tflite_runtime-2.8.2-cp36-cp36m-linux_x86_64.whl
     else
         echo 'Installing python osrt packages...'
-        pip3 install https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/dlr-1.10.0-py3-none-any.whl
-        pip3 install https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/tvm-0.9.dev0-cp36-cp36m-linux_x86_64.whl
-        pip3 install https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/onnxruntime_tidl-1.7.0-cp36-cp36m-linux_x86_64.whl
-        pip3 install https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/tflite_runtime-2.8.2-cp36-cp36m-linux_x86_64.whl
+        pip3 install --quiet https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/dlr-1.10.0-py3-none-any.whl
+        pip3 install --quiet https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/tvm-0.9.dev0-cp36-cp36m-linux_x86_64.whl
+        pip3 install --quiet https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/onnxruntime_tidl-1.7.0-cp36-cp36m-linux_x86_64.whl
+        pip3 install --quiet https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/tflite_runtime-2.8.2-cp36-cp36m-linux_x86_64.whl
     fi
 fi
 
@@ -369,7 +369,6 @@ if [ $skip_cpp_deps -eq 0 ]; then
             rm -r $TIDL_TOOLS_PATH/osrt_deps
         fi
         mkdir  $TIDL_TOOLS_PATH/osrt_deps
-        mkdir  $TIDL_TOOLS_PATH/yaml-cpp
         cd  $TIDL_TOOLS_PATH/osrt_deps
         # onnx
         if [ ! -d onnx_1.7.0_x86_u18 ];then
@@ -383,9 +382,9 @@ if [ $skip_cpp_deps -eq 0 ]; then
                 wget --quiet   https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/onnx_1.7.0_x86_u18.tar.gz
             fi
             tar -xf onnx_1.7.0_x86_u18.tar.gz
-            cp onnx_1.7.0_x86_u18/libonnxruntime.so .
-            cp onnx_1.7.0_x86_u18/onnxruntime . -r 
+            cd onnx_1.7.0_x86_u18
             ln -s libonnxruntime.so libonnxruntime.so.1.7.0
+            cd ../
             rm onnx_1.7.0_x86_u18.tar.gz    -r
         else
             echo "skipping onnxruntime setup: found $TIDL_TOOLS_PATH/osrt_deps/onnxruntime"
@@ -403,9 +402,6 @@ if [ $skip_cpp_deps -eq 0 ]; then
                 wget --quiet   https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/tflite_2.8_x86_u18.tar.gz
             fi            
             tar -xf tflite_2.8_x86_u18.tar.gz        
-            cp tflite_2.8_x86_u18/libtensorflow-lite.a .
-            cp tflite_2.8_x86_u18/tensorflow/ . -r
-            cp tflite_2.8_x86_u18/tflite_2.8/ tflite_2.8_x86 -r
             rm tflite_2.8_x86_u18.tar.gz   -r
         else
             echo "skipping tensorflow setup: found $TIDL_TOOLS_PATH/osrt_deps/tensorflow"
@@ -424,8 +420,6 @@ if [ $skip_cpp_deps -eq 0 ]; then
                 wget --quiet   https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/opencv_4.2.0_x86_u18.tar.gz
             fi             
             tar -xf opencv_4.2.0_x86_u18.tar.gz 
-            cp opencv_4.2.0_x86_u18/opencv-4.2.0 . -r
-            cp opencv_4.2.0_x86_u18/opencv .  -r 
             rm opencv_4.2.0_x86_u18.tar.gz
         else
             echo "skipping opencv-4.2.0 setup: found $TIDL_TOOLS_PATH/osrt_deps/opencv-4.2.0_x86_u18"
@@ -444,7 +438,6 @@ if [ $skip_cpp_deps -eq 0 ]; then
                 wget --quiet   https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/dlr_1.10.0_x86_u18.tar.gz
             fi             
             tar -xf dlr_1.10.0_x86_u18.tar.gz
-            cp dlr_1.10.0_x86_u18/neo-ai-dlr . -r
             rm dlr_1.10.0_x86_u18.tar.gz   -r
         else
             echo "skipping neo-ai-dlr setup: found $TIDL_TOOLS_PATH/osrt_deps/neo-ai-dlr"
