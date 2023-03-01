@@ -30,7 +30,7 @@ elseif (EXISTS $ENV{TIDL_TOOLS_PATH}/osrt_deps/tflite_2.8_x86_u18/)
   message (STATUS  "setting TENSORFLOW_INSTALL_DIR path:${TENSORFLOW_INSTALL_DIR}")
 else()
   # avoid warning in case of hw accelerated device which have this in filesystem
-  if( NOT ((${TARGET_DEVICE} STREQUAL  "j7") AND (${TARGET_CPU} STREQUAL  "arm" AND ${HOST_CPU} STREQUAL  "arm"))  )
+  if( NOT ( (NOT ${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" AND ${HOST_CPU} STREQUAL  "arm"))  )
     message (WARNING  "TENSORFLOW_INSTALL_DIR is not set")
   endif()
 endif()
@@ -39,8 +39,8 @@ endif()
 if (EXISTS $ENV{TIDL_TOOLS_PATH}/osrt_deps/onnx_1.7.0_x86_u18/)
   set(ONNXRT_INSTALL_DIR $ENV{TIDL_TOOLS_PATH}/osrt_deps/onnx_1.7.0_x86_u18/)# check for PC
 else()
-  # avoid warning in case of j7 device which have this in filesystem
-  if( NOT ((${TARGET_DEVICE} STREQUAL  "j7") AND (${TARGET_CPU} STREQUAL  "arm" AND ${HOST_CPU} STREQUAL  "arm"))  )
+  # avoid warning in case of  hw accelerated device which have this in filesystem
+  if( NOT ((NOT ${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" AND ${HOST_CPU} STREQUAL  "arm"))  )
     message (WARNING  "ONNXRT_INSTALL_DIR is not set")
   endif()
 endif()
@@ -49,8 +49,8 @@ if (EXISTS $ENV{TIDL_TOOLS_PATH}/osrt_deps/dlr_1.10.0_x86_u18/)
   set(DLR_INSTALL_DIR $ENV{TIDL_TOOLS_PATH}/osrt_deps/dlr_1.10.0_x86_u18/)
   message (STATUS  "setting DLR_INSTALL_DIR path:${DLR_INSTALL_DIR}")
 else()
-  # avoid warning in case of j7 device which have this in filesystem
-  if( NOT ((${TARGET_DEVICE} STREQUAL  "j7") AND (${TARGET_CPU} STREQUAL  "arm" AND ${HOST_CPU} STREQUAL  "arm"))  )
+  # avoid warning in case of hw accelerated device which have this in filesystem
+  if( NOT ((NOT ${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" AND ${HOST_CPU} STREQUAL  "arm"))  )
     message (WARNING  "DLR_INSTALL_DIR is not set")
   endif()
 endif()
@@ -63,16 +63,16 @@ elseif (EXISTS $ENV{TIDL_TOOLS_PATH}/osrt_deps/opencv-4.1.0/)
   set(OPENCV_INSTALL_DIR $ENV{TIDL_TOOLS_PATH}/osrt_deps/opencv-4.1.0/)
   message (STATUS  "setting opencv path:${OPENCV_INSTALL_DIR}")
 else ()
-  # avoid warning in case of j7 device which have this in filesystem
-  if( NOT ((${TARGET_DEVICE} STREQUAL  "j7") AND (${TARGET_CPU} STREQUAL  "arm" AND ${HOST_CPU} STREQUAL  "arm"))  )
+  # avoid warning in case of hw accelerated device which have this in filesystem
+  if( NOT ((NOT ${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" AND ${HOST_CPU} STREQUAL  "arm"))  )
     message (WARNING  "OPENCV_INSTALL_DIR is not set")
   endif()
 endif()
 
 
 if(ARMNN_ENABLE)
-  if( ${TARGET_CPU} STREQUAL  "x86" OR ${TARGET_DEVICE} STREQUAL "j7" )
-    message(WARNING "ARMNN NOT supported on X86 and j7")
+  if( ${TARGET_CPU} STREQUAL  "x86" OR (NOT ${TARGET_DEVICE} STREQUAL "am62") )
+    message(WARNING "ARMNN NOT supported on X86 and hw accelerated device")
     set(ARMNN_ENABLE 0)
     add_compile_options(-DARMNN_ENABLE=0)    
   else()
@@ -495,7 +495,7 @@ if((NOT ${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" AN
   set(CMAKE_CXX_COMPILER ${ARMCC_PREFIX}g++)
 
   link_directories(                
-    #J7 targetfs
+    #Device targetfs
     ${TARGET_FS_PATH}/usr/lib
     ${TARGET_FS_PATH}/usr/lib/glib-2.0
     ${TARGET_FS_PATH}/usr/lib/python3.8/site-packages  

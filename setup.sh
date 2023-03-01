@@ -279,6 +279,7 @@ if [[ $arch == x86_64 && $skip_x86_python_install -eq 0 ]]; then
     echo 'Installing python packages...'
     pip3 install -r ./requirements_pc.txt
 fi
+sudo apt-get install libyaml-cpp-dev
 if [[ $arch == x86_64  ]]; then
     if [[ $use_local == 1 ]];then
         echo 'Installing python osrt packages from local...'
