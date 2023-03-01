@@ -71,7 +71,8 @@ models_configs = {
     # SSD Meta architecture based tflite OD model example
     'od-tfl-ssdlite_mobiledet_dsp_320x320_coco' : {
         'model_path' : os.path.join(models_base_path,'ssdlite_mobiledet_dsp_320x320_coco_20200519.tflite'),
-        'source' : {'model_url': 'http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models/vision/detection/coco/tf1-models/ssdlite_mobiledet_dsp_320x320_coco_20200519.tflite', 'opt': True},
+        'source' : {'model_url': 'http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models/vision/detection/coco/tf1-models/ssdlite_mobiledet_dsp_320x320_coco_20200519.tflite', 'opt': True, \
+                    'meta_arch_url' : 'http://software-dl.ti.com/jacinto7/esd/modelzoo/08_06_00_01/models/vision/detection/coco/tf1-models/ssdlite_mobiledet_dsp_320x320_coco_20200519.prototxt'},
         'mean': [127.5, 127.5, 127.5],
         'scale' : [1/127.5, 1/127.5, 1/127.5],
         'num_images' : numImages,
