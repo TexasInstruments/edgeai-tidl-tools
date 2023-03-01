@@ -1,13 +1,32 @@
-# TIDL-RT: Quantization 
 
-[TOC]
 
-# Introduction {#did_tidl_quantization_intro}
+
+<!-- TOC -->
+- [Quantization](#quantization)
+- [Introduction](#introduction)
+- [Quantization Options](#quantization-options)
+	- [A. Post Training Quantization (PTQ)](#a-post-training-quantization-ptq)
+		- [A.1. Simple Calibration](#a1-simple-calibration)
+		- [A.2. Advanced Calibration](#a2-advanced-calibration)
+			- [A.2.1. Advanced Bias calibration:](#a21-advanced-bias-calibration)
+			- [A.2.2. Histogram based activation range collection:](#a22-histogram-based-activation-range-collection)
+		- [A.3. Mixed Precision :](#a3-mixed-precision-)
+			- [A.3.1 Manual Mixed Precision :](#a31-manual-mixed-precision-)
+			- [A.3.2 Automated Mixed Precision - Automatic selection of layers :](#a32-automated-mixed-precision---automatic-selection-of-layers-)
+		- [A.4 Future/Planned Improvements](#a4-futureplanned-improvements)
+	- [B. Guidelines For Training To Get Best Accuracy With Quantization](#b-guidelines-for-training-to-get-best-accuracy-with-quantization)
+	- [C. Quantization Aware Training (QAT)](#c-quantization-aware-training-qat)
+	- [D. Native support for TensorFlow Lite int8 PTQ Models](#d-native-support-for-tensorflow-lite-int8-ptq-models)
+<!-- /TOC -->
+# Quantization
+This page introduces various quantization options available as part of TI's Deep learning solution
+
+# Introduction
 - A DNN inference engine using Floating point operations suffer power and cost efficiency. These floating point operations can be substituted with fixed point operations (8 or 16 bit) without losing much inference accuracy.
 - TIDL Product provides state-of-art Post Training Quantization (PTQ) and calibration algorithms to provide the best accuracy.
 - TIDL Product supports 8-bit, 16-bit and mixed precision inference. It is recommended to use 8-bit inference mode for best execution time and use mixed-precision and/or 16-bit if you observe any accuracy gap with 8-bit inference  
 
-# Quantization Options {#did_tidl_quantization_Types}
+# Quantization Options
 
 TIDL provides the following quantization options to the user:
 - A. Post Training Quantization (PTQ)
@@ -20,7 +39,7 @@ Note : Option D is only available for certain devices (AM62A, AM68A & AM69A)
 We recommend to use option 'A' for the network first, if the quantization accuracy loss is not acceptable, then user can try option 'B'. If the result with 'B' is also not acceptable, then user can use option 'C'. Option 'C' shall work most of the time. The only drawback of this solution is that it would need additional effort from the user to re-train the network. For devices which supports option 'D', user can directly use it.
 
  
-## A. Post Training Quantization (PTQ) {#did_tidl_quantization_1}
+## A. Post Training Quantization (PTQ)
 
 - Training free Quantization – Most preferred option
 - PTQ has the following options available:
@@ -54,7 +73,8 @@ We recommend to use option 'A' for the network first, if the quantization accura
 - This feature uses the histogram of feature map activation ranges to remove outliers which can affect the overall range. This may help in reducing the accuracy loss due to quantization in some of the networks.
 
 
-#### A.3. Mixed Precision :
+### A.3. Mixed Precision :
+#### A.3.1 Manual Mixed Precision :
 - This feature allows user to run only certain layers in higher precision ( i.e. in 16 bit) whereas rest of the network runs in 8 bit. As the precision keeps changing throughout the network this feature is called as Mixed Precision.
 - User can use this feature using following ways :
 	- Manually selecting layers for mixed precision :
@@ -69,7 +89,7 @@ We recommend to use option 'A' for the network first, if the quantization accura
 		- TIDL_PoolingLayer ( Excluding Max pooling layer) 
 		- TIDL_EltWiseLayer
 
-#### A.4.1 Automated Mixed Precision - Automatic selection of layers :
+#### A.3.2 Automated Mixed Precision - Automatic selection of layers :
 - This is an enhancement to the mixed precision feature. It enables automatic selection of layers to be set to 16 bit for improved accuracy
 - The accuracy improvement with mixed precision comes with a performance cost. This feature accepts a parameter to specify the user-tolerable performance cost and accordingly sets the most impactful layers to 16 bit to meet the user specified performance constraint
 - User can use this feature by setting the parameter advanced_options:mixed_precision_factor which is one of optional parameter for model compilation
@@ -82,13 +102,13 @@ We recommend to use option 'A' for the network first, if the quantization accura
 		- The algorithm uses "calibration_frames/4" frames and "calibration_iterations/4" iterations for auto selection of layers followed by bias calibration with "calibration_frames" frames and "calibration_iterations" iterations
 - Note : The compilation time for running automated mixed precision is high, so recommended to use utilities like <a href="https://www.gnu.org/software/screen/manual/screen.html">screen</a> to run compilation without interruption
 
-### A.5 Future/Planned Improvements
+### A.4 Future/Planned Improvements
 - The following options are not supported in current release but are planned for future TIDL releases (For AM62A, AM68A & AM69A):
   - Support for asymmetric & non power of 2 scales
   - Support for efficient per channel 
 	
 
-## B. Guidelines For Training To Get Best Accuracy With Quantization {#did_tidl_quantization_2}
+## B. Guidelines For Training To Get Best Accuracy With Quantization 
 - For best accuracy with post training quantization, we recommend that the training uses sufficient amount of regularization / weight decay. Regularization / weight decay ensures that the weights, biases and other parameters (if any) are small and compact - this is good for quantization. These features are supported in most of the popular training framework.
 - The weight decay factor should not be too small. We have used a weight decay factor of 1e-4 for training several networks and we highly recommend a similar value. Using small values such as 1e-5 is not recommended.
 - We also highly recommend to use Batch Normalization immediately after every Convolution layer. This helps the feature map to be properly regularized/normalized. If this is not done, there can be accuracy degradation with quantization. This especially true for Depthwise Convolution layers. However applying Batch Normalization to the very last Convolution layer (for example, the prediction layer in segmentation/object detection network) may hurt accuracy and can be avoided.
@@ -97,7 +117,7 @@ We recommend to use option 'A' for the network first, if the quantization accura
 	- (b) Ensure that all the Depthwise Convolution layers in the network have Batch Normalization layers after that - there is strictly no exception for this rule. Other Convolution layers in the network should also have Batch Normalization layers after that - however the very last Convolution layer in the network need not have it (for example the prediction layer in a segmentation network or detection network).
 
 
-## C. Quantization Aware Training (QAT) {#did_tidl_quantization_3}
+## C. Quantization Aware Training (QAT)
 
 - Model parameters are trained to comprehend the 8-bit fixed point inference loss.
 - This would need support/change in the training framework 
