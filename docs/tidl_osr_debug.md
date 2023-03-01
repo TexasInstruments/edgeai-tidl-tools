@@ -1,7 +1,8 @@
 
 <!-- TOC -->
 
-- [TIDL-RT: Troubleshooting Guide for Accuracy/Functional Issues](#tidl-rt-troubleshooting-guide-for-accuracyfunctional-issues)
+- [Troubleshooting Guide for both performance and accuracy/functional issues](#troubleshooting-guide-for-both-performance-and-accuracyfunctional-issues)
+- [Troubleshooting for performance issues](#troubleshooting-for-performance-issues)
 - [Model compilation issues](#model-compilation-issues)
 - [Steps to Debug Error Scenarios for target(EVM/device) execution](#steps-to-debug-error-scenarios-for-targetevmdevice-execution)
 - [Steps to Debug Functional Mismatch in Host emulation](#steps-to-debug-functional-mismatch-in-host-emulation)
@@ -12,9 +13,31 @@
 <!-- /TOC -->
 
 
-# TIDL-RT: Troubleshooting Guide for Accuracy/Functional Issues
-This document lists troubleshooting steps for model compilation and model inference. This section is common across the all the OSRT (TFlite / ONNX runtime /TVM-DLR )
+# Troubleshooting Guide for both performance and accuracy/functional issues
+This document lists troubleshooting steps for debugging accuracy and performance issues observed during model deployment. This section is common across the all the OSRT (TFlite / ONNX runtime /TVM-DLR )
 
+# Troubleshooting for performance issues
+- If user is observing performance issues during model deployment on C7x-DSP then user can refer this section to get more detailed performance information of any given model.
+- User can set debug_level = 1 option during model inference to enable layer level performance. With this option, layer level  execution cycles for each layer will be displayed on console out as shown in below figure:
+
+```
+   Network Cycles 6294273
+
+   Layer,   Layer Cycles,kernelOnlyCycles, coreLoopCycles,LayerSetupCycles,dmaPipeupCycles, dmaPipeDownCycles, PrefetchCycles,copyKerCoeffCycles
+     1,          81811,          48850,          49277,           7779,          14969,                18,           1007,                16,
+     2,          71051,          52722,          53246,           1473,           3290,                16,              0,                 0,
+     3,          34063,          16700,          17307,           7379,           3952,                18,             17,                16,
+     4,          60926,          45133,          45431,           6625,           4176,                18,            777,                 9,
+     5,          29990,           5996,           6040,            871,           3432,                 9,              0,                 0,
+     6,          30806,          14975,          15275,           6575,           4114,                61,             10,                 9,
+     7,          20355,           5508,           5810,           6360,           3480,                11,             10,                 9,
+     8,          34670,          20921,          21031,           6222,           2291,                18,            727,                 9,
+```
+
+- In the above figure "Network cycles" tells the total cycles consumed to execute a given network on C7x-MMA. This can be translated to time in ms by division of c7x frequency in M cycles. For example c7x-dsp running @ 1GHz time in ms can be calculated by dividing the "Network cycles" by 10^6.
+- The logs in above figure gives detailed information about various profile points but from end user point of view, data  under column "Layer Cycles" shall be used to get layer cycles consumed by a particular layer. Rest all the columns are meant to be used by TI's internal team to debug performance issue.
+- These traces are printed in the same order as layers gets executed on EVM, user can refer [here](#steps-to-debug-error-scenarios-for-targetevmdevice-execution) to find the mapping of layerId to dataId
+- **Per layer execution traces are only applicable for target/EVM execution and are not applicable for host emulation mode of the inference execution**
 # Model compilation issues
 Following are some of the options for troubleshooting model compilation related issues.
 * Before trying any option user should make sure that their inference script is functional with ARM only mode. For out of box examples user can enable ARM only mode ( i.e. without c7x offload) by passing “-d” as an argument to the default model compilation script 
