@@ -28,7 +28,7 @@ The figure below illustrates the work flow of DNN development and deployment on 
   - [Introduction](#introduction)
     - [What IS Supported](#what-is-supported)
     - [What IS NOT Supported](#what-is-not-supported)
-    - [Supported Devicess](#supported-devicess)
+    - [Supported Devices](#supported-devices)
   - [Setup](#setup)
     - [Pre-requisites to setup on x86\_PC](#pre-requisites-to-setup-on-x86_pc)
     - [Setup on X86\_PC and TI's development board](#setup-on-x86_pc-and-tis-development-board)
@@ -42,7 +42,7 @@ The figure below illustrates the work flow of DNN development and deployment on 
 <!-- /TOC -->
 
 ## Introduction
-TIDL provides multiple deployment options with industry defined inference engines as listed below. These inference engines are being referred as Open Source Run Times  in this document.
+TIDL provides multiple deployment options with industry defined inference engines as listed below. These inference engines are being referred as Open Source Runtimes (OSRT) in this document.
 * **TFLite Runtime**: [TensorFlow Lite](https://www.tensorflow.org/lite/guide/inference) based inference with heterogeneous execution on cortex-A** + C7x-MMA, using TFlite Delegates [TFLite Delgate](https://www.tensorflow.org/lite/performance/delegates) API
 * **ONNX RunTime**: [ONNX Runtime]( https://www.onnxruntime.ai/) based inference with heterogeneous execution on cortex-A** + C7x-MMA.
 * **TVM/Neo-AI RunTime**: [TVM]( https://tvm.apache.org)/[Neo-AI-DLR]( https://github.com/neo-ai/neo-ai-dlr) based inference with heterogeneous execution on cortex-A** + C7x-MMA
@@ -54,9 +54,9 @@ These heterogeneous execution enables:
 2. Offloading subgraphs to C7x/MMA for accelerated execution with TIDL
 3. Runs optimized code on ARM core for layers that are not supported by TIDL
    
-Edge AI TIDL Tools provided in this repository supports model compilation and Model inference. The diagram below illustrates the TFLite based work flow as an example. ONNX Runtime and TVM/Neo-AI Runtime also follows similar work flow.
+Edge AI TIDL Tools provided in this repository supports model compilation and model inference. The diagram below illustrates the TFLite based work flow as an example. ONNX Runtime and TVM/Neo-AI Runtime also follows similar work flow.
 
-<p align="center"> <img src="./docs/tflrt_work_flow.png"> </p>
+<p align="center"> <img width = 500 src="./docs/tflrt_work_flow.png"> </p>
 
 The below table covers the supported operations with this repository on X86_PC and TI's development board.
 <div align="center">
@@ -79,18 +79,21 @@ The below table covers the supported operations with this repository on X86_PC a
 -  Benchmarking accuracy of models using TIDL acceleration with standard datasets, for e.g. - accuracy benchmarking using MS COCO dataset for object detection models. 
    - Please refer  [edgeai-benchmark](https://github.com/TexasInstruments/edgeai-benchmark) for the same.
 
-### Supported Devicess
+### Supported Devices
 - Following table shows the devices supported by this repository
 - Device with hardware acceleration have TI-DSP and MMA(Matrix Multiplier Accelerator) for faster execution. 
 <div align="center">
 
-| SOC  | Hardware Acceleration |
-| ------- |:------:|
-|AM68PA |:heavy_check_mark:|
-|AM68A |:heavy_check_mark:|
-|AM69A |:heavy_check_mark:|
-|AM62A |:heavy_check_mark:|
-|AM62 |:x:|
+| Device Family(Product)	| Environment Variable	| Hardware Acceleration |
+| ------- |:------:|:------:|
+|AM62            |am62       |  :x:|
+|AM62A           |am62a      |  :heavy_check_mark:|
+|AM68PA	         |am68pa     |  :heavy_check_mark:|
+|AM68A	         |am68a      |  :heavy_check_mark:|
+|AM69A	         |am69a      |  :heavy_check_mark:|
+|J721E (TDA4VM)  |am68pa     |  :heavy_check_mark:|
+|J721S2 (TDA4AL, TDA4VL) | am68a           |  :heavy_check_mark:|
+|J784S4 (TDA4AP, TDA4VP,<br /> TDA4AH, TDA4VH)	| am69a     |  :heavy_check_mark:|
 
 </div>
 
@@ -99,7 +102,7 @@ The below table covers the supported operations with this repository on X86_PC a
 > **Note**
 > Please select / checkout to the tag compatible with the SDK version that you are using with the TI's Evaluation board before continuing on the below steps. Refer to [SDK Version compatibility Table](./docs/version_compatibility_table.md) for the tag of your SDK version
 
-<p align="center"> <img src="./docs/git_tag.png"> </p>
+<p align="center"> <kbd> <img src="./docs/git_tag.png" /> </kbd> </p>
 
 
 ### Pre-requisites to setup on x86_PC
@@ -112,7 +115,9 @@ The below table covers the supported operations with this repository on X86_PC a
 |Ubuntu 18.04 |3.6|
 
 </div>
-  - We have also validated under docker container in PC. Use [Dockerfile](./Dockerfile) for the list of dependencies installed on top of ubuntu 18.04 base line.
+
+- We have also validated under docker container in PC. Use [Dockerfile](./Dockerfile) for the list of dependencies installed on top of ubuntu 18.04 base line.
+  - We recommend docker based X86_PC setup to avoid running into any dependencies related issues
   
 ### Setup on X86_PC and TI's development board
   - Make sure you have all permission for the current directory before proceeding 
@@ -126,6 +131,18 @@ The below table covers the supported operations with this repository on X86_PC a
  export SOC=<Your SOC name>
  source ./setup.sh
 ```
+- [**Docker Based X86_PC Setup**](docs/advanced_setup.md#docker-based-setup-for-x86_pc) - Detailed steps to prepare docker container based environment for X86_PC mode.
+
+- While an opening new terminal in a system where above setup is already done once for a given SDK version, set below environment variables 
+
+ ```
+ cd edgeai-tidl-tools
+ export SOC=<Your SOC name>
+ export TIDL_TOOLS_PATH=$(pwd)/tidl_tools
+ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$TIDL_TOOLS_PATH
+ export ARM64_GCC_PATH=$(pwd)/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu
+```
+
 
 ## Validate and Benchmark out-of-box examples
 
@@ -182,6 +199,7 @@ cmake ../examples && make -j && cd ..
 - [**CPP examples**](examples/osrt_cpp/README.md) - Detailed documentation on compiling the CPP examples on X86_PC as well as Development board.
 - [**Jupyter Notebooks**](examples/jupyter_notebooks/README.md) - Interactive step-by-step documented notebooks for pre-compiled models inference.
 - [**Supported Operators and Runtimes**](docs/supported_ops_rts_versions.md) - List of supported operators from TIDL offload and their limitations for each runtime. 
+- [**Advanced Setup Options**](docs/advanced_setup.md#advanced-setup-options) - Setup options for advanced users to optimize setup time
 - **Feature Specific Guides**
   - [**Quantization specification**](docs/tidl_fsg_quantization.md)
   - [**Object detection Meta architectures**](docs/tidl_fsg_od_meta_arch.md)
