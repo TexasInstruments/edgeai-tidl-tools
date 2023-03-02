@@ -122,19 +122,37 @@ The following options are set to default values, to be specified if modification
 | tensor_bits        | This option specifies number of bits for TIDL tensor and weights  |   8,16 (32 - only for PC inference, not device)   | 8                          | Model Compilation |  |
 | debug_level        | This options enables increasing levels of debug prints and TIDL layer traces | 0 - no debug, <br> 1 - Level 1 debug prints, <br> 2 - Level 2 debug prints, <br> 3 - Level 1 debug prints, fixed point layer traces, <br> 4 (experimental) - Level 1 debug prints, Fixed point and floating point traces, <br> 5 (experimental) - Level 2 debug prints, Fixed point and floating point traces  <br> 6 - Level 3 debug prints | 0           | Model compilation / Model inference | |
 | max_num_subgraphs  | This option specifies maximum number of subgraphs to be offloaded to TIDL for acceleration, rest to be delegated to ARM    | <= 16 | 16      | Model Compilation | |                  
-| accuracy_level    | This option specifies level of accuracy desired - specifying higher accuracy_level gives improved accuracy, but may take more time for model compilation | 0 - basic calibration, <br> 1 - higher accuracy (advanced bias calibration), <br> 9 - user defined | 1 | Model compilation |Refer advanced options below for more granular control on accuracy knobs using accuracy_level = 9. Refer [] for more details on model quantization and accuracy |
+| accuracy_level    | This option specifies level of accuracy desired - specifying higher accuracy_level gives improved accuracy, but may take more time for model compilation | 0 - basic calibration, <br> 1 - higher accuracy (advanced bias calibration), <br> 9 - user defined | 1 | Model compilation |Refer advanced options below for more granular control on accuracy knobs using accuracy_level = 9. Refer [Quantization](../../docs/tidl_fsg_quantization.md) for more details on model quantization and accuracy |
 
 #### Options to enable control on layer level delegation to TI DSP/ARM
 Following options force offload of a particular layer to TIDL DSP/ARM. These can be exercised either for debug purpose, or performance improvement by creating optimal cluster in case desired
 
-|       Name      |                      Description                        |  Supported values/range  |       Default values      |  Option Type  |  Additional details  
-|:-------------------|:--------------------------------------------------------|:--------------|:------------:|:--------------:|:------------------------| 
-| deny_list:layer_type | This option forcefully disables offload of a particular operator to TIDL DSP using layer type | Comma separated string | "" | Model Compilation | Refer [^1] for details on usage. This option is not available currently for TVM, please refer deny_list option. |
-| deny_list:layer_name | This option forcefully disables offload of a particular operator to TIDL DSP using layer name | Comma separated string | ""  | Model Compilation | Refer [^2]. This option is not available currently for TVM, please refer deny_list option |
-| deny_list | This option offers same functionality as deny_list:layer_type| Comma separated string | ""  | Model Compilation | Maintained for backward compatibility, not recommended for Tflite/ONNX runtime |
-| allow_list:layer_name | This option forcefully enables offload of a particular operator to TIDL DSP using layer name | Comma separated string | ""  - Empty list | Model Compilation | Only the layer/layers specified are accelerated, others are delegated to ARM. Experimental for Tflite/ONNX runtime and currently not applicable for TVM. Refer [^2] |
+|       Name      |                      Description                        |  Supported values/range  |  Option Type  |  Additional details  
+|:-------------------|:--------------------------------------------------------|:--------------|:------------:|:------------------------| 
+| deny_list:layer_type | This option forcefully disables offload of a particular operator to TIDL DSP using layer type | Comma separated string | Model Compilation | This option is not available currently for TVM, please refer deny_list option. |
+| deny_list:layer_name | This option forcefully disables offload of a particular operator to TIDL DSP using layer name | Comma separated string  | Model Compilation | This option is not available currently for TVM, please refer deny_list option |
+| deny_list | This option offers same functionality as deny_list:layer_type| Comma separated string | Model Compilation | Maintained for backward compatibility, not recommended for Tflite/ONNX runtime |
+| allow_list:layer_name | This option forcefully enables offload of a particular operator to TIDL DSP using layer name | Comma separated string | Model Compilation | Only the layer/layers specified are accelerated, others are delegated to ARM. Experimental for Tflite/ONNX runtime and currently not applicable for TVM |
 
 Note : Allow_list and deny_list options cannot be enabled simultaneously
+
+**Examples of usage:**  
+Specifying layer_type as part of options:  
+* Tflite runtime : Specify registration code as specified in tflite builtin ops - Please refer [Tflite builtin ops](https://github.com/tensorflow/tensorflow/blob/r2.3/tensorflow/lite/builtin_ops.h)  , e.g. 'deny_list:layer_type':'1, 2' to deny offloading 'AveragePool2d' and 'Concatenation' operators to TIDL.  
+* ONNX runtime : Specify the ONNX operator name e.g. "MaxPool" to deny offloading Max pooling operator to TIDL
+* TVM runtime : Specify TVM relay operator name e.g. "nn.conv2d" to deny offloading convolution operator to TIDL
+
+Specifying layer_name as part of options:
+* Specify the layer name as observed in Netron for the layer
+* For ONNX models, layer name may not present as part of layer in models in some cases; in such cases, output name corresponding to output(0) for the particular layer can be specified as part of 'deny_list:layer_name'/'allow_list:layer_name' options
+
+#### Object Detection model specific options
+Following options need to be specified to enable post processing optimization for object detection models. Please refer [Object detection meta architectures](../../docs/tidl_fsg_od_meta_arch.md) for more details about these options
+
+|       Name      |                  Description        |       Default values      |  Option Type  |  Additional details  
+|:-------------------|:--------------------------------------------------------|:--------------|:------------:|:------------------------|
+| object_detection:meta_layers_names_list | This option specifies path to the meta architecture file used to convey OD post processing information to TIDL | "" | Model Compilation  | Refer [Object detection meta architectures](../../docs/tidl_fsg_od_meta_arch.md) for more details |
+| object_detection:meta_arch_type | This option indicates the post processing architecture used by OD model | -1 (no post processing optimization) | Model compilation | Refer [Object detection meta architectures](../../docs/tidl_fsg_od_meta_arch.md) for more details |
 
 #### Advanced options for accuracy enhancement
 
@@ -142,15 +160,15 @@ Following options must be accessed as "advanced_options:Name" where Name is as s
 
 |       Name      |                      Description                        |  Supported values/range  |       Default values      |  Option Type  |  Additional details  
 |:-------------------|:--------------------------------------------------------|:--------------|:------------:|:--------------:|:------------------------|
-| calibration_frames              | This option specifies number of frames to be used for calibration - min 10 frames recommended | Any - min 10 frames recommended      | 20 | Model compilation | Applicable only for accuracy_level=1, Refer [] for more details|
-| calibration_iterations          | This option specifies number of bias calibration iterations  | Any - min 10 recommeded    | 50             | Model compilation | Applicable only for accuracy_level=1, Refer [] for more details|
-| output_feature_16bit_names_list | This option specifies list of names of the layers as in the original model whose feature/activation output user wants to be in 16 bit | Comma separated string | ""    | Model compilation | Refer [] for more details |
-| params_16bit_names_list         | This option specifies list of names of the output layers as in the original model whose parameters user wants to be in 16 bit | Comma separated string | ""     | Model compilation | Refer [] for more details |
-| mixed_precision_factor          | This option is used to enable the automated mixed precision feature - automatically decide which layers to set to 16 bit for improving accuracy based on acceptable performance degradation. This parameter is defined as mixed_precision_factor = (Acceptable latency with mixed precision / Latency with 8 bit inference), e.g. if acceptable latency for accuracy improvement is 1.2 times the 8 bit inference latency, the automated mixed precision algorithm finds the most optimal layers to set to 16 bits to gain accuracy improvement while making sure performance constraint set by mixedPrecisionFactor is satisfied| Any float value > 1 |   | -1 (No automated mixed precision) | Model compilation | Refer [] for more details |
+| calibration_frames              | This option specifies number of frames to be used for calibration - min 10 frames recommended | Any - min 10 frames recommended      | 20 | Model compilation | Applicable only for accuracy_level=1, Refer [Quantization](../../docs/tidl_fsg_quantization.md) for more details|
+| calibration_iterations          | This option specifies number of bias calibration iterations  | Any - min 10 recommeded    | 50             | Model compilation | Applicable only for accuracy_level=1, Refer [Quantization](../../docs/tidl_fsg_quantization.md) for more details|
+| output_feature_16bit_names_list | This option specifies list of names of the layers as in the original model whose feature/activation output user wants to be in 16 bit | Comma separated string | ""    | Model compilation | Refer [Quantization](../../docs/tidl_fsg_quantization.md) for more details |
+| params_16bit_names_list         | This option specifies list of names of the output layers as in the original model whose parameters user wants to be in 16 bit | Comma separated string | ""     | Model compilation | Refer [Quantization](../../docs/tidl_fsg_quantization.md) for more details |
+| mixed_precision_factor          | This option is used to enable the automated mixed precision feature - automatically decide which layers to set to 16 bit for improving accuracy based on acceptable performance degradation. This parameter is defined as mixed_precision_factor = (Acceptable latency with mixed precision / Latency with 8 bit inference), e.g. if acceptable latency for accuracy improvement is 1.2 times the 8 bit inference latency, the automated mixed precision algorithm finds the most optimal layers to set to 16 bits to gain accuracy improvement while making sure performance constraint set by mixedPrecisionFactor is satisfied| Any float value > 1 |   | -1 (No automated mixed precision) | Model compilation | Refer [Quantization](../../docs/tidl_fsg_quantization.md) for more details |
 
 
 Below options will be overwritten only if accuracy_level = 9, else will be discarded. For accuracy level 9, specified options will be overwritten, rest will be set to default values. For accuracy_level = 0/1, these are preset internally to default values.
-Please refer [] for more details on individual options.
+Please refer [Quantization](../../docs/tidl_fsg_quantization.md) for more details on individual options.
 
 |                    Name                    |                      Description                        |        Default values      |
 |:-------------------------------------------|:--------------------------------------------------------|:--------------------------:|
