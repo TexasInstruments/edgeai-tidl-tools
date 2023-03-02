@@ -10,7 +10,6 @@ cl-dlr-onnx_mobilenetv2_device,3,3,0,dlr-py
 cl-dlr-tflite_inceptionnetv3_device,10.27,10.27,0,dlr-py
 ss-tfl-deeplabv3_mnv2_ade20k_float,12.54,0,0,tfl-cpp
 cl-tfl-mobilenet_v1_1.0_224,1.5,0,0,tfl-cpp
-od-tfl-ssd_mobilenet_v2_300_float,6.16,0,0,tfl-cpp
 ss-ort-deeplabv3lite_mobilenetv2,10.63,0,0,ort-cpp
 cl-ort-resnet18-v1,2.31,0,0,ort-cpp
 od-ort-ssd-lite_mobilenetv2_fpn,9.58,0,0,ort-cpp
