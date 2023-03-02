@@ -8,7 +8,6 @@
 - [Steps to Debug Functional Mismatch in Host emulation](#steps-to-debug-functional-mismatch-in-host-emulation)
 - [Feature Map Comparison with Reference](#feature-map-comparison-with-reference)
   - [Script 1 : Layer level activation comparisons :](#script-1--layer-level-activation-comparisons-)
-  - [Script 2 : Floating point comparison for a specific list of layers](#script-2--floating-point-comparison-for-a-specific-list-of-layers)
 
 <!-- /TOC -->
 
@@ -78,9 +77,6 @@ As an example for ONNX out of box example script user can run in ARM only mode a
 
 ![ Feature Map Trace files](./images/fm_trace_files.png)
 
-- These dumps are raw binary dumps and can be viewed using generic binary file viewers
-![Feature Map Trace Float view](./images/fm_float_view.PNG)
-
 - User can generate these traces for floating/16-bit and 8-bit by setting tensor_bits during model inference and compare them. Some sample scripts/functions are listed below for reference :
 
 ## Script 1 : Layer level activation comparisons :
@@ -91,6 +87,7 @@ As an example for ONNX out of box example script user can run in ARM only mode a
 - Typically no single plot is enough to conclude the difference and each gives certain way to compare the two outputs.
 
 - A sample plot is as shown as below :
+  
 ![Feature Map Activation comparison output](./images/sample_activation_plots.png)
 
 - Following functions can be used to generate the above mentioned plots :
@@ -138,96 +135,3 @@ As an example for ONNX out of box example script user can run in ARM only mode a
 
 ```
 **Note : These functions are given only for reference and may not work in all kind of environment**
-
-## Script 2 : Floating point comparison for a specific list of layers
-- Below script can be used to compare any list of tensors.
-```
-    import numpy as np
-    import argparse
-    import matplotlib
-    import matplotlib.pyplot as plt
-
-    parser = argparse.ArgumentParser(description='My Arg Parser')
-    parser.add_argument('-i', '--in_file_list',                       default='trcae_files_list.txt', help='test file containinglist of files to compare', required=False)
-    args = vars(parser.parse_args())
-
-    #dir *float* /o:d /s/b
-
-    def save_error_plot(list,i, mean, var, mxd, mx):
-        plt.hist(list, color = 'blue', edgecolor = 'black',bins=60)
-        #image_txt = "mean = " + str(mean) +", Var = "+ str(var) +", MAx = "+ str(mx)
-        image_txt = "MeanAbsDiff=%7.4f, MaxAbsDiff=%7.4f, MaxVal=%7.3f" %(mean, mxd, mx)
-        plt.title(image_txt)
-        plt.savefig("figs\\"+str(i).zfill(4)+"_abs_diff_hist.png")
-        plt.clf()
-
-    def main():
-        with open(args['in_file_list']) as f:
-            content = f.readlines()
-            f.close()
-        print("%5s, %12s, %12s, %12s, %12s %12s, %12s, %12s" %("Idx", "Min", "Max", "max_abs_diff", "max_diff_idx", "mean_abs_diff",  "var_abs_diff", "Scale"))
-        for i, line in enumerate(content):
-            values = line.split()
-
-            fileHandle = open(values[0], 'rb')
-            tidl_data = np.fromfile(fileHandle, dtype=np.float32)
-            fileHandle.close()
-
-            fileHandle = open(values[1], 'rb')
-            ref_data = np.fromfile(fileHandle, dtype=np.float32)
-            fileHandle.close()
-
-            mx = np.max(ref_data)
-            mn = np.min(ref_data)
-            org_diff = (tidl_data - ref_data)
-            combined = np.vstack((ref_data, tidl_data, org_diff)).T
-            np.savetxt("figs\\"+str(i).zfill(4)+"_float.txt", combined, fmt='%10.6f, %10.6f, %10.6f')
-            abs_diff = abs(tidl_data - ref_data)
-            maxIndex      = np.argmax(abs_diff)
-            max_abs_diff  = np.max(abs_diff)
-            mean_abs_diff = np.mean(abs_diff)
-            var_abs_diff  = np.var(abs_diff)
-            save_error_plot(abs_diff, i,mean_abs_diff,var_abs_diff,max_abs_diff,mx)
-            rng = max(np.abs(mx), np.abs(mn))
-            if(mn < 0):
-                scale = 127/rng if rng!=0 else 0
-                tidl_data = np.round(tidl_data * scale)
-                tidl_data = tidl_data.astype(np.int8)
-            else:
-                scale = 255/rng if rng!=0 else 0
-                tidl_data = np.round(tidl_data * scale)
-                tidl_data = tidl_data.astype(np.uint8)
-
-            tidl_data = np.asarray(tidl_data, order="C")
-            with open(values[0]+"viz.y",'wb') as file:
-                file.write(tidl_data)
-                file.close()
-
-
-            print("%5s, %12.5f, %12.5f, %12.5f, %12d, %12.5f, %12.5f %12.5f" %(i, mn, mx, max_abs_diff, maxIndex, mean_abs_diff,  var_abs_diff, scale))
-
-
-    if __name__ == "__main__":
-        main()
-
-```
-
-The input list file shall contain the trace file names as below:
-
-```
-    D:\trace_8-bit\onnx_tidl_infer_resnet18v1.txt_0001_00064_00112x00112_float.bin D:\trace_16-bit\onnx_tidl_infer_resnet18v1.txt_0001_00064_00112x00112_float.bin
-    D:\trace_8-bit\onnx_tidl_infer_resnet18v1.txt_0002_00064_00056x00056_float.bin D:\trace_16-bit\onnx_tidl_infer_resnet18v1.txt_0002_00064_00056x00056_float.bin
-```
-
-
-- If user passes the file paths to 8-bit and 16-bit traces , then this scripts would write the float values and differences to a text files like below
-
-![Feature Map Trace Float view - Using numPy](./images/fm_float_numpy_view.PNG)
-
-- This script also generates below histogram for each tensor. If the mean difference is close to maximum difference then we have, then this particular tensor has
-  higher quantization loss.
-
-![FM Difference Histogram](./images/0001_abs_diff_hist.png)
-
-**Note : These scripts are given only for reference and may not work in all kind of environtment. Validated with python 3.8**
-
