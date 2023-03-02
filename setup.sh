@@ -279,7 +279,6 @@ if [[ $arch == x86_64 && $skip_x86_python_install -eq 0 ]]; then
     echo 'Installing python packages...'
     pip3 install -r ./requirements_pc.txt
 fi
-sudo apt-get install libyaml-cpp-dev
 if [[ $arch == x86_64  ]]; then
     if [[ $use_local == 1 ]];then
         echo 'Installing python osrt packages from local...'
@@ -361,6 +360,7 @@ if [[ $arch == x86_64 && $skip_arm_gcc_download -eq 0 ]]; then
         export ARM64_GCC_PATH=$(pwd)/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu
     else
         echo "skipping gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu download: found $(pwd)/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu"
+        export ARM64_GCC_PATH=$(pwd)/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu
     fi
 fi
 

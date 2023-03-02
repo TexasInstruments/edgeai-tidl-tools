@@ -244,8 +244,8 @@ for test_config in test_configs:
                      
 print(final_report)
 if(len(final_report) > 0):
+    keys =final_report[0].keys()
     if device == 'pc':
-        keys =final_report[0].keys()
         for i in range(len(final_report)):
             final_report[i].pop('Total time',None)
             final_report[i].pop('Offload Time',None)

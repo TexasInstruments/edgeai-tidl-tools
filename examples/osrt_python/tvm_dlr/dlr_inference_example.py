@@ -210,13 +210,13 @@ model_create_and_run(model_output_directory, 'input.1Net_IN',
                         preprocess_for_onnx_mobilenetv2,
                         postprocess_for_onnx_mobilenetv2, 1)
 
-if platform.machine() == 'aarch64':
-    model_output_directory = '../../../model-artifacts/cl-dlr-mxnet_mobilenetv3_large_device'
-    model_create_and_run(model_output_directory, 'data',
-                        preprocess_for_mxnet_mobilenetv3,
-                        postprocess_for_onnx_mobilenetv2, 1)
+# if platform.machine() == 'aarch64':
+#     model_output_directory = '../../../model-artifacts/cl-dlr-mxnet_mobilenetv3_large_device'
+#     model_create_and_run(model_output_directory, 'data',
+#                         preprocess_for_mxnet_mobilenetv3,
+#                         postprocess_for_onnx_mobilenetv2, 1)
 
-    model_output_directory = '../../../model-artifacts/cl-dlr-mxnet_mobilenetv3_large_device_c7x'
-    model_create_and_run(model_output_directory, 'data',
-                        preprocess_for_mxnet_mobilenetv3,
-                        postprocess_for_onnx_mobilenetv2, 1)
+#     model_output_directory = '../../../model-artifacts/cl-dlr-mxnet_mobilenetv3_large_device_c7x'
+#     model_create_and_run(model_output_directory, 'data',
+#                         preprocess_for_mxnet_mobilenetv3,
+#                         postprocess_for_onnx_mobilenetv2, 1)
