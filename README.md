@@ -120,8 +120,17 @@ The below table covers the supported operations with this repository on X86_PC a
   - We recommend docker based X86_PC setup to avoid running into any dependencies related issues
   
 ### Setup on X86_PC and TI's development board
+  - Run the below one time setup for system level packages. This needs sudo permission, get it installed by your system administrator if required.
+
+```
+  sudo apt-get install libyaml-cpp-dev
+```
+
   - Make sure you have all permission for the current directory before proceeding 
   - Run the below commands to install the dependent components on your machine and set all the required environments
+
+> **Note**
+> **source** in the setup command is important as this script is exporting all required environment variables. Without this, user may encounter some compilation/runtime issues
 
  ```
  git clone https://github.com/TexasInstruments/edgeai-tidl-tools.git
@@ -133,7 +142,7 @@ The below table covers the supported operations with this repository on X86_PC a
 ```
 - [**Docker Based X86_PC Setup**](docs/advanced_setup.md#docker-based-setup-for-x86_pc) - Detailed steps to prepare docker container based environment for X86_PC mode.
 
-- While an opening new terminal in a system where above setup is already done once for a given SDK version, set below environment variables 
+- While opening new terminal in a system where above setup is already done once for a given SDK version, set below environment variables 
 
  ```
  cd edgeai-tidl-tools
@@ -192,7 +201,8 @@ cmake ../examples && make -j && cd ..
 ## Compile and Benchmark Custom Model
 
 -  [**New Model Evaluation**](docs/custom_model_evaluation.md#new-model-evaluation) : Refer this for a custom model that needs to be evaluated is falling into one of supported out-of-box example tasks categories.
-- [**Custom Model Evaluation**](docs/custom_model_evaluation.md#custom-model-evaluation) : Refere this for a custom model task category or input and output format is different from the supported list of tasks
+- [**Custom Model Evaluation**](docs/custom_model_evaluation.md#custom-model-evaluation) : Refer this for a custom model task category or input and output format is different from the supported list of tasks
+- [**Reporting issues with Model deployment**](docs/custom_model_evaluation.md#reporting-issues-with-model-deployment) - Refer notes here for reporting issues in custom model deployment
 
 ## User Guide
 - [**Python examples**](examples/osrt_python/README.md) - Detailed documentation on all the compile and inference options for TIDL offload for each runtime sessions

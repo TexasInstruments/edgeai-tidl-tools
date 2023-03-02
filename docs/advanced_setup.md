@@ -23,13 +23,12 @@ Detailed steps to use Docker based setup for X86_PC
           cd edgeai-tidl-tools
           git checkout <TAG Compatible with your SDK version>
 
- 1. Comment out last line in [Dockerfile](../Dockerfile) to avoid auto run of test. This is intended for Automatic nightly test only
-         
-        #ENTRYPOINT ["/root/edgeai-tidl-tools/entrypoint.sh"]
-
 1. Build Docker Image
           
           sudo docker build -f Dockerfile -t x86_ubuntu_18 .
+          # To build docker image in TI's internal network,  run below instead
+          sudo docker build --build-arg REPO_LOCATION=artifactory.itg.ti.com/docker-public/library/ --build-arg USE_PROXY=ti  -f Dockerfile -t x86_ubuntu_18 .
+
 
 1. Run the Docker
           
@@ -60,7 +59,7 @@ source ./setup.sh --skip_arm_gcc_download
   - If you are building the PSDK-RTOS/FIRMWARE-BUILDER from source and updating any of the TIDL tools during the development, then set  "TIDL_TOOLS_PATH" environment variable before starting setup script
    
 ```
-export TIDL_TOOLS_PATH=$PSDKR_INSTALL_PATH/tidl_j7_xx_xx_xx_xx/tidl_tools
+export TIDL_TOOLS_PATH=$PSDKR_INSTALL_PATH/tidl_xxx_xx_xx_xx_xx/tidl_tools
 source ./setup.sh
 ```
 
