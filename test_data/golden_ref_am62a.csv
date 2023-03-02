@@ -8,8 +8,6 @@ ss-ort-deeplabv3lite_mobilenetv2,33.14,32.91,0,ort-py
 od-ort-ssd-lite_mobilenetv2_fpn,25.64,25.14,0,ort-py
 cl-dlr-onnx_mobilenetv2_device,5.55,5.55,0,dlr-py
 cl-dlr-tflite_inceptionnetv3_device,24.21,24.21,0,dlr-py
-cl-dlr-mxnet_mobilenetv3_large_device,13.24,13.24,0,dlr-py
-cl-dlr-mxnet_mobilenetv3_large_device_c7x,9.46,9.46,0,dlr-py
 ss-tfl-deeplabv3_mnv2_ade20k_float,39.7,0,0,tfl-cpp
 cl-tfl-mobilenet_v1_1.0_224,2.99,0,0,tfl-cpp
 od-tfl-ssd_mobilenet_v2_300_float,15.6,0,0,tfl-cpp

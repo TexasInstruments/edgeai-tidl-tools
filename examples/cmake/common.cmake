@@ -662,6 +662,7 @@ if( ((NOT ${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" 
                   /usr/include
                   /usr/local/include
                   /usr/local/dlr
+                  /usr/lib/python3.8/site-packages/dlr/include #for am68pa evm
                   /usr/include/tensorflow/lite/tools/pip_package/gen/tflite_pip/python3/cmake_build/flatbuffers/include/
                   ${PROJECT_SOURCE_DIR}
                   ${PROJECT_SOURCE_DIR}/..

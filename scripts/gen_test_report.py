@@ -127,7 +127,9 @@ elif SOC == "am62a" :
                     {'script_name':'run_onnx_models.sh', 'script_dir':'osrt_cpp_scripts/','lang':'bash','rt_type':'ort-cpp'},
                     {'script_name':'run_dlr_models.sh', 'script_dir':'osrt_cpp_scripts/','lang':'bash','rt_type':'dlr-cpp'},
         ]        
-
+else:
+    print( "Set SOC variable in your shell")
+    exit(-1)
 
 currIdx = 0
 if platform.machine() != 'aarch64':
