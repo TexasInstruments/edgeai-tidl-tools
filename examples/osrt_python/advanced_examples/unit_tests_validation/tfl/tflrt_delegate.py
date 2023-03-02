@@ -36,9 +36,9 @@ else:
 idx = 0
 nthreads = 0
 run_count = 0
-DEVICE = os.environ["DEVICE"]
+SOC = os.environ["SOC"]
 
-if(DEVICE == "am62"):
+if(SOC == "am62"):
     args.disable_offload = True
     args.compile = False
 
@@ -81,7 +81,7 @@ def infer_image(interpreter):
   interpreter.invoke()
   stop_time = time.time()
 
-  if(DEVICE != "am62"):
+  if(SOC != "am62"):
     copy_time, proc_time, sub_graphs_proc_time, ddr_write, ddr_read  = get_benchmark_output(interpreter)
     proc_time = proc_time - copy_time
   else:

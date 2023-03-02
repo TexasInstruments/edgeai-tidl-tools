@@ -43,11 +43,10 @@ high_resolution_optimization = 0
 pre_batchnorm_fold = 1
 ti_internal_nc_flag = 1601
 
+data_convert = 3
 SOC = os.environ["SOC"]
-if(SOC != "am62a"):
-    data_convert = 3
-else:
-    data_convert = 3 #temp for RC1 8.6
+if (quantization_scale_type == 3):
+    data_convert = 0
 
 #set to default accuracy_level 1
 activation_clipping = 1
