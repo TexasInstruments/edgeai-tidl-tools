@@ -2,6 +2,7 @@ Name,Total time,Offload Time,DDR RW MBs,rt type
 cl-tfl-mobilenet_v1_1.0_224,1.61,1.6,0,tfl-py
 ss-tfl-deeplabv3_mnv2_ade20k_float,12.74,12.72,0,tfl-py
 od-tfl-ssd_mobilenet_v2_300_float,6.23,6.21,0,tfl-py
+od-tfl-ssd_mobilenet_v2_300_float,6.23,6.21,0,tfl-cpp
 cl-ort-resnet18-v1,2.47,2.38,0,ort-py
 cl-ort-caffe_squeezenet_v1_1,1.31,1.17,0,ort-py
 ss-ort-deeplabv3lite_mobilenetv2,11.01,10.86,0,ort-py
