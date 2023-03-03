@@ -7,7 +7,7 @@
 | No | TIDL Layer Type                | ONNX Ops                                    | TFLite Ops                                 | Notes |
 |:--:|:-------------------------------|:--------------------------------------------|:-------------------------------------------|:------|
 | 1  | TIDL_ConvolutionLayer          | Conv                                        | CONV_2D<br>DEPTHWISE_CONV_2D               | Regular & Depthwise convolution will be imported as convolution <br> For TFLite DepthwiseConv2dNative, depth_multiplier shall be 1 if number of input channels > 1. <br> ReLU & Batchnorm layers will be merged into convolution to get better performance<br>Validated kernel sizes: 1x1, 3x3, 5x5, 7x7,1x3,3x1,1x5,5x1,1x7,7x1.<br> If stride == 4, only supported kernel == 11x11.<br>if stride == 2, kernel should be less than 7. Even kernel dimensions like 2x2, 4x4, 6x6 are not supported.<br>Depthwise Separable Convolution only supports 3x3,5x5,7x7 with stride 1 and 3x3 with stride 2.<br> Dilated Convolution is only supported for non-strided convolution<br> **Note : Please refer to MMALIB's release notes in your SDK for all supported configuration**<br> **Note : Some of the kernel combinations are not optimized in the current release, please refer to MMALIB's release notes for the same** |
-| 2  | TIDL_BatchNormLayer            | BatchNormalization                          |                                            | ReLU, Scale, Bias, PReLU, Leaky ReLU, Hard Sigmoid & ELU will be merged & imported as batchnorm<br> All channel-wise broadcast operations are mapped to batchnorm |
+| 2  | TIDL_BatchNormLayer            | BatchNormalization                          |                                            | ReLU, Scale, Bias, PReLU, Leaky ReLU, Hard Sigmoid, TanH & ELU will be merged & imported as batchnorm<br> All channel-wise broadcast operations are mapped to batchnorm |
 | 3  | TIDL_PoolingLayer              | MaxPool<br>AveragePool<br>GlobalAveragePool | MAX_POOL_2D<br>AVERAGE_POOL_2D<br>MEAN     | Pooling has been validated for the following kernel sizes: 3x3,2x2,1x1, with a maximum stride of 2 |
 | 4  | TIDL_EltWiseLayer              | Add<br>Mul                                  | ADD<br>MUL                                 | Support for 2 tensors validated extensively, multiple input tensors have had limited validation |
 | 5  | TIDL_InnerProductLayer         | Gemm                                        | FULLY_CONNECTED                            | Input shape must be 1x1x1xN.Please use global pooling/flatten before innerproduct<br>Feature size larger than 2048*2048 is not optimal |
@@ -27,7 +27,7 @@
 | 19 | TIDL_ColorConversionLayer      | NA                                          | NA                                         |  Only YUV420 NV12 format conversion to RGB/BGR color format is supported |
 | 20 | TIDL_BatchReshapeLayer         | NA                                          | NA                                         |  |
 | 21 | TIDL_DataConvertLayer          | NA                                          | NA                                         |  |
-
+| 22 | TIDL_ReshapeLayer              | Reshape                                     | RESHAPE                                         |  |
 </div>
 <br>
 
@@ -38,18 +38,13 @@
 | No | ONNX Ops  | TFLite Ops    | Notes |
 |:--:|:----------|:--------------|-------|
 | 1  | Split     |               | Split layer will be removed after import |
-| 2  | Reshape   | RESHAPE       | Please refer to [Meta Architecture Documentation](./tidl_fsg_od_meta_arch.md) for further details |
-| 3  |            | MINIMUM       | For ReLU6 / ReLU8      |
-| 4  | Transpose |               | For ShuffleChannelLayer only      |
-| 5 | Clip      |               | Parametric activation threshold PACT       |
+| 2  |            | MINIMUM       | For ReLU6 / ReLU8      |
+| 3  | Transpose |               | For ShuffleChannelLayer only      |
+| 4 | Clip      |               | Parametric activation threshold PACT       |
 
 </div>
 <br>
 
-## For Unlisted Layers/Operators
-
-Any unrecognized layers/operators will be converted to TIDL_UnsupportedLayer as a place-holder. The shape & parameters might not be correct. You may get the TIDL-RT importer result, but with such situation imported model will not work for inference on target/PC. |
-<br>
 
 # Supported model formats & operator versions
 Proto files from the versions below are used for validating pre-trained models. In most cases, models from new versions should also work since the core operators tend to remain the same
@@ -65,7 +60,7 @@ Proto files from the versions below are used for validating pre-trained models. 
 
 | Feature  | AM62A | AM68A |AM68PA | AM69A|
 | ------- |:-----------:|:-----------:|:-----------:|:-----------:|
-| Support for native inference of TFLite PTQ Models (int8)  | :heavy_check_mark: |:heavy_check_mark: | :x: |:heavy_check_mark:|
+| Support for native inference of int8 TFLite PTQ Models <br> ([Asymmetric, per-axis quantization](tidl_fsg_quantization.md#d-native-support-for-tensorflow-lite-int8-ptq-models))  | :heavy_check_mark: |:heavy_check_mark: | :x: |:heavy_check_mark:|
 | Support for LUT based operators  | :x: |:heavy_check_mark: | :heavy_check_mark:|:heavy_check_mark:|
 
 </div>
