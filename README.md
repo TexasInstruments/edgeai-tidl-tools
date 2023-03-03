@@ -31,7 +31,7 @@ The figure below illustrates the work flow of DNN development and deployment on 
     - [Supported Devices](#supported-devices)
   - [Setup](#setup)
     - [Pre-requisites to setup on x86\_PC](#pre-requisites-to-setup-on-x86_pc)
-    - [Setup on X86\_PC and TI's development board](#setup-on-x86_pc-and-tis-development-board)
+    - [Setup on X86\_PC](#setup-on-x86_pc)
   - [Validate and Benchmark out-of-box examples](#validate-and-benchmark-out-of-box-examples)
     - [Compile and Validate on X86\_PC](#compile-and-validate-on-x86_pc)
     - [Benchmark on TI SOC](#benchmark-on-ti-soc)
@@ -119,7 +119,7 @@ The below table covers the supported operations with this repository on X86_PC a
 - We have also validated under docker container in PC. Use [Dockerfile](./Dockerfile) for the list of dependencies installed on top of ubuntu 18.04 base line.
   - We recommend docker based X86_PC setup to avoid running into any dependencies related issues
   
-### Setup on X86_PC and TI's development board
+### Setup on X86_PC
   - Run the below one time setup for system level packages. This needs sudo permission, get it installed by your system administrator if required.
 
 ```
@@ -168,9 +168,9 @@ The below table covers the supported operations with this repository on X86_PC a
 mkdir build && cd build
 cmake ../examples && make -j && cd ..
 source ./scripts/run_python_examples.sh
-./scripts/gen_test_report.py
+python3 ./scripts/gen_test_report.py
 ```
-- The execution of above step will generate compiled-model artifacts, output images and a report (PASS/FAIL) against expected result for each example model. PASS in all the rows of report confirms successful installation / setup on PC
+- The execution of above step will generate compiled-model artifacts and output images at ```./edgeai-tidl-tools/output_images```. These outputs images can be compared against the expected outputs in ```/edgeai-tidl-tools/test_data/refs-pc-{soc}```, this confirms successful installation / setup on PC
 
 ```
 model-artifacts/
@@ -185,8 +185,17 @@ test_report_pc.csv
 | <img  width="512" height="256" src="./docs/out_viz_cls.jpg"> |  <img width="512" height="256" src="./docs/out_viz_od.jpg"> | <img width="512" height="256" src="./docs/out_viz_ss.jpg"> |
 
 ### Benchmark on TI SOC
-- Prepare the development board by following the steps in [Setup](#setup-on-x86_pc-and-tis-development-board) 
-- Copy the compiled artifacts from X86_PC from above step to Development boards file system at ./edgeai-tidl-tools/
+- Prepare the development board by following the below steps
+
+```
+ git clone https://github.com/TexasInstruments/edgeai-tidl-tools.git
+ cd edgeai-tidl-tools
+ git checkout <TAG Compatible with your SDK version>
+ export SOC=<Your SOC name>
+ export TIDL_TOOLS_PATH=$(pwd)
+ ```
+
+- Copy the compiled artifacts from X86_PC to Development boards file system at ./edgeai-tidl-tools/
 - Execute below to run inference on target development board with both Python and CPP APIs
 
 ```
@@ -194,9 +203,9 @@ test_report_pc.csv
 # scp -r <pc>/edgeai-tidl-tools/models/  <dev board>/edgeai-tidl-tool/
 mkdir build && cd build
 cmake ../examples && make -j && cd ..
-./scripts/gen_test_report.py
+python3 ./scripts/gen_test_report.py
 ```
-- The exection of above step will generate output images and a report (PASS/FAIL) against expected result for each example model along with benchmark data (time in milli second and memory usages in MBs). PASS in all the rows of report confirms successful setup on development board
+- The execution of above step will generate output images at ```./edgeai-tidl-tools/output_images```. These outputs images can be compared against the expected outputs in ```/edgeai-tidl-tools/test_data/refs-{soc}```. This confirms successful installation / setup on board.
 
 ## Compile and Benchmark Custom Model
 

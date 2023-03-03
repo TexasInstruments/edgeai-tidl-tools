@@ -32,12 +32,11 @@ Detailed steps to use Docker based setup for X86_PC
 
 1. Run the Docker
           
-          sudo docker run -it --shm-size=4096m --mount source=<absolute path to edgeai-tidl-tools>, target=/home/root,type=bind x86_ubuntu_18
-          Example
-          sudo docker run -it --shm-size=4096m --mount source=/home/work/edgeai-tidl-tools,target=/home/root,type=bind x86_ubuntu_18
+          sudo docker run -it --shm-size=4096m --mount source=$(pwd),target=/home/root,type=bind x86_ubuntu_18
 
 2. When run above you would get root prompt and edgeai-tidl-tools is mounted at /home/root. Now, run below to complete the setup 
 
+        cd /home/root/
         # Supported SOC name strings am62, am62a, am68a, am68pa, am69a
         export SOC=<Your SOC name>
         source ./setup.sh 
