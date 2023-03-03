@@ -1,37 +1,9 @@
 # Supported Operators & Runtimes
-## TIDL-Runtime Supported Layers Overview:
-1. Convolution Layer
-2. Spatial Pooling Layer
-    - Average and Max Pooling
-3. Global Pooling Layer
-    - Average Pooling
-4. ReLU Layer 
-5. Element Wise Layer
-    - Add, Product
-6. Inner Product Layer
-    - Fully Connected Layer
-7. Soft Max Layer
-8. Bias Layer
-9. Concatenate layer
-10. Scale Layer
-11. Batch Normalization layer
-12. Re-size Layer (For Bi-leaner/Nearest Neighbor Up-sample)
-13. RelU6 layer
-14. Detection output Layer (SSD - Post Processing As defined in caffe-Jacinto and TF Object detection API)
-15. Arg max layer
-16. PReLU (One Parameter per channel)
-17. Slice layer
-18. Crop layer
-19. Flatten layer
-20. ShuffleChannelLayer
-21. Depth to Space/ Pixel Shuffle Layer
-22. Pad Layer
-23. Color conversion Layer
-24. Sigmoid Layer
-25. Batch Reshape Layer
-26. Data/Format conversion layer 
-***
-## Core Layers/Operators Mapping & Notes:
+
+## Operator Mapping (TIDL-RT):
+
+<div align="center">
+
 | No | TIDL Layer Type                | ONNX Ops                                    | TFLite Ops                                 | Notes |
 |:--:|:-------------------------------|:--------------------------------------------|:-------------------------------------------|:------|
 | 1  | TIDL_ConvolutionLayer          | Conv                                        | CONV_2D<br>DEPTHWISE_CONV_2D               | Regular & Depthwise convolution will be imported as convolution <br> For TFLite DepthwiseConv2dNative, depth_multiplier shall be 1 if number of input channels > 1. <br> ReLU & Batchnorm layers will be merged into convolution to get better performance<br>Validated kernel sizes: 1x1, 3x3, 5x5, 7x7,1x3,3x1,1x5,5x1,1x7,7x1.<br> If stride == 4, only supported kernel == 11x11.<br>if stride == 2, kernel should be less than 7. Even kernel dimensions like 2x2, 4x4, 6x6 are not supported.<br>Depthwise Separable Convolution only supports 3x3,5x5,7x7 with stride 1 and 3x3 with stride 2.<br> Dilated Convolution is only supported for non-strided convolution<br> **Note : Please refer to MMALIB's release notes in your SDK for all supported configuration**<br> **Note : Some of the kernel combinations are not optimized in the current release, please refer to MMALIB's release notes for the same** |
@@ -55,19 +27,23 @@
 | 19 | TIDL_ColorConversionLayer      | NA                                          | NA                                         |  Only YUV420 NV12 format conversion to RGB/BGR color format is supported |
 | 20 | TIDL_BatchReshapeLayer         | NA                                          | NA                                         |  |
 | 21 | TIDL_DataConvertLayer          | NA                                          | NA                                         |  |
+
+</div>
 <br>
+
 ## Other compatible layers
+
+<div align="center">
+
 | No | ONNX Ops  | TFLite Ops    | Notes |
 |:--:|:----------|:--------------|-------|
 | 1  | Split     |               | Split layer will be removed after import |
 | 2  | Reshape   | RESHAPE       | Please refer to [Meta Architecture Documentation](./tidl_fsg_od_meta_arch.md) for further details |
-| 5  |            | MINIMUM       | For ReLU6 / ReLU8      |
-| 6  |           |               | This layer is only used in training, and this layer will be automatically removed during import process|
-| 7  |           |               | Flatten       |
-| 8  |           |               | Resize       |
-| 9  | Transpose |               | For ShuffleChannelLayer only      |
-| 10 | Clip      |               | Parametric activation threshold PACT       |
+| 3  |            | MINIMUM       | For ReLU6 / ReLU8      |
+| 4  | Transpose |               | For ShuffleChannelLayer only      |
+| 5 | Clip      |               | Parametric activation threshold PACT       |
 
+</div>
 <br>
 
 ## For Unlisted Layers/Operators
@@ -82,11 +58,16 @@ Proto files from the versions below are used for validating pre-trained models. 
 
 *Since the Tensorflow 2.0 is planning to drop support for frozen buffer, we recommend to users to migrate to TFLite model format for Tensorflow 1.x.x as well. TFLite model format is supported in both TF 1.x.x and TF 2.x*
 
+
 # Feature set comparision across devices
 
-| Feature  | AM62A | AM68A |AM68PA (TDA4VM) | AM69A|
+<div align="center">
+
+| Feature  | AM62A | AM68A |AM68PA | AM69A|
 | ------- |:-----------:|:-----------:|:-----------:|:-----------:|
 | Support for native inference of TFLite PTQ Models (int8)  | :heavy_check_mark: |:heavy_check_mark: | :x: |:heavy_check_mark:|
 | Support for LUT based operators  | :x: |:heavy_check_mark: | :heavy_check_mark:|:heavy_check_mark:|
+
+</div>
 
 *TFLite Fixed-point PTQ models will need calibration frames on (AM68PA)TDA4VM*
