@@ -361,6 +361,27 @@ def plot_TI_DDRBW_data(stats, axis=None):
     if do_show:
         plt.show()
 
+def print_soc_info():
+    soc = os.getenv('SOC')
+    if soc == 'am68a':
+        print(f'SoC: J721S2/AM68A')
+        print(f'OPP:')
+        print(f'    Cortex-A72 @2GHZ')
+    elif soc == 'am68pa':
+        print(f'SoC: J721E/AM68PA')
+        print(f'OPP:')
+        print(f'    Cortex-A72 @2GHZ')
+    elif soc == 'am69a':
+        print(f'SoC: J784S4/AM69A')
+        print(f'OPP:')
+        print(f'    Cortex-A72 @2GHZ')
+    elif soc == 'am62a':
+        print(f'SoC: AM62A')
+        print(f'OPP:')
+        print(f'    Cortex-A53 @1.4GHZ')
+    print(f'    DSP C7x-MMA @1GHZ')
+    print(f'    DDR @4266 MT/s\n')
+
 '''
 Utility function to get class names from imagenet class IDs
 
