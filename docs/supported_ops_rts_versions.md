@@ -12,7 +12,7 @@
 | 4  | TIDL_EltWiseLayer              | Add<br>Mul                                  | ADD<br>MUL                                 | Support for 2 tensors validated extensively, multiple input tensors have had limited validation |
 | 5  | TIDL_InnerProductLayer         | Gemm                                        | FULLY_CONNECTED                            | Input shape must be 1x1x1xN.Please use global pooling/flatten before innerproduct<br>Feature size larger than 2048*2048 is not optimal |
 | 6  | TIDL_SoftMaxLayer              | Softmax                                     | SOFTMAX                                    | Input shape must be 1x1x1xN. Please use global pooling/flatten before softmax. |
-| 7  | TIDL_Deconv2DLayer             | ConvTranspose                               | TRANSPOSE_CONV                             | Only 8x8, 4x4 and 2x2 kernel with 2x2 stride is supported. It is recommended to use Resize/Upsample to get better performance|
+| 7  | TIDL_Deconv2DLayer             | ConvTranspose                               | TRANSPOSE_CONV                             | Only 8x8, 4x4 and 2x2 kernel with 2x2 stride is supported. It is recommended to use Resize/Upsample to get better performance. This layer is not supported in 16-bit for AM62A|
 | 8  | TIDL_ConcatLayer               | Concat                                      | CONCATENATION                              | Concat defaults channel-wise by default. Concat will be width-wise if it happens post a flatten layer (used in the context of SSD)|
 | 9  | TIDL_SliceLayer                | Split                                       | NA                                         | Only channel wise slice is supported |
 | 10 | TIDL_CropLayer                 | NA                                          | NA                                         |  |
@@ -21,7 +21,7 @@
 | 13 | TIDL_DetectionOutputLayer      | NA                                          | NA                                         | Please refer to the [Meta Architecture Documentation](./tidl_fsg_od_meta_arch.md) for further details |
 | 14 | TIDL_ShuffleChannelLayer       | Reshape + Transpose + Reshape               | NA                                         |  |
 | 15 | TIDL_ResizeLayer               | UpSample                                    | RESIZE_NEAREST_NEIGHBOR<br>RESIZE_BILINEAR | Only power of 2 and symmetric resize is supported <br>Any resize ratio which is power of 2 and greater than 4 will be placed by combination of 4x4 resize layer and 2x2 resize layer <br> For example, an 8x8 resize will be replaced by a 4x4 resize followed by a 2x2 resize  |
-| 16 | TIDL_DepthToSpaceLayer         | DepthToSpace                                | DEPTH_TO_SPACE                             |  Supports non-strided convolution with upscale factors of 2, 4 and 8 | 
+| 16 | TIDL_DepthToSpaceLayer         | DepthToSpace                                | DEPTH_TO_SPACE                             |  Supports non-strided convolution with upscale factors of 2, 4 and 8. This layer is currently not supported for AM62A | 
 | 17 | TIDL_SigmoidLayer              | Sigmoid/Logistic                            | SIGMOID/LOGISTIC                           |   |
 | 18 | TIDL_PadLayer                  | Pad                                         | PAD                                        |   |
 | 19 | TIDL_ColorConversionLayer      | NA                                          | NA                                         |  Only YUV420 NV12 format conversion to RGB/BGR color format is supported |
@@ -54,7 +54,7 @@ Proto files from the versions below are used for validating pre-trained models. 
 *Since the Tensorflow 2.0 is planning to drop support for frozen buffer, we recommend to users to migrate to TFLite model format for Tensorflow 1.x.x as well. TFLite model format is supported in both TF 1.x.x and TF 2.x*
 
 
-# Feature set comparision across devices
+# Feature set comparison across devices
 
 <div align="center">
 
