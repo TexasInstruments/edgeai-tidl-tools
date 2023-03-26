@@ -56,7 +56,7 @@ download_and_compile_glibc(){
 if [ $compile_glib2_9 -eq 1 ];then
     download_and_compile_glibc
 fi
-REL=08_06_00_00
+REL=08_06_00_24
 
 cd $HOME
 if [ ! -d required_libs ];then

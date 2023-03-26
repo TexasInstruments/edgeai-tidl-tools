@@ -38,7 +38,7 @@ export SOC=j7
 export TIDL_TOOLS_PATH=
 #For libdlr.so showing error 
 export LD_PRELOAD=/usr/lib/aarch64-linux-gnu/libgomp.so.1
-REL=08_06_00_00
+REL=08_06_00_24
 if [ ! -d u_20_pywhl ];then
     mkdir u_20_pywhl
 fi

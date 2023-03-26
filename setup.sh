@@ -271,7 +271,7 @@ if [ -z "$SOC" ];then
     echo "export SOC=am69a"
     return
 fi
-REL=08_06_00_00
+REL=08_06_00_24
 
 # ######################################################################
 # # Installing dependencies

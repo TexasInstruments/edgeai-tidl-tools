@@ -6,7 +6,7 @@ if [ ! -d required_libs ];then
     mkdir required_libs
 fi
 export SOC=j7
-REL=08_06_00_00
+REL=08_06_00_24
 
 if [ ! -d arago_j7_pywhl ];then
     mkdir arago_j7_pywhl
