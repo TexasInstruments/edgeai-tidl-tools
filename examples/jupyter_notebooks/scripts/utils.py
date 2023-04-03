@@ -85,8 +85,8 @@ if platform.machine() != 'aarch64':
 
 
 models = {
-    '../../models/public/onnx/resnet18_opset9.onnx': {'model_url': 'https://git.ti.com/cgit/jacinto-ai/jacinto-ai-modelzoo/plain/models/vision/classification/imagenet1k/torchvision/resnet18_opset9.onnx', 'type': 'onnx'},
-    '../../models/public/tflite/mobilenet_v1_1.0_224.tflite': {'model_url': 'https://tfhub.dev/tensorflow/lite-model/mobilenet_v1_1.0_224/1/default/1?lite-format=tflite', 'type': 'tflite'},
+    'models/public/onnx/resnet18_opset9.onnx': {'model_url': 'https://git.ti.com/cgit/jacinto-ai/jacinto-ai-modelzoo/plain/models/vision/classification/imagenet1k/torchvision/resnet18_opset9.onnx', 'type': 'onnx'},
+    'models/public/tflite/mobilenet_v1_1.0_224.tflite': {'model_url': 'https://tfhub.dev/tensorflow/lite-model/mobilenet_v1_1.0_224/1/default/1?lite-format=tflite', 'type': 'tflite'},
 
 }
 
