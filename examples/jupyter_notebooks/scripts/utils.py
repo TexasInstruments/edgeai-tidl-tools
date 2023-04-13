@@ -431,8 +431,8 @@ def get_benchmark_output(benchmark_dict):
     copy_time = cp_in_time + cp_out_time
     copy_time = copy_time if len(subgraphIds) == 1 else 0
     total_time   = benchmark_dict['ts:run_end'] - benchmark_dict['ts:run_start']
-    write_total  = benchmark_dict['ddr:read_end'] - benchmark_dict['ddr:read_start']
-    read_total   = benchmark_dict['ddr:write_end'] - benchmark_dict['ddr:write_start']
+    read_total  = benchmark_dict['ddr:read_end'] - benchmark_dict['ddr:read_start']
+    write_total   = benchmark_dict['ddr:write_end'] - benchmark_dict['ddr:write_start']
 
     total_time = total_time - copy_time
 
