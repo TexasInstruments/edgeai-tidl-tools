@@ -591,18 +591,19 @@ def get_eval_configs(task_type, runtime_type, num_quant_bits, last_artifacts_id=
         'run_import' : False,
         'model_selection': model_selection,
         'experimental_models' : experimental_models,
-        'tidl_offload' : True
+        'tidl_offload' : True,
+        'modelartifacts_path': prebuilts_dir,
     }
     settings = ConfigSettings(settings_dict)
-    prebuilt_configs = select_configs(settings,os.path.join(prebuilts_dir, f'{num_quant_bits}bits'), runtime_type)
+    prebuilt_configs = select_configs(settings, os.path.join(prebuilts_dir, f'{num_quant_bits}bits'), runtime_type, remove_models=True)
     merged_list = get_name_key_pair_list(prebuilt_configs.keys(), runtime_type)
     #print("merged_list: ", prebuilt_configs.keys())
 
     model_selection_artifacts_key = get_selected_artifacts_id()
     if not model_selection_artifacts_key is None:
-        last_artifacts_id = model_selection_artifacts_key
+        last_artifacts_id = model_selection_artifacts_key if len(merged_list) > model_selection_artifacts_key else None
     elif last_artifacts_id is None:
-        last_artifacts_id = merged_list[0][1]
+        last_artifacts_id = merged_list[0][1] if len(merged_list) > 0 else None
     #print("last_artifacts_id: ", last_artifacts_id)
     selected_model_id = widgets.Dropdown(
     options=merged_list,
