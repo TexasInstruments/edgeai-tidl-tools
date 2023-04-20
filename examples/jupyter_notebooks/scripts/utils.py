@@ -385,7 +385,7 @@ def print_soc_info():
         print(f'SoC: AM62A')
         print(f'OPP:')
         print(f'    Cortex-A53 @1.4GHZ')
-        print(f'    DSP C7x-MMA @1GHZ')
+        print(f'    DSP C7x-MMA @850MHZ')
         print(f'    DDR @4266 MT/s\n')
 
 '''
