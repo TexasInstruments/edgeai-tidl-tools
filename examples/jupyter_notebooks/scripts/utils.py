@@ -418,6 +418,7 @@ def imagenet_class_to_name(cls):
 """
 
 def get_benchmark_output(benchmark_dict):
+    soc = os.getenv('SOC')
     proc_time = copy_time = 0
     cp_in_time = cp_out_time = 0
     subgraphIds = []
@@ -435,6 +436,9 @@ def get_benchmark_output(benchmark_dict):
     write_total   = benchmark_dict['ddr:write_end'] - benchmark_dict['ddr:write_start']
 
     total_time = total_time - copy_time
+    
+    if soc == 'am69a':
+        total_time = (total_time/(4*0.7)) #30% multicore penalty
 
     return total_time/1000000, proc_time/1000000, read_total/1000000, write_total/1000000
 
