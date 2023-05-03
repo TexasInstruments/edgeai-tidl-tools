@@ -438,7 +438,7 @@ def get_benchmark_output(benchmark_dict):
     total_time = total_time - copy_time
     
     if soc == 'am69a':
-        total_time = (total_time/(4*0.7)) #30% multicore penalty
+        total_time = (total_time/(4*0.8)) #20% multicore penalty
 
     return total_time/1000000, proc_time/1000000, read_total/1000000, write_total/1000000
 
