@@ -60,6 +60,7 @@ import os.path
 import flatbuffers
 import copy
 import struct
+import getopt
 
 # add local path temporarily for the import of tflite_model to work
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -123,7 +124,6 @@ def getWightsAndBiasData():
 # input2 = 112x224 UV interleaved data in uint8 format
 ###########Function description#############
 def addYUVConv(in_model_path, out_model_path):
-    print(in_model_path)
     modelBin = open(in_model_path, 'rb').read()
     if modelBin is None:
         print(f'Error: Could not open file {in_model_path}')
@@ -261,24 +261,28 @@ def addYUVConv(in_model_path, out_model_path):
     modelBuf = b2.Output() 
     newFile = open(out_model_path, "wb")
     newFile.write(modelBuf)
+ 
 
-
-###########Function description#############
-# This Function helps to seperate Y and UV data from a NV12 format image
-# ne can convert a jpg image to NV12 image by mentioning the required size 
-# ffmpeg -y -colorspace bt470bg -i airshow.jpg -s 224x224 -pix_fmt nv12 airshow.yuv 
-# output generated for 224x224 NV12 format is 
-# creates 224x224 Y data in uint8 format
-# creates 112x224 UV interleaved data in uint8 format
-###########Function description#############
-def createInputYUVData(input_file, width, height):
-    input_data = np.fromfile(input_file,dtype=np.uint8,count=width*height,offset=0)
-    input_file = input_file.replace('.nv12', '')
-    input_data.tofile("/tmp/airshow_Y_"+str(width)+"_"+str(height)+"uint8.bin")
-    input_data = np.fromfile("/tmp/airshow.yuv",dtype=np.uint8,count=width*int(height/2),offset=width*height)
-    input_data.tofile("/tmp/airshow_UV_"+str(width)+"_"+str(height)+"uint8.bin")
-    
+def main(argv):
+   inputfile = ''
+   outputfile = ''
+   opts, args = getopt.getopt(argv,"hi:o:",["ifile=","ofile="])
+   for opt, arg in opts:
+      if opt == '-h':
+         print ('test.py -i <inputfile> -o <outputfile>')
+         sys.exit()
+      elif opt in ("-i", "--ifile"):
+         inputfile = arg
+      elif opt in ("-o", "--ofile"):
+         outputfile = arg
+   if(inputfile == ''):
+        print ('test.py -i <inputfile> -o <outputfile>')
+        sys.exit()
+   if(outputfile == ''):
+        temp = inputfile
+        outputfile = temp.replace('.tflite', '_yuv.tflite')
+   print("inputfile: "+ inputfile)
+   print("outputfile: "+ outputfile)
+   addYUVConv(inputfile, outputfile)
 if __name__ == "__main__":
-    in_model_path= "/home/a0496663/work/edgeaitidltools/rel86/edgeai-tidl-tools/models/public/mobilenet_v1_1.0_224.tflite"
-    out_model_path= "/home/a0496663/work/edgeaitidltools/rel86/edgeai-tidl-tools/models/public/mobilenet_v1_1.0_224_yuv.tflite"
-    addYUVConv(in_model_path, out_model_path)
+   main(sys.argv[1:])

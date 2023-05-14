@@ -59,6 +59,9 @@ import onnx
 from onnx import helper
 from onnx import TensorProto,shape_inference 
 import numpy as np
+import sys
+import getopt
+import os
 
 ###########Function description#############
 # This Function takes a RGB trained model and update the inputs to the model to accept 
@@ -68,7 +71,6 @@ import numpy as np
 # input2 = 112x224 UV interleaved data in uint8 format
 ###########Function description#############
 def addYUVConv(in_model_path, out_model_path):
-    print(out_model_path)
     #Read Model
     model = onnx.load_model(in_model_path)
     op = onnx.OperatorSetIdProto()
@@ -89,7 +91,6 @@ def addYUVConv(in_model_path, out_model_path):
     #Input & Output Dimensions:
     inDims = tuple([x.dim_value for x in originalGraph.input[0].type.tensor_type.shape.dim])
     outDims = tuple([x.dim_value for x in originalGraph.output[0].type.tensor_type.shape.dim])
-    print(inDims)
     
     #Construct bias & scale tensors
     weights = [1.164, 0.0, 1.596,
@@ -163,14 +164,56 @@ def addYUVConv(in_model_path, out_model_path):
 # creates 112x224 UV interleaved data in uint8 format
 ###########Function description#############
 def createInputYUVData(input_file, width, height):
-    input_data = np.fromfile(input_file,dtype=np.uint8,count=width*height,offset=0)
-    input_file = input_file.replace('.nv12', '')
-    input_data.tofile("/tmp/airshow_Y_"+str(width)+"_"+str(height)+"uint8.bin")
-    input_data = np.fromfile("/tmp/airshow.yuv",dtype=np.uint8,count=width*int(height/2),offset=width*height)
-    input_data.tofile("/tmp/airshow_UV_"+str(width)+"_"+str(height)+"uint8.bin")
+    yuv_file = input_file.replace(".jpg",".yuv")
+    cmd = "ffmpeg -y -colorspace bt470bg -i "+ input_file+ " -s "+str(height)+"x"+ str(width)+" -pix_fmt nv12 "+ yuv_file
+    os.system(cmd)
+    input_data = np.fromfile(yuv_file,dtype=np.uint8,count=width*height,offset=0)
+    input_file = yuv_file.replace('.yuv', '')
+    input_data.tofile(input_file + "_Y_uint8.bin")
+    input_data = np.fromfile(yuv_file,dtype=np.uint8,count=width*int(height/2),offset=width*height)
+    input_data.tofile(input_file + "_UV_uint8.bin")
 
-if __name__ == "__main__":
-    in_model_path= "/home/a0496663/work/edgeaitidltools/rel86/edgeai-tidl-tools/models/public/resnet18_opset9.onnx"
-    out_model_path= "/home/a0496663/work/edgeaitidltools/rel86/edgeai-tidl-tools/models/public/resnet18_opset9_yuv.onnx"    
-    addYUVConv(in_model_path, out_model_path)
+# if __name__ == "__main__":
+#     in_model_path= "/home/a0496663/work/edgeaitidltools/rel86/edgeai-tidl-tools/models/public/resnet18_opset9.onnx"
+#     out_model_path= "/home/a0496663/work/edgeaitidltools/rel86/edgeai-tidl-tools/models/public/resnet18_opset9_yuv.onnx"    
+#     addYUVConv(in_model_path, out_model_path)
     
+def main(argv):
+   inputfile = ''
+   outputfile = ''
+   gen_yuv_data = 0
+   width = 224
+   height = 224
+   opts, args = getopt.getopt(argv,"hi:o:g:w:l:",["ifile=","ofile=","gen_yuv_data=","width=","height="])
+   for opt, arg in opts:
+      if opt == '-h':
+         print ('test.py -i <inputfile> -o <outputfile> -g <gen_yuv_data> -w <width> -l <heigh>')
+         sys.exit()
+      elif opt in ("-i", "--ifile"):
+         inputfile = arg
+      elif opt in ("-o", "--ofile"):
+         outputfile = arg
+      elif opt in ("-g", "--gen_yuv_data"):
+         gen_yuv_data = int(arg )
+      elif opt in ("-w", "--width"):
+         width = int(arg )
+      elif opt in ("-l", "--height"):
+         height = int(arg )                  
+   if(inputfile == ''):
+        print ('test.py -i <inputfile> -o <outputfile>')
+        sys.exit()
+   if(outputfile == ''):
+        temp = inputfile
+        outputfile = temp.replace('.onnx', '_yuv.onnx')
+   print("inputfile: "+ inputfile)
+   print("outputfile: "+ outputfile)
+   if(gen_yuv_data == 1):
+       print("generating YUV data")
+       print("width: "+ str(width) )
+       print("height: "+ str(height) )
+       createInputYUVData(input_file=inputfile,width=width,height=height)
+   else:
+       print("generating YUV model")
+       addYUVConv(inputfile, outputfile)
+if __name__ == "__main__":
+   main(sys.argv[1:])
