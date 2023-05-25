@@ -71,88 +71,93 @@ import os
 # input2 = 112x224 UV interleaved data in uint8 format
 ###########Function description#############
 def addYUVConv(in_model_path, out_model_path):
-    #Read Model
-    model = onnx.load_model(in_model_path)
-    op = onnx.OperatorSetIdProto()
-    #Track orginal opset:
-    op.version = model.opset_import[0].version
-    #Get Graph:
-    originalGraph = model.graph
-    #Get Nodes:
-    originalNodes = originalGraph.node
-    #Get Initializers:
-    originalInitializers = originalGraph.initializer
-    #Create Lists
-    nodeList = [node for node in originalNodes]
-    initList = [init for init in originalInitializers]
+   #Read Model
+   model = onnx.load_model(in_model_path)
+   op = onnx.OperatorSetIdProto()
+   #Track orginal opset:
+   op.version = model.opset_import[0].version
+   #Get Graph:
+   originalGraph = model.graph
+   #Get Nodes:
+   originalNodes = originalGraph.node
+   #Get Initializers:
+   originalInitializers = originalGraph.initializer
+   #Create Lists
+   nodeList = [node for node in originalNodes]
+   initList = [init for init in originalInitializers]
+   gNodeList = []
+   gInitList = []
+   inDims = []
+   #Input & Output Dimensions:
+   for input_idx in range(len(originalGraph.input)):
+         inDims.append(tuple([x.dim_value for x in originalGraph.input[input_idx].type.tensor_type.shape.dim]))
+   # print(inDims[0])
+   for input_idx in range(len(originalGraph.input)):
+      
+      #Construct bias & scale tensors
+      weights = [1.164, 0.0, 1.596,
+                  1.164, -0.391, -0.813,
+                  1.164, 2.018, 0.0 ]
+      bias= [-222.912, 135.488, -276.928]
+      scales = np.array([1, 2, 2, 1], dtype=np.int64)
+      weight_init = onnx.helper.make_tensor(
+               name='TIDL_preProc_YUV_RGB_weights_'+ str(input_idx),
+               data_type=TensorProto.FLOAT,
+               dims=[3,3,1,1],
+               vals=np.array(weights,dtype=np.float32))
+      bias_init = onnx.helper.make_tensor(
+               name='TIDL_preProc_YUV_RGB_bias_'+ str(input_idx),
+               data_type=TensorProto.FLOAT,
+               dims=[3,1],
+               vals=np.array(bias,dtype=np.float32))
+      resize_scales = onnx.helper.make_tensor(
+               name='TIDL_preProc_UV_resize_sizes_'+ str(input_idx),
+               data_type=TensorProto.FLOAT,
+               dims=[4],
+               vals=scales)
+      dummy = onnx.helper.make_tensor(
+               name='roi',
+               data_type=TensorProto.FLOAT,
+               dims=(0,),
+               vals=[])   
 
-    nInCh = int(originalGraph.input[0].type.tensor_type.shape.dim[1].dim_value)
-
-    #Input & Output Dimensions:
-    inDims = tuple([x.dim_value for x in originalGraph.input[0].type.tensor_type.shape.dim])
-    outDims = tuple([x.dim_value for x in originalGraph.output[0].type.tensor_type.shape.dim])
-    
-    #Construct bias & scale tensors
-    weights = [1.164, 0.0, 1.596,
-                1.164, -0.391, -0.813,
-                1.164, 2.018, 0.0 ]
-    bias= [-222.912, 135.488, -276.928]
-    scales = np.array([1, 2, 2, 1], dtype=np.int64)
-    weight_init = onnx.helper.make_tensor(
-            name='TIDL_preProc_YUV_RGB_weights',
-            data_type=TensorProto.FLOAT,
-            dims=[3,3,1,1],
-            vals=np.array(weights,dtype=np.float32))
-    bias_init = onnx.helper.make_tensor(
-            name='TIDL_preProc_YUV_RGB_bias',
-            data_type=TensorProto.FLOAT,
-            dims=[3,1],
-            vals=np.array(bias,dtype=np.float32))
-    resize_scales = onnx.helper.make_tensor(
-            name='TIDL_preProc_UV_resize_sizes',
-            data_type=TensorProto.FLOAT,
-            dims=[4],
-            vals=scales)
-    dummy = onnx.helper.make_tensor(
-            name='roi',
-            data_type=TensorProto.FLOAT,
-            dims=(0,),
-            vals=[])   
-
-    #Conv Node:
-    concat = onnx.helper.make_node('Concat',name="Concat_YUV",inputs=[originalGraph.input[0].name+"Y_IN","Transpose_UV_2_out"], axis=1, outputs=["YUV_RGB_Concat_out"],)
-    conv = onnx.helper.make_node('Conv',name="Conv_YUV_RGB",inputs=["YUV_RGB_Concat_out","TIDL_preProc_YUV_RGB_weights","TIDL_preProc_YUV_RGB_bias"],outputs=[originalGraph.input[0].name])
-    transpose = onnx.helper.make_node('Transpose',name="Transpose_UV",inputs=[originalGraph.input[0].name+"UV_IN"], perm = [0, 2, 3, 1], outputs=["Transpose_UV_out"])
-    resize = onnx.helper.make_node('Resize',name="Resize_UV",inputs=["Transpose_UV_out", "const_roi_node", "TIDL_preProc_UV_resize_sizes"] , mode = "nearest", outputs=["Resize_UV_out"])
-    const_roi_node = helper.make_node("Constant", [], ["const_roi_node"], value=dummy, name="const_roi_node")
-    transpose_2 = onnx.helper.make_node('Transpose',name="Transpose_UV_2",inputs=["Resize_UV_out"], perm = [0, 3, 1, 2], outputs=["Transpose_UV_2_out"])
-       
-    # nodeList = [cast, addNode, scaleNode] + nodeList #Toplogically Sorted   
-    nodeList = [transpose, const_roi_node, resize, transpose_2, concat, conv] + nodeList #Toplogically Sorted
-
-    initList = [  resize_scales,  weight_init, bias_init] + initList
-    outSequence = originalGraph.output
-    #Construct Graph:
-    newGraph = helper.make_graph(
-        nodeList,
-        'Rev_Model',
-        [helper.make_tensor_value_info(originalGraph.input[0].name+"Y_IN", TensorProto.FLOAT, [inDims[0], 1, inDims[2], inDims[3]]),
-         helper.make_tensor_value_info(originalGraph.input[0].name+"UV_IN", TensorProto.FLOAT, [inDims[0], 2, int(inDims[2]/2), int(inDims[3]/2)]),
-        ],
-        outSequence,
-        initList,
-        )
-    #Construct Model:
-    op.version = 11
-    model_def_noShape = helper.make_model(newGraph, producer_name='onnx-TIDL', opset_imports=[op])
-    model_def = shape_inference.infer_shapes(model_def_noShape)    
-    try:
-        onnx.checker.check_model(model_def)
-    except onnx.checker.ValidationError as e:
-        print('Converted model is invalid: %s' % e)
-    else:
-        print('Converted model is valid!')
-        onnx.save_model(model_def, out_model_path)
+      #Conv Node:
+      concat = onnx.helper.make_node('Concat',name="Concat_YUV",inputs=[originalGraph.input[input_idx].name+"_Y_IN","Transpose_UV_2_out_" + str(input_idx)], axis=1, outputs=["YUV_RGB_Concat_out_" + str(input_idx)],) 
+      conv = onnx.helper.make_node('Conv',name="Conv_YUV_RGB",inputs=["YUV_RGB_Concat_out_" + str(input_idx),"TIDL_preProc_YUV_RGB_weights_"+ str(input_idx),"TIDL_preProc_YUV_RGB_bias_"+ str(input_idx)],outputs=[originalGraph.input[input_idx].name])
+      transpose = onnx.helper.make_node('Transpose',name="Transpose_UV",inputs=[originalGraph.input[input_idx].name+"_UV_IN"], perm = [0, 2, 3, 1], outputs=["Transpose_UV_out_"+ str(input_idx)])
+      resize = onnx.helper.make_node('Resize',name="Resize_UV",inputs=["Transpose_UV_out_"+ str(input_idx), "const_roi_node_" + str(input_idx), "TIDL_preProc_UV_resize_sizes_"+ str(input_idx)] , mode = "nearest", outputs=["Resize_UV_out_" + str(input_idx)])
+      const_roi_node = helper.make_node("Constant", [], ["const_roi_node_" + str(input_idx)], value=dummy, name="const_roi_node_" + str(input_idx))
+      transpose_2 = onnx.helper.make_node('Transpose',name="Transpose_UV_2",inputs=["Resize_UV_out_" + str(input_idx)], perm = [0, 3, 1, 2], outputs=["Transpose_UV_2_out_" + str(input_idx)])
+      
+      gNodeList = [transpose, const_roi_node, resize, transpose_2, concat, conv] + gNodeList #Toplogically Sorted
+      gInitList = [  resize_scales,  weight_init, bias_init] + gInitList
+      
+   #Construct Graph:
+   outSequence = originalGraph.output
+   gNodeList = gNodeList + nodeList
+   gInitList = gInitList + initList
+   in_tenosrs = []
+   for input_idx in range(len(originalGraph.input)):
+       in_tenosrs.append(helper.make_tensor_value_info(originalGraph.input[input_idx].name+"_Y_IN", TensorProto.FLOAT, [inDims[input_idx][0], 1, inDims[input_idx][2], inDims[input_idx][3]]))
+       in_tenosrs.append(helper.make_tensor_value_info(originalGraph.input[input_idx].name+"_UV_IN", TensorProto.FLOAT, [inDims[input_idx][0], 2, int(inDims[input_idx][2]/2), int(inDims[input_idx][3]/2)]))
+   newGraph = helper.make_graph(
+         gNodeList,
+         'Rev_Model',   
+         in_tenosrs,
+         outSequence,
+         gInitList,
+         )
+   #Construct Model:
+   op.version = 11
+   model_def_noShape = helper.make_model(newGraph, producer_name='onnx-TIDL', opset_imports=[op])
+   model_def = shape_inference.infer_shapes(model_def_noShape)    
+   try:
+      onnx.checker.check_model(model_def)
+   except onnx.checker.ValidationError as e:
+      print('Converted model is invalid: %s' % e)
+   else:
+      print('Converted model is valid!')
+      onnx.save_model(model_def, out_model_path)
 
 
 ###########Function description#############
@@ -187,7 +192,7 @@ def main(argv):
    opts, args = getopt.getopt(argv,"hi:o:g:w:l:",["ifile=","ofile=","gen_yuv_data=","width=","height="])
    for opt, arg in opts:
       if opt == '-h':
-         print ('test.py -i <inputfile> -o <outputfile> -g <gen_yuv_data> -w <width> -l <heigh>')
+         print ('python3 RGB_YUV_model_converter.py -i <inputfile> -o <outputfile> -g <gen_yuv_data> -w <width> -l <heigh>')
          sys.exit()
       elif opt in ("-i", "--ifile"):
          inputfile = arg
@@ -200,7 +205,7 @@ def main(argv):
       elif opt in ("-l", "--height"):
          height = int(arg )                  
    if(inputfile == ''):
-        print ('test.py -i <inputfile> -o <outputfile>')
+        print ('python3 RGB_YUV_model_converter.py -i <inputfile> -o <outputfile>')
         sys.exit()
    if(outputfile == ''):
         temp = inputfile
