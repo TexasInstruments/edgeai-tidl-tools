@@ -33,7 +33,7 @@ model_output_directory = artifacts_folder + model_id
 # TIDL compiler specifics
 # We are compiling the model for J7 device using
 # a compiler distributed with SDK 7.0
-DEVICE = 'J7'
+DEVICE = os.environ['SOC']
 SDK_VERSION = (7, 0)
 
 # convert the model to relay IR format
@@ -94,7 +94,7 @@ def preprocess_for_tflite_inceptionnetv3(image_path):
     # hard coding config values 
     config = {
             'mean': [0, 0, 0],
-            'scale' :[1, 1 , 1],
+            'scale' :[1, 1, 1],
             'data_layout': 'NHWC',
             'resize' : [model_input_height, model_input_width],
             'crop' : [model_input_height, model_input_width],
@@ -155,6 +155,7 @@ if args.offload:
         artifacts_folder = model_output_directory,
         tensor_bits = args.num_bits,
         max_num_subgraphs = args.num_subgraphs_max,
+        c7x_codegen = 0,
         accuracy_level = (1 if args.num_bits == 8 else 0),
         advanced_options = advanced_options[args.num_bits])
 

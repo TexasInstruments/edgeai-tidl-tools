@@ -37,7 +37,7 @@ if [[ $SOC == am68pa ]]; then
     python3  tvm_compilation_tflite_example.py --pc-inference
     python3  tvm_compilation_onnx_example.py
     python3  tvm_compilation_tflite_example.py
-    python3  tvm_compilation_mxnet_example.py
+    python3  tvm_compilation_timm_example.py
     fi
     python3  dlr_inference_example.py 
     cd $CURDIR
@@ -58,7 +58,7 @@ elif [[ $SOC == am68a ]]; then
     python3  tvm_compilation_tflite_example.py --pc-inference
     python3  tvm_compilation_onnx_example.py
     python3  tvm_compilation_tflite_example.py
-    python3  tvm_compilation_mxnet_example.py
+    python3  tvm_compilation_timm_example.py
     fi
     python3  dlr_inference_example.py 
     cd $CURDIR
@@ -79,7 +79,7 @@ elif [[ $SOC == am69a ]]; then
     python3  tvm_compilation_tflite_example.py --pc-inference
     python3  tvm_compilation_onnx_example.py
     python3  tvm_compilation_tflite_example.py
-    python3  tvm_compilation_mxnet_example.py
+    python3  tvm_compilation_timm_example.py
     fi
     python3  dlr_inference_example.py 
     cd $CURDIR    
@@ -106,6 +106,7 @@ elif [[ $SOC == am62a ]]; then
     python3  tvm_compilation_tflite_example.py --pc-inference
     python3  tvm_compilation_onnx_example.py
     python3  tvm_compilation_tflite_example.py
+    python3  tvm_compilation_timm_example.py
     fi
     python3 dlr_inference_example.py
     cd $CURDIR    

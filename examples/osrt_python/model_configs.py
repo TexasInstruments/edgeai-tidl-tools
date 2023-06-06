@@ -114,8 +114,8 @@ models_configs = {
         'session_name' : 'tvmdlr',
         'model_type': 'classification'
     },
-    'cl-dlr-mxnet_mobilenetv3_large' : {
-        'model_path' : os.path.join(models_base_path, 'mobilenetv3_large'),
+    'cl-dlr-timm_mobilenetv3_large_100' : {
+        'model_path' : os.path.join(models_base_path, 'mobilenetv3_large_100.onnx'),
         'mean': [127.5, 127.5, 127.5],
         'scale' : [1/127.5, 1/127.5, 1/127.5],
         'num_images' : numImages,

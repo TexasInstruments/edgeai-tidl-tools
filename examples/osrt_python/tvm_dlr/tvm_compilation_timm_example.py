@@ -16,12 +16,12 @@ parser.add_argument('--num_subgraphs', dest='num_subgraphs_max', default=16, typ
 parser.add_argument('--num_calib_images', dest='calib_iters', default=4, type=int, help='number of images to use for calibration')
 args = parser.parse_args()
 
-model_id = 'cl-dlr-mxnet_mobilenetv3_large'
+model_id = 'cl-dlr-timm_mobilenetv3_large_100'
 #download_model(models_configs, model_id)
 
 # model specifics
 model_path = models_configs[model_id]['model_path']
-model_input_name = 'data'
+model_input_name = 'input.1'
 model_input_shape = (1, 3, 224, 224)
 model_input_dtype = 'float32'
 model_layout = 'NCHW'
@@ -30,16 +30,25 @@ model_output_directory = artifacts_folder + model_id
 # TIDL compiler specifics
 # We are compiling the model for J7 device using
 # a compiler distributed with SDK 7.0
-DEVICE = 'J7'
+DEVICE = os.environ['SOC']
 SDK_VERSION = (7, 0)
 
-# convert the model to relay IR format
-# Tested with gluoncv==0.8.0
-from gluoncv import model_zoo
+import onnx
+
 print(model_path)
-mxnet_model = model_zoo.get_model(name='mobilenetv3_large', pretrained=True, root=model_path)
+if not os.path.exists(model_path):
+    import torch
+    # import timm
+    # timm_model = timm.create_model("mobilenetv3_large_100", pretrained=True).eval()
+    import torchvision
+    torch_model = torchvision.models.mobilenet_v3_large(pretrained=True)
+    dummy_input = torch.randn(1, 3, 224, 224)
+    # torch.onnx.export(timm_model, dummy_input, model_path,
+    torch.onnx.export(torch_model, dummy_input, model_path,
+                        export_params=True, opset_version=11, do_constant_folding=True)
 from tvm import relay
-mod, params = relay.frontend.from_mxnet(mxnet_model,
+onnx_model = onnx.load(model_path)
+mod, params = relay.frontend.from_onnx(onnx_model,
                     shape={model_input_name : model_input_shape})
 
 build_target = 'llvm -device=arm_cpu -mtriple=aarch64-linux-gnu'
@@ -87,6 +96,7 @@ def preprocess_for_mxnet_mobilenetv3(image_path):
     # hard coding config values
     config = {
             'mean': [128.0, 128.0, 128.0],
+            'scale' :[1, 1 , 1],
             'std' :[0.0078125, 0.0078125, 0.0078125],
             'data_layout': 'NCHW',
             'resize' : [256, 256],

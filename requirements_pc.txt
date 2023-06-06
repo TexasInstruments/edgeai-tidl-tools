@@ -2,6 +2,8 @@ numpy==1.23.0
 pyyaml
 protobuf==3.19.4
 https://github.com/TexasInstruments/onnx/archive/tidl-j7.zip
+torch
+timm
 tflite
 pillow
 flatbuffers==1.12.0

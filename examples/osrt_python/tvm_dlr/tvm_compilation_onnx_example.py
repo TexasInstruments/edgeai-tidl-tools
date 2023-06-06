@@ -34,11 +34,11 @@ model_output_directory = artifacts_folder + model_id
 # TIDL compiler specifics
 # We are compiling the model for J7 device using
 # a compiler distributed with SDK 7.0
-DEVICE = 'J7'
+DEVICE = os.environ['SOC']
 SDK_VERSION = (7, 0)
 
 # convert the model to relay IR format
-import onnx 
+import onnx
 from tvm import relay
 print(model_path)
 onnx_model = onnx.load(model_path)
@@ -52,18 +52,18 @@ if args.device:
 else:
     build_target = 'llvm'
     cross_cc_args = {}
-   
-# image preprocessing for calibration 
+
+# image preprocessing for calibration
 def preprocess_for_onnx_mobilenetv2(image_path):
     import cv2
     import numpy as np
-    
+
     # read the image using openCV
     img = cv2.imread(image_path)
-    
+
     # convert to RGB
     img = img[:,:,::-1]
-    
+
     # Most of the onnx models are trained using
     # 224x224 images. The general rule of thumb
     # is to scale the input image while preserving
@@ -79,7 +79,7 @@ def preprocess_for_onnx_mobilenetv2(image_path):
     startx = new_width//2 - (224//2)
     starty = new_height//2 - (224//2)
     img = img[starty:starty+224,startx:startx+224]
-    
+
     # apply scaling and mean subtraction.
     # if your model is built with an input
     # normalization layer, then you might
@@ -87,10 +87,10 @@ def preprocess_for_onnx_mobilenetv2(image_path):
     img = img.astype('uint8')
     #for mean, scale, ch in zip([123.675, 116.28, 103.53], [0.017125, 0.017507, 0.017429], range(img.shape[2])):
     #        img[:,:,ch] = ((img.astype('float32')[:,:,ch] - mean) * scale)
-     
+
     # convert HWC to NCHW
     img = np.expand_dims(np.transpose(img, (2,0,1)),axis=0)
-    # hard coding config values 
+    # hard coding config values
     config = {
             'mean': [0, 0, 0],
             'scale' :[1, 1 , 1],
@@ -100,7 +100,7 @@ def preprocess_for_onnx_mobilenetv2(image_path):
             'model_type': 'classification',
             'model_path': model_path,
             'session_name' : models_configs[model_id]['session_name']}
-    
+
     gen_param_yaml(model_output_directory, config, 224, 224)
     return img
 
@@ -110,7 +110,7 @@ os.makedirs(model_output_directory, exist_ok=True)
 for root, dirs, files in os.walk(model_output_directory, topdown=False):
     [os.remove(os.path.join(root, f)) for f in files]
     [os.rmdir(os.path.join(root, d)) for d in dirs]
- 
+
 if args.offload:
     from tvm.relay.backend.contrib import tidl
 
@@ -118,7 +118,7 @@ if args.offload:
     assert args.num_subgraphs_max <= 16
 
     # Use advanced calibration for 8-bit quantization
-    # Use simple calibration for 16-bit quantization and float-mode 
+    # Use simple calibration for 16-bit quantization and float-mode
     advanced_options = {
         8 :  {
                 'calibration_iterations' : 10,
@@ -154,18 +154,19 @@ if args.offload:
         tensor_bits = args.num_bits,
         debug_level = 0,
         max_num_subgraphs = args.num_subgraphs_max,
+        c7x_codegen = 0,
         accuracy_level = (1 if args.num_bits == 8 else 0),
         advanced_options = advanced_options[args.num_bits],
         )
-    
+
     # partition the graph into TIDL operations and TVM operations
     mod, status = compiler.enable(mod, params, calib_input_list)
-        
+
     # build the relay module into deployables
     with tidl.build_config(tidl_compiler=compiler):
         graph, lib, params = relay.build_module.build(mod, target=build_target, params=params)
 
-    # remove nodes / params not needed for inference 
+    # remove nodes / params not needed for inference
     tidl.remove_tidl_params(params)
 else:
     import tvm
