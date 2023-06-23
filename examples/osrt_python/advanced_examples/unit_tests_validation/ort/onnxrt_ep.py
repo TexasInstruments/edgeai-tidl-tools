@@ -50,9 +50,9 @@ idx = 0
 nthreads = 0
 run_count = 0
 
-DEVICE = os.environ["DEVICE"]
+SOC = os.environ["SOC"]
 
-if(DEVICE == "am62"):
+if(SOC == "am62"):
     args.disable_offload = True
     args.compile = False
 
