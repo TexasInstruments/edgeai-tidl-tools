@@ -41,4 +41,4 @@ RUN bash -c 'if [ $USE_PROXY = "ti" ];then \
 
 RUN bash -c 'if [ $USE_PROXY = "ti" ];then echo -e "export ftp_proxy=http://webproxy.ext.ti.com:80\nexport http_proxy=http://webproxy.ext.ti.com:80\nexport https_proxy=http://webproxy.ext.ti.com:80\nexport no_proxy=ti.com " > ~/.bashrc;fi'
 # Code file to execute when the docker container starts up (`entrypoint.sh`)
-#ENTRYPOINT ["/root/edgeai-tidl-tools/entrypoint.sh"]
+ENTRYPOINT ["/root/edgeai-tidl-tools/entrypoint.sh"]

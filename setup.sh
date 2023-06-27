@@ -284,8 +284,8 @@ if [[ $arch == x86_64 ]]; then
 pip3 install pybind11[global]
     if [[ $use_local == 1 ]];then
         echo 'Installing python osrt packages from local...'
-        pip_install_local dlr-1.10.0-py3-none-any.whl
-        pip_install_local tvm-0.9.dev0-cp36-cp36m-linux_x86_64.whl
+        pip_install_local dlr-1.13.0-py3-none-any.whl
+        pip_install_local tvm-0.12.0-cp36-cp36m-linux_x86_64.whl 
         pip_install_local onnxruntime_tidl-1.7.0-cp36-cp36m-linux_x86_64.whl
         pip_install_local tflite_runtime-2.8.2-cp36-cp36m-linux_x86_64.whl
     else

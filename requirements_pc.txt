@@ -11,5 +11,7 @@ requests
 opencv-python
 pytest
 graphviz
+dataclasses
+gluoncv
 git+https://github.com/kumardesappan/caffe2onnx
 

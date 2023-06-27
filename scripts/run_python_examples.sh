@@ -11,6 +11,28 @@ echo 'Processor Architecture "'$arch'" is Not Supported '
 return
 fi
 
+run_model=1
+
+POSITIONAL=()
+while [[ $# -gt 0 ]]
+do
+key="$1"
+case $key in    
+    -o|--only_compile)
+    run_model=0
+    ;;                 
+    -h|--help)
+    echo Usage: $0 [options]
+    echo
+    echo Options,
+    echo --only_compile            use this flag to generate model artifacts
+    exit 0
+    ;;
+esac
+shift # past argument
+done
+set -- "${POSITIONAL[@]}" # restore positional parameters
+
 if [ -z "$SOC" ];then
     echo "SOC not defined. Run either of below commands"
     echo "export SOC=am62"
@@ -25,12 +47,18 @@ if [[ $SOC == am68pa ]]; then
     if [[ $arch == x86_64 ]]; then
     python3 tflrt_delegate.py -c
     fi
-    python3 tflrt_delegate.py
+    if [ $run_model != 0 ];then
+        echo "run python3 tflrt_delegate.py"
+        python3 tflrt_delegate.py
+    fi    
     cd $CURDIR/examples/osrt_python/ort
     if [[ $arch == x86_64 ]]; then
     python3 onnxrt_ep.py -c
     fi
-    python3 onnxrt_ep.py
+    if [ $run_model != 0 ];then
+        echo "run python3 onnxrt_ep.py"
+        python3 onnxrt_ep.py
+    fi    
     cd $CURDIR/examples/osrt_python/tvm_dlr
     if [[ $arch == x86_64 ]]; then
     python3  tvm_compilation_onnx_example.py --pc-inference
@@ -39,19 +67,28 @@ if [[ $SOC == am68pa ]]; then
     python3  tvm_compilation_tflite_example.py
     python3  tvm_compilation_timm_example.py
     fi
-    python3  dlr_inference_example.py 
+    if [ $run_model != 0 ];then
+        echo "run python3  dlr_inference_example.py "
+        python3  dlr_inference_example.py 
+    fi    
     cd $CURDIR
 elif [[ $SOC == am68a ]]; then
     cd $CURDIR/examples/osrt_python/tfl
     if [[ $arch == x86_64 ]]; then
     python3 tflrt_delegate.py -c
     fi
-    python3 tflrt_delegate.py
+    if [ $run_model != 0 ];then
+        echo "run python3 tflrt_delegate.py"
+        python3 tflrt_delegate.py
+    fi
     cd $CURDIR/examples/osrt_python/ort
     if [[ $arch == x86_64 ]]; then
     python3 onnxrt_ep.py -c
     fi
-    python3 onnxrt_ep.py
+    if [ $run_model != 0 ];then
+        echo "run python3 onnxrt_ep.py"
+        python3 onnxrt_ep.py
+    fi        
     cd $CURDIR/examples/osrt_python/tvm_dlr
     if [[ $arch == x86_64 ]]; then
     python3  tvm_compilation_onnx_example.py --pc-inference
@@ -60,19 +97,28 @@ elif [[ $SOC == am68a ]]; then
     python3  tvm_compilation_tflite_example.py
     python3  tvm_compilation_timm_example.py
     fi
-    python3  dlr_inference_example.py 
+    if [ $run_model != 0 ];then
+        echo "run python3  dlr_inference_example.py "
+        python3  dlr_inference_example.py 
+    fi    
     cd $CURDIR
 elif [[ $SOC == am69a ]]; then
     cd $CURDIR/examples/osrt_python/tfl
     if [[ $arch == x86_64 ]]; then
     python3 tflrt_delegate.py -c
     fi
-    python3 tflrt_delegate.py
+    if [ $run_model != 0 ];then
+        echo "run python3 tflrt_delegate.py"
+        python3 tflrt_delegate.py
+    fi    
     cd $CURDIR/examples/osrt_python/ort
     if [[ $arch == x86_64 ]]; then
     python3 onnxrt_ep.py -c
     fi
-    python3 onnxrt_ep.py
+    if [ $run_model != 0 ];then
+        echo "run python3 onnxrt_ep.py"
+        python3 onnxrt_ep.py
+    fi 
     cd $CURDIR/examples/osrt_python/tvm_dlr
     if [[ $arch == x86_64 ]]; then
     python3  tvm_compilation_onnx_example.py --pc-inference
@@ -81,25 +127,40 @@ elif [[ $SOC == am69a ]]; then
     python3  tvm_compilation_tflite_example.py
     python3  tvm_compilation_timm_example.py
     fi
-    python3  dlr_inference_example.py 
+    if [ $run_model != 0 ];then
+        echo "run python3  dlr_inference_example.py "
+        python3  dlr_inference_example.py 
+    fi 
     cd $CURDIR    
 elif [[ $SOC == am62 ]]; then
     cd $CURDIR/examples/osrt_python/tfl
-    python3 tflrt_delegate.py
+    if [ $run_model != 0 ];then
+        echo "run python3 tflrt_delegate.py"
+        python3 tflrt_delegate.py
+    fi 
     cd $CURDIR/examples/osrt_python/ort
-    python3 onnxrt_ep.py 
+    if [ $run_model != 0 ];then
+        echo "run python3 onnxrt_ep.py"
+        python3 onnxrt_ep.py
+    fi 
     cd $CURDIR
 elif [[ $SOC == am62a ]]; then
     cd $CURDIR/examples/osrt_python/tfl
     if [[ $arch == x86_64 ]]; then
     python3 tflrt_delegate.py -c
     fi
-    python3 tflrt_delegate.py
+    if [ $run_model != 0 ];then
+        echo "run python3 tflrt_delegate.py"
+        python3 tflrt_delegate.py
+    fi 
     cd $CURDIR/examples/osrt_python/ort
     if [[ $arch == x86_64 ]]; then
     python3 onnxrt_ep.py -c
     fi
-    python3 onnxrt_ep.py
+    if [ $run_model != 0 ];then
+        echo "run python3 onnxrt_ep.py"
+        python3 onnxrt_ep.py
+    fi 
     cd $CURDIR/examples/osrt_python/tvm_dlr
     if [[ $arch == x86_64 ]]; then
     python3  tvm_compilation_onnx_example.py --pc-inference
@@ -108,7 +169,10 @@ elif [[ $SOC == am62a ]]; then
     python3  tvm_compilation_tflite_example.py
     python3  tvm_compilation_timm_example.py
     fi
-    python3 dlr_inference_example.py
+    if [ $run_model != 0 ];then
+        echo "run python3  dlr_inference_example.py "
+        python3  dlr_inference_example.py 
+    fi
     cd $CURDIR    
 fi
 
