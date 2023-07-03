@@ -177,7 +177,7 @@ models_configs = {
         'model_type': 'od',
         'od_type' : 'SSD',
         'framework' : 'MMDetection',
-        'meta_layers_names_list' : os.path.join(models_base_path, 'ssd-lite_mobilenetv2_fpn.prototxt'),
+        'meta_layers_names_list' : os.path.join(models_base_path, 'ssd_mobilenetv2_lite_512x512_20201214_model.prototxt'),
         'session_name' : 'onnxrt' ,
         'meta_arch_type' : 3
     },
