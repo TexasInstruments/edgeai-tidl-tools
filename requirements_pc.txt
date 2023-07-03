@@ -1,7 +1,6 @@
 numpy==1.23.0
 pyyaml
 protobuf==3.19.4
-pybind11[global]
 https://github.com/TexasInstruments/onnx/archive/tidl-j7.zip
 tflite
 pillow==8.2.0

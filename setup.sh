@@ -277,6 +277,7 @@ REL=08_06_00_00
 # # Installing dependencies
 if [[ $arch == x86_64 && $skip_x86_python_install -eq 0 ]]; then   
     echo 'Installing python packages...'
+    pip3 install pybind11[global]
     pip3 install -r ./requirements_pc.txt
 fi
 if [[ $arch == x86_64  ]]; then

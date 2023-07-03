@@ -23,6 +23,12 @@ Detailed steps to use Docker based setup for X86_PC
           cd edgeai-tidl-tools
           git checkout <TAG Compatible with your SDK version>
 
+1. Steps to add docker to sudoers group
+
+          sudo groupadd docker
+          sudo usermod -aG docker $USER
+          newgrp docker # to reflect the changes in current session 
+
 1. Build Docker Image
           
           sudo docker build -f Dockerfile -t x86_ubuntu_18 .
