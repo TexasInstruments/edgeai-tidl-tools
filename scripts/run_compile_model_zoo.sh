@@ -29,6 +29,9 @@ export TIDL_TOOLS_PATH=$CURDIR/c7x-mma-tidl/tidl_tools/
 export LD_LIBRARY_PATH=$TIDL_TOOLS_PATH
 scripts_folder_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 
+cd scripts_folder_path/../
+source setup.sh  --skip_arm_gcc_download --skip_cpp_deps
+cd -
 
 # compile zoo models
 cd $scripts_folder_path/../examples/osrt_python/tfl
