@@ -46,7 +46,7 @@ if platform.machine() == 'aarch64':
     ncpus = 1
 else:
     ncpus = os.cpu_count()
-ncpus = 1
+#ncpus = 1
 idx = 0
 nthreads = 0
 run_count = 0
