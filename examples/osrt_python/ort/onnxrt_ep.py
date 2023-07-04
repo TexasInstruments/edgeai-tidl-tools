@@ -35,10 +35,10 @@ so = rt.SessionOptions()
 print("Available execution providers : ", rt.get_available_providers())
 
 calib_images = ['../../../test_data/airshow.jpg',
-                '../../../test_data/000000262587.jpg']
+                '../../../test_data/ADE_val_00001801.jpg']
 class_test_images = ['../../../test_data/airshow.jpg']
-od_test_images    = ['../../../test_data/000000262587.jpg']
-seg_test_images   = ['../../../test_data/000000262587.jpg']
+od_test_images    = ['../../../test_data/ADE_val_00001801.jpg']
+seg_test_images   = ['../../../test_data/ADE_val_00001801.jpg']
 
 
 sem = multiprocessing.Semaphore(0)
