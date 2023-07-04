@@ -297,15 +297,25 @@ def det_box_overlay(outputs, org_image_rgb, od_type, framework=None):
     draw = ImageDraw.Draw(source_img)
     #mmdet
     if(framework == "MMDetection"):
-        outputs = [np.squeeze(output_i) for output_i in outputs]
-        num_boxes = int(outputs[0].shape[0])
-        for i in range(num_boxes):
-            if(outputs[0][i][4] > 0.3) :
-                xmin = outputs[0][i][0]
-                ymin = outputs[0][i][1]
-                xmax = outputs[0][i][2]
-                ymax = outputs[0][i][3]
-                draw.rectangle(((int(xmin), int(ymin)), (int(xmax), int(ymax))), outline = colors_list[int(outputs[1][i])%len(colors_list)], width=2)
+        if(len(outputs[0].shape) == 2):
+            num_boxes = int(outputs[0].shape[0])        
+            for i in range(num_boxes):
+                if(outputs[0][i][4] > 0.3) :
+                    xmin = outputs[0][i][0]
+                    ymin = outputs[0][i][1]
+                    xmax = outputs[0][i][2]
+                    ymax = outputs[0][i][3]
+                    print(outputs[1][i])
+                    draw.rectangle(((int(xmin), int(ymin)), (int(xmax), int(ymax))), outline = colors_list[int(outputs[1][i])%len(colors_list)], width=2)
+        elif(len(outputs[0].shape) == 1):
+            num_boxes = 1    
+            for i in range(num_boxes):
+                if(outputs[i][4] > 0.3) :
+                    xmin = outputs[i][0]
+                    ymin = outputs[i][1]
+                    xmax = outputs[i][2]
+                    ymax = outputs[i][3]
+                    draw.rectangle(((int(xmin), int(ymin)), (int(xmax), int(ymax))), outline = colors_list[int(outputs[1])%len(colors_list)], width=2)
     #SSD
     elif(od_type == 'SSD'):
         outputs = [np.squeeze(output_i) for output_i in outputs]

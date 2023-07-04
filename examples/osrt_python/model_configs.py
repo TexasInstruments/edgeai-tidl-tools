@@ -186,7 +186,7 @@ models_configs = {
         'source' : {'model_url': 'http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models//vision/detection/coco/edgeai-mmdet/yolox_nano_lite_416x416_20220214_model.onnx', 'opt': True,  'infer_shape' : True, \
                     'meta_arch_url' : 'http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models//vision/detection/coco/edgeai-mmdet/yolox_nano_lite_416x416_20220214_model.prototxt'},
         'mean': [0, 0, 0],
-        'scale' : [0.003921568627,0.003921568627,0.003921568627],
+        'scale' : [1, 1, 1],
         'num_images' : numImages,
         'num_classes': 91,
         'model_type': 'od',
@@ -201,7 +201,7 @@ models_configs = {
         'source' : {'model_url': 'http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models//vision/detection/coco/edgeai-mmdet/yolox_s_lite_640x640_20220221_model.onnx', 'opt': True,  'infer_shape' : True, \
                     'meta_arch_url' : 'http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models//vision/detection/coco/edgeai-mmdet/yolox_s_lite_640x640_20220221_model.prototxt'},
         'mean': [0, 0, 0],
-        'scale' : [0.003921568627,0.003921568627,0.003921568627],
+        'scale' : [1, 1, 1],
         'num_images' : numImages,
         'num_classes': 91,
         'model_type': 'od',

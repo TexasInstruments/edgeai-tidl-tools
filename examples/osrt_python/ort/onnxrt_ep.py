@@ -35,10 +35,10 @@ so = rt.SessionOptions()
 print("Available execution providers : ", rt.get_available_providers())
 
 calib_images = ['../../../test_data/airshow.jpg',
-                '../../../test_data/ADE_val_00001801.jpg']
+                '../../../test_data/000000262587.jpg']
 class_test_images = ['../../../test_data/airshow.jpg']
-od_test_images    = ['../../../test_data/ADE_val_00001801.jpg']
-seg_test_images   = ['../../../test_data/ADE_val_00001801.jpg']
+od_test_images    = ['../../../test_data/000000262587.jpg']
+seg_test_images   = ['../../../test_data/000000262587.jpg']
 
 
 sem = multiprocessing.Semaphore(0)
@@ -247,10 +247,10 @@ models = ['cl-ort-resnet18-v1', 'cl-ort-caffe_squeezenet_v1_1', 'ss-ort-deeplabv
 if ( args.run_model_zoo ):
     models = [
              'od-8020_onnxrt_coco_edgeai-mmdet_ssd_mobilenetv2_lite_512x512_20201214_model_onnx',
-            #  'od-8200_onnxrt_coco_edgeai-mmdet_yolox_nano_lite_416x416_20220214_model_onnx',# infer not working 
+             'od-8200_onnxrt_coco_edgeai-mmdet_yolox_nano_lite_416x416_20220214_model_onnx',
             #  'od-8420_onnxrt_widerface_edgeai-mmdet_yolox_s_lite_640x640_20220307_model_onnx',# not working - 
-             'ss-8610_onnxrt_ade20k32_edgeai-tv_deeplabv3plus_mobilenetv2_edgeailite_512x512_20210308_outby4_onnx',\
-            #  'od-8220_onnxrt_coco_edgeai-mmdet_yolox_s_lite_640x640_20220221_model_onnx',# infer not working \ 
+             'ss-8610_onnxrt_ade20k32_edgeai-tv_deeplabv3plus_mobilenetv2_edgeailite_512x512_20210308_outby4_onnx',
+             'od-8220_onnxrt_coco_edgeai-mmdet_yolox_s_lite_640x640_20220221_model_onnx',
              'cl-6360_onnxrt_imagenet1k_fbr-pycls_regnetx-200mf_onnx'
             ]
 log = f'\nRunning {len(models)} Models - {models}\n'
