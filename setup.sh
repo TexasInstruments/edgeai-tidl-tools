@@ -365,6 +365,22 @@ if [[ $arch == x86_64 && $skip_arm_gcc_download -eq 0 ]]; then
     fi
 fi
 
+if [[ $arch == x86_64 ]]; then
+    if [ -f $CGT7X_ROOT/bin/cl7x ]; then
+        echo "CGT7X_ROOT already set to $CGT7X_ROOT, skipping download"
+    else
+        if [ ! -d ti-cgt-c7000_3.1.0.LTS ];then
+            wget --quiet https://dr-download.ti.com/software-development/ide-configuration-compiler-or-debugger/MD-707zYe3Rik/3.1.0.LTS/ti_cgt_c7000_3.1.0.LTS_linux-x64_installer.bin
+            chmod +x ti_cgt_c7000_3.1.0.LTS_linux-x64_installer.bin
+            ./ti_cgt_c7000_3.1.0.LTS_linux-x64_installer.bin --mode unattended --installdir $(pwd)
+            export CGT7X_ROOT=$(pwd)/ti-cgt-c7000_3.1.0.LTS
+        else
+            echo "skipping ti-cgt-c7000_3.1.0.LTS download: found $(pwd)/ti-cgt-c7000_3.1.0.LTS"
+            export CGT7X_ROOT=$(pwd)/ti-cgt-c7000_3.1.0.LTS
+        fi
+    fi
+fi
+
 if [ $skip_cpp_deps -eq 0 ]; then
     if [[ $arch == x86_64 ]]; then
         if [ -d $TIDL_TOOLS_PATH/osrt_deps ];then
