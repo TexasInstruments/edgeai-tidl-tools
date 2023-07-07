@@ -297,6 +297,7 @@ def det_box_overlay(outputs, org_image_rgb, od_type, framework=None):
     draw = ImageDraw.Draw(source_img)
     #mmdet
     if(framework == "MMDetection"):
+        outputs = [np.squeeze(output_i) for output_i in outputs]
         if(len(outputs[0].shape) == 2):
             num_boxes = int(outputs[0].shape[0])        
             for i in range(num_boxes):
