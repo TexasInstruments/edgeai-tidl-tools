@@ -84,7 +84,15 @@ def infer_image(sess):
 
   for i in range(len(input_details)):
     np.random.seed(0)
-    input_data = np.random.randn(*input_details[i].shape).astype(np.float32)
+    if(input_details[i].type == 'tensor(float)'):
+        input_data = np.random.randn(*input_details[i].shape).astype(np.float32)
+    elif(input_details[i].type == 'tensor(int64)'):
+        input_data = np.random.randn(*input_details[i].shape).astype(np.int64)
+    elif(input_details[i].type == 'tensor(uint8)'):
+        input_data = np.random.randn(*input_details[i].shape).astype(np.uint8)
+    else:
+        input_data = np.random.randn(*input_details[i].shape).astype(np.float32)
+        
     input_dict[input_details[i].name] = input_data
   
   start_time = time.time()
