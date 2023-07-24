@@ -9,10 +9,10 @@ if [ ! -f miniconda.sh   ];then
     wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh 
 fi
 
-if [ ! -d gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu  ];then
-    wget https://developer.arm.com/-/media/Files/downloads/gnu-a/9.2-2019.12/binrel/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu.tar.xz
-    tar -xf gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu.tar.xz
-    rm gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu.tar.xz
+if [ ! -d gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu  ];then    
+    wget https://developer.arm.com/-/media/Files/downloads/gnu/11.3.rel1/binrel/arm-gnu-toolchain-11.3.rel1-x86_64-aarch64-none-linux-gnu.tar.xz
+    tar -xf arm-gnu-toolchain-11.3.rel1-x86_64-aarch64-none-linux-gnu.tar.xz
+    rm arm-gnu-toolchain-11.3.rel1-x86_64-aarch64-none-linux-gnu.tar.xz
 fi
 
 if [ ! -d targetfs  ];then
