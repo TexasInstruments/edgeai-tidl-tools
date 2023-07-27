@@ -24,7 +24,22 @@ RUN bash -c 'if [ $USE_PROXY = "ti" ];then \
                 apt-get update;\
                 apt-get install -y cmake libprotobuf-dev protobuf-compiler libprotoc-dev graphviz swig curl vim git wget gdb nano zip pkg-config libgtk-3-dev libyaml-cpp-dev;\
             fi'
-                       
+COPY requirements_pc.txt /requirements_pc.txt
+RUN bash c 'if [ $USE_PROXY = "ti" ];then \
+                export ftp_proxy=http://webproxy.ext.ti.com:80;\
+                export http_proxy=http://webproxy.ext.ti.com:80;\
+                export https_proxy=http://webproxy.ext.ti.com:80;\
+                export HTTP_PROXY=http://webproxy.ext.ti.com:80\
+                export HTTPS_PROXY=http://webproxy.ext.ti.com:80\
+                export no_proxy=ti.com;\
+                pip3 install pybind11[global];\
+                pip3 list;\
+                pip3 install r /requirements_pc.txt;\
+            elif [ $USE_PROXY = "" ];then \
+                pip3 install pybind11[global]\
+                pip3 install r /requirements_pc.txt;\
+            fi'
+
 RUN bash -c 'if [ $USE_PROXY = "ti" ];then echo -e "export ftp_proxy=http://webproxy.ext.ti.com:80\nexport http_proxy=http://webproxy.ext.ti.com:80\nexport https_proxy=http://webproxy.ext.ti.com:80\nexport no_proxy=ti.com " > ~/.bashrc;fi'
 # Code file to execute when the docker container starts up (`entrypoint.sh`)
 #ENTRYPOINT ["/root/edgeai-tidl-tools/entrypoint.sh"]

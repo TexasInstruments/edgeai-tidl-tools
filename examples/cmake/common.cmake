@@ -25,8 +25,8 @@ endif()
 if (EXISTS $ENV{TIDL_TOOLS_PATH}/osrt_deps/tflite_2.8/) # check for container
   set(TENSORFLOW_INSTALL_DIR $ENV{TIDL_TOOLS_PATH}/osrt_deps/tflite_2.8/)
   message (STATUS  "setting TENSORFLOW_INSTALL_DIR path:${TENSORFLOW_INSTALL_DIR}") # check for PC
-elseif (EXISTS $ENV{TIDL_TOOLS_PATH}/osrt_deps/tflite_2.8_x86_u18/)
-  set(TENSORFLOW_INSTALL_DIR $ENV{TIDL_TOOLS_PATH}/osrt_deps/tflite_2.8_x86_u18/)
+elseif (EXISTS $ENV{TIDL_TOOLS_PATH}/osrt_deps/tflite_2.8_x86_u22/)
+  set(TENSORFLOW_INSTALL_DIR $ENV{TIDL_TOOLS_PATH}/osrt_deps/tflite_2.8_x86_u22/)
   message (STATUS  "setting TENSORFLOW_INSTALL_DIR path:${TENSORFLOW_INSTALL_DIR}")
 else()
   # avoid warning in case of hw accelerated device which have this in filesystem
@@ -36,8 +36,8 @@ else()
 endif()
 
 
-if (EXISTS $ENV{TIDL_TOOLS_PATH}/osrt_deps/onnx_1.7.0_x86_u18/)
-  set(ONNXRT_INSTALL_DIR $ENV{TIDL_TOOLS_PATH}/osrt_deps/onnx_1.7.0_x86_u18/)# check for PC
+if (EXISTS $ENV{TIDL_TOOLS_PATH}/osrt_deps/onnx_1.7.0_x86_u22/)
+  set(ONNXRT_INSTALL_DIR $ENV{TIDL_TOOLS_PATH}/osrt_deps/onnx_1.7.0_x86_u22/)# check for PC
 else()
   # avoid warning in case of  hw accelerated device which have this in filesystem
   if( NOT ((NOT ${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" AND ${HOST_CPU} STREQUAL  "arm"))  )
@@ -45,8 +45,8 @@ else()
   endif()
 endif()
 
-if (EXISTS $ENV{TIDL_TOOLS_PATH}/osrt_deps/dlr_1.10.0_x86_u18/)
-  set(DLR_INSTALL_DIR $ENV{TIDL_TOOLS_PATH}/osrt_deps/dlr_1.10.0_x86_u18/)
+if (EXISTS $ENV{TIDL_TOOLS_PATH}/osrt_deps/dlr_1.10.0_x86_u22/)
+  set(DLR_INSTALL_DIR $ENV{TIDL_TOOLS_PATH}/osrt_deps/dlr_1.10.0_x86_u22/)
   message (STATUS  "setting DLR_INSTALL_DIR path:${DLR_INSTALL_DIR}")
 else()
   # avoid warning in case of hw accelerated device which have this in filesystem
@@ -56,8 +56,8 @@ else()
 endif()
 
 
-if (EXISTS $ENV{TIDL_TOOLS_PATH}/osrt_deps/opencv_4.2.0_x86_u18/)
-  set(OPENCV_INSTALL_DIR $ENV{TIDL_TOOLS_PATH}/osrt_deps/opencv_4.2.0_x86_u18/)
+if (EXISTS $ENV{TIDL_TOOLS_PATH}/osrt_deps/opencv_4.2.0_x86_u22/)
+  set(OPENCV_INSTALL_DIR $ENV{TIDL_TOOLS_PATH}/osrt_deps/opencv_4.2.0_x86_u22/)
   message (STATUS  "setting OPENCV_INSTALL_DIR path:${OPENCV_INSTALL_DIR}")
 elseif (EXISTS $ENV{TIDL_TOOLS_PATH}/osrt_deps/opencv-4.1.0/)
   set(OPENCV_INSTALL_DIR $ENV{TIDL_TOOLS_PATH}/osrt_deps/opencv-4.1.0/)

@@ -271,7 +271,7 @@ if [ -z "$SOC" ];then
     echo "export SOC=am69a"
     return
 fi
-REL=09_00_00_00
+REL=09_00_00_01
 
 # ######################################################################
 # # Installing dependencies
@@ -281,6 +281,7 @@ if [[ $arch == x86_64 && $skip_x86_python_install -eq 0 ]]; then
     pip3 install -r ./requirements_pc.txt
 fi
 if [[ $arch == x86_64 ]]; then
+pip3 install pybind11[global]
     if [[ $use_local == 1 ]];then
         echo 'Installing python osrt packages from local...'
         pip_install_local dlr-1.10.0-py3-none-any.whl
@@ -389,74 +390,74 @@ if [ $skip_cpp_deps -eq 0 ]; then
         mkdir  $TIDL_TOOLS_PATH/osrt_deps
         cd  $TIDL_TOOLS_PATH/osrt_deps
         # onnx
-        if [ ! -d onnx_1.7.0_x86_u18 ];then
+        if [ ! -d onnx_1.7.0_x86_u22 ];then
             echo "Installing:onnxruntime"
-            if [ -f onnx_1.7.0_x86_u18.tar.gz ];then
-                rm onnx_1.7.0_x86_u18.tar.gz
+            if [ -f onnx_1.7.0_x86_u22.tar.gz ];then
+                rm onnx_1.7.0_x86_u22.tar.gz
             fi
             if [[ $use_local == 1 ]];then
-                cp_osrt_lib onnx_1.7.0_x86_u18.tar.gz
+                cp_osrt_lib onnx_1.7.0_x86_u22.tar.gz
             else    
-                wget --quiet   https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/onnx_1.7.0_x86_u18.tar.gz
+                wget --quiet   https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/onnx_1.7.0_x86_u22.tar.gz
             fi
-            tar -xf onnx_1.7.0_x86_u18.tar.gz
-            cd onnx_1.7.0_x86_u18
-            ln -s libonnxruntime.so libonnxruntime.so.1.7.0
+            tar -xf onnx_1.7.0_x86_u22.tar.gz
+            cd onnx_1.7.0_x86_u22
+            ln -s libonnxruntime.so.1.7.0 libonnxruntime.so 
             cd ../
-            rm onnx_1.7.0_x86_u18.tar.gz    -r
+            rm onnx_1.7.0_x86_u22.tar.gz
         else
             echo "skipping onnxruntime setup: found $TIDL_TOOLS_PATH/osrt_deps/onnxruntime"
             echo "To redo the setup delete:$TIDL_TOOLS_PATH/osrt_deps/onnxruntime and run this script again"
         fi
         # tflite_2.8
-        if [ ! -d tflite_2.8_x86_u18 ];then
+        if [ ! -d tflite_2.8_x86_u22 ];then
             echo "Installing:tflite_2.8"
-            if [ -f tflite_2.8_x86_u18.tar.gz ];then
-                rm tflite_2.8_x86_u18.tar.gz
+            if [ -f tflite_2.8_x86_u22.tar.gz ];then
+                rm tflite_2.8_x86_u22.tar.gz
             fi
             if [[ $use_local == 1 ]];then
-                cp_osrt_lib tflite_2.8_x86_u18.tar.gz
+                cp_osrt_lib tflite_2.8_x86_u22.tar.gz
             else    
-                wget --quiet   https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/tflite_2.8_x86_u18.tar.gz
+                wget --quiet   https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/tflite_2.8_x86_u22.tar.gz
             fi            
-            tar -xf tflite_2.8_x86_u18.tar.gz        
-            rm tflite_2.8_x86_u18.tar.gz   -r
+            tar -xf tflite_2.8_x86_u22.tar.gz        
+            rm tflite_2.8_x86_u22.tar.gz   -r
         else
             echo "skipping tensorflow setup: found $TIDL_TOOLS_PATH/osrt_deps/tensorflow"
             echo "To redo the setup delete:$TIDL_TOOLS_PATH/osrt_deps/tensorflow and run this script again"
         fi
 
         #opencv
-        if [ ! -d  opencv_4.2.0_x86_u18 ];then
+        if [ ! -d  opencv_4.2.0_x86_u22 ];then 
             echo "Installing:opencv"
-            if [ -f opencv_4.2.0_x86_u18.tar.gz ];then
-                rm opencv_4.2.0_x86_u18.tar.gz
+            if [ -f opencv_4.2.0_x86_u22.tar.gz ];then
+                rm opencv_4.2.0_x86_u22.tar.gz
             fi
             if [[ $use_local == 1 ]];then
-                cp_osrt_lib opencv_4.2.0_x86_u18.tar.gz
+                cp_osrt_lib opencv_4.2.0_x86_u22.tar.gz
             else    
-                wget --quiet   https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/opencv_4.2.0_x86_u18.tar.gz
+                wget --quiet   https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/opencv_4.2.0_x86_u22.tar.gz
             fi             
-            tar -xf opencv_4.2.0_x86_u18.tar.gz 
-            rm opencv_4.2.0_x86_u18.tar.gz
+            tar -xf opencv_4.2.0_x86_u22.tar.gz 
+            rm opencv_4.2.0_x86_u22.tar.gz
         else
             echo "skipping opencv-4.2.0 setup: found $TIDL_TOOLS_PATH/osrt_deps/opencv-4.2.0_x86_u18"
             echo "To redo the setup delete:$TIDL_TOOLS_PATH/osrt_deps/opencv-4.2.0_x86_u18 and run this script again"
         fi
 
         #dlr
-        if [ ! -d dlr_1.10.0_x86_u18 ];then
+        if [ ! -d dlr_1.10.0_x86_u22 ];then
             echo "Installing:dlr"
-            if [ -f dlr_1.10.0_x86_u18.tar.gz ];then
-                rm dlr_1.10.0_x86_u18.tar.gz
+            if [ -f dlr_1.10.0_x86_u22.tar.gz ];then
+                rm dlr_1.10.0_x86_u22.tar.gz
             fi            
             if [[ $use_local == 1 ]];then
-                cp_osrt_lib dlr_1.10.0_x86_u18.tar.gz
+                cp_osrt_lib dlr_1.10.0_x86_u22.tar.gz
             else    
-                wget --quiet   https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/dlr_1.10.0_x86_u18.tar.gz
+                wget --quiet   https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/dlr_1.10.0_x86_u22.tar.gz
             fi             
-            tar -xf dlr_1.10.0_x86_u18.tar.gz
-            rm dlr_1.10.0_x86_u18.tar.gz   -r
+            tar -xf dlr_1.10.0_x86_u22.tar.gz
+            rm dlr_1.10.0_x86_u22.tar.gz   -r
         else
             echo "skipping neo-ai-dlr setup: found $TIDL_TOOLS_PATH/osrt_deps/neo-ai-dlr"
             echo "To redo the setup delete:$TIDL_TOOLS_PATH/osrt_deps/neo-ai-dlr and run this script again"
