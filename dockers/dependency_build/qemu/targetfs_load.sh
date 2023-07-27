@@ -6,7 +6,7 @@ if [ $# -eq 0 ]
     exit
 fi
 
-REL=09_00_00_00
+REL=09_00_00_01
 SCRIPTDIR=`pwd`
 TARGET_FS_PATH=$1
 echo "installing dependedcies at $TARGET_FS_PATH"
