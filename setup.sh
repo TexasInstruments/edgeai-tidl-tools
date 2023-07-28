@@ -152,12 +152,12 @@ download_armnn_lib(){
 
 pip_install_local()
 {
-    if [ -f $LOCAL_PATH/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/$1 ];then
-        echo "Local file  found. Installing $LOCAL_PATH/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/$1"
-        pip3 install --force-reinstall $LOCAL_PATH/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/$1
+    if [ -f $LOCAL_PATH/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/$1 ];then
+        echo "Local file  found. Installing $LOCAL_PATH/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/$1"
+        pip3 install --force-reinstall $LOCAL_PATH/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/$1
     else
-        echo "Local file not found at $LOCAL_PATH/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/$1. Installing default  https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/$1"
-        pip3 install --force-reinstall  https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/$1
+        echo "Local file not found at $LOCAL_PATH/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/$1. Installing default  https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/$1"
+        pip3 install --force-reinstall  https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/$1
     fi
 }
 
@@ -175,13 +175,13 @@ cp_tidl_tools()
 
 cp_osrt_lib()
 { 
-    if [ -f $LOCAL_PATH/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/$1 ];then
-        echo "Local file  found. Copying $LOCAL_PATH/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/$1"
-        cp  $LOCAL_PATH/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/$1 .
+    if [ -f $LOCAL_PATH/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/$1 ];then
+        echo "Local file  found. Copying $LOCAL_PATH/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/$1"
+        cp  $LOCAL_PATH/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/$1 .
         
     else
-        echo "Local file not found at  $LOCAL_PATH/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/$1 . Downloading  default https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/$1"
-        wget --quiet  https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_18_04/$1
+        echo "Local file not found at  $LOCAL_PATH/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/$1 . Downloading  default https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/$1"
+        wget --quiet  https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/$1
     fi
 }
 
@@ -353,7 +353,7 @@ if [ -z "$TIDL_TOOLS_PATH" ]; then
     cd ..
 fi
 
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$TIDL_TOOLS_PATH:$TIDL_TOOLS_PATH/osrt_deps
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$TIDL_TOOLS_PATH:$TIDL_TOOLS_PATH/osrt_deps:$TIDL_TOOLS_PATH/osrt_deps/opencv/
 
 if [[ $arch == x86_64 && $skip_arm_gcc_download -eq 0 ]]; then
     if [ ! -d gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu ];then
@@ -402,7 +402,12 @@ if [ $skip_cpp_deps -eq 0 ]; then
             fi
             tar -xf onnx_1.7.0_x86_u22.tar.gz
             cd onnx_1.7.0_x86_u22
-            ln -s libonnxruntime.so.1.7.0 libonnxruntime.so 
+            if [ ! -f libonnxruntime.so ];then
+                ln -s libonnxruntime.so.1.7.0 libonnxruntime.so 
+            fi
+            if [ ! -f libonnxruntime.so.1.7.0 ];then
+                ln -s libonnxruntime.so libonnxruntime.so.1.7.0 
+            fi
             cd ../
             rm onnx_1.7.0_x86_u22.tar.gz
         else
@@ -420,7 +425,8 @@ if [ $skip_cpp_deps -eq 0 ]; then
             else    
                 wget --quiet   https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/tflite_2.8_x86_u22.tar.gz
             fi            
-            tar -xf tflite_2.8_x86_u22.tar.gz        
+            tar -xf tflite_2.8_x86_u22.tar.gz  
+            mkdir tflite_2.8_x86_u22 && tar xf tflite_2.8_x86_u22.tar.gz -C tflite_2.8_x86_u22 --strip-components 1      
             rm tflite_2.8_x86_u22.tar.gz   -r
         else
             echo "skipping tensorflow setup: found $TIDL_TOOLS_PATH/osrt_deps/tensorflow"
@@ -437,12 +443,12 @@ if [ $skip_cpp_deps -eq 0 ]; then
                 cp_osrt_lib opencv_4.2.0_x86_u22.tar.gz
             else    
                 wget --quiet   https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/opencv_4.2.0_x86_u22.tar.gz
-            fi             
-            tar -xf opencv_4.2.0_x86_u22.tar.gz 
+            fi
+            mkdir opencv_4.2.0_x86_u22 && tar xf opencv_4.2.0_x86_u22.tar.gz -C opencv_4.2.0_x86_u22 --strip-components 1
             rm opencv_4.2.0_x86_u22.tar.gz
         else
-            echo "skipping opencv-4.2.0 setup: found $TIDL_TOOLS_PATH/osrt_deps/opencv-4.2.0_x86_u18"
-            echo "To redo the setup delete:$TIDL_TOOLS_PATH/osrt_deps/opencv-4.2.0_x86_u18 and run this script again"
+            echo "skipping opencv-4.2.0 setup: found $TIDL_TOOLS_PATH/osrt_deps/opencv-4.2.0_x86_u22"
+            echo "To redo the setup delete:$TIDL_TOOLS_PATH/osrt_deps/opencv-4.2.0_x86_u22 and run this script again"
         fi
 
         #dlr
@@ -455,8 +461,8 @@ if [ $skip_cpp_deps -eq 0 ]; then
                 cp_osrt_lib dlr_1.10.0_x86_u22.tar.gz
             else    
                 wget --quiet   https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/dlr_1.10.0_x86_u22.tar.gz
-            fi             
-            tar -xf dlr_1.10.0_x86_u22.tar.gz
+            fi   
+            mkdir dlr_1.10.0_x86_u22 && tar xf dlr_1.10.0_x86_u22.tar.gz -C dlr_1.10.0_x86_u22 --strip-components 1
             rm dlr_1.10.0_x86_u22.tar.gz   -r
         else
             echo "skipping neo-ai-dlr setup: found $TIDL_TOOLS_PATH/osrt_deps/neo-ai-dlr"
