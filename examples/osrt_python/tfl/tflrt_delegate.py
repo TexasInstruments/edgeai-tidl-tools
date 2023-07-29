@@ -169,7 +169,11 @@ def run_model(model, mIdx):
     if(args.compile):
         if numFrames > delegate_options['advanced_options:calibration_frames']:
             numFrames = delegate_options['advanced_options:calibration_frames']
-
+    
+    if(model == 'cl-tfl-mobilenetv2_4batch'):
+        delegate_options['advanced_options:inference_mode'] = 1
+        delegate_options['advanced_options:num_cores'] = 4
+    
     ############   set interpreter  ################################
     if args.disable_offload : 
         interpreter = tflite.Interpreter(model_path=config['model_path'], num_threads=2)
@@ -233,6 +237,9 @@ def run_model(model, mIdx):
         sem.release()
 
 models = ['cl-tfl-mobilenet_v1_1.0_224', 'ss-tfl-deeplabv3_mnv2_ade20k_float', 'od-tfl-ssd_mobilenet_v2_300_float', 'od-tfl-ssdlite_mobiledet_dsp_320x320_coco']
+if(SOC == "am69a"):
+    models.append('cl-tfl-mobilenetv2_4batch')
+
 if ( args.run_model_zoo ):
     models = [ 
             'cl-0000_tflitert_imagenet1k_mlperf_mobilenet_v1_1.0_224_tflite',\

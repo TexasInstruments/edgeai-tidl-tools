@@ -21,6 +21,16 @@ models_configs = {
         'session_name' : 'onnxrt' ,
         'model_type': 'classification'
     },
+    'cl-ort-resnet18-v1_4batch' : {
+        'model_path' : os.path.join(models_base_path, 'resnet18_opset9_4batch.onnx'),
+        'source' : {'model_url': 'http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models/vision/classification/imagenet1k/torchvision/resnet18_opset9_4batch.onnx', 'opt': True,  'infer_shape' : True},
+        'mean': [123.675, 116.28, 103.53],
+        'scale' : [0.017125, 0.017507, 0.017429],
+        'num_images' : numImages,
+        'num_classes': 1000,
+        'session_name' : 'onnxrt' ,
+        'model_type': 'classification'
+    },
     'ss-ort-deeplabv3lite_mobilenetv2' : {
         'model_path' : os.path.join(models_base_path, 'deeplabv3lite_mobilenetv2.onnx'),
         'source' : {'model_url': 'https://git.ti.com/cgit/jacinto-ai/jacinto-ai-modelzoo/plain/models/vision/segmentation/ade20k32/jai-pytorch/deeplabv3lite_mobilenetv2_512x512_ade20k32_20210308.onnx', 'opt': True,  'infer_shape' : True},
@@ -50,6 +60,16 @@ models_configs = {
     'cl-tfl-mobilenet_v1_1.0_224' : {
         'model_path' : os.path.join(models_base_path, 'mobilenet_v1_1.0_224.tflite'),
         'source' : {'model_url': 'http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models/vision/classification/imagenet1k/tf1-models/mobilenet_v1_1.0_224.tflite', 'opt': True},
+        'mean': [127.5, 127.5, 127.5],
+        'scale' : [1/127.5, 1/127.5, 1/127.5],
+        'num_images' : numImages,
+        'num_classes': 1001,
+        'session_name' : 'tflitert',
+        'model_type': 'classification'
+    },
+    'cl-tfl-mobilenetv2_4batch' : {
+        'model_path' : os.path.join(models_base_path, 'mobilenetv2_4batch.tflite'),
+        'source' : {'model_url': 'http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models/vision/classification/imagenet1k/tf1-models/mobilenetv2_4batch.tflite', 'opt': True},
         'mean': [127.5, 127.5, 127.5],
         'scale' : [1/127.5, 1/127.5, 1/127.5],
         'num_images' : numImages,

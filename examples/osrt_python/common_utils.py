@@ -41,6 +41,8 @@ mixed_precision_factor = -1
 quantization_scale_type = 0
 high_resolution_optimization = 0
 pre_batchnorm_fold = 1
+inference_mode = 0
+num_cores = 1
 ti_internal_nc_flag = 1601
 
 data_convert = 3
@@ -86,7 +88,10 @@ optional_options = {
 "advanced_options:weight_clipping" : weight_clipping,
 "advanced_options:bias_calibration" : bias_calibration,
 "advanced_options:add_data_convert_ops" : data_convert,
-"advanced_options:channel_wise_quantization" : channel_wise_quantization
+"advanced_options:channel_wise_quantization" : channel_wise_quantization,
+# Advanced options for SOC 'am69a' 
+"advanced_options:inference_mode" : inference_mode,
+"advanced_options:num_cores" : num_cores
 }
 
 modelzoo_path = '../../../../../../jacinto-ai-modelzoo/models'

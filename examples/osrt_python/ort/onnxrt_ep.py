@@ -46,6 +46,7 @@ if platform.machine() == 'aarch64':
     ncpus = 1
 else:
     ncpus = os.cpu_count()
+
 #ncpus = 1
 idx = 0
 nthreads = 0
@@ -176,6 +177,10 @@ def run_model(model, mIdx):
         if numFrames > delegate_options['advanced_options:calibration_frames']:
             numFrames = delegate_options['advanced_options:calibration_frames']
     
+    if(model == 'cl-ort-resnet18-v1_4batch'):
+        delegate_options['advanced_options:inference_mode'] = 1
+        delegate_options['advanced_options:num_cores'] = 4
+    
     ############   set interpreter  ################################
     if args.disable_offload : 
         EP_list = ['CPUExecutionProvider']
@@ -244,6 +249,9 @@ def run_model(model, mIdx):
 #models = models_configs.keys()
 
 models = ['cl-ort-resnet18-v1', 'cl-ort-caffe_squeezenet_v1_1', 'ss-ort-deeplabv3lite_mobilenetv2', 'od-ort-ssd-lite_mobilenetv2_fpn']
+if(SOC == "am69a"):
+    models.append('cl-ort-resnet18-v1_4batch')
+
 if ( args.run_model_zoo ):
     models = [
              'od-8020_onnxrt_coco_edgeai-mmdet_ssd_mobilenetv2_lite_512x512_20201214_model_onnx',

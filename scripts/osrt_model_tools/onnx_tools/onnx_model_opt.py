@@ -197,7 +197,25 @@ def tidlOnnxModelIntermediateNamesPruner(in_model_path, out_model_path, updateGr
     
     return
 
+def createBatchModel(in_model_path, out_model_path, batch_dim):
+    # #Read ONNX Model
+    model = onnx.load_model(in_model_path)
+    inferred_model = shape_inference.infer_shapes(model)
+    for node in inferred_model.graph.value_info:
+        node.type.tensor_type.shape.dim[0].dim_value = batch_dim
+    for input in inferred_model.graph.input:
+        input.type.tensor_type.shape.dim[0].dim_value = batch_dim
+    for output in inferred_model.graph.output:
+        output.type.tensor_type.shape.dim[0].dim_value = batch_dim
+
+    onnx.save_model(inferred_model, out_model_path)
+
 if __name__ == "__main__":
+    # Prune model intermediate tensor names
     in_model_path = './model.onnx'
     out_model_path = in_model_path.replace('.onnx', '_names_stripped.onnx')
     tidlOnnxModelIntermediateNamesPruner(in_model_path, out_model_path)
+    # Edit model to have batch size 4
+    batch_dim = 4
+    out_model_path = in_model_path.replace('.onnx', '_' + str(batch_dim) + 'batch.onnx')
+    createBatchModel(in_model_path, out_model_path, batch_dim)
