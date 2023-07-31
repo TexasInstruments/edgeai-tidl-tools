@@ -297,7 +297,7 @@ if(${TARGET_DEVICE} STREQUAL  "am62" AND  (${TARGET_CPU} STREQUAL  "x86" AND ${H
                     /usr/lib 
                     /usr/local/dlr
                     /usr/lib/aarch64-linux-gnu
-                    /usr/lib/python3.8/site-packages/dlr/
+                    /usr/lib/python3.10/site-packages/dlr/
                     $ENV{HOME}/.local/dlr/ 
                     # opencv libraries
                     ${OPENCV_INSTALL_DIR}/cmake/lib
@@ -358,7 +358,7 @@ if(NOT ${TARGET_DEVICE} STREQUAL  "am62" AND  (${TARGET_CPU} STREQUAL  "x86" AND
     /usr/lib 
     /usr/local/dlr
     /usr/lib/aarch64-linux-gnu
-    /usr/lib/python3.8/site-packages/dlr/
+    /usr/lib/python3.10/site-packages/dlr/
     $ENV{HOME}/.local/dlr/ 
 
     ${OPENCV_INSTALL_DIR}/opencv/
@@ -414,7 +414,7 @@ if((${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" AND ${
                   #AM62 targetfs
                   ${TARGET_FS_PATH}/usr/lib
                   ${TARGET_FS_PATH}/usr/lib/glib-2.0
-                  ${TARGET_FS_PATH}/usr/lib/python3.8/site-packages  
+                  ${TARGET_FS_PATH}/usr/lib/python3.10/site-packages  
 
   )
   set(SYSTEM_LINK_LIBS
@@ -498,7 +498,7 @@ if((NOT ${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" AN
     #Device targetfs
     ${TARGET_FS_PATH}/usr/lib
     ${TARGET_FS_PATH}/usr/lib/glib-2.0
-    ${TARGET_FS_PATH}/usr/lib/python3.8/site-packages  
+    ${TARGET_FS_PATH}/usr/lib/python3.10/site-packages  
     # Enable these when migrating to tflite 2.8
     ${TARGET_FS_PATH}/usr/lib/tflite_2.8/ruy-build
     ${TARGET_FS_PATH}/usr/lib/tflite_2.8/xnnpack-build
@@ -508,7 +508,7 @@ if((NOT ${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" AN
     ${TARGET_FS_PATH}/usr/lib/tflite_2.8/flatbuffers-build
     ${TARGET_FS_PATH}/usr/lib/tflite_2.8/clog-build
     ${TARGET_FS_PATH}/usr/lib/tflite_2.8/farmhash-build
-    ${TARGET_FS_PATH}/usr/lib/python3.8/site-packages/dlr
+    ${TARGET_FS_PATH}/usr/lib/python3.10/site-packages/dlr
     # Enable these when migrating to tflite 2.8
   )
   set(SYSTEM_LINK_LIBS
@@ -557,7 +557,7 @@ if((NOT ${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" AN
     ${TARGET_FS_PATH}/usr/include/tensorflow/lite/tools/pip_package/gen/tflite_pip/python3/cmake_build/flatbuffers/include/
     ${TARGET_FS_PATH}/usr/include/onnxruntime/include/
     ${TARGET_FS_PATH}/usr/include/onnxruntime/include/onnxruntime/core/session/
-    ${TARGET_FS_PATH}/usr/lib/python3.8/site-packages/dlr/include/
+    ${TARGET_FS_PATH}/usr/lib/python3.10/site-packages/dlr/include/
 
     #armnn
     ${ARMNN_PATH}/delegate/include
@@ -606,7 +606,7 @@ if((${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" AND ${
                     /usr/lib 
                     /usr/local/dlr
                     /usr/lib/aarch64-linux-gnu
-                    /usr/lib/python3.8/site-packages/dlr/
+                    /usr/lib/python3.10/site-packages/dlr/
                     $ENV{HOME}/.local/dlr/                 
     )
 endif()
@@ -636,7 +636,7 @@ if( ((NOT ${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" 
                   # Enable these when migrating to tflite 2.8
                   /usr/local/dlr
                   /usr/lib/aarch64-linux-gnu
-                  /usr/lib/python3.8/site-packages/dlr/
+                  /usr/lib/python3.10/site-packages/dlr/
                   /usr/local/lib/python3.6/dist-packages/dlr/
                   $ENV{HOME}/.local/dlr/                  
   )
@@ -662,7 +662,7 @@ if( ((NOT ${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" 
                   /usr/include
                   /usr/local/include
                   /usr/local/dlr
-                  /usr/lib/python3.8/site-packages/dlr/include #for am68pa evm
+                  /usr/lib/python3.10/site-packages/dlr/include #for am68pa evm
                   /usr/include/tensorflow/lite/tools/pip_package/gen/tflite_pip/python3/cmake_build/flatbuffers/include/
                   ${PROJECT_SOURCE_DIR}
                   ${PROJECT_SOURCE_DIR}/..
