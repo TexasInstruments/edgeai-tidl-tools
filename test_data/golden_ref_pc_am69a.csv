@@ -19,8 +19,3 @@ od-ort-ssd-lite_mobilenetv2_fpn,ort-py
 cl-ort-resnet18-v1,ort-cpp
 ss-ort-deeplabv3lite_mobilenetv2,ort-cpp
 od-ort-ssd-lite_mobilenetv2_fpn,ort-cpp
-
-
-
-
-
