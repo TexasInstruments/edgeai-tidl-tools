@@ -154,6 +154,29 @@ Following options need to be specified to enable post processing optimization fo
 | object_detection:meta_layers_names_list | This option specifies path to the meta architecture file used to convey OD post processing information to TIDL | "" | Model Compilation  | Refer [Object detection meta architectures](../../docs/tidl_fsg_od_meta_arch.md) for more details |
 | object_detection:meta_arch_type | This option indicates the post processing architecture used by OD model | -1 (no post processing optimization) | Model compilation | Refer [Object detection meta architectures](../../docs/tidl_fsg_od_meta_arch.md) for more details |
 
+#### Options for devices with multiple DSP cores
+
+The following options are applicable only for "AM69A" SoC and enable additional features supported on devices with multiple DSP cores.
+
+|       Name      |                      Description                        |  Supported values/range  |       Default values      |  Option Type  |  Additional details  
+|:-------------------|:--------------------------------------------------------|:--------------|:------------:|:--------------:|:------------------------|
+| advanced_options:inference_mode              | This option specifies the feature/mode to be used for inferenece. This option must be specified during compilation and impacts the artifacts generated  | 0 (TIDL_inferenceModeDefault) <br> 1 (TIDL_inferenceModeHighThroughput)  | 0 | Model compilation | |
+| advanced_options:num_cores              | This option specifies the number of DSP cores to be used for inference | Min : 1, <br>Max : maximum number of DSP cores available on device | 1 | Model compilation | |
+
+**Information on usage:** 
+* Supported inference modes:
+  * TIDL_inferenceModeDefault
+    * Artifacts are generated to enable inference on a single DSP core
+  * TIDL_inferenceModeHighThroughput
+    * Synonymous to "parallel batch processing" mode
+    * Leverages multiple DSP cores to run batch inference in parallel and get better performance for models with multiple batches
+    * Following parameter setting is supported in this release: 
+      * Number of batches <= Number of cores
+      * For AM69A, maximum number of DSP cores is 4, so models upto batch size of 4 are supported. Larger number of batches can be implemented by running inference iteratively on a 4 batch model
+* To enable parallel batch processing, set the options as follows:
+  * advanced_options:inference_mode = 1
+  * advanced_options:num_cores = Number of batches in the model
+
 #### Advanced options for accuracy enhancement
 
 Following options must be accessed as "advanced_options:Name" where Name is as specified in table below. For TVM, this shall be passed as additional dictionary. Refer out-of-box example for usage.
