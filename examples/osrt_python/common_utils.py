@@ -30,7 +30,7 @@ artifacts_folder = '../../../model-artifacts/'
 output_images_folder = '../../../output_images/'
 
 tensor_bits = 8
-debug_level = 0
+debug_level = 2
 max_num_subgraphs = 16
 accuracy_level = 1
 calibration_frames = 2

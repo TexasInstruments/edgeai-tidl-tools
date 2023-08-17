@@ -31,14 +31,14 @@ Detailed steps to use Docker based setup for X86_PC
 
 1. Build Docker Image
           
-          sudo docker build -f Dockerfile -t x86_ubuntu_18 .
+          sudo docker build -f Dockerfile -t x86_ubuntu_22 .
           # To build docker image in TI's internal network,  run below instead
-          sudo docker build --build-arg REPO_LOCATION=artifactory.itg.ti.com/docker-public/library/ --build-arg USE_PROXY=ti  -f Dockerfile -t x86_ubuntu_18 .
+          sudo docker build --build-arg REPO_LOCATION=artifactory.itg.ti.com/docker-public/library/ --build-arg USE_PROXY=ti  -f Dockerfile -t x86_ubuntu_22 .
 
 
 1. Run the Docker
           
-          sudo docker run -it --shm-size=4096m --mount source=$(pwd),target=/home/root,type=bind x86_ubuntu_18
+          sudo docker run -it --shm-size=4096m --mount source=$(pwd),target=/home/root,type=bind x86_ubuntu_22
 
 2. When run above you would get root prompt and edgeai-tidl-tools is mounted at /home/root. Now, run below to complete the setup 
 

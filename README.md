@@ -112,11 +112,11 @@ The below table covers the supported operations with this repository on X86_PC a
 
 | OS  | Python Version|
 |:-------:|:-----------:|
-|Ubuntu 18.04 |3.6|
+|Ubuntu 22.04 |3.10|
 
 </div>
 
-- We have also validated under docker container in PC. Use [Dockerfile](./Dockerfile) for the list of dependencies installed on top of ubuntu 18.04 base line.
+- We have also validated under docker container in PC. Use [Dockerfile](./Dockerfile) for the list of dependencies installed on top of ubuntu 22.04 base line.
   - We recommend docker based X86_PC setup to avoid running into any dependencies related issues
   
 ### Setup on X86_PC

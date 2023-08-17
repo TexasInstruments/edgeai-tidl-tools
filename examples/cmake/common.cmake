@@ -637,7 +637,7 @@ if( ((NOT ${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" 
                   /usr/local/dlr
                   /usr/lib/aarch64-linux-gnu
                   /usr/lib/python3.10/site-packages/dlr/
-                  /usr/local/lib/python3.6/dist-packages/dlr/
+                  /usr/local/lib/python3.10/dist-packages/dlr/
                   $ENV{HOME}/.local/dlr/                  
   )
   set(SYSTEM_LINK_LIBS
