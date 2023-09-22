@@ -27,6 +27,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-c','--compile', action='store_true', help='Run in Model compilation mode')
 parser.add_argument('-d','--disable_offload', action='store_true',  help='Disable offload to TIDL')
 parser.add_argument('-z','--run_model_zoo', action='store_true',  help='Run model zoo models')
+parser.add_argument('-m','--models', action='append', default=[], help='Model name to be added to the list to run')
 args = parser.parse_args()
 os.environ["TIDL_RT_PERFSTATS"] = "1"
 
@@ -247,10 +248,12 @@ def run_model(model, mIdx):
 
 
 #models = models_configs.keys()
-
-models = ['cl-ort-resnet18-v1', 'cl-ort-caffe_squeezenet_v1_1', 'ss-ort-deeplabv3lite_mobilenetv2', 'od-ort-ssd-lite_mobilenetv2_fpn']
-if(SOC == "am69a"):
-    models.append('cl-ort-resnet18-v1_4batch')
+if len(args.models) > 0:
+    models = args.models
+else :
+    models = ['cl-ort-resnet18-v1', 'cl-ort-caffe_squeezenet_v1_1', 'ss-ort-deeplabv3lite_mobilenetv2', 'od-ort-ssd-lite_mobilenetv2_fpn']
+    if(SOC == "am69a"):
+        models.append('cl-ort-resnet18-v1_4batch')
 
 if ( args.run_model_zoo ):
     models = [

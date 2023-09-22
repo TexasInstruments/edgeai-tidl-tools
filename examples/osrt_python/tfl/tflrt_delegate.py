@@ -25,6 +25,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-c','--compile', action='store_true', help='Run in Model compilation mode')
 parser.add_argument('-d','--disable_offload', action='store_true',  help='Disable offload to TIDL')
 parser.add_argument('-z','--run_model_zoo', action='store_true',  help='Run model zoo models')
+parser.add_argument('-m','--models', action='append', default=[], help='Model name to be added to the list to run')
 args = parser.parse_args()
 os.environ["TIDL_RT_PERFSTATS"] = "1"
 
@@ -236,10 +237,13 @@ def run_model(model, mIdx):
     if ncpus > 1:
         sem.release()
 
-models = ['cl-tfl-mobilenet_v1_1.0_224', 'ss-tfl-deeplabv3_mnv2_ade20k_float', 'od-tfl-ssd_mobilenet_v2_300_float', 'od-tfl-ssdlite_mobiledet_dsp_320x320_coco']
-if(SOC == "am69a"):
-    models.append('cl-tfl-mobilenetv2_4batch')
-
+if len(args.models) > 0:
+    models = args.models
+else :
+    models = ['cl-tfl-mobilenet_v1_1.0_224', 'ss-tfl-deeplabv3_mnv2_ade20k_float', 'od-tfl-ssd_mobilenet_v2_300_float', 'od-tfl-ssdlite_mobiledet_dsp_320x320_coco']
+    if(SOC == "am69a"):
+        models.append('cl-tfl-mobilenetv2_4batch')
+        
 if ( args.run_model_zoo ):
     models = [ 
             'cl-0000_tflitert_imagenet1k_mlperf_mobilenet_v1_1.0_224_tflite',\

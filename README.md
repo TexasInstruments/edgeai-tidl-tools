@@ -100,7 +100,7 @@ The below table covers the supported operations with this repository on X86_PC a
 ## Setup
 
 > **Note**
-> Please select / checkout to the tag compatible with the SDK version that you are using with the TI's Evaluation board before continuing on the below steps. Refer to [SDK Version compatibility Table](./docs/version_compatibility_table.md) for the tag of your SDK version
+> Please select / checkout to the tag compatible with the SDK version that you are using with the TI's Evaluation board before continuing on the below steps. Refer to [SDK Version compatibility Table](docs/version_compatibility_table.md) for the tag of your SDK version
 
 <p align="center"> <kbd> <img src="./docs/git_tag.png" /> </kbd> </p>
 
