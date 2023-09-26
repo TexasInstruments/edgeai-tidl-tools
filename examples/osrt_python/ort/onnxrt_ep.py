@@ -227,7 +227,7 @@ def run_model(model, mIdx):
             
         elif config['model_type'] == 'seg':
             for j in range(batch):                
-                imgs[j] = imgs[j].resize((output[0][j].shape[1], output[0][j].shape[2]),PIL.Image.LANCZOS)
+                imgs[j] = imgs[j].resize((output[0][j].shape[2], output[0][j].shape[1]),PIL.Image.LANCZOS)
                 classes, image = seg_mask_overlay(output[0][j],imgs[j])
                 images.append(image)
         else:

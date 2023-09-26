@@ -529,7 +529,8 @@ def seg_mask_overlay(output_data, org_image_rgb, layout):
 
   output_data = np.squeeze(output_data)
   mask_image_rgb  = mask_transform(output_data)
-  org_image  = RGB2YUV(org_image_rgb.resize(output_data.shape))
+  out_h, out_w = output_data.shape
+  org_image  = RGB2YUV(org_image_rgb.resize((out_w,out_h),Image.LANCZOS))
   mask_image = RGB2YUV(mask_image_rgb)
 
   org_image[:,:, 1] = mask_image[:,:, 1]
