@@ -1912,7 +1912,7 @@ def vis_box_pose_result(img_file, output, top, left, ratio, score_threshold=0.3,
         kpt = kpts[idx]
         if det_scores[idx]>score_threshold:
             color_map = _CLASS_COLOR_MAP[int(det_labels[idx])]
-            img = cv2.rectangle(img, (det_bbox[0], det_bbox[1]), (det_bbox[2], det_bbox[3]), color_map[::-1], 1)
+            img = cv2.rectangle(img, (int(det_bbox[0]), int(det_bbox[1])), (int(det_bbox[2]), int(det_bbox[3])), color_map[::-1], 1)
             plot_skeleton_kpts(img, kpt, thickness=thickness, radius=radius)
     return img
 
