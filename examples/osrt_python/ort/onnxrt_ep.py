@@ -32,6 +32,8 @@ args = parser.parse_args()
 os.environ["TIDL_RT_PERFSTATS"] = "1"
 
 so = rt.SessionOptions()
+so.log_severity_level=3
+
 
 print("Available execution providers : ", rt.get_available_providers())
 
