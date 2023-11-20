@@ -417,11 +417,11 @@ namespace onnx
             vector<const char *> output_node_names(num_output_nodes);
             for (int i = 0; i < num_output_nodes; i++)
             {
-                output_node_names[i] = session.GetOutputName(i, allocator);
+                output_node_names[i] = session.GetOutputNameAllocated(i, allocator).get();;
             }
             for (int i = 0; i < num_input_nodes; i++)
             {
-                input_node_names[i] = session.GetInputName(i, allocator);
+                input_node_names[i] = session.GetInputNameAllocated(i, allocator).get();;
             }
 
             type_info = session.GetOutputTypeInfo(0);
@@ -675,11 +675,11 @@ namespace onnx
             vector<const char *> output_node_names(num_output_nodes);
             for (int i = 0; i < num_output_nodes; i++)
             {
-                output_node_names[i] = session.GetOutputName(i, allocator);
+                output_node_names[i] = session.GetOutputNameAllocated(i, allocator).get();;
             }
             for (int i = 0; i < num_input_nodes; i++)
             {
-                input_node_names[i] = session.GetInputName(i, allocator);
+                input_node_names[i] = session.GetInputNameAllocated(i, allocator).get();;
             }
 
             type_info = session.GetOutputTypeInfo(0);
