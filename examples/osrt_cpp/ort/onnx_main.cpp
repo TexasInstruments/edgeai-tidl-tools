@@ -334,6 +334,7 @@ namespace onnx
             }
 
             session_options.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_EXTENDED);
+            session_options.SetLogSeverityLevel(3);
             Ort::AllocatorWithDefaultOptions allocator;
 
             /* ORT Session */
@@ -342,7 +343,8 @@ namespace onnx
 
             /* Input information */
             size_t num_input_nodes = session.GetInputCount();
-            vector<const char *> input_node_names(num_input_nodes);
+            std::vector<Ort::AllocatedStringPtr> input_node_names_ptr;
+            std::vector<const char *> input_node_names(num_input_nodes);
             Ort::TypeInfo type_info = session.GetInputTypeInfo(0);
             auto tensor_info = type_info.GetTensorTypeAndShapeInfo();
             vector<int64_t> input_node_dims = tensor_info.GetShape();
@@ -367,14 +369,19 @@ namespace onnx
 
             /* output information */
             size_t num_output_nodes = session.GetOutputCount();
+            std::vector<Ort::AllocatedStringPtr> output_node_names_ptr;
             vector<const char *> output_node_names(num_output_nodes);
             for (int i = 0; i < num_output_nodes; i++)
             {
-                output_node_names[i] = session.GetOutputNameAllocated(i, allocator).get();;
+                auto output_name = session.GetOutputNameAllocated(i, allocator);
+                output_node_names[i] = output_name.get();
+                output_node_names_ptr.push_back(std::move(output_name));
             }
             for (int i = 0; i < num_input_nodes; i++)
             {
-                input_node_names[i] = session.GetInputNameAllocated(i, allocator).get();;
+                auto input_name = session.GetInputNameAllocated(i, allocator);
+                input_node_names[i] = input_name.get();
+                input_node_names_ptr.push_back(std::move(input_name));
             }
 
             type_info = session.GetOutputTypeInfo(0);
@@ -414,8 +421,8 @@ namespace onnx
 
             auto run_options = Ort::RunOptions();
             run_options.SetRunLogVerbosityLevel(2);
-            auto output_tensors_warm_up = session.Run(run_options, input_node_names.data(), input_tensors.data(), 1, output_node_names.data(), num_output_nodes);
-            
+            run_options.SetRunLogSeverityLevel(3);
+            auto output_tensors_warm_up = session.Run(run_options, input_node_names.data(), input_tensors.data(), 1, output_node_names.data(), num_output_nodes); 
  
             void *outData = allocTensorMem(output_tensor_size * sizeof(float), (s->accel && s->device_mem));
             Ort::IoBinding binding(session);
@@ -461,6 +468,7 @@ namespace onnx
             {
                 session.Run(run_options, binding);
             }
+
             gettimeofday(&stop_time, nullptr);
             float avg_time = (getUs(stop_time) - getUs(start_time)) / (num_iter * 1000);
             LOG_INFO("invoked\n");
