@@ -43,8 +43,8 @@ models_configs = {
     },
     'od-ort-ssd-lite_mobilenetv2_fpn' : {
         'model_path' : os.path.join(models_base_path, 'ssd-lite_mobilenetv2_fpn.onnx'),
-        'source' : {'model_url': 'https://git.ti.com/cgit/jacinto-ai/jacinto-ai-modelzoo/plain/models/vision/detection/coco/edgeai-mmdet/ssd-lite_mobilenetv2_fpn_512x512_20201110_model.onnx', 'opt': True,  'infer_shape' : True, \
-                    'meta_arch_url' : 'https://git.ti.com/cgit/jacinto-ai/jacinto-ai-modelzoo/plain/models/vision/detection/coco/edgeai-mmdet/ssd-lite_mobilenetv2_fpn_512x512_20201110_model.prototxt'},
+        'source' : {'model_url': 'http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models/vision/detection/coco/edgeai-mmdet/ssd_mobilenetv2_fpn_lite_512x512_20201110_model.onnx', 'opt': True,  'infer_shape' : True, \
+                    'meta_arch_url' : 'http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models/vision/detection/coco/edgeai-mmdet/ssd_mobilenetv2_fpn_lite_512x512_20201110_model.prototxt'},
         'mean': [0, 0, 0],
         'scale' : [0.003921568627,0.003921568627,0.003921568627],
         'num_images' : numImages,
