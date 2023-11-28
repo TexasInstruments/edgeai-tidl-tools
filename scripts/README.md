@@ -11,7 +11,7 @@ During vision-based DL model training the input image is normalized and resultan
 
 This optimization is included by default in the Model compilation script in this repository. This is done during model download step.
 
-![Image Normalization Optimization](../docs/tidl_model_opt.png)
+![Image Normalization Optimization](../docs/images/tidl_model_opt.png)
 
 # Scripts for RGB to YUV Model conversion
 
@@ -22,5 +22,5 @@ edgeai-tidl-tools provide scripts to do this. Script to convert TFlite model can
 
  One can use [examples](../examples/osrt_cpp/advanced_examples) as a reference to convert a RGB model to YUV model.
 
-![RGB_YUV_model_converter](../docs/converted_mobilenet.png) 
-![RGB_YUV_model_converter](../docs/converted_resnet.png)
+![RGB_YUV_model_converter](../docs/images/converted_mobilenet.png) 
+![RGB_YUV_model_converter](../docs/images/converted_resnet.png)

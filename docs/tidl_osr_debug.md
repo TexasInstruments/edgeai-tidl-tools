@@ -8,7 +8,7 @@
 - [Steps to Debug Functional Mismatch in Host emulation](#steps-to-debug-functional-mismatch-in-host-emulation)
 - [Feature Map Comparison with Reference](#feature-map-comparison-with-reference)
   - [Script 1 : Layer level activation comparisons :](#script-1--layer-level-activation-comparisons-)
-
+- [Trace dump utility for multi-core inference](#trace-stitching)
 <!-- /TOC -->
 
 
@@ -135,6 +135,48 @@ As an example for ONNX out of box example script user can run in ARM only mode a
 
 ```
 **Note : These functions are given only for reference and may not work in all kind of environment**
+
+
+# Trace dump utility for multi-core inference
+*TIDL provides trace dump utility that dumps the binary output of each layer which can be used to compare and debug. When running for low latency mode with multiple cores, each core dumps its own trace with the prefix "C7X_{Core Number}_". 
+
+*TIDL also provides an example script to stitch the traces for multiple cores which is equivalent to complete output for the layer. 
+
+Stitched taces are generated in the /tmp/stitch_traces directory by default.
+
+Parameters to the trace stitching script : 
+
+|       Name      |                      Description                        |  Default    
+|:-------------------|:--------------------------------------------------------|:--------------|
+| t | trace directory path |  /tmp|
+| n | number of cores |  4|
+| s | start core Idx |  0|
+
+More details on above parameters (which are also compilation options) can be found here [here](../examples/osrt_python/README.md#options-for-devices-with-multiple-dsp-cores)
+
+To compare traces across different platfroms (e.g. PC vs target), direct one to one comparison is feasible. 
+However, in cases where traces generated for inference mode = 2 (low latency mode across N cores) need to be compared with those gernerated for inference mode = 0 (single core inference), direct one-one mapping is not feasible due to some additional layers introduced as part of model compilation for multi-core inference.
+Following additional parameters can be set in this case to get one-one mapping of layers in both the scenarios.
+
+
+|       Name      |                      Description                        
+|:-------------------------|:--------------------------------------------------------|
+m_golden  |path to the single core layer_info.txt file (generated as part of the compilation artifacts in following path: model-artifacts/{model_name}/tempDir/***.layer_info.txt) |
+m | path to multi core layer_info.txt file (path same as above) |
+
+Note: File name being same, user needs to take back-up of **layer_info.txt file before running another inference instance.
+The id of a layer in the stitched traces will be with respect to single core execution which may or may not be similiar to the id the layer has in low latency mode
+
+## Steps to enable multi-core trace stitching using script: 
+ * Compile the model for inference mode = 0 and infer the model with debug_level = 3 option to generate single core traces
+ * Copy the single core traces and layer_info.txt file to another directory(needs to be created by the user) to create backup
+ * Clean the trace directory to ensure no existing traces are present 
+ * Compile the model for inference mode = 2 with desired number of cores and infer the model with debug_level = 3 option to generate multi-core traces
+ * Run the python stitching script stitch_multicore_traces.py as follows (as an example, for 2 cores) :  
+
+python3 scripts/tidl_debug_scripts/stitch_multicore_traces.py --n 2  --m model-artifacts/{model_name}/tempDir/**.layer_info.txt --m_golden model-artifacts/{model_name}/tempDir_singlecore/**.layer_info_singleCore.txt 
+
+*in the above example the layer_info.txt has been moved to tempDir_singlecore to create backup*
 
 
 # Graph Visualization

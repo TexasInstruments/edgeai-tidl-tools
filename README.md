@@ -17,7 +17,8 @@ TI's Edge AI solution provides the right set of tools for both of these categori
 * [**Edge AI TIDL Tools**](#edgeai-tidl-tools): Edge AI TIDL Tools provided in this repository shall be used for model compilation on X86. Artifacts from compilation process can used for Model inference. Model inference can happen on X86 machine (host emulation mode) or on development board with TI SOC. This repository also provides examples to be directly used on X86 target and can be used on development board with TI SOC. For deployment and execution on the development board, one has to use this package.
 
 The figure below illustrates the work flow of DNN development and deployment on TI devices:
-![TI EdgeAI Work Flow](docs/dnn-workflow.png)
+
+![TI EdgeAI Work Flow](docs/images/dnn-workflow.png)
 
 # EdgeAI TIDL Tools
 
@@ -102,7 +103,7 @@ The below table covers the supported operations with this repository on X86_PC a
 > **Note**
 > Please select / checkout to the tag compatible with the SDK version that you are using with the TI's Evaluation board before continuing on the below steps. Refer to [SDK Version compatibility Table](docs/version_compatibility_table.md) for the tag of your SDK version
 
-<p align="center"> <kbd> <img src="./docs/git_tag.png" /> </kbd> </p>
+<p align="center"> <kbd> <img src="./docs/images/git_tag.png" /> </kbd> </p>
 
 
 ### Pre-requisites to setup on x86_PC
@@ -182,7 +183,7 @@ test_report_pc.csv
 
 | Image Classification  | Object detection| Semantic Segmentation |
 |:-------:|:-----------:|:---:|
-| <img  width="512" height="256" src="./docs/out_viz_cls.jpg"> |  <img width="512" height="256" src="./docs/out_viz_od.jpg"> | <img width="512" height="256" src="./docs/out_viz_ss.jpg"> |
+| <img  width="512" height="256" src="./docs/images/out_viz_cls.jpg"> |  <img width="512" height="256" src="./docs/images/out_viz_od.jpg"> | <img width="512" height="256" src="./docs/images/out_viz_ss.jpg"> |
 
 ### Benchmark on TI SOC
 - Prepare the development board by following the below steps
@@ -224,6 +225,7 @@ python3 ./scripts/gen_test_report.py
   - [**Object detection Meta architectures**](docs/tidl_fsg_od_meta_arch.md)
   - [**Trouble Shooting Guide**](docs/tidl_osr_debug.md)
   - [**Model Optimization**](scripts/README.md)  
-
+  - [**Multi-core inference for devices with multiple DSP cores**](docs/tidl_fsg_multi_c7x.md)
+  - [**Support for Vision Transformers**](docs/tidl_fsg_vtfr.md)
 ## License
 Please see the license under which this repository is made available: [LICENSE](./LICENSE)
