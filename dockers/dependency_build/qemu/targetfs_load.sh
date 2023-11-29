@@ -6,7 +6,7 @@ if [ $# -eq 0 ]
     exit
 fi
 
-REL=09_00_00_01
+REL=09_01_00_00
 SCRIPTDIR=`pwd`
 TARGET_FS_PATH=$1
 echo "installing dependedcies at $TARGET_FS_PATH"
@@ -21,12 +21,12 @@ fi
 cd $TARGET_FS_PATH/$HOME/arago_j7_pywhl
 
 wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/ARM_LINUX/ARAGO/dlr-1.13.0-py3-none-any.whl
-wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/ARM_LINUX/ARAGO/onnxruntime_tidl-1.7.0-cp310-cp310-linux_aarch64.whl
+wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/ARM_LINUX/ARAGO/onnxruntime_tidl-1.14.0-cp310-cp310-linux_aarch64.whl
 wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/ARM_LINUX/ARAGO/tflite_runtime-2.8.2-cp310-cp310-linux_aarch64.whl
 
 ln -s /usr/bin/pip3 /usr/bin/pip3.10
 pip3 install --upgrade --force-reinstall dlr-1.13.0-py3-none-any.whl  -t $PYTHONPATH --disable-pip-version-check
-pip3 install onnxruntime_tidl-1.7.0-cp310-cp310-linux_aarch64.whl  -t $PYTHONPATH --disable-pip-version-check
+pip3 install onnxruntime_tidl-1.14.0-cp310-cp310-linux_aarch64.whl  -t $PYTHONPATH --disable-pip-version-check
 pip3 install --upgrade --force-reinstall tflite_runtime-2.8.2-cp310-cp310-linux_aarch64.whl -t $PYTHONPATH --disable-pip-version-check
 pip3 install --upgrade --force-reinstall --no-cache-dir numpy -t $PYTHONPATH --disable-pip-version-check
 cd $TARGET_FS_PATH/$HOME
@@ -60,15 +60,15 @@ else
 fi
 
 if [  ! -d $TARGET_FS_PATH/usr/include/onnxruntime ];then
-    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/ARM_LINUX/ARAGO/onnx_1.7.0_aragoj7.tar.gz
-    tar xf onnx_1.7.0_aragoj7.tar.gz
-    rm onnx_1.7.0_aragoj7.tar.gz
-    cp -r  onnx_1.7.0_aragoj7/libonnxruntime.so*   $TARGET_FS_PATH/usr/lib/
+    wget https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/ARM_LINUX/ARAGO/onnx_1.14.0_aragoj7.tar.gz
+    tar xf onnx_1.14.0_aragoj7.tar.gz
+    rm onnx_1.14.0_aragoj7.tar.gz
+    cp -r  onnx_1.14.0_aragoj7/libonnxruntime.so*   $TARGET_FS_PATH/usr/lib/
     cd   $TARGET_FS_PATH/usr/lib/
-    ln -s libonnxruntime.so.1.7.0 libonnxruntime.so
+    ln -s libonnxruntime.so.1.14.0 libonnxruntime.so
     cd  $TARGET_FS_PATH/$HOME
-    mv onnx_1.7.0_aragoj7/onnxruntime $TARGET_FS_PATH/usr/include/
-    rm -r onnx_1.7.0_aragoj7
+    mv onnx_1.14.0_aragoj7/onnxruntime $TARGET_FS_PATH/usr/include/
+    rm -r onnx_1.14.0_aragoj7
     cd  $TARGET_FS_PATH/$HOME
 else
     echo "skipping onnxruntime setup: found /usr/include/onnxruntime"
@@ -86,13 +86,17 @@ else
     echo "To redo the setup delete: /usr/include/itidl_rt.h and run this script again"
 fi
 
-if [  ! -f  $TARGET_FS_PATH/usr/lib/libdlr.so ];then
-    cp  $TARGET_FS_PATH/$PYTHONPATH/dlr/libdlr.so  $TARGET_FS_PATH/usr/lib/
+if [  ! -f  $TARGET_FS_PATH/usr/dlr/libdlr.so ];then
+    mkdir   $TARGET_FS_PATH/usr/dlr/
+    cd  $TARGET_FS_PATH/usr/dlr/
+    ln -s -r  $TARGET_FS_PATH/$PYTHONPATH/dlr/libdlr.so libdlr.so
+    cd  $TARGET_FS_PATH/$HOME
 fi
 
-if [  ! -f  $TARGET_FS_PATH/usr/dlr/libdlr.so ];then
-    mkdir  $TARGET_FS_PATH/usr/dlr
-    cp  $TARGET_FS_PATH/usr/lib/libdlr.so  $TARGET_FS_PATH/usr/dlr/
+if [  ! -f  $TARGET_FS_PATH/usr/lib/libdlr.so ];then
+    cd  $TARGET_FS_PATH/usr/lib/
+    ln -s -r $TARGET_FS_PATH/usr/dlr/libdlr.so libdlr.so
+    cd  $TARGET_FS_PATH/$HOME
 fi
 
 #Cleanup
@@ -100,7 +104,4 @@ cd $TARGET_FS_PATH/$HOME/
 rm -rf required_libs
 rm -rf tidl_tools
 
-echo "export the following vars with correc value in target machine"
-echo "export TIDL_TOOLS_PATH="
-echo "export DEVICE=j7"
 cd $SCRIPTDIR
