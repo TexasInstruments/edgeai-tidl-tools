@@ -2,11 +2,11 @@
 Vision Transformers apply the transformer architecture (Consisting of Multi Headed Attention (MHA) and Feed Forward Network (FFN) blocks) to a wide variety of vision tasks such as classification, object detection, semantic segmentation, etc. This document explains how vision transformers are currently supported with edgeai-tidl-tools
 
 # Support for Vision Transformer Operators
-<ul>
-<li>TIDL currently supports vision transformers via ONNX models only</li>
-<li>TIDL has validated vision transformers from [timm](https://github.com/huggingface/pytorch-image-models/tree/main) exported to ONNX in the current release</li>
-<li>ONNX-RT Optimization Level must be set to ORT_DISABLE_ALL while compiling models offloaded to C7x for vision transformers</li>
-</ul>
+
+- TIDL currently supports vision transformers via ONNX models only
+- TIDL has validated vision transformers from [**timm**](https://github.com/huggingface/pytorch-image-models/tree/main) exported to ONNX in the current release
+- ONNX-RT Optimization Level must be set to ORT_DISABLE_ALL while compiling models offloaded to C7x for vision transformers
+
 
 ## Multi Headed Attention
 <ul>
