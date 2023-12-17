@@ -1,6 +1,6 @@
 numpy==1.23.0
 pyyaml
-protobuf==3.19.4
+protobuf
 onnx==1.13.0
 torch
 timm
