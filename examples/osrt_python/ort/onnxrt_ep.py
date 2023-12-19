@@ -34,6 +34,8 @@ os.environ["TIDL_RT_PERFSTATS"] = "1"
 so = rt.SessionOptions()
 so.log_severity_level=3
 
+# disabling onnxruntime optimizations
+so.graph_optimization_level = rt.GraphOptimizationLevel.ORT_DISABLE_ALL
 
 print("Available execution providers : ", rt.get_available_providers())
 
