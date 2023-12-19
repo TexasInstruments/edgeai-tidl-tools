@@ -187,8 +187,7 @@ cp_osrt_lib()
 
 
 SCRIPTDIR=`pwd`
-
-
+REL=09_01_00_00
 skip_cpp_deps=0
 skip_arm_gcc_download=0
 skip_x86_python_install=0
@@ -271,7 +270,6 @@ if [ -z "$SOC" ];then
     echo "export SOC=am69a"
     return
 fi
-REL=09_01_00_00
 
 # ######################################################################
 # # Installing dependencies
@@ -341,15 +339,17 @@ if [ -z "$TIDL_TOOLS_PATH" ]; then
         echo "export SOC=am69a"
         return 
     fi
+    #Untar tidl tools & remove the tar ball
     tar -xzf tidl_tools.tar.gz
     if [ -f tidl_tools.tar.gz ];then
         rm tidl_tools.tar.gz
     fi
-    cd  tidl_tools
+    cd tidl_tools
     if [[ ! -L libvx_tidl_rt.so.1.0 && ! -f libvx_tidl_rt.so.1.0 ]];then
          ln -s  libvx_tidl_rt.so libvx_tidl_rt.so.1.0
     fi 
     export TIDL_TOOLS_PATH=$(pwd)
+    #Return to the top level
     cd ..
 fi
 
@@ -387,7 +387,7 @@ if [ $skip_cpp_deps -eq 0 ]; then
         if [ -d $TIDL_TOOLS_PATH/osrt_deps ];then
             rm -r $TIDL_TOOLS_PATH/osrt_deps
         fi
-        mkdir  $TIDL_TOOLS_PATH/osrt_deps
+        mkdir -p $TIDL_TOOLS_PATH/osrt_deps
         cd  $TIDL_TOOLS_PATH/osrt_deps
         # onnx
         if [ ! -d onnx_1.7.0_x86_u22 ];then
@@ -401,7 +401,7 @@ if [ $skip_cpp_deps -eq 0 ]; then
                 wget --quiet   https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/onnx_1.14.0_x86_u22.tar.gz
             fi
             tar -xf onnx_1.14.0_x86_u22.tar.gz
-            cd onnx_1.7.0_x86_u22
+            cd onnx_1.14.0_x86_u22
             if [ ! -f libonnxruntime.so ];then
                 ln -s libonnxruntime.so.1.14.0 libonnxruntime.so 
             fi
