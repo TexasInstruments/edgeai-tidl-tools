@@ -144,6 +144,9 @@ def run_model(model, mIdx):
     delegate_options = {}
     delegate_options.update(required_options)
     delegate_options.update(optional_options)
+    if 'optional_options' in config:
+        delegate_options.update(config['optional_options'])
+
     # stripping off the ss-tfl- from model namne
     delegate_options['artifacts_folder'] = delegate_options['artifacts_folder'] + '/' + model + '/'
 

@@ -11,16 +11,6 @@ else :
 
 models_configs = {
     # ONNX RT OOB Models
-    'cl-ort-deit_tiny' : {
-        'model_path' : os.path.join(models_base_path, 'deit_tiny_1.onnx'),
-        'source' : {'model_url': 'dummy', 'opt': True,  'infer_shape' : True},
-        'mean': [123.675, 116.28, 103.53],
-        'scale' : [0.017125, 0.017507, 0.017429],
-        'num_images' : 1,
-        'num_classes': 1000,
-        'session_name' : 'onnxrt' ,
-        'model_type': 'classification'
-    },
     'cl-ort-resnet18-v1' : {
         'model_path' : os.path.join(models_base_path, 'resnet18_opset9.onnx'),
         'source' : {'model_url': 'https://git.ti.com/cgit/jacinto-ai/jacinto-ai-modelzoo/plain/models/vision/classification/imagenet1k/torchvision/resnet18_opset9.onnx', 'opt': True,  'infer_shape' : True},
@@ -65,6 +55,19 @@ models_configs = {
         'meta_layers_names_list' : os.path.join(models_base_path, 'ssd-lite_mobilenetv2_fpn.prototxt'),
         'session_name' : 'onnxrt' ,
         'meta_arch_type' : 3
+    },
+    'cl-ort-deit-tiny' : {
+        'model_path' : os.path.join(models_base_path, 'deit_tiny_1.onnx'),
+        'source' : {'model_url': 'dummy', 'opt': True,  'infer_shape' : True},
+        'mean': [123.675, 116.28, 103.53],
+        'scale' : [0.017125, 0.017507, 0.017429],
+        'num_images' : numImages,
+        'num_classes': 1000,
+        'session_name' : 'onnxrt' ,
+        'model_type': 'classification',
+        'optional_options': {
+            'advanced_options:quantization_scale_type':4
+        }
     },
     # TFLite RT OOB Models
     'cl-tfl-mobilenet_v1_1.0_224' : {

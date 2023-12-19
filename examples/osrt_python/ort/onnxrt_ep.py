@@ -34,8 +34,6 @@ os.environ["TIDL_RT_PERFSTATS"] = "1"
 so = rt.SessionOptions()
 so.log_severity_level=3
 
-# disabling onnxruntime optimizations
-so.graph_optimization_level = rt.GraphOptimizationLevel.ORT_DISABLE_ALL
 
 print("Available execution providers : ", rt.get_available_providers())
 
@@ -151,10 +149,17 @@ def run_model(model, mIdx):
     
     delegate_options = {}
     delegate_options.update(required_options)
-    delegate_options.update(optional_options)   
+    delegate_options.update(optional_options)  
+    if 'optional_options' in config:
+        delegate_options.update(config['optional_options'])
+
 
     # stripping off the ss-ort- from model namne
     delegate_options['artifacts_folder'] = delegate_options['artifacts_folder'] + '/' + model + '/' #+ 'tempDir/' 
+
+    # disabling onnxruntime optimizations for vision transformers
+    if (model == 'cl-ort-deit-tiny'):
+        so.graph_optimization_level = rt.GraphOptimizationLevel.ORT_DISABLE_ALL
 
     if config['model_type'] == 'od':
         delegate_options['object_detection:meta_layers_names_list'] = config['meta_layers_names_list'] if ('meta_layers_names_list' in config) else ''
