@@ -78,6 +78,24 @@ We plan to support the following networks & features in our upcoming releases:
 <li>Window shifting is expressed the same way as the ONNX graph (Slice & Concat) in TIDL</li>
 </ul>
 
+# DeiT Transformer Example
+<ul>
+<li>DeiT model can be generated from timm using the following steps,</li>
 
+- pip install timm onnx onnxsim 
+- import timm
+- import torch
+- deit = timm.create_model('deit_tiny_patch16_224', pretrained=True)
+- deit.eval()
+- x = torch.randn(1, 3, 224, 224)
+- deit(x).shape
+- torch.onnx.export(deit,x, "deit_tiny.onnx",export_params=True,opset_version=14,do_constant_folding=True,input_names=['input'],output_names=['output'])
+- !onnxsim deit_tiny.onnx deit_tiny_1.onnx
 
+<li> The above commands can be run in a Google colab notebook, they have been validated using the same.</li>
 
+<li>Sample model config for the model has been added to model_configs.py, place the model in 'model_base_path' and you can run the model using the standard steps.</li>
+
+</ul>
+
+<br>
