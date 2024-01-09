@@ -101,6 +101,11 @@ def run_model(model, mIdx):
     delegate_options = {}
     delegate_options.update(required_options)
     delegate_options.update(optional_options)
+    
+    # This is to handle options which are specific to any model
+    if 'model_specific_options' in config.keys():
+        delegate_options.update(config.get('model_specific_options'))
+
     # stripping off the ss-tfl- from model namne
     delegate_options['artifacts_folder'] = delegate_options['artifacts_folder'] + '/' + model + '/'
 
