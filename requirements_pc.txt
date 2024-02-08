@@ -13,5 +13,5 @@ pytest
 graphviz
 dataclasses
 gluoncv
-git+https://github.com/kumardesappan/caffe2onnx
+https://github.com/TexasInstruments/edgeai-caffe2onnx/archive/refs/heads/tidl.zip
 
