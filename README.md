@@ -108,7 +108,7 @@ The below table covers the supported operations with this repository on X86_PC a
 
 ### Pre-requisites to setup on x86_PC
 
- - X86_PC mode for this repository is validated with below configuration.
+ - X86_PC mode for this repository is validated with below configuration:
 <div align="center">
 
 | OS  | Python Version|
@@ -116,10 +116,11 @@ The below table covers the supported operations with this repository on X86_PC a
 |Ubuntu 22.04 |3.10|
 
 </div>
-
-- We have also validated under docker container in PC. Use [Dockerfile](./Dockerfile) for the list of dependencies installed on top of ubuntu 22.04 base line.
-  - We recommend docker based X86_PC setup to avoid running into any dependencies related issues
   
+  - We recommend [Docker](docs/advanced_setup.md#docker-based-setup-for-x86_pc) based setup to avoid dependency issues <br>
+  
+  - Tools built with GPU acceleration need to be run inside the appropriate Docker container. Refer to relevant [steps](docs/advanced_setup.md#docker-based-setup-for-x86_pc) to build and run the container <br>
+
 ### Setup on X86_PC
   - Run the below one time setup for system level packages. This needs sudo permission, get it installed by your system administrator if required.
 
@@ -141,7 +142,6 @@ The below table covers the supported operations with this repository on X86_PC a
  export SOC=<Your SOC name>
  source ./setup.sh
 ```
-- [**Docker Based X86_PC Setup**](docs/advanced_setup.md#docker-based-setup-for-x86_pc) - Detailed steps to prepare docker container based environment for X86_PC mode.
 
 - While opening new terminal in a system where above setup is already done once for a given SDK version, set below environment variables 
 

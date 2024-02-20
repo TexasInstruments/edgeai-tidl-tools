@@ -164,12 +164,21 @@ pip_install_local()
 cp_tidl_tools()
 {    
     if [ -f $LOCAL_PATH/TIDL_TOOLS/$1/tidl_tools.tar.gz ];then
-        echo "Local file  found. Copying $LOCAL_PATH/TIDL_TOOLS/$1/tidl_tools.tar.gz"
-        cp $LOCAL_PATH/TIDL_TOOLS/$1/tidl_tools.tar.gz .
-        
+        if [ $tidl_gpu_tools -eq 1 ];then
+            echo "Local file  found. Copying $LOCAL_PATH/TIDL_TOOLS/$1/tidl_tools_gpu.tar.gz"
+            cp $LOCAL_PATH/TIDL_TOOLS/$1/tidl_tools_gpu.tar.gz .
+        else
+            echo "Local file  found. Copying $LOCAL_PATH/TIDL_TOOLS/$1/tidl_tools.tar.gz"
+            cp $LOCAL_PATH/TIDL_TOOLS/$1/tidl_tools.tar.gz .
+        fi
     else
-        echo "Local file not found at $LOCAL_PATH/TIDL_TOOLS/$1/tidl_tools.tar.gz . Downloading  default   https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/TIDL_TOOLS/$1/tidl_tools.tar.gz"
-        wget --quiet  https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/TIDL_TOOLS/$1/tidl_tools.tar.gz
+        if [ $tidl_gpu_tools -eq 1 ];then
+            echo "Local file not found at $LOCAL_PATH/TIDL_TOOLS/$1/tidl_tools.tar.gz . Downloading  default   https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/TIDL_TOOLS/$1/tidl_tools_gpu.tar.gz"
+            wget --quiet  https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/TIDL_TOOLS/$1/tidl_tools_gpu.tar.gz
+        else
+            echo "Local file not found at $LOCAL_PATH/TIDL_TOOLS/$1/tidl_tools.tar.gz . Downloading  default   https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/TIDL_TOOLS/$1/tidl_tools.tar.gz"
+            wget --quiet  https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/TIDL_TOOLS/$1/tidl_tools.tar.gz
+        fi
     fi
 }
 
@@ -187,7 +196,7 @@ cp_osrt_lib()
 
 
 SCRIPTDIR=`pwd`
-REL=09_01_03_00
+REL=09_01_04_00
 skip_cpp_deps=0
 skip_arm_gcc_download=0
 skip_x86_python_install=0
@@ -231,7 +240,12 @@ shift # past argument
 done
 set -- "${POSITIONAL[@]}" # restore positional parameters
 
-
+#Check if tools are built for
+if [ $TIDL_TOOLS_TYPE == GPU ];then
+    tidl_gpu_tools=1
+else
+    tidl_gpu_tools=0
+fi
 
 version_match=`python3 -c 'import sys;r=0 if sys.version_info >= (3,6) else 1;print(r)'`
 if [ $version_match -ne 0 ]; then
@@ -299,6 +313,9 @@ if [ -z "$TIDL_TOOLS_PATH" ]; then
     if [ -f tidl_tools.tar.gz ];then
         rm tidl_tools.tar.gz
     fi
+    if [ -f tidl_tools_gpu.tar.gz ];then
+        rm tidl_tools_gpu.tar.gz
+    fi
     if [ -d tidl_tools ];then
         rm -r tidl_tools
     fi
@@ -306,29 +323,49 @@ if [ -z "$TIDL_TOOLS_PATH" ]; then
         if [[ $use_local == 1 ]];then
             cp_tidl_tools AM62A
         else
-            echo 'Downloading tidl tools for AM62A SOC ...'
-            wget --quiet   https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/TIDL_TOOLS/AM62A/tidl_tools.tar.gz
+            if [ $tidl_gpu_tools -eq 1 ];then
+                echo 'Downloading gpu tidl tools for AM62A SOC ...'
+                wget --quiet   https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/TIDL_TOOLS/AM62A/tidl_tools_gpu.tar.gz
+            else
+                echo 'Downloading tidl tools for AM62A SOC ...'
+                wget --quiet   https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/TIDL_TOOLS/AM62A/tidl_tools.tar.gz               
+            fi
         fi
     elif  [ $SOC == am68pa ];then
         if [[ $use_local == 1 ]];then
             cp_tidl_tools AM68PA
         else
-            echo 'Downloading tidl tools for AM68PA SOC ...'
-            wget --quiet   https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/TIDL_TOOLS/AM68PA/tidl_tools.tar.gz
+            if [ $tidl_gpu_tools -eq 1 ];then
+                echo 'Downloading gpu tidl tools for AM68PA SOC ...'
+                wget --quiet   https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/TIDL_TOOLS/AM68PA/tidl_tools_gpu.tar.gz
+            else
+                echo 'Downloading tidl tools for AM68PA SOC ...'
+                wget --quiet   https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/TIDL_TOOLS/AM68PA/tidl_tools.tar.gz
+            fi
         fi
     elif  [ $SOC == am68a ];then
         if [[ $use_local == 1 ]];then
             cp_tidl_tools AM68A
-        else    
-            echo 'Downloading tidl tools for AM68A SOC ...'
-            wget --quiet   https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/TIDL_TOOLS/AM68A/tidl_tools.tar.gz
+        else
+            if [ $tidl_gpu_tools -eq 1 ];then
+                echo 'Downloading gpu tidl tools for AM68A SOC ...'
+                wget --quiet   https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/TIDL_TOOLS/AM68A/tidl_tools_gpu.tar.gz
+            else
+                echo 'Downloading tidl tools for AM68A SOC ...'
+                wget --quiet   https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/TIDL_TOOLS/AM68A/tidl_tools.tar.gz
+            fi
         fi
     elif  [ $SOC == am69a ];then
         if [[ $use_local == 1 ]];then
             cp_tidl_tools AM69A
-        else    
-            echo 'Downloading tidl tools for AM69A SOC ...'
-            wget --quiet   https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/TIDL_TOOLS/AM69A/tidl_tools.tar.gz
+        else
+            if [ $tidl_gpu_tools -eq 1 ];then
+                echo 'Downloading gpu tidl tools for AM69A SOC ...'
+                wget --quiet   https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/TIDL_TOOLS/AM69A/tidl_tools_gpu.tar.gz
+            else
+                echo 'Downloading tidl tools for AM69A SOC ...'
+                wget --quiet   https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/TIDL_TOOLS/AM69A/tidl_tools.tar.gz
+            fi  
         fi
     else
         echo "SOC shell var not set correctly($SOC). Set"
@@ -340,9 +377,16 @@ if [ -z "$TIDL_TOOLS_PATH" ]; then
         return 
     fi
     #Untar tidl tools & remove the tar ball
-    tar -xzf tidl_tools.tar.gz
-    if [ -f tidl_tools.tar.gz ];then
-        rm tidl_tools.tar.gz
+    if [ $tidl_gpu_tools -eq 1 ];then
+        tar -xzf tidl_tools_gpu.tar.gz
+        if [ -f tidl_tools_gpu.tar.gz ];then
+            rm tidl_tools_gpu.tar.gz
+        fi
+    else
+        tar -xzf tidl_tools.tar.gz
+        if [ -f tidl_tools.tar.gz ];then
+            rm tidl_tools.tar.gz
+        fi
     fi
     cd tidl_tools
     if [[ ! -L libvx_tidl_rt.so.1.0 && ! -f libvx_tidl_rt.so.1.0 ]];then

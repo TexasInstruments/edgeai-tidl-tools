@@ -1,8 +1,12 @@
 ARG REPO_LOCATION=''
-FROM ${REPO_LOCATION}ubuntu:22.04
+ARG NVHPC_VERSION='23.11'
+ARG CUDA_VERSION='12.3'
+ARG UBUNTU_VERSION='22.04'
+FROM ${REPO_LOCATION}nvcr.io/nvidia/nvhpc:${NVHPC_VERSION}-runtime-cuda${CUDA_VERSION}-ubuntu${UBUNTU_VERSION}
+
 ARG USE_PROXY=none
 RUN bash -c 'if [ $USE_PROXY = "ti" ]; then echo "Acquire::http::proxy \"http://webproxy.ext.ti.com:80\";" > /etc/apt/apt.conf; fi'
- 
+
 # baseline
 RUN apt-get update
 RUN apt-get install -y python3 python3-pip python3-setuptools
