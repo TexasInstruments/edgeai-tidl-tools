@@ -46,7 +46,8 @@ As an example for ONNX out of box example script user can run in ARM only mode a
     ```
     For user's custom model they can refer [here](../examples/osrt_python/README.md#example-apis-for-tidl-offload-or-delegation-in-osrts) to enable ARM only mode
 * User can set debug_level = 1 or 2 to enable verbose debug log during model compilation and during model inference
-* If model infernece works fine in ARM only mode but model compilation fails with C7x-MMA offload, then try dispatching some of the layers (less commonly used layer type) to ARM by using “deny_list” option.
+* If model inference works fine in ARM only mode but model compilation fails with C7x-MMA offload, then try dispatching some of the layers (less commonly used layer type) to ARM by using “deny_list” option.
+* Additionally, it is recommended to disable default onnx graph optimizations (i.e. set session option for graph_optimization_level to onnxruntime.GraphOptimizationLevel.ORT_DISABLE_ALL)
    
 # Steps to Debug Error Scenarios for target(EVM/device) execution 
 

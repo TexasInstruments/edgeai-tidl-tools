@@ -196,7 +196,7 @@ cp_osrt_lib()
 
 
 SCRIPTDIR=`pwd`
-REL=09_01_06_00
+REL=09_01_07_00
 skip_cpp_deps=0
 skip_arm_gcc_download=0
 skip_x86_python_install=0
@@ -240,12 +240,19 @@ shift # past argument
 done
 set -- "${POSITIONAL[@]}" # restore positional parameters
 
-#Check if tools are built for
-if [ $TIDL_TOOLS_TYPE == GPU ];then
-    tidl_gpu_tools=1
+#Check if CPU or GPU tools
+if [ -z "$TIDL_TOOLS_TYPE" ];then
+    echo "Defaulting to CPU tools"
+    tidl_gpu_tools=0        
 else
-    tidl_gpu_tools=0
+    echo "TIDL_TOOLS_TYPE set to :$TIDL_TOOLS_TYPE"
+    if [ $TIDL_TOOLS_TYPE == GPU ];then
+        tidl_gpu_tools=1
+    else
+        tidl_gpu_tools=0
+    fi
 fi
+
 
 version_match=`python3 -c 'import sys;r=0 if sys.version_info >= (3,6) else 1;print(r)'`
 if [ $version_match -ne 0 ]; then
