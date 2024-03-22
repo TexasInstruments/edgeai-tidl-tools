@@ -32,7 +32,7 @@
 
 
 compile_armnn(){
-    #requires tflite2.8 to be build first
+    #requires tflite2.12 to be build first
     cd $HOME
     export BASEDIR=~/ArmNNDelegate
     mkdir $BASEDIR
@@ -306,13 +306,13 @@ if [[ $arch == x86_64 ]]; then
         pip_install_local dlr-1.13.0-py3-none-any.whl
         pip_install_local tvm-0.12.0-cp310-cp310-linux_x86_64.whl
         pip_install_local onnxruntime_tidl-1.14.0-cp310-cp310-linux_x86_64.whl
-        pip_install_local tflite_runtime-2.8.2-cp310-cp310-linux_x86_64.whl
+        pip_install_local tflite_runtime-2.12.0-cp310-cp310-linux_x86_64.whl
     else
         echo 'Installing python osrt packages...'
         pip3 install --quiet https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/dlr-1.13.0-py3-none-any.whl
         pip3 install --quiet https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/tvm-0.12.0-cp310-cp310-linux_x86_64.whl
         pip3 install --quiet https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/onnxruntime_tidl-1.14.0-cp310-cp310-linux_x86_64.whl
-        pip3 install --quiet https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/tflite_runtime-2.8.2-cp310-cp310-linux_x86_64.whl
+        pip3 install --quiet https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/tflite_runtime-2.12.0-cp310-cp310-linux_x86_64.whl
     fi
 fi
 
@@ -465,20 +465,19 @@ if [ $skip_cpp_deps -eq 0 ]; then
             echo "skipping onnxruntime setup: found $TIDL_TOOLS_PATH/osrt_deps/onnxruntime"
             echo "To redo the setup delete:$TIDL_TOOLS_PATH/osrt_deps/onnxruntime and run this script again"
         fi
-        # tflite_2.8
-        if [ ! -d tflite_2.8_x86_u22 ];then
-            echo "Installing:tflite_2.8"
-            if [ -f tflite_2.8_x86_u22.tar.gz ];then
-                rm tflite_2.8_x86_u22.tar.gz
+        # tflite_2.12
+        if [ ! -d tflite_2.12_x86_u22 ];then
+            echo "Installing:tflite_2.12"
+            if [ -f tflite_2.12_x86_u22.tar.gz ];then
+                rm tflite_2.12_x86_u22.tar.gz
             fi
             if [[ $use_local == 1 ]];then
-                cp_osrt_lib tflite_2.8_x86_u22.tar.gz
+                cp_osrt_lib tflite_2.12_x86_u22.tar.gz
             else    
-                wget --quiet   https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/tflite_2.8_x86_u22.tar.gz
+                wget --quiet   https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/tflite_2.12_x86_u22.tar.gz
             fi            
-            tar -xf tflite_2.8_x86_u22.tar.gz  
-            mkdir tflite_2.8_x86_u22 && tar xf tflite_2.8_x86_u22.tar.gz -C tflite_2.8_x86_u22 --strip-components 1      
-            rm tflite_2.8_x86_u22.tar.gz   -r
+            tar -xf tflite_2.12_x86_u22.tar.gz
+            rm tflite_2.12_x86_u22.tar.gz   -r
         else
             echo "skipping tensorflow setup: found $TIDL_TOOLS_PATH/osrt_deps/tensorflow"
             echo "To redo the setup delete:$TIDL_TOOLS_PATH/osrt_deps/tensorflow and run this script again"

@@ -22,11 +22,11 @@ if(NOT EXISTS $ENV{TIDL_TOOLS_PATH}/)
 endif()
 
 
-if (EXISTS $ENV{TIDL_TOOLS_PATH}/osrt_deps/tflite_2.8/) # check for container
-  set(TENSORFLOW_INSTALL_DIR $ENV{TIDL_TOOLS_PATH}/osrt_deps/tflite_2.8/)
+if (EXISTS $ENV{TIDL_TOOLS_PATH}/osrt_deps/tflite_2.12/) # check for container
+  set(TENSORFLOW_INSTALL_DIR $ENV{TIDL_TOOLS_PATH}/osrt_deps/tflite_2.12/)
   message (STATUS  "setting TENSORFLOW_INSTALL_DIR path:${TENSORFLOW_INSTALL_DIR}") # check for PC
-elseif (EXISTS $ENV{TIDL_TOOLS_PATH}/osrt_deps/tflite_2.8_x86_u22/)
-  set(TENSORFLOW_INSTALL_DIR $ENV{TIDL_TOOLS_PATH}/osrt_deps/tflite_2.8_x86_u22/)
+elseif (EXISTS $ENV{TIDL_TOOLS_PATH}/osrt_deps/tflite_2.12_x86_u22/)
+  set(TENSORFLOW_INSTALL_DIR $ENV{TIDL_TOOLS_PATH}/osrt_deps/tflite_2.12_x86_u22/)
   message (STATUS  "setting TENSORFLOW_INSTALL_DIR path:${TENSORFLOW_INSTALL_DIR}")
 else()
   # avoid warning in case of hw accelerated device which have this in filesystem
@@ -87,13 +87,55 @@ if(ARMNN_ENABLE)
     endif()
   endif()
 
-set(TFLITE_2_8_LIBS 
-  # Enable these when migrating to tflite 2.8
+set(TFLITE_2_12_LIBS 
+  # Enable these when migrating to tflite 2.12
+  absl_base
+  absl_log_severity
+  absl_malloc_internal
+  absl_raw_logging_internal
+  absl_spinlock_wait
+  absl_strerror
+  absl_throw_delegate
+  absl_hashtablez_sampler
+  absl_raw_hash_set
+  absl_debugging_internal
+  absl_demangle_internal
+  absl_stacktrace
+  absl_symbolize
+  absl_flags
+  absl_flags_commandlineflag
+  absl_flags_commandlineflag_internal
+  absl_flags_config
+  absl_flags_internal
+  absl_flags_marshalling
+  absl_flags_private_handle_accessor
+  absl_flags_program_name
+  absl_flags_reflection
+  absl_city
+  absl_hash
+  absl_low_level_hash
+  absl_int128
+  absl_exponential_biased
+  absl_status
+  absl_cord
+  absl_cord_internal
+  absl_cordz_functions
+  absl_cordz_handle
+  absl_cordz_info
+  absl_str_format_internal
+  absl_strings
+  absl_strings_internal
+  absl_graphcycles_internal
+  absl_synchronization
+  absl_civil_time
+  absl_time
+  absl_time_zone
+  absl_bad_optional_access
+  absl_bad_variant_access
   flatbuffers
   fft2d_fftsg2d
   fft2d_fftsg
   cpuinfo
-  clog
   farmhash
   ruy_allocator
   ruy_apply_multiplier
@@ -123,10 +165,11 @@ set(TFLITE_2_8_LIBS
   ruy_trmul
   ruy_tune
   ruy_wait
+  ruy_profiler_instrumentation
   pthreadpool
   #xnn lib
   XNNPACK
-  # Enable these when migrating to tflite 2.8 
+  # Enable these when migrating to tflite 2.12
 )
 
 set(TARGET_COMPILE_INCLUDE_DIR 
@@ -258,7 +301,6 @@ if(${TARGET_DEVICE} STREQUAL  "am62" AND  (${TARGET_CPU} STREQUAL  "x86" AND ${H
                       fft2d_fftsg2d
                       fft2d_fftsg
                       cpuinfo
-                      clog
                       farmhash
                       ruy_allocator
                       ruy_apply_multiplier
@@ -291,6 +333,7 @@ if(${TARGET_DEVICE} STREQUAL  "am62" AND  (${TARGET_CPU} STREQUAL  "x86" AND ${H
                       pthreadpool
                       #xnn lib
                       XNNPACK
+                      ${TFLITE_2_12_LIBS}
     )
 
   link_directories(
@@ -304,16 +347,16 @@ if(${TARGET_DEVICE} STREQUAL  "am62" AND  (${TARGET_CPU} STREQUAL  "x86" AND ${H
                     ${OPENCV_INSTALL_DIR}/cmake/3rdparty/lib
                     ${OPENCV_INSTALL_DIR}/modules/core/include 
 
-                    #tesnorflow 2.8 and dependencies
-                    ${TENSORFLOW_INSTALL_DIR}/tflite_build
-                    ${TENSORFLOW_INSTALL_DIR}/tflite_build/_deps/ruy-build/ruy
-                    ${TENSORFLOW_INSTALL_DIR}/tflite_build/pthreadpool
-                    ${TENSORFLOW_INSTALL_DIR}/tflite_build/_deps/fft2d-build
-                    ${TENSORFLOW_INSTALL_DIR}/tflite_build/_deps/cpuinfo-build
-                    ${TENSORFLOW_INSTALL_DIR}/tflite_build/_deps/flatbuffers-build
-                    ${TENSORFLOW_INSTALL_DIR}/tflite_build/_deps/clog-build
-                    ${TENSORFLOW_INSTALL_DIR}/tflite_build/_deps/farmhash-build
-                    ${TENSORFLOW_INSTALL_DIR}/tflite_build/_deps/xnnpack-build
+                    #tesnorflow 2.12 and dependencies
+                    ${TENSORFLOW_INSTALL_DIR}/tflite_2.12
+                    ${TENSORFLOW_INSTALL_DIR}/tflite_2.12/ruy-build/
+                    ${TENSORFLOW_INSTALL_DIR}/tflite_2.12/fft2d-build
+                    ${TENSORFLOW_INSTALL_DIR}/tflite_2.12/cpuinfo-build
+                    ${TENSORFLOW_INSTALL_DIR}/tflite_2.12/flatbuffers-build
+                    ${TENSORFLOW_INSTALL_DIR}/tflite_2.12/farmhash-build
+                    ${TENSORFLOW_INSTALL_DIR}/tflite_2.12/xnnpack-build
+                    ${TENSORFLOW_INSTALL_DIR}/tflite_2.12/abseil-cpp-build
+                    ${TENSORFLOW_INSTALL_DIR}/tflite_2.12/pthreadpool
                     
                     #for onnx  lib
                     $ENV{TIDL_TOOLS_PATH}
@@ -325,7 +368,7 @@ if(NOT ${TARGET_DEVICE} STREQUAL  "am62" AND  (${TARGET_CPU} STREQUAL  "x86" AND
   add_compile_options(-DDEVICE_AM62A=1)
   set(CMAKE_C_COMPILER gcc)
   set(CMAKE_CXX_COMPILER g++)
-  #enbale xnn since tflite 2.8
+  #enbale xnn since tflite 2.12
   add_compile_options(-DXNN_ENABLE=1)
 
   include_directories(
@@ -351,7 +394,7 @@ if(NOT ${TARGET_DEVICE} STREQUAL  "am62" AND  (${TARGET_CPU} STREQUAL  "x86" AND
     dl
     yaml-cpp
     stdc++fs
-    ${TFLITE_2_8_LIBS}
+    ${TFLITE_2_12_LIBS}
     )
 
   link_directories(
@@ -365,18 +408,17 @@ if(NOT ${TARGET_DEVICE} STREQUAL  "am62" AND  (${TARGET_CPU} STREQUAL  "x86" AND
 
     ${ONNXRT_INSTALL_DIR}/
 
-    #tesnorflow 2.8 and dependencies
+    #tesnorflow 2.12 and dependencies
     ${TENSORFLOW_INSTALL_DIR}/
-    ${TENSORFLOW_INSTALL_DIR}/tflite_2.8
-    ${TENSORFLOW_INSTALL_DIR}/tflite_2.8/ruy-build/ruy
-    ${TENSORFLOW_INSTALL_DIR}/tflite_2.8/ruy-build/
-    ${TENSORFLOW_INSTALL_DIR}/tflite_2.8/pthreadpool
-    ${TENSORFLOW_INSTALL_DIR}/tflite_2.8/fft2d-build
-    ${TENSORFLOW_INSTALL_DIR}/tflite_2.8/cpuinfo-build
-    ${TENSORFLOW_INSTALL_DIR}/tflite_2.8/flatbuffers-build
-    ${TENSORFLOW_INSTALL_DIR}/tflite_2.8/clog-build
-    ${TENSORFLOW_INSTALL_DIR}/tflite_2.8/farmhash-build
-    ${TENSORFLOW_INSTALL_DIR}/tflite_2.8/xnnpack-build
+    ${TENSORFLOW_INSTALL_DIR}/tflite_2.12
+    ${TENSORFLOW_INSTALL_DIR}/tflite_2.12/ruy-build
+    ${TENSORFLOW_INSTALL_DIR}/tflite_2.12/fft2d-build
+    ${TENSORFLOW_INSTALL_DIR}/tflite_2.12/cpuinfo-build
+    ${TENSORFLOW_INSTALL_DIR}/tflite_2.12/flatbuffers-build
+    ${TENSORFLOW_INSTALL_DIR}/tflite_2.12/farmhash-build
+    ${TENSORFLOW_INSTALL_DIR}/tflite_2.12/xnnpack-build
+    ${TENSORFLOW_INSTALL_DIR}/tflite_2.12/abseil-cpp-build
+    ${TENSORFLOW_INSTALL_DIR}/tflite_2.12/pthreadpool
     
     
     $ENV{TIDL_TOOLS_PATH}/osrt_deps/
@@ -499,17 +541,17 @@ if((NOT ${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" AN
     ${TARGET_FS_PATH}/usr/lib
     ${TARGET_FS_PATH}/usr/lib/glib-2.0
     ${TARGET_FS_PATH}/usr/lib/python3.10/site-packages  
-    # Enable these when migrating to tflite 2.8
-    ${TARGET_FS_PATH}/usr/lib/tflite_2.8/ruy-build
-    ${TARGET_FS_PATH}/usr/lib/tflite_2.8/xnnpack-build
-    ${TARGET_FS_PATH}/usr/lib/tflite_2.8/pthreadpool
-    ${TARGET_FS_PATH}/usr/lib/tflite_2.8/fft2d-build
-    ${TARGET_FS_PATH}/usr/lib/tflite_2.8/cpuinfo-build
-    ${TARGET_FS_PATH}/usr/lib/tflite_2.8/flatbuffers-build
-    ${TARGET_FS_PATH}/usr/lib/tflite_2.8/clog-build
-    ${TARGET_FS_PATH}/usr/lib/tflite_2.8/farmhash-build
+    # Enable these when migrating to tflite 2.12
+    ${TARGET_FS_PATH}/usr/lib/tflite_2.12/abseil-cpp-build
+    ${TARGET_FS_PATH}/usr/lib/tflite_2.12/ruy-build
+    ${TARGET_FS_PATH}/usr/lib/tflite_2.12/xnnpack-build
+    ${TARGET_FS_PATH}/usr/lib/tflite_2.12/fft2d-build
+    ${TARGET_FS_PATH}/usr/lib/tflite_2.12/cpuinfo-build
+    ${TARGET_FS_PATH}/usr/lib/tflite_2.12/flatbuffers-build
+    ${TARGET_FS_PATH}/usr/lib/tflite_2.12/farmhash-build
+    ${TARGET_FS_PATH}/usr/lib/tflite_2.12/pthreadpool
     ${TARGET_FS_PATH}/usr/lib/python3.10/site-packages/dlr
-    # Enable these when migrating to tflite 2.8
+    # Enable these when migrating to tflite 2.12
   )
   set(SYSTEM_LINK_LIBS
     tensorflow-lite
@@ -540,7 +582,7 @@ if((NOT ${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" AN
     pthread
     vx_tidl_rt
     ti_rpmsg_char
-    ${TFLITE_2_8_LIBS}
+    ${TFLITE_2_12_LIBS}
   )
   include_directories(
     ${PROJECT_SOURCE_DIR}
@@ -624,16 +666,16 @@ if( ((NOT ${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" 
   link_directories(  
                   /usr/lib/opencv/ #for container
                   /usr/lib
-                  # Enable these when migrating to tflite 2.8
-                  /usr/lib/tflite_2.8/ruy-build
-                  /usr/lib/tflite_2.8/xnnpack-build
-                  /usr/lib/tflite_2.8/pthreadpool
-                  /usr/lib/tflite_2.8/fft2d-build
-                  /usr/lib/tflite_2.8/cpuinfo-build
-                  /usr/lib/tflite_2.8/flatbuffers-build
-                  /usr/lib/tflite_2.8/clog-build
-                  /usr/lib/tflite_2.8/farmhash-build
-                  # Enable these when migrating to tflite 2.8
+                  # Enable these when migrating to tflite 2.12
+                  /usr/lib/tflite_2.12/abseil-cpp-build
+                  /usr/lib/tflite_2.12/ruy-build
+                  /usr/lib/tflite_2.12/xnnpack-build
+                  /usr/lib/tflite_2.12/fft2d-build
+                  /usr/lib/tflite_2.12/cpuinfo-build
+                  /usr/lib/tflite_2.12/flatbuffers-build
+                  /usr/lib/tflite_2.12/farmhash-build
+                  /usr/lib/tflite_2.12/pthreadpool
+                  # Enable these when migrating to tflite 2.12
                   /usr/local/dlr
                   /usr/lib/aarch64-linux-gnu
                   /usr/lib/python3.10/site-packages/dlr/
@@ -656,7 +698,7 @@ if( ((NOT ${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" 
                   png16
                   tiff
                   ${ADV_UTILS_LIB}
-                  ${TFLITE_2_8_LIBS}
+                  ${TFLITE_2_12_LIBS}
   )
   include_directories(
                   /usr/include
