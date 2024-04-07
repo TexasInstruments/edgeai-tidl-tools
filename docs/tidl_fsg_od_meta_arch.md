@@ -4,21 +4,21 @@
 
 * TIDL offering supports optimized inference for various base feature extractors / back-bone networks like Resnets, MobileNets, EfficientNets, ShuffleNets, VGG, DenseNet etc. and also for various object detection (OD) post processing architectures
 * The backbone networks have accelerated inference for layers supported on DSP with unsupported layers implemented using native runtimes
-* As an enhancement to OD post processing support by native runtimes, TIDL provides optimized and accelerated inference for certain types of post processing architectures
+* As an enhancement to OD (Object Detection) post processing support by native runtimes, TIDL provides optimized and accelerated inference for certain types of post processing architectures
 * This is enabled by defining meta architecture formats as provided by standard Tensorflow Object Detection API or TIDL defined protocol buffer format to convey post processing information to TIDL inference libraries
 * TIDL provides optimized post processing support for following post processing architectures
   * Single Shot Detection (SSD)
-  * You Only Look Once (YOLO) V3, V5, X
+  * You Only Look Once (YOLO) V3, V5, V8, X
   * RetinaNet
   * PointPillars for 3D object detection using LIDAR data
 
 **TI provides a wide variety of object detection models which are trained and adapted to suit TI SoC architecture as part of TI's [Model zoo](https://github.com/TexasInstruments/edgeai-modelzoo). Users are recommended to check if these meet use case requirements before moving to custom models**.
 
-**NOTE : Post processing optmization is supported only for models exported using specific export frameworks. Refer [Export frameworks for optimized TIDL inference](https://github.com/TexasInstruments/edgeai-modelzoo/tree/master/models/vision/detection) for more details on supported training frameworks**
+**NOTE : Post processing optimization is supported only for models exported using specific export frameworks. Refer [Export frameworks for optimized TIDL inference](https://github.com/TexasInstruments/edgeai-modelzoo/tree/master/models/vision/detection) for more details on supported training frameworks**
 
 ## Usage
 
-* 2 additional compilation options as explained in [od options](../examples/osrt_python/README.md#object-detection-model-specific-options)  need to be specified in order to utilize this feature. <br>
+* 2 additional compilation options as explained in [od options](../examples/osrt_python/README.md#object-detection-model-specific-options) need to be specified in order to utilize this feature. <br>
 * Following table depicts the meta architecture type corresponding to different OD post processing architectures along with links to some example models/meta architecture files available as part of TI's [Model zoo](https://github.com/TexasInstruments/edgeai-modelzoo).   
 
 

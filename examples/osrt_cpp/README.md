@@ -10,12 +10,12 @@
 
 ## Introduction
 
-   - CPP APIs for DL runtimes only support model inference. So the user is expeted to run the [Python Examples](../../README.md#python-exampe) on PC to generate the model artifacts.
+   - CPP APIs for DL runtimes only support model inference. So the user is expected to run the [Python Examples](../../README.md#python-exampe) on PC to generate the model artifacts.
    - CPP API require yaml file reading lib. So the user is expected to install libyaml-cpp-dev by running command "sudo apt-get install libyaml-cpp-dev"
 
 
 ## Setup
-- Prepare the Environment for the Model compilation by follwoing the setup section [here](../../README.md#setup)
+- Prepare the Environment for the Model compilation by following the setup section [here](../../README.md#setup)
 
 
 ## Build 
@@ -24,7 +24,7 @@
     ```
     mkdir build && cd build
     ```
-  - Below tables depicts the flags required for different compilation mode and different taget device use these with cmake inside build directory.
+  - Below tables depicts the flags required for different compilation mode and different target device use these with cmake inside build directory.
   - During cmake build following paths are expected at $HOME(to override default path use cmake flags during cmake build).
       - TENSORFLOW_INSTALL_DIR : defaults check at ~/tensorflow 
       - ONNXRT_INSTALL_DIR: defaults check at ~/onnxruntime

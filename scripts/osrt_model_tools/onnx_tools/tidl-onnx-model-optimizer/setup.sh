@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright (c) 2018-2023, Texas Instruments
 # All Rights Reserved.
@@ -29,25 +29,18 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ######################################################################
-#Check if CPU or GPU tools
-if [ -z "$TIDL_TOOLS_TYPE" ];then
-    echo "TIDL_TOOLS_TYPE unset, defaulting to CPU tools"
-    tidl_gpu_tools=0
-else
-    if [ $TIDL_TOOLS_TYPE == GPU ];then
-        tidl_gpu_tools=1
-    else
-        tidl_gpu_tools=0
-    fi
-fi
-######################################################################
-#1. Install docker if not previously installed:
-sudo apt-get install docker.io
-#2. Add docker to the sudoers group:
-sudo groupadd docker
-sudo usermod -aG docker $USER
-newgrp docker # to reflect the changes in current session
-#3. Install NVIDIA-Container-Toolkit
-if [ $tidl_gpu_tools -eq 1 ];then
-    sudo apt-get install -y docker nvidia-container-toolkit
-fi
+# Installing dependencies
+#################################################################################
+# upgrade pip
+pip install --no-input --upgrade pip setuptools
+
+
+echo 'Installing python packages...'
+while IFS= read -r line;
+do
+	echo "pip3 install --no-input $line";
+	pip3 install --no-input $line;
+done < requirements.txt
+
+echo 'installing the onnx graph optimization toolkit...'
+python3 ./setup.py develop

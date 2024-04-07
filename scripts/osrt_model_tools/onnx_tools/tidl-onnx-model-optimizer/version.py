@@ -1,6 +1,4 @@
-#!/bin/bash
-
-# Copyright (c) 2018-2023, Texas Instruments
+# Copyright (c) 2018-2021, Texas Instruments
 # All Rights Reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,26 +26,35 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-######################################################################
-#Check if CPU or GPU tools
-if [ -z "$TIDL_TOOLS_TYPE" ];then
-    echo "TIDL_TOOLS_TYPE unset, defaulting to CPU tools"
-    tidl_gpu_tools=0
-else
-    if [ $TIDL_TOOLS_TYPE == GPU ];then
-        tidl_gpu_tools=1
-    else
-        tidl_gpu_tools=0
-    fi
-fi
-######################################################################
-#1. Install docker if not previously installed:
-sudo apt-get install docker.io
-#2. Add docker to the sudoers group:
-sudo groupadd docker
-sudo usermod -aG docker $USER
-newgrp docker # to reflect the changes in current session
-#3. Install NVIDIA-Container-Toolkit
-if [ $tidl_gpu_tools -eq 1 ];then
-    sudo apt-get install -y docker nvidia-container-toolkit
-fi
+"""
+Versioning
+"""
+
+import argparse
+
+__version__ = '9.2.0'
+
+
+def print_version():
+    """
+    Print version string
+    """
+    print(__version__)
+
+
+def print_version_(delimiter):
+    """
+    Print version string
+    """
+    version_str = delimiter.join([f'{r:0>2}' for r in __version__.split('.')])
+    print(version_str)
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--delimiter', default=None)
+    args = parser.parse_args()
+    if args.delimiter is not None:
+        print_version_(args.delimiter)
+    else:
+        print_version()

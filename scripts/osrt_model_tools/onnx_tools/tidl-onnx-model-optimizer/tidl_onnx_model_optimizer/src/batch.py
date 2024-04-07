@@ -1,4 +1,4 @@
-# Copyright (c) {2015 - 2024} Texas Instruments Incorporated
+# Copyright (c) {2023 - 2024} Texas Instruments Incorporated
 #
 # All rights reserved not granted herein.
 #
@@ -68,17 +68,20 @@ this may not give expected result.
 
 import onnx_graphsurgeon as gs
 import onnx
-from src.common import find_out_layers
+from .common import find_out_layers
 
 START_NODE_NAME = "/Mul"
 END_NODE_NAME   = "/model/Transpose"
 
 
 def tidl_modify_batch_dim (graph: gs.Graph, onnx_graph: onnx.GraphProto):
+    """
+    Wrapper function to modify batch input dimension to satisfy TIDL constraints
+    """
     duplicate_for_multi_batch(graph, START_NODE_NAME, END_NODE_NAME)
     split_batched_inputs(graph)
 
-def add_node(graph:gs.Graph,name:str,op:str,dtype,attrs,inputs,output_shapes=[]):
+def add_node(graph:gs.Graph, name:str,op:str, dtype, attrs, inputs, output_shapes=[]):
     node_outs = [gs.Variable(f"{name}_out_{i}", dtype=dtype,shape=out) for i,out in enumerate(output_shapes)]
     node = gs.Node(op=op,name=name,attrs=attrs, inputs=inputs, outputs=node_outs)
     graph.nodes.append(node)
@@ -129,8 +132,10 @@ def add_identity_for(graph:gs.Graph,output:gs.Variable):
     graph.toposort()
 
 def split_batched_inputs(graph: gs.Graph):
-    """Convert batched input feeding into a split layer into separate branches linked to separate inputs
-        instead of batched input"""
+    """
+    Convert batched input feeding into a split layer into separate branches
+    linked to separate inputs instead of batched input
+    """
     nodes = graph.nodes
     split_outputs = []
     #Find the first split node
@@ -157,7 +162,7 @@ def split_batched_inputs(graph: gs.Graph):
                 #Remove the graph's original input:
                 for input in graph.inputs:
                     if node.inputs[0] != input:
-                        new_inputs.append(input)           
+                        new_inputs.append(input)
                 graph.inputs = new_inputs
             break
     graph.cleanup().toposort()

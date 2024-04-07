@@ -17,6 +17,7 @@ if [ -z "$SOC" ];then
     echo "export SOC=am62"
     echo "export SOC=am62a"
     echo "export SOC=am68a"
+    echo "export SOC=am67a"
     echo "export SOC=am68pa"
     echo "export SOC=am69a"
     exit

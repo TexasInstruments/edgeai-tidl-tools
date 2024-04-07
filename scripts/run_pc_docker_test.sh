@@ -60,6 +60,7 @@
 use_local=0
 am62a=0
 am68a=0
+am67a=0
 am68pa=0
 am69a=0
 am62=0
@@ -81,6 +82,9 @@ case $key in
     --am68a)
     am68a=1
     ;; 
+    --am67a)
+    am67a=1
+    ;;
     --am69a)
     am69a=1
     ;; 
@@ -139,6 +143,9 @@ if [ $am69a == 1 ];then
 fi 
 if [ $am68a == 1 ];then
   run_test am68a
+fi
+if [ $am67a == 1 ];then
+  run_test am67a
 fi
 if [ $am68pa == 1 ];then
   run_test am68pa

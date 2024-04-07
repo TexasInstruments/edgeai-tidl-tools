@@ -30,10 +30,37 @@
 
 ######################################################################
 script_dir=$(dirname -- ${BASH_SOURCE[0]})
-if [ $TIDL_TOOLS_TYPE == GPU ];then
-    sudo docker build -f $script_dir/Dockerfile_GPU -t x86_ubuntu_22 .
+
+#Check if CPU or GPU tools
+if [ -z "$TIDL_TOOLS_TYPE" ];then
+    echo "TIDL_TOOLS_TYPE unset, defaulting to CPU tools"
+    tidl_gpu_tools=0
+else
+    if [ $TIDL_TOOLS_TYPE == GPU ];then
+        tidl_gpu_tools=1
+    else
+        tidl_gpu_tools=0
+    fi
+fi
+
+#Check for TI Proxy:
+use_ti_proxy=0
+if [ -z "$USE_PROXY" ];then
+    echo "TIDL_TOOLS_TYPE unset, defaulting to CPU tools"
+    use_ti_proxy=0
 else
     if [ $USE_PROXY == ti ];then
+        echo "Using TI Proxy"
+        use_ti_proxy=1
+    else
+        use_ti_proxy=0
+    fi
+fi
+
+if [ $tidl_gpu_tools -eq 1 ];then
+    sudo docker build -f $script_dir/Dockerfile_GPU -t x86_ubuntu_22 .
+else
+    if [ $use_ti_proxy -eq 1 ];then
         sudo docker build --build-arg REPO_LOCATION=artifactory.itg.ti.com/docker-public/library/ --build-arg USE_PROXY=ti  -f $script_dir/Dockerfile -t x86_ubuntu_22 .
     else
         sudo docker build -f $script_dir/Dockerfile -t x86_ubuntu_22 .

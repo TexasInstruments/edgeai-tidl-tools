@@ -9,6 +9,7 @@ import argparse
 import re
 import multiprocessing
 import platform
+import shutil
 #import onnx
 # directory reach
 current = os.path.dirname(os.path.realpath(__file__))
@@ -17,6 +18,14 @@ parent = os.path.dirname(current)
 sys.path.append(parent)
 from common_utils import *
 from model_configs import *
+
+model_optimizer_found = False
+if platform.machine() != 'aarch64':
+    try:
+        from tidl_onnx_model_optimizer import optimize
+        model_optimizer_found = True
+    except ModuleNotFoundError as e:
+        print("Skipping import of model optimizer")
 
 required_options = {
 "tidl_tools_path":tidl_tools_path,
@@ -27,6 +36,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-c','--compile', action='store_true', help='Run in Model compilation mode')
 parser.add_argument('-d','--disable_offload', action='store_true',  help='Disable offload to TIDL')
 parser.add_argument('-z','--run_model_zoo', action='store_true',  help='Run model zoo models')
+parser.add_argument('-o','--graph_optimize', action='store_true',  help='Run ONNX model optimization thourgh onnx-graph-surgeon-tidl')
 parser.add_argument('-m','--models', action='append', default=[], help='Model name to be added to the list to run')
 args = parser.parse_args()
 os.environ["TIDL_RT_PERFSTATS"] = "1"
@@ -104,8 +114,8 @@ def infer_image(sess, image_files, config):
   for i in range(batch):
       imgs.append(Image.open(image_files[i]).convert('RGB').resize((width, height), PIL.Image.LANCZOS))
       temp_input_data = np.expand_dims(imgs[i], axis=0)
-      temp_input_data = np.transpose(temp_input_data, (0, 3, 1, 2))  
-      input_data[i] = temp_input_data[0] 
+      temp_input_data = np.transpose(temp_input_data, (0, 3, 1, 2))
+      input_data[i] = temp_input_data[0]
   if floating_model:
     input_data = np.float32(input_data)
     for mean, scale, ch in zip(config['mean'], config['scale'], range(input_data.shape[1])):
@@ -114,7 +124,7 @@ def infer_image(sess, image_files, config):
     input_data = np.uint8(input_data)
     config['mean'] = [0, 0, 0]
     config['scale']  = [1, 1, 1]
-  
+
   start_time = time.time()
   output = list(sess.run(None, {input_name: input_data}))
   #output = list(sess.run(None, {input_name: input_data, input_details[1].name: np.array([[416,416]], dtype = np.float32)}))
@@ -133,11 +143,29 @@ def run_model(model, mIdx):
         download_model(models_configs, model)
     config = models_configs[model]
 
-    #onnx shape inference
-    #if not os.path.isfile(os.path.join(models_base_path, model + '_shape.onnx')):
-    #    print("Writing model with shapes after running onnx shape inference -- ", os.path.join(models_base_path, model + '_shape.onnx'))
-    #    onnx.shape_inference.infer_shapes_path(config['model_path'], config['model_path'])#os.path.join(models_base_path, model + '_shape.onnx'))
-    
+    # graph optimization
+    if args.graph_optimize:
+        if model_optimizer_found:
+            if (args.compile or args.disable_offload) and (platform.machine() != 'aarch64'):
+                copy_path = config['model_path'][:-5] + "_org.onnx"
+                # check if copy path exists and prompt for permission to overwrite
+                if os.path.isfile(copy_path):
+                    overwrite_permission = input(f"\033[96mThe file {copy_path} exists, do you want to overwrite? [Y/n] \033[00m")
+                    if overwrite_permission != 'Y':
+                        print("Aborting run...")
+                        sys.exit(-1)
+                    else:
+                        print(f"\033[93m[WARNING] File {copy_path} will be overwritten\033[00m")
+
+                shutil.copy2(config['model_path'], copy_path)
+                print(f"\033[93mOptimization Enabled: Moving {config['model_path']} to {copy_path} before overwriting by optimization\033[00m")
+                optimize(model= config['model_path'], out_model= config['model_path'])  # verbose=True for more details
+            else:
+                print("model optimization is only supported in compilation or disabled offload mode on x86 machines")
+        else:
+            print("model optimizer not found, -o flag has no effect")
+
+
     #set input images for demo
     config = models_configs[model]
     if config['model_type'] == 'classification':
@@ -146,25 +174,24 @@ def run_model(model, mIdx):
         test_images = od_test_images
     elif config['model_type'] == 'seg':
         test_images = seg_test_images
-    
+
     delegate_options = {}
     delegate_options.update(required_options)
-    delegate_options.update(optional_options)  
+    delegate_options.update(optional_options)
     if 'optional_options' in config:
         delegate_options.update(config['optional_options'])
 
 
     # stripping off the ss-ort- from model namne
-    delegate_options['artifacts_folder'] = delegate_options['artifacts_folder'] + '/' + model + '/' #+ 'tempDir/' 
+    delegate_options['artifacts_folder'] = delegate_options['artifacts_folder'] + '/' + model + '/' #+ 'tempDir/'
 
     # disabling onnxruntime optimizations for vision transformers
     if (model == 'cl-ort-deit-tiny'):
         so.graph_optimization_level = rt.GraphOptimizationLevel.ORT_DISABLE_ALL
-
+    
     if config['model_type'] == 'od':
         delegate_options['object_detection:meta_layers_names_list'] = config['meta_layers_names_list'] if ('meta_layers_names_list' in config) else ''
         delegate_options['object_detection:meta_arch_type'] = config['meta_arch_type'] if ('meta_arch_type' in config) else -1
-
     
     # delete the contents of this folder
     if args.compile or args.disable_offload:
@@ -181,18 +208,14 @@ def run_model(model, mIdx):
         onnx.shape_inference.infer_shapes_path(config['model_path'], config['model_path'])
     else:
         input_image = test_images
-    
+
     numFrames = config['num_images']
     if(args.compile):
         if numFrames > delegate_options['advanced_options:calibration_frames']:
             numFrames = delegate_options['advanced_options:calibration_frames']
-    
-    if(model == 'cl-ort-resnet18-v1_4batch'):
-        delegate_options['advanced_options:inference_mode'] = 1
-        delegate_options['advanced_options:num_cores'] = 4
-    
+
     ############   set interpreter  ################################
-    if args.disable_offload : 
+    if args.disable_offload :
         EP_list = ['CPUExecutionProvider']
         sess = rt.InferenceSession(config['model_path'] , providers=EP_list,sess_options=so)
     elif args.compile:
@@ -202,7 +225,7 @@ def run_model(model, mIdx):
         EP_list = ['TIDLExecutionProvider','CPUExecutionProvider']
         sess = rt.InferenceSession(config['model_path'] ,providers=EP_list, provider_options=[delegate_options, {}], sess_options=so)
     ################################################################
-    
+
     # run session
     for i in range(numFrames):
         #img, output, proc_time, sub_graph_time = infer_image(sess, input_image[i%len(input_image)], config)
@@ -210,13 +233,13 @@ def run_model(model, mIdx):
         input_details = sess.get_inputs()
         batch = input_details[0].shape[0]
         input_images = []
-        # for batch processing diff image needed for a single  input 
+        # for batch processing diff image needed for a single  input
         for j in range(batch):
             input_images.append(input_image[(start_index+j)%len(input_image)])
         imgs, output, proc_time, sub_graph_time, height, width  = infer_image(sess, input_images, config)
         total_proc_time = total_proc_time + proc_time if ('total_proc_time' in locals()) else proc_time
         sub_graphs_time = sub_graphs_time + sub_graph_time if ('sub_graphs_time' in locals()) else sub_graph_time
-    
+
     total_proc_time = total_proc_time /1000000
     sub_graphs_time = sub_graphs_time/1000000
 
@@ -233,9 +256,9 @@ def run_model(model, mIdx):
              for j in range(batch):
                 classes, image = det_box_overlay(output, imgs[j], config['od_type'], config['framework'])
                 images.append(image)
-            
+
         elif config['model_type'] == 'seg':
-            for j in range(batch):                
+            for j in range(batch):
                 imgs[j] = imgs[j].resize((output[0][j].shape[-1], output[0][j].shape[-2]),PIL.Image.LANCZOS)
                 classes, image = seg_mask_overlay(output[0][j],imgs[j])
                 images.append(image)
@@ -246,12 +269,12 @@ def run_model(model, mIdx):
             print("\nSaving image to ", output_images_folder)
             if not os.path.exists(output_images_folder):
                 os.makedirs(output_images_folder)
-            images[j].save(output_images_folder + output_file_name, "JPEG") 
-    
+            images[j].save(output_images_folder + output_file_name, "JPEG")
+
     if args.compile or args.disable_offload :
         gen_param_yaml(delegate_options['artifacts_folder'], config, int(height), int(width))
     log = f'\n \nCompleted_Model : {mIdx+1:5d}, Name : {model:50s}, Total time : {total_proc_time/(i+1):10.2f}, Offload Time : {sub_graphs_time/(i+1):10.2f} , DDR RW MBs : 0, Output File : {output_file_name} \n \n ' #{classes} \n \n'
-    print(log) 
+    print(log)
     if ncpus > 1:
         sem.release()
 
@@ -260,15 +283,18 @@ def run_model(model, mIdx):
 if len(args.models) > 0:
     models = args.models
 else :
-    models = ['cl-ort-resnet18-v1', 'cl-ort-caffe_squeezenet_v1_1', 'ss-ort-deeplabv3lite_mobilenetv2', 'od-ort-ssd-lite_mobilenetv2_fpn']
+    models = ['cl-ort-resnet18-v1', 'od-ort-ssd-lite_mobilenetv2_fpn']      # 'cl-ort-caffe_squeezenet_v1_1'
     if(SOC == "am69a"):
-        models.append('cl-ort-resnet18-v1_4batch')
+        models.append('cl-ort-resnet18-v1_4batch') # Model to demonstrate multi core parallel batch processing
+        models.append('cl-ort-resnet18_1MP_low_latency') # Model to demonstrate multi core low latency inference
+    if(SOC not in ("am62a","am67a")):
+        models.append('ss-ort-deeplabv3lite_mobilenetv2')
 
 if ( args.run_model_zoo ):
     models = [
              'od-8020_onnxrt_coco_edgeai-mmdet_ssd_mobilenetv2_lite_512x512_20201214_model_onnx',
              'od-8200_onnxrt_coco_edgeai-mmdet_yolox_nano_lite_416x416_20220214_model_onnx',
-            #  'od-8420_onnxrt_widerface_edgeai-mmdet_yolox_s_lite_640x640_20220307_model_onnx',# not working - 
+            #  'od-8420_onnxrt_widerface_edgeai-mmdet_yolox_s_lite_640x640_20220307_model_onnx',# not working -
              'ss-8610_onnxrt_ade20k32_edgeai-tv_deeplabv3plus_mobilenetv2_edgeailite_512x512_20210308_outby4_onnx',
              'od-8220_onnxrt_coco_edgeai-mmdet_yolox_s_lite_640x640_20220221_model_onnx',
              'cl-6360_onnxrt_imagenet1k_fbr-pycls_regnetx-200mf_onnx'

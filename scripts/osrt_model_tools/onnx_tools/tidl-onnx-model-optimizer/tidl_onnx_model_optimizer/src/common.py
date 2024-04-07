@@ -1,4 +1,4 @@
-# Copyright (c) {2015 - 2024} Texas Instruments Incorporated
+# Copyright (c) {20 -23 2024} Texas Instruments Incorporated
 #
 # All rights reserved not granted herein.
 #
@@ -70,6 +70,16 @@ def find_in_layers (curr_layer: gs.Node) -> List[gs.Node]:
         in_layers.extend(inp.inputs)
     return in_layers
 
+def find_in_layer (curr_layer: gs.Node, idx: int) -> gs.Node|None:
+    """
+    Return idx-th input node
+    if not present returns None
+    """
+    if len(find_in_layers(curr_layer)) > idx:
+        return find_in_layers(curr_layer)[idx]
+    else:
+        return None
+
 
 def find_out_layers (curr_layer: gs.Node) -> List[gs.Node]:
     """
@@ -79,6 +89,16 @@ def find_out_layers (curr_layer: gs.Node) -> List[gs.Node]:
     for outp in curr_layer.outputs:
         out_layers.extend(outp.outputs)
     return out_layers
+
+def find_out_layer (curr_layer: gs.Node, idx: int) -> gs.Node|None:
+    """
+    Return idx-th output node
+    if not present returns None
+    """
+    if len(find_out_layers(curr_layer)) > idx:
+        return find_out_layers(curr_layer)[idx]
+    else:
+        return None
 
 
 def find_node_idx (node: gs.Node, graph: gs.Graph) -> int:
@@ -131,9 +151,18 @@ def remove_node (node: gs.Node):
     """
     Remove node from graph
     """
-    inp_node = find_in_layers(node)[0]
-    inp_node.outputs = node.outputs
-    node.outputs.clear()
+    for inp_node in find_in_layers(node):
+        inp_node.outputs = node.outputs
+        node.outputs.clear()
+
+def is_first_node(node: gs.Node) -> bool:
+    """
+    Return True if a node takes input from model input
+    """
+    if len(find_in_layers(node)) == 0:
+        return True
+    return False
+
 
 
 def bordered(text):

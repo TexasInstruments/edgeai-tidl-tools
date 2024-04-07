@@ -387,6 +387,12 @@ def print_soc_info():
         print(f'    Cortex-A53 @1.25GHZ')
         print(f'    DSP C7x-MMA @850MHZ')
         print(f'    DDR @3733 MT/s\n')
+    elif soc == 'am67a':
+        print(f'SoC: J722S/AM67A')
+        print(f'OPP:')
+        print(f'    Cortex-A53 @1.25GHZ')
+        print(f'    2xDSP C7x-MMA @1GHZ')
+        print(f'    DDR @3733 MT/s\n')
 
 '''
 Utility function to get class names from imagenet class IDs
