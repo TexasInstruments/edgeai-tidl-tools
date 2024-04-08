@@ -34,7 +34,7 @@ Note: take a note of the EVM's ip address before running this scrip (ifconfig)
 and use it in a computer's web browser to access and run the notebooks. ex: http://192.168.1.199:8888"
 
 echo "# ##################################################################"
-# target_device - use one of: TDA4VM AM62A AM68A AM69A
+# target_device - use one of: TDA4VM AM62A AM68A AM69A AM67A
 
 if [ "$SOC" == "am68pa"]
 then
@@ -42,6 +42,9 @@ then
 elif [ "$SOC" == "am68a"]
 then
     $TARGET_SOC = "AM68A"
+elif [ "$SOC" == "am67a"]
+then
+    $TARGET_SOC = "AM67A"
 elif [ "$SOC" == "am69a"]
 then
     $TARGET_SOC = "AM69A"
@@ -50,7 +53,7 @@ then
     $TARGET_SOC = "AM62A"
 else
     echo "Please set env SOC. Note: am68pa (TDA4VM) is used by default"
-    echo "use one of: am62a, am68a, am69a, or am68pa (TDA4VM)"
+    echo "use one of: am62a, am68a, am67a, am69a, or am68pa (TDA4VM)"
     $TARGET_SOC = "TDA4VM"
 fi
 

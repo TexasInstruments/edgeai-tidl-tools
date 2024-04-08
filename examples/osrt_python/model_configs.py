@@ -21,6 +21,23 @@ models_configs = {
         'session_name' : 'onnxrt' ,
         'model_type': 'classification'
     },
+    'cl-ort-resnet18_1MP_low_latency' : {
+        'model_path' : os.path.join(models_base_path, 'resnet18_1024x1024.onnx'),
+        'source' : {'model_url': 'http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models/vision/high_resolution/imagenet1k/torchvision/resnet18_1024x1024.onnx', 'opt': True,  'infer_shape' : True},
+        'mean': [123.675, 116.28, 103.53],
+        'scale' : [0.017125, 0.017507, 0.017429],
+        'num_images' : numImages,
+        'num_classes': 1000,
+        'session_name' : 'onnxrt' ,
+        'model_type': 'classification',
+        'optional_options' : 
+        {
+            'advanced_options:inference_mode' : 2,  # inference mode to run low latency inference
+            'advanced_options:num_cores' : 4,
+            'advanced_options:calibration_frames' : 1, 
+            'advanced_options:calibration_iterations' : 1
+        }
+    },
     'cl-ort-resnet18-v1_4batch' : {
         'model_path' : os.path.join(models_base_path, 'resnet18_opset9_4batch.onnx'),
         'source' : {'model_url': 'http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models/vision/classification/imagenet1k/torchvision/resnet18_opset9_4batch.onnx', 'opt': True,  'infer_shape' : True},
@@ -29,7 +46,12 @@ models_configs = {
         'num_images' : numImages,
         'num_classes': 1000,
         'session_name' : 'onnxrt' ,
-        'model_type': 'classification'
+        'model_type': 'classification',
+        'optional_options' : 
+        {
+            'advanced_options:inference_mode' : 1,  # inference mode to run high throughput (parallel batch processing) inference
+            'advanced_options:num_cores' : 4, 
+        }
     },
     'ss-ort-deeplabv3lite_mobilenetv2' : {
         'model_path' : os.path.join(models_base_path, 'deeplabv3lite_mobilenetv2.onnx'),
@@ -88,7 +110,12 @@ models_configs = {
         'num_images' : numImages,
         'num_classes': 1001,
         'session_name' : 'tflitert',
-        'model_type': 'classification'
+        'model_type': 'classification',
+        'optional_options' : 
+        {
+            'advanced_options:inference_mode' : 1,  # inference mode to run high throughput (parallel batch processing) inference
+            'advanced_options:num_cores' : 4, 
+        }
     },
     'od-tfl-ssd_mobilenet_v2_300_float' : {
         'model_path' : os.path.join(models_base_path,'ssd_mobilenet_v2_300_float.tflite'),
@@ -125,6 +152,21 @@ models_configs = {
         'num_classes': 32,
         'session_name' : 'tflitert',
         'model_type': 'seg'
+    },
+    'ss-tfl-deeplabv3_mnv2_ade20k_float_low_latency' : {
+        'model_path' : os.path.join(models_base_path,'deeplabv3_mnv2_ade20k_float.tflite'),
+        'source' : {'model_url': 'http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models/vision/segmentation/ade20k32/mlperf/deeplabv3_mnv2_ade20k32_float.tflite', 'opt': True},
+        'mean': [127.5, 127.5, 127.5],
+        'scale' : [1/127.5, 1/127.5, 1/127.5],
+        'num_images' : numImages,
+        'num_classes': 32,
+        'session_name' : 'tflitert',
+        'model_type': 'seg',
+        'optional_options' : 
+        {
+            'advanced_options:inference_mode' : 2,  # inference mode to run low latency inference
+            'advanced_options:num_cores' : 4, 
+        }
     },
     # TVM DLR OOB Models
     'cl-dlr-tflite_inceptionnetv3' : {
@@ -197,8 +239,8 @@ models_configs = {
         'model_type': 'od',
         'session_name' : 'tflitert',
         'od_type' : 'HasDetectionPostProcLayer',
-        'object_detection:confidence_threshold': 0.3,
-        'object_detection:top_k': 200
+        'object_detection:confidence_threshold' : 0.3,
+        'object_detection:top_k' : 200
     },
     'od-8020_onnxrt_coco_edgeai-mmdet_ssd_mobilenetv2_lite_512x512_20201214_model_onnx' : { 
         'model_path' : os.path.join(models_base_path, 'ssd_mobilenetv2_lite_512x512_20201214_model.onnx'),
@@ -226,8 +268,8 @@ models_configs = {
         'model_type': 'od',
         'od_type' : 'SSD',
         'framework' : 'MMDetection',
-        'meta_layers_names_list' : os.path.join(models_base_path, 'yolox_nano_lite_416x416_20220214_model.prototxt'),
         'session_name' : 'onnxrt' ,
+        'meta_layers_names_list' : os.path.join(models_base_path, 'yolox_nano_lite_416x416_20220214_model.prototxt'),
         'meta_arch_type' : 6
     },
     'od-8220_onnxrt_coco_edgeai-mmdet_yolox_s_lite_640x640_20220221_model_onnx' :{  # infer wrong
@@ -241,8 +283,8 @@ models_configs = {
         'model_type': 'od',
         'od_type' : 'SSD',
         'framework' : 'MMDetection',
-        'meta_layers_names_list' : os.path.join(models_base_path, 'yolox_s_lite_640x640_20220221_model.prototxt'),
         'session_name' : 'onnxrt' ,
+        'meta_layers_names_list' : os.path.join(models_base_path, 'yolox_s_lite_640x640_20220221_model.prototxt'),
         'meta_arch_type' : 6
     },    
     'od-8420_onnxrt_widerface_edgeai-mmdet_yolox_s_lite_640x640_20220307_model_onnx' :{  
@@ -256,8 +298,8 @@ models_configs = {
         'model_type': 'od',
         'od_type' : 'SSD',
         'framework' : 'MMDetection',
-        'meta_layers_names_list' : os.path.join(models_base_path, 'yolox_s_lite_640x640_20220307_model.prototxt'),
         'session_name' : 'onnxrt' ,
+        'meta_layers_names_list' : os.path.join(models_base_path, 'yolox_s_lite_640x640_20220307_model.prototxt'),
         'meta_arch_type' : 6
     },
     'ss-2580_tflitert_ade20k32_mlperf_deeplabv3_mnv2_ade20k32_float_tflite' : {

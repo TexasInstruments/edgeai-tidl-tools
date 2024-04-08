@@ -127,6 +127,16 @@ elif SOC == "am62a" :
                     {'script_name':'run_onnx_models.sh', 'script_dir':'osrt_cpp_scripts/','lang':'bash','rt_type':'ort-cpp'},
                     {'script_name':'run_dlr_models.sh', 'script_dir':'osrt_cpp_scripts/','lang':'bash','rt_type':'dlr-cpp'},
         ]        
+elif SOC == "am67a" :
+    device = 'am67a'
+    test_configs = [
+                    {'script_name':'tflrt_delegate.py', 'script_dir':'tfl','lang':'py', 'rt_type':'tfl-py'},
+                    {'script_name':'onnxrt_ep.py', 'script_dir':'ort','lang':'py', 'rt_type':'ort-py'},
+                    #{'script_name':'dlr_inference_example.py', 'script_dir':'tvm_dlr','lang':'py', 'rt_type':'dlr-py'},
+                    {'script_name':'run_tfl_models.sh', 'script_dir':'osrt_cpp_scripts/','lang':'bash','rt_type':'tfl-cpp'},
+                    {'script_name':'run_onnx_models.sh', 'script_dir':'osrt_cpp_scripts/','lang':'bash','rt_type':'ort-cpp'},
+                    #{'script_name':'run_dlr_models.sh', 'script_dir':'osrt_cpp_scripts/','lang':'bash','rt_type':'dlr-cpp'},
+        ]
 else:
     print( "Set SOC variable in your shell")
     exit(-1)
@@ -196,72 +206,76 @@ for test_config in test_configs:
     if enable_debug:
         print(ref_report)
 
-    for i in lines:
-        if i.startswith('Completed_Model : '):
-            curr = i.split(',')
-            tc_dict = {}
-            for pair in curr:
-                pair = pair.strip()
-                pair = pair.split(':')
-                tc_dict[pair[0].strip()] = pair[1].strip()
-            rt_report.append(tc_dict)
-    if enable_debug:
-        print(rt_report)
-    for r in ref_report:
-        curr = [item for item in rt_report if ((item["Name"] == r['Name']) and (rt_type == r['rt type']) )]
+    if platform.machine() != 'aarch64':
+        for i in lines:
+            if i.startswith('Completed_Model : '):
+                curr = i.split(',')
+                tc_dict = {}
+                for pair in curr:
+                    pair = pair.strip()
+                    pair = pair.split(':')
+                    tc_dict[pair[0].strip()] = pair[1].strip()
+                rt_report.append(tc_dict)
         if enable_debug:
-            print(curr)
-        if (len(curr) == 0 and rt_type == r['rt type']):
-            r['Offload Time'] = '0'
-            r['Functional'] = 'FAIL'
-            r['info'] = 'op not detected'
-            final_report.append(r)
-            final_report[-1]['Completed_Model'] = currIdx
-            final_report[-1]['rt type'] = rt_type
-            currIdx+= 1
-        elif(len(curr) != 0 and rt_type == r['rt type']):
-            final_report.append(curr[0])
-            out_file_name = os.path.join('./output_images',final_report[-1]['Output File'])
-            ref_file_name = os.path.join(curr_ref_outputs_base_dir,final_report[-1]['Output File'])
-            if filecmp.cmp(out_file_name, ref_file_name) == True:
-                final_report[-1]['Functional'] = 'PASS'
-                final_report[-1]['info'] = ''
-            else:
-                final_report[-1]['Functional'] = 'FAIL'
-                final_report[-1]['info'] = 'output file mismatch'
-            if platform.machine() == 'aarch64':
-                final_report[-1]['Ref Total Time']   =  r['Total time']
-                final_report[-1]['Ref Offload Time'] =  r['Offload Time']
-                diff_in_total_time = float(final_report[-1]['Total time']) - float(final_report[-1]['Ref Total Time'])
-                diff_in_total_time = (diff_in_total_time/float(final_report[-1]['Ref Total Time']))*100.0
-                final_report[-1]['Diff in Total Time %']  = f'{diff_in_total_time:5.2f}'
-                if(diff_in_total_time > 2.0):
-                    final_report[-1]['Performance Status']  = "FAIL"
-                    final_report[-1]['info'] ="Failed : diff in total time > 2."
-                else :
-                    final_report[-1]['Performance Status']  = "PASS"
-            final_report[-1]['Completed_Model'] = currIdx
-            final_report[-1]['rt type'] = rt_type
-            currIdx+= 1
+            print(rt_report)
+        for r in ref_report:
+            curr = [item for item in rt_report if ((item["Name"] == r['Name']) and (rt_type == r['rt type']) )]
+            if enable_debug:
+                print(curr)
+            if (len(curr) == 0 and rt_type == r['rt type']):
+                r['Offload Time'] = '0'
+                r['Functional'] = 'FAIL'
+                r['info'] = 'op not detected'
+                final_report.append(r)
+                final_report[-1]['Completed_Model'] = currIdx
+                final_report[-1]['rt type'] = rt_type
+                currIdx+= 1
+            elif(len(curr) != 0 and rt_type == r['rt type']):
+                final_report.append(curr[0])
+                out_file_name = os.path.join('./output_images',final_report[-1]['Output File'])
+                ref_file_name = os.path.join(curr_ref_outputs_base_dir,final_report[-1]['Output File'])
+                if filecmp.cmp(out_file_name, ref_file_name) == True:
+                    final_report[-1]['Functional'] = 'PASS'
+                    final_report[-1]['info'] = ''
+                else:
+                    final_report[-1]['Functional'] = 'FAIL'
+                    final_report[-1]['info'] = 'output file mismatch'
+                if platform.machine() == 'aarch64':
+                    final_report[-1]['Ref Total Time']   =  r['Total time']
+                    final_report[-1]['Ref Offload Time'] =  r['Offload Time']
+                    diff_in_total_time = float(final_report[-1]['Total time']) - float(final_report[-1]['Ref Total Time'])
+                    diff_in_total_time = (diff_in_total_time/float(final_report[-1]['Ref Total Time']))*100.0
+                    final_report[-1]['Diff in Total Time %']  = f'{diff_in_total_time:5.2f}'
+                    if(diff_in_total_time > 2.0):
+                        final_report[-1]['Performance Status']  = "FAIL"
+                        final_report[-1]['info'] ="Failed : diff in total time > 2."
+                    else :
+                        final_report[-1]['Performance Status']  = "PASS"
+                final_report[-1]['Completed_Model'] = currIdx
+                final_report[-1]['rt type'] = rt_type
+                currIdx+= 1
                      
-print(final_report)
-if(len(final_report) > 0):
-    keys =final_report[0].keys()
-    if device == 'pc':
-        for i in range(len(final_report)):
-            final_report[i].pop('Total time',None)
-            final_report[i].pop('Offload Time',None)
-            final_report[i].pop('DDR RW MBs',None)
-    if 'Output File' not in final_report[0]:
-        final_report[0]['Output File'] = ''
+if platform.machine() != 'aarch64':
+    print(final_report)
+    if(len(final_report) > 0):
+        keys =final_report[0].keys()
+        if device == 'pc':
+            for i in range(len(final_report)):
+                final_report[i].pop('Total time',None)
+                final_report[i].pop('Offload Time',None)
+                final_report[i].pop('DDR RW MBs',None)
+        if 'Output File' not in final_report[0]:
+            final_report[0]['Output File'] = ''
 
-    if device != 'pc':
-        report_file = 'test_report_'+device+'.csv'
+        if device != 'pc':
+            report_file = 'test_report_'+device+'.csv'
+        else:
+            report_file = 'test_report_'+device+'_'+ SOC+ '.csv'
+        with open(report_file, 'w', newline='')  as output_file:
+            dict_writer = csv.DictWriter(output_file, keys)
+            dict_writer.writeheader()
+            dict_writer.writerows(final_report)
     else:
-        report_file = 'test_report_'+device+'_'+ SOC+ '.csv'
-    with open(report_file, 'w', newline='')  as output_file:
-        dict_writer = csv.DictWriter(output_file, keys)
-        dict_writer.writeheader()
-        dict_writer.writerows(final_report)
+        print("no test_report generated ")
 else:
-    print("no test_report generated ")
+    print("Please refer to the output_images directory for EVM Results")

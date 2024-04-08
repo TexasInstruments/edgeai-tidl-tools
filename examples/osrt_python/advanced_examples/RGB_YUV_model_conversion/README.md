@@ -2,14 +2,14 @@
 
 ## Introduction 
 
-The intention of this advanced example folder is to describe te steps on how to convert a RGB trained model to accept YUV data as input. 
+The intention of this advanced example folder is to describe the steps on how to convert a RGB trained model to accept YUV data as input. 
 
 
 ## Usage
 
-The usage is specified for tfite runtime, follow corresponding steps for ONNX runtime
+The usage are specified for tfite runtime, follow corresponding steps for ONNX runtime
 
-1. Perform the setup steps are required for setting up the python examples
+1. Perform the setup steps as required for setting up the python examples
 
 2. Follow the steps to generate YUV data from input jpg image
 

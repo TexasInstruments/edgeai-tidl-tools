@@ -4,34 +4,33 @@
 
 * TIDL offering supports optimized inference for various base feature extractors / back-bone networks like Resnets, MobileNets, EfficientNets, ShuffleNets, VGG, DenseNet etc. and also for various object detection (OD) post processing architectures
 * The backbone networks have accelerated inference for layers supported on DSP with unsupported layers implemented using native runtimes
-* As an enhancement to OD post processing support by native runtimes, TIDL provides optimized and accelerated inference for certain types of post processing architectures
+* As an enhancement to OD (Object Detection) post processing support by native runtimes, TIDL provides optimized and accelerated inference for certain types of post processing architectures
 * This is enabled by defining meta architecture formats as provided by standard Tensorflow Object Detection API or TIDL defined protocol buffer format to convey post processing information to TIDL inference libraries
 * TIDL provides optimized post processing support for following post processing architectures
   * Single Shot Detection (SSD)
-  * You Only Look Once (YOLO) V3, V5, X
-  * RetinaNet
+  * You Only Look Once (YOLO) V3, V5, V7, V8, X
+  * RetinaNet/Efficient det
   * PointPillars for 3D object detection using LIDAR data
 
 **TI provides a wide variety of object detection models which are trained and adapted to suit TI SoC architecture as part of TI's [Model zoo](https://github.com/TexasInstruments/edgeai-modelzoo). Users are recommended to check if these meet use case requirements before moving to custom models**.
 
-**NOTE : Post processing optmization is supported only for models exported using specific export frameworks. Refer [Export frameworks for optimized TIDL inference](https://github.com/TexasInstruments/edgeai-modelzoo/tree/master/models/vision/detection) for more details on supported training frameworks**
+**NOTE : Post processing optimization is supported only for models exported using specific export frameworks. Refer "Usage" section below for more details on supported training frameworks**
 
 ## Usage
 
-* 2 additional compilation options as explained in [od options](../examples/osrt_python/README.md#object-detection-model-specific-options)  need to be specified in order to utilize this feature. <br>
+* 2 additional compilation options as explained in [od options](../examples/osrt_python/README.md#object-detection-model-specific-options) need to be specified in order to utilize this feature. <br>
 * Following table depicts the meta architecture type corresponding to different OD post processing architectures along with links to some example models/meta architecture files available as part of TI's [Model zoo](https://github.com/TexasInstruments/edgeai-modelzoo).   
 
-
-NOTE: Recommended training frameworks references are provided for quick links, please refer [Export frameworks for optimized TIDL inference](https://github.com/TexasInstruments/edgeai-modelzoo/tree/master/models/vision/detection) for more details on supported training frameworks.
 
 |  OD network archiecture | meta_arch_type  |  Example models/meta architecture files | Recommended training framework references
 |:-------------------:|:-----------------:|:-----------------:|:-----------------:|
 | TfLite SSD | 1 | [Model](https://github.com/TexasInstruments/edgeai-modelzoo/blob/master/models/vision/detection/coco/tf1-models/ssdlite_mobiledet_dsp_320x320_coco_20200519.tflite.link), [Pipeline config](https://github.com/TexasInstruments/edgeai-modelzoo/blob/master/models/vision/detection/coco/tf1-models/ssdlite_mobiledet_dsp_320x320_coco_20200519.prototxt.link)  | [Tf 1.0](https://github.com/TexasInstruments/edgeai-modelzoo/tree/master/models/vision/detection#tensorflow-model-garden---object-detection-api-models-using-tensorflow-10), [Tf 2.0](https://github.com/TexasInstruments/edgeai-modelzoo/tree/master/models/vision/detection#tensorflow-model-garden---object-detection-api-models-using-tensorflow-20)|
 | ONNX SSD | 3 | [Model](https://github.com/TexasInstruments/edgeai-modelzoo/blob/master/models/vision/detection/coco/edgeai-mmdet/ssd_mobilenetv2_lite_512x512_20201214_model.onnx.link), [Prototxt](https://github.com/TexasInstruments/edgeai-modelzoo/blob/master/models/vision/detection/coco/edgeai-mmdet/ssd_mobilenetv2_lite_512x512_20201214_model.prototxt.link) | [EdgeAI-MMDetection](https://github.com/TexasInstruments/edgeai-modelzoo/tree/master/models/vision/detection#edgeai-mmdetection) |
 | YOLO V3 | 4 | [Model](https://github.com/TexasInstruments/edgeai-modelzoo/blob/master/models/vision/detection/coco/edgeai-mmdet/yolov3_regnetx-1.6gf_bgr_lite_512x512_20210202_model.onnx.link), [Prototxt](https://github.com/TexasInstruments/edgeai-modelzoo/blob/master/models/vision/detection/coco/edgeai-mmdet/yolov3_regnetx-1.6gf_bgr_lite_512x512_20210202_model.prototxt.link) | [EdgeAI-MMDetection](https://github.com/TexasInstruments/edgeai-modelzoo/tree/master/models/vision/detection#edgeai-mmdetection), [Open-MMlab/MMDetection](https://github.com/TexasInstruments/edgeai-modelzoo/tree/master/models/vision/detection#open-mmlabmmdetection) |
-| Retina net | 5 | [Model](https://github.com/TexasInstruments/edgeai-modelzoo/blob/master/models/vision/detection/coco/google-automl/efficientdet_lite1_relu.tflite.link), [Prototxt](https://github.com/TexasInstruments/edgeai-modelzoo/blob/master/models/vision/detection/coco/google-automl/efficientdet_lite1_relu.prototxt.link) | [EdgeAI-MMDetection](https://github.com/TexasInstruments/edgeai-modelzoo/tree/master/models/vision/detection#edgeai-mmdetection), [Open-MMlab/MMDetection](https://github.com/TexasInstruments/edgeai-modelzoo/tree/master/models/vision/detection#open-mmlabmmdetection)|
-| YOLO V5, YOLO X | 6 | [Model](https://github.com/TexasInstruments/edgeai-yolov5/blob/master/pretrained_models/models/detection/coco/edgeai-yolov5/yolov5s6_640_ti_lite_37p4_56p0.onnx.link), [Prototxt](https://github.com/TexasInstruments/edgeai-yolov5/blob/master/pretrained_models/models/detection/coco/edgeai-yolov5/yolov5s6_640_ti_lite_metaarch.prototxt.link) | [EdgeAI-YOLOv5](https://github.com/TexasInstruments/edgeai-modelzoo/tree/master/models/vision/detection#edgeai-yolov5-models) |
+| Retina net / Efficient det | 5 | [Model](https://github.com/TexasInstruments/edgeai-modelzoo/blob/master/models/vision/detection/coco/google-automl/efficientdet_lite1_relu.tflite.link), [Prototxt](https://github.com/TexasInstruments/edgeai-modelzoo/blob/master/models/vision/detection/coco/google-automl/efficientdet_lite1_relu.prototxt.link) | [EdgeAI-MMDetection](https://github.com/TexasInstruments/edgeai-modelzoo/tree/master/models/vision/detection#edgeai-mmdetection), [Open-MMlab/MMDetection](https://github.com/TexasInstruments/edgeai-modelzoo/tree/master/models/vision/detection#open-mmlabmmdetection)|
+| YOLO V5, YOLO V7, YOLO X | 6 | Refer to corresponding model/prototxt from [Yolo Model/Prototxt](https://github.com/TexasInstruments/edgeai-modelzoo-cl) | [EdgeAI-MMYolo](https://github.com/TexasInstruments/edgeai-mmyolo) |
 | Pointpillars 3D OD | 7 | [Model](https://github.com/TexasInstruments/edgeai-modelzoo/blob/master/models/vision/detection_3d/kitti/mmdet3d/lidar_point_pillars_10k_496x432.onnx.link), [Prototxt](https://github.com/TexasInstruments/edgeai-modelzoo/blob/master/models/vision/detection_3d/kitti/mmdet3d/lidar_point_pillars_10k_496x432.prototxt.link) | [EdgeAI-MMDetection3D](https://github.com/TexasInstruments/edgeai-mmdetection3d)|
+| YOLO V8 | 8 | Refer to corresponding model/prototxt from [Yolo Model/Prototxt](https://github.com/TexasInstruments/edgeai-modelzoo-cl) | [EdgeAI-MMYolo](https://github.com/TexasInstruments/edgeai-mmyolo) |
 
 ## Meta architecture file details
 

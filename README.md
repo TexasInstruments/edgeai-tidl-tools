@@ -51,7 +51,7 @@ TIDL provides multiple deployment options with industry defined inference engine
 >** *AM68PA has cortex-A72 as its MPU, refer to the device TRM to know which cortex-A MPU* it contains.
 
 These heterogeneous execution enables:
-1. OSRT as the top level inference API for user applications
+1. OSRT as the top level inference  for user applications
 2. Offloading subgraphs to C7x/MMA for accelerated execution with TIDL
 3. Runs optimized code on ARM core for layers that are not supported by TIDL
    
@@ -75,8 +75,8 @@ The below table covers the supported operations with this repository on X86_PC a
 - Inference of compiled models on X86_PC or TI SOC using file base input and output
 
 ### What IS NOT Supported
-- Camera , Display and Dl runtime based end-to-end pipeline development or benchmarking. 
-  - Please refer [Processor SDK Linux for Edge AI](https://software-dl.ti.com/jacinto7/esd/processor-sdk-linux-sk-tda4vm/latest/exports/docs/sdk_overview.html) for such applications
+- Camera , Display and DL runtime based end-to-end pipeline development or benchmarking. 
+  - Please refer [Processor SDK Linux for Edge AI](https://software-dl.ti.com/jacinto7/esd/processor-sdk-linux-am68a/latest/exports/edgeai-docs/common/sdk_overview.html) for such applications. This is for AM68A and similar inofmration can be found for other devices
 -  Benchmarking accuracy of models using TIDL acceleration with standard datasets, for e.g. - accuracy benchmarking using MS COCO dataset for object detection models. 
    - Please refer  [edgeai-benchmark](https://github.com/TexasInstruments/edgeai-benchmark) for the same.
 
@@ -89,11 +89,13 @@ The below table covers the supported operations with this repository on X86_PC a
 | ------- |:------:|:------:|
 |AM62            |am62       |  :x:|
 |AM62A           |am62a      |  :heavy_check_mark:|
+|AM67A	         |am67a      |  :heavy_check_mark:|
 |AM68PA	         |am68pa     |  :heavy_check_mark:|
 |AM68A	         |am68a      |  :heavy_check_mark:|
 |AM69A	         |am69a      |  :heavy_check_mark:|
 |J721E (TDA4VM)  |am68pa     |  :heavy_check_mark:|
 |J721S2 (TDA4AL, TDA4VL) | am68a           |  :heavy_check_mark:|
+|J722S  | am67a           |  :heavy_check_mark:|
 |J784S4 (TDA4AP, TDA4VP,<br /> TDA4AH, TDA4VH)	| am69a     |  :heavy_check_mark:|
 
 </div>
@@ -122,7 +124,7 @@ The below table covers the supported operations with this repository on X86_PC a
   - Tools built with GPU acceleration need to be run inside the appropriate Docker container. Refer to relevant [steps](docs/advanced_setup.md#docker-based-setup-for-x86_pc) to build and run the container <br>
 
 ### Setup on X86_PC
-  - Run the below one time setup for system level packages. This needs sudo permission, get it installed by your system administrator if required.
+  - Run below one time setup for system level packages. This needs sudo permission, get it installed by your system administrator if required.
 
 ```
   sudo apt-get install libyaml-cpp-dev
@@ -138,7 +140,7 @@ The below table covers the supported operations with this repository on X86_PC a
  git clone https://github.com/TexasInstruments/edgeai-tidl-tools.git
  cd edgeai-tidl-tools
  git checkout <TAG Compatible with your SDK version>
- # Supported SOC name strings am62, am62a, am68a, am68pa, am69a
+ # Supported SOC name strings am62, am62a, am68a, am68pa, am69a, am67a
  export SOC=<Your SOC name>
  source ./setup.sh
 ```
@@ -210,13 +212,13 @@ python3 ./scripts/gen_test_report.py
 
 ## Compile and Benchmark Custom Model
 
--  [**New Model Evaluation**](docs/custom_model_evaluation.md#new-model-evaluation) : Refer this for a custom model that needs to be evaluated is falling into one of supported out-of-box example tasks categories.
-- [**Custom Model Evaluation**](docs/custom_model_evaluation.md#custom-model-evaluation) : Refer this for a custom model task category or input and output format is different from the supported list of tasks
+-  [**New Model Evaluation**](docs/custom_model_evaluation.md#new-model-evaluation) : Refer this if your model falls into one of supported out-of-box example tasks categories such as image classification, object detection or pixel level semantic Segmentation
+- [**Custom Model Evaluation**](docs/custom_model_evaluation.md#custom-model-evaluation) : Refer this section if your custom model doesn't fall in supported example task category or input and output format is different from the supported list of tasks
 - [**Reporting issues with Model deployment**](docs/custom_model_evaluation.md#reporting-issues-with-model-deployment) - Refer notes here for reporting issues in custom model deployment
 
 ## User Guide
-- [**Python examples**](examples/osrt_python/README.md) - Detailed documentation on all the compile and inference options for TIDL offload for each runtime sessions
-- [**CPP examples**](examples/osrt_cpp/README.md) - Detailed documentation on compiling the CPP examples on X86_PC as well as Development board.
+- [**Python API and examples**](examples/osrt_python/README.md) - Detailed documentation on all the compile and inference options for TIDL offload for each runtime sessions
+- [**CPP API and examples**](examples/osrt_cpp/README.md) - Detailed documentation on compiling the CPP examples on X86_PC as well as Development board.
 - [**Jupyter Notebooks**](examples/jupyter_notebooks/README.md) - Interactive step-by-step documented notebooks for pre-compiled models inference.
 - [**Supported Operators and Runtimes**](docs/supported_ops_rts_versions.md) - List of supported operators from TIDL offload and their limitations for each runtime. 
 - [**Advanced Setup Options**](docs/advanced_setup.md#advanced-setup-options) - Setup options for advanced users to optimize setup time

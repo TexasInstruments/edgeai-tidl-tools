@@ -40,6 +40,7 @@ if [ -z "$SOC" ];then
     echo "export SOC=am68a"
     echo "export SOC=am68pa"
     echo "export SOC=am69a"
+    echo "export SOC=am67a"
 fi
 
 if [[ $SOC == am68pa ]]; then
@@ -174,6 +175,24 @@ elif [[ $SOC == am62a ]]; then
         python3  dlr_inference_example.py 
     fi
     cd $CURDIR    
+elif [[ $SOC == am67a ]]; then
+    cd $CURDIR/examples/osrt_python/tfl
+    if [[ $arch == x86_64 ]]; then
+    python3 tflrt_delegate.py -c
+    fi
+    if [ $run_model != 0 ];then
+        echo "run python3 tflrt_delegate.py"
+        python3 tflrt_delegate.py
+    fi 
+    cd $CURDIR/examples/osrt_python/ort
+    if [[ $arch == x86_64 ]]; then
+    python3 onnxrt_ep.py -c
+    fi
+    if [ $run_model != 0 ];then
+        echo "run python3 onnxrt_ep.py"
+        python3 onnxrt_ep.py
+    fi 
+    cd $CURDIR 
 fi
 
 

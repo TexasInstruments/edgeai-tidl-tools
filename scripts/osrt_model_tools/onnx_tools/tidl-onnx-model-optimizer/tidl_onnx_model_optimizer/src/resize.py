@@ -1,4 +1,4 @@
-# Copyright (c) {2015 - 2024} Texas Instruments Incorporated
+# Copyright (c) {2023 - 2024} Texas Instruments Incorporated
 #
 # All rights reserved not granted herein.
 #
@@ -89,8 +89,9 @@ def tidl_convert_resize_params_size_to_scale(graph: gs.Graph,
             if len(node.inputs) != 4:
                 continue
             var, roi, scales, sizes = node.inputs[0], node.inputs[1], node.inputs[2], node.inputs[3]
-            # if sizes is not empty and scales are empty
-            if (not np.any(scales.shape)) and np.any(sizes.shape):
+            # if sizes is not empty and scales are empty and both are constant
+            if (not np.any(scales.shape)) and np.any(sizes.shape) \
+                and isinstance(sizes, gs.Constant):
                 reshaped_sizes = np.array(tensors[sizes.name].values, dtype=np.float32)
                 in_sizes = np.array(var.shape, dtype=np.float32)
                 scale_params = reshaped_sizes/in_sizes

@@ -150,13 +150,14 @@ def run_model(model, mIdx):
     # stripping off the ss-tfl- from model namne
     delegate_options['artifacts_folder'] = delegate_options['artifacts_folder'] + '/' + model + '/'
 
+    #
     if config['model_type'] == 'od':
         delegate_options['object_detection:meta_layers_names_list'] = config['meta_layers_names_list'] if ('meta_layers_names_list' in config) else ''
         delegate_options['object_detection:meta_arch_type'] = config['meta_arch_type'] if ('meta_arch_type' in config) else -1
     if ('object_detection:confidence_threshold' in config  and 'object_detection:top_k' in config ):
         delegate_options['object_detection:confidence_threshold'] = config['object_detection:confidence_threshold']
         delegate_options['object_detection:top_k'] = config['object_detection:top_k']
-
+    
     # delete the contents of this folder
     if (args.compile or args.disable_offload):
         os.makedirs(delegate_options['artifacts_folder'], exist_ok=True)
@@ -173,10 +174,6 @@ def run_model(model, mIdx):
     if(args.compile):
         if numFrames > delegate_options['advanced_options:calibration_frames']:
             numFrames = delegate_options['advanced_options:calibration_frames']
-    
-    if(model == 'cl-tfl-mobilenetv2_4batch'):
-        delegate_options['advanced_options:inference_mode'] = 1
-        delegate_options['advanced_options:num_cores'] = 4
     
     ############   set interpreter  ################################
     if args.disable_offload : 
@@ -245,7 +242,8 @@ if len(args.models) > 0:
 else :
     models = ['cl-tfl-mobilenet_v1_1.0_224', 'ss-tfl-deeplabv3_mnv2_ade20k_float', 'od-tfl-ssd_mobilenet_v2_300_float', 'od-tfl-ssdlite_mobiledet_dsp_320x320_coco']
     if(SOC == "am69a"):
-        models.append('cl-tfl-mobilenetv2_4batch')
+        models.append('cl-tfl-mobilenetv2_4batch')  # Model to demonstrate parallel batch processing
+        models.append('ss-tfl-deeplabv3_mnv2_ade20k_float_low_latency')  # Model to demonstrate low latency inference
         
 if ( args.run_model_zoo ):
     models = [ 

@@ -48,7 +48,7 @@ do
 done
 
 #od,ss-tflite-deafult models
-DataList="od-tfl-ssd_mobilenet_v2_300_float,ss-tfl-deeplabv3_mnv2_ade20k_float"
+DataList="ss-tfl-deeplabv3_mnv2_ade20k_float"
 for val in $DataList;
 do
  echo $val

@@ -8,11 +8,11 @@
 
 ## Introduction
 
-Example Jupyter notebooks help to quickly run analytics demos on the C7x-MMA DSP from different open source frameworks. Example notebooks contain OOB demos and custom model notebooks. OOB notebooks demos show how to run inference of a selected model from a list of options. OOB notebooks showcase main framework APIs for running inference, gives an example of pre and post-processing functions and report back performance metrics.
+Example Jupyter notebooks help to quickly run neural networks on the C7x-MMA DSP from different open source frameworks. Example notebooks contain OOB demos and custom model notebooks. OOB notebooks show how to run inference of a selected model from a list of options. OOB notebooks showcase main framework APIs for running inference, gives an example of pre and post-processing functions and report back performance metrics.
 
 On the other hand, custom models, take a pre-trained classification model and compile it using one of the framework compilers to generate deployable artifacts, which can be run on the target by using frameworks inference APIs.
 
-Analytics OOB demos and frameworks covered:
+Neural network OOB demos and frameworks covered:
 - Image Classification TFLite
 - Image Classification ONNX
 - Image Classification DLR
@@ -23,7 +23,7 @@ Analytics OOB demos and frameworks covered:
 - Image Segmentation ONNX
 - Image Segmentation DLR
 
-Below Custom Model compialtion and infrnce is supported only on PC emualtion:
+Below Custom Model compilation and inference is supported only on host emulation:
 - TFLite Custom Model
 - ONNXRT Custom Model
 - TVM/NEO-AI-DLR Custom Model
@@ -43,11 +43,10 @@ Below Custom Model compialtion and infrnce is supported only on PC emualtion:
 - Use your host IP address to access the notebooks
 
 ## Setup
-- Prepare the Environment for the Model compilation by follwoing the setup section [here](../../
-README.md#setup)
+- Prepare the Environment for the Model compilation by following the setup section [here](../../README.md#setup)
 
 ## Launch Notebook Session
-- If this is the first time run below script to get your setup ready and copy "token" from printed information in the EVM. If not the first time, go to "Open Jupyter Session in Browser" section
+- If this is the first time, run below script to get your setup ready and copy "token" from printed information in the EVM. If not the first time, go to "Open Jupyter Session in Browser" section
     ```
     source ./launch_notebook.sh
     ```
@@ -58,6 +57,6 @@ README.md#setup)
   ```
 
 ## Open Jupyter Session in Browser
-- In a webbrowser open Jupiter notebook using EVM's or Host IP address and token
+- In a web browser open Jupyter notebook using EVM's or Host IP address and token
     - ex: http://192.168.1.199:8888/tree
     - if asked paste token
