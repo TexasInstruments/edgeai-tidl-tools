@@ -73,11 +73,13 @@ from onnxsim import simplify
 from .src.resize import tidl_modify_resize
 from .src.attention import tidl_optimize_attention_blocks
 from .src.batch import tidl_modify_batch_dim
+from .src.maxpool import tidl_modify_maxpool
+from .src.reducemean import tidl_modify_reducemean
 
 
 ### function definitions
 
-NUM_OPS = 3
+NUM_OPS = 5
 
 def tidl_modify (model_path: str, out_model_path: str, args: dict):
     """
@@ -122,6 +124,21 @@ def tidl_modify (model_path: str, out_model_path: str, args: dict):
         tidl_optimize_attention_blocks(graph, onnx_graph)
     else:
         logging.info(f"[{curr_op}/{NUM_OPS}] Transformer optimizations: Disabled")
+    # MaxPool
+    curr_op += 1
+    if args['maxpool'] == "enable":
+        logging.info(f"[{curr_op}/{NUM_OPS}] MaxPool optimizations: Enabled")
+        tidl_modify_maxpool(graph, onnx_graph)
+    else:
+        logging.info(f"[{curr_op}/{NUM_OPS}] MaxPool optimizations: Disabled")
+    # MaxPool
+    curr_op += 1
+    if args['reducemean'] == "enable":
+        logging.info(f"[{curr_op}/{NUM_OPS}] ReduceMean optimizations: Enabled")
+        tidl_modify_reducemean(graph, onnx_graph)
+    else:
+        logging.info(f"[{curr_op}/{NUM_OPS}] ReduceMean optimizations: Disabled")
+
 
     # cleanup
     graph.cleanup().toposort()
@@ -172,6 +189,8 @@ def get_optimizers():
     return {
         'transformer'               : 'disable',
         'batch'                     : 'disable',
+        'maxpool'                   : 'disable',
+        'reducemean'                : 'disable',
         'shape_inference_mode'      : 'all',
         'simplify_mode'             : None,
         'simplify_kwargs'           : None
@@ -191,6 +210,10 @@ def optimize (model:str, out_model:str = None, verbose:bool= False, **kwargs):
     transformer:            (enable/disable) flag to enable/disable transformer
                             optimization (default: disable)
     batch:                  (enable/disable) flag to enable/disable batch input
+                            specific optimizations (default: disable)
+    maxpool:                (enable/disable) flag to enable/disable maxpool
+                            specific optimizations (default: disable)
+    reducemean:             (enable/disable) flag to enable/disable reducemean
                             specific optimizations (default: disable)
     shape_inference_mode:   (pre/post/all/None) flag to use onnx shape inference
                             [pre: run only before graph surgeon optimization,
