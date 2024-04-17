@@ -83,6 +83,8 @@ def tidl_optimize_attention_blocks (graph: gs.Graph, onnx_graph: onnx.GraphProto
         logging.debug("\n"+bordered(f"Attention Block {idx}"))
         att.optimize(graph)
 
+    graph.cleanup().toposort()
+
 
 
 class Attention (ABC):

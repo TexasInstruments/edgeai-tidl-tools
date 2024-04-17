@@ -108,24 +108,21 @@ def tidl_modify (model_path: str, out_model_path: str, args: dict):
     # resize
     curr_op += 1
     logging.info(f"[{curr_op}/{NUM_OPS}] Resize optimizations")
-    tidl_modify_resize(graph, onnx_graph)
+    tidl_modify_resize(graph, onnx_graph, args)
     # batch
     curr_op += 1
-    if args['batch'] == "enable":
+    if args['batch']:
         logging.info(f"[{curr_op}/{NUM_OPS}] Batch optimizations: Enabled")
         tidl_modify_batch_dim(graph, onnx_graph)
     else:
         logging.info(f"[{curr_op}/{NUM_OPS}] Batch optimizations: Disabled")
     # concat
     curr_op += 1
-    if args['concat'] == 'enable':
-        logging.info(f"[{curr_op}/{NUM_OPS}] Concat optimizations: Enabled")
-        tidl_modify_concat(graph, onnx_graph)
-    else:
-        logging.info(f"[{curr_op}/{NUM_OPS}] Concat optimizations: Disabled")
+    logging.info(f"[{curr_op}/{NUM_OPS}] Concat optimizations")
+    tidl_modify_concat(graph, onnx_graph, args)
     # transformer
     curr_op += 1
-    if args['transformer'] == "enable":
+    if args['transformer']:
         logging.info(f"[{curr_op}/{NUM_OPS}] Transformer optimizations: Enabled")
         tidl_optimize_attention_blocks(graph, onnx_graph)
     else:
@@ -163,6 +160,7 @@ def format_logger (log_level):
     red     = "\x1b[31;1m"
     reset   = "\x1b[0m"
     logging.addLevelName(logging.WARNING, yellow + logging.getLevelName(logging.WARNING) + reset)
+    logging.addLevelName(logging.CRITICAL, yellow + logging.getLevelName(logging.WARNING) + reset)
     logging.addLevelName(logging.ERROR, red + logging.getLevelName(logging.ERROR) + reset)
     # set log level
     if log_level == "info":
@@ -178,9 +176,13 @@ def get_optimizers():
     Default optimizers option list
     """
     return {
-        'transformer'               : 'disable',
-        'batch'                     : 'disable',
-        'concat'                    : 'enable',
+        # operation specific
+        'convert_resize_params_size_to_scale'   : True,
+        'convert_concat_axis_width_to_channel'  : True,
+        # block/layer specific
+        'transformer'               : False,
+        'batch'                     : False,
+        # utilities specific
         'shape_inference_mode'      : 'all',
         'simplify_mode'             : None,
         'simplify_kwargs'           : None
@@ -197,10 +199,6 @@ def optimize (model:str, out_model:str = None, verbose:bool= False, **kwargs):
     out_model:              path to output ONNX model (optional).
                             If not given, saved in same place as the input model
                             with a default name (optimized_<input_model_name>)
-    transformer:            (enable/disable) flag to enable/disable transformer
-                            optimization (default: disable)
-    batch:                  (enable/disable) flag to enable/disable batch input
-                            specific optimizations (default: disable)
     shape_inference_mode:   (pre/post/all/None) flag to use onnx shape inference
                             [pre: run only before graph surgeon optimization,
                             post:run only after graph surgeon optimization,
@@ -210,7 +208,7 @@ def optimize (model:str, out_model:str = None, verbose:bool= False, **kwargs):
                             [pre : simplify only before graph surgeon
                             optimizations, post:simplify only after graph
                             surgeon optimization, all: both pre and post are
-                            enabled, None (default): both disabled]   
+                            enabled, None (default): both disabled]
      ---------------------------------------------------------------
     Output
     ---------------------------------------------------------------
@@ -236,4 +234,3 @@ def optimize (model:str, out_model:str = None, verbose:bool= False, **kwargs):
     # call main wrapper function
     tidl_modify(model_path= model, out_model_path= out_model_path, args= args)
     logging.info(f"Saved modified model at {out_model_path}")
-

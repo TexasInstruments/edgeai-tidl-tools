@@ -81,6 +81,8 @@ def tidl_modify_batch_dim (graph: gs.Graph, onnx_graph: onnx.GraphProto):
     duplicate_for_multi_batch(graph, START_NODE_NAME, END_NODE_NAME)
     split_batched_inputs(graph)
 
+    graph.cleanup().toposort()
+
 def add_node(graph:gs.Graph, name:str,op:str, dtype, attrs, inputs, output_shapes=[]):
     node_outs = [gs.Variable(f"{name}_out_{i}", dtype=dtype,shape=out) for i,out in enumerate(output_shapes)]
     node = gs.Node(op=op,name=name,attrs=attrs, inputs=inputs, outputs=node_outs)
