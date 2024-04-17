@@ -73,11 +73,12 @@ from onnxsim import simplify
 from .src.resize import tidl_modify_resize
 from .src.attention import tidl_optimize_attention_blocks
 from .src.batch import tidl_modify_batch_dim
+from .src.concat import tidl_modify_concat
 
 
 ### function definitions
 
-NUM_OPS = 3
+NUM_OPS = 4
 
 def tidl_modify (model_path: str, out_model_path: str, args: dict):
     """
@@ -115,6 +116,13 @@ def tidl_modify (model_path: str, out_model_path: str, args: dict):
         tidl_modify_batch_dim(graph, onnx_graph)
     else:
         logging.info(f"[{curr_op}/{NUM_OPS}] Batch optimizations: Disabled")
+    # concat
+    curr_op += 1
+    if args['concat'] == 'enable':
+        logging.info(f"[{curr_op}/{NUM_OPS}] Concat optimizations: Enabled")
+        tidl_modify_concat(graph, onnx_graph)
+    else:
+        logging.info(f"[{curr_op}/{NUM_OPS}] Concat optimizations: Disabled")
     # transformer
     curr_op += 1
     if args['transformer'] == "enable":
@@ -172,6 +180,7 @@ def get_optimizers():
     return {
         'transformer'               : 'disable',
         'batch'                     : 'disable',
+        'concat'                    : 'enable',
         'shape_inference_mode'      : 'all',
         'simplify_mode'             : None,
         'simplify_kwargs'           : None
