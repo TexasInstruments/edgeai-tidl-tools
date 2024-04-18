@@ -70,7 +70,7 @@ def tidl_modify_resize(graph: gs.Graph, onnx_graph: onnx.GraphProto, args: dict)
     Wrapper function to modify resize layers to satisfy TIDL constraints
     """
     if args['convert_resize_params_size_to_scale']:
-        logging.debug("Performing convert_resize_params_size_to_scale")
+        logging.debug("Running convert_resize_params_size_to_scale")
         tidl_convert_resize_params_size_to_scale(graph, onnx_graph)
 
     graph.cleanup().toposort()

@@ -65,7 +65,7 @@ contents are likely to change drastically in future. It is
 advised not to make modifications in this file as
 this may not give expected result.
 """
-
+import logging
 import onnx_graphsurgeon as gs
 import onnx
 from .common import find_out_layers
@@ -74,12 +74,14 @@ START_NODE_NAME = "/Mul"
 END_NODE_NAME   = "/model/Transpose"
 
 
-def tidl_modify_batch_dim (graph: gs.Graph, onnx_graph: onnx.GraphProto):
+def tidl_modify_batch_dim (graph: gs.Graph, onnx_graph: onnx.GraphProto, args: dict):
     """
     Wrapper function to modify batch input dimension to satisfy TIDL constraints
     """
-    duplicate_for_multi_batch(graph, START_NODE_NAME, END_NODE_NAME)
-    split_batched_inputs(graph)
+    if args['split_batch_dim_to_parallel_input_branches']:
+        logging.debug("Running split_batch_dim_to_parallel_input_branches")
+        duplicate_for_multi_batch(graph, START_NODE_NAME, END_NODE_NAME)
+        split_batched_inputs(graph)
 
     graph.cleanup().toposort()
 

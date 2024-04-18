@@ -71,14 +71,20 @@ from onnxsim import simplify
 
 ### custom imports
 from .src.resize import tidl_modify_resize
-from .src.attention import tidl_optimize_attention_blocks
+from .src.attention import tidl_modify_attention
 from .src.batch import tidl_modify_batch_dim
 from .src.concat import tidl_modify_concat
 
 
 ### function definitions
+opt_ops = {
+        'attention': tidl_modify_attention,
+        'batch': tidl_modify_batch_dim,
+        'resize': tidl_modify_resize,
+        'concat': tidl_modify_concat
+}
 
-NUM_OPS = 4
+NUM_OPS = len(opt_ops)
 
 def tidl_modify (model_path: str, out_model_path: str, args: dict):
     """
@@ -104,29 +110,11 @@ def tidl_modify (model_path: str, out_model_path: str, args: dict):
     graph = gs.import_onnx(model)
 
 
-    curr_op = 0
-    # resize
-    curr_op += 1
-    logging.info(f"[{curr_op}/{NUM_OPS}] Resize optimizations")
-    tidl_modify_resize(graph, onnx_graph, args)
-    # batch
-    curr_op += 1
-    if args['batch']:
-        logging.info(f"[{curr_op}/{NUM_OPS}] Batch optimizations: Enabled")
-        tidl_modify_batch_dim(graph, onnx_graph)
-    else:
-        logging.info(f"[{curr_op}/{NUM_OPS}] Batch optimizations: Disabled")
-    # concat
-    curr_op += 1
-    logging.info(f"[{curr_op}/{NUM_OPS}] Concat optimizations")
-    tidl_modify_concat(graph, onnx_graph, args)
-    # transformer
-    curr_op += 1
-    if args['transformer']:
-        logging.info(f"[{curr_op}/{NUM_OPS}] Transformer optimizations: Enabled")
-        tidl_optimize_attention_blocks(graph, onnx_graph)
-    else:
-        logging.info(f"[{curr_op}/{NUM_OPS}] Transformer optimizations: Disabled")
+    curr_op = 1
+    for key, func in opt_ops.items():
+        logging.info(f"[{curr_op}/{NUM_OPS}] {key.capitalize()} optimizations")
+        func(graph, onnx_graph, args)
+        curr_op += 1
 
     # cleanup
     graph.cleanup().toposort()
@@ -177,11 +165,10 @@ def get_optimizers():
     """
     return {
         # operation specific
-        'convert_resize_params_size_to_scale'   : True,
-        'convert_concat_axis_width_to_channel'  : True,
-        # block/layer specific
-        'transformer'               : False,
-        'batch'                     : False,
+        'convert_resize_params_size_to_scale'       : True,
+        'convert_concat_axis_width_to_channel'      : True,
+        'attention_block_optimization'              : False,
+        'split_batch_dim_to_parallel_input_branches': False,
         # utilities specific
         'shape_inference_mode'      : 'all',
         'simplify_mode'             : None,

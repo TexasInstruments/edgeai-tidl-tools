@@ -72,7 +72,7 @@ def tidl_modify_concat(graph: gs.Graph, onnx_graph: onnx.GraphProto, args: dict)
     Wrapper function to modify resize layers to satisfy TIDL constraints
     """
     if args['convert_concat_axis_width_to_channel']:
-        logging.debug("Performing convert_concat_axis_width_to_channel")
+        logging.debug("Running convert_concat_axis_width_to_channel")
         tidl_convert_concat_axis_width_to_channel(graph, onnx_graph)
 
     graph.cleanup().toposort()
