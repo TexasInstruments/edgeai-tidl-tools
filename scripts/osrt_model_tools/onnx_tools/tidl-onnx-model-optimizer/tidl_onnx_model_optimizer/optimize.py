@@ -74,6 +74,8 @@ from .src.resize import tidl_modify_resize
 from .src.attention import tidl_modify_attention
 from .src.batch import tidl_modify_batch_dim
 from .src.concat import tidl_modify_concat
+from .src.maxpool import tidl_modify_maxpool
+from .src.reducemean import tidl_modify_reducemean
 
 
 ### function definitions
@@ -81,7 +83,10 @@ opt_ops = {
         'attention': tidl_modify_attention,
         'batch': tidl_modify_batch_dim,
         'resize': tidl_modify_resize,
-        'concat': tidl_modify_concat
+        'concat': tidl_modify_concat,
+        'maxpool': tidl_modify_maxpool,
+        'reducemean': tidl_modify_reducemean
+
 }
 
 NUM_OPS = len(opt_ops)
@@ -166,9 +171,11 @@ def get_optimizers():
     return {
         # operation specific
         'convert_resize_params_size_to_scale'       : True,
-        'convert_concat_axis_width_to_channel'      : True,
+        'convert_concat_axis_width_to_channel'      : False,
         'attention_block_optimization'              : False,
         'split_batch_dim_to_parallel_input_branches': False,
+        'convert_maxpool_to_cascaded_maxpool'       : False,
+        'convert_reducemean'                        : False,
         # utilities specific
         'shape_inference_mode'      : 'all',
         'simplify_mode'             : None,
