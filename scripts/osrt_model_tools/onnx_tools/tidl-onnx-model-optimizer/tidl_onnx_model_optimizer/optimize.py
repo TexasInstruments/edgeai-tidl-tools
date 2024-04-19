@@ -119,10 +119,10 @@ def tidl_modify (model_path: str, out_model_path: str, args: dict):
     for key, func in opt_ops.items():
         logging.info(f"[{curr_op}/{NUM_OPS}] {key.capitalize()} optimizations")
         func(graph, onnx_graph, args)
+        # cleanup
+        graph.cleanup().toposort()
         curr_op += 1
 
-    # cleanup
-    graph.cleanup().toposort()
 
     # post processing simplification
     out_model = gs.export_onnx(graph)

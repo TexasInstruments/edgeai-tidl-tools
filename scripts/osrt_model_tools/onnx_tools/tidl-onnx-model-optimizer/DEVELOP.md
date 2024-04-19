@@ -32,7 +32,7 @@ Once you create this wrapper function, please add your own specific optimization
 Make the following changes in the file `tidl_onnx_model_optimizer/optimize.py`
 
 ### Control Flag
-You will require a new flag for enable/disbale control over your optimization. For that purpose you have to change the dict returned in the function `get_optimizers`. You can make the default value here True/False as per your need.
+You will require a new flag for enable/disbale control over your optimization. For that purpose you have to change the dict returned in the function `get_optimizers` to have a new entry `'abc'`. You can make the default value here True/False as per your need.
 
 ### Call to implemented function
 Finally you need to change the dict variable `opt_ops` if you have added a new .py file.

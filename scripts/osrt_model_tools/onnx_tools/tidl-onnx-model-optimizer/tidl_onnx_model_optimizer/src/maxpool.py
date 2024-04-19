@@ -73,7 +73,6 @@ def tidl_modify_maxpool(graph: gs.Graph, onnx_graph: onnx.GraphProto, args: dict
         logging.debug("Running convert_maxpool_to_cascaded_maxpool")
         tidl_convert_maxpool_to_cascaded_maxpool(graph, onnx_graph)
 
-    graph.cleanup().toposort()
 
 
 def tidl_convert_maxpool_to_cascaded_maxpool(graph: gs.Graph, onnx_graph: onnx.GraphProto):

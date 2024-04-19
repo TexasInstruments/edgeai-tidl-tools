@@ -72,7 +72,6 @@ def tidl_modify_reducemean(graph: gs.Graph, onnx_graph: onnx.GraphProto, args: d
         logging.debug("Running convert_reducemean")
         tidl_convert_reducemean(graph)
 
-    graph.cleanup().toposort()
 
 
 def tidl_convert_reducemean(graph: gs.Graph):

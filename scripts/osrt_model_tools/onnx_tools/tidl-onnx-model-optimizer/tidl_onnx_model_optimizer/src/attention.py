@@ -86,7 +86,6 @@ def tidl_modify_attention (graph: gs.Graph, onnx_graph: onnx.GraphProto, args: d
             logging.debug("\n"+bordered(f"Attention Block {idx}"))
             att.optimize(graph)
 
-    graph.cleanup().toposort()
 
 
 

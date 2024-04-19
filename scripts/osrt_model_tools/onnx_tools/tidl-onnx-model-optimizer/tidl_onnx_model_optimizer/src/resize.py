@@ -73,7 +73,6 @@ def tidl_modify_resize(graph: gs.Graph, onnx_graph: onnx.GraphProto, args: dict)
         logging.debug("Running convert_resize_params_size_to_scale")
         tidl_convert_resize_params_size_to_scale(graph, onnx_graph)
 
-    graph.cleanup().toposort()
 
 
 def tidl_convert_resize_params_size_to_scale(graph: gs.Graph,
