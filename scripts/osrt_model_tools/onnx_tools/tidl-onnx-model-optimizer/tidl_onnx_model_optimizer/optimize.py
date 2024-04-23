@@ -76,6 +76,7 @@ from .src.batch import tidl_modify_batch_dim
 from .src.concat import tidl_modify_concat
 from .src.maxpool import tidl_modify_maxpool
 from .src.reducemean import tidl_modify_reducemean
+from .src.softmax import tidl_modify_softmax
 
 
 ### function definitions
@@ -85,7 +86,8 @@ opt_ops = {
         'resize': tidl_modify_resize,
         'concat': tidl_modify_concat,
         'maxpool': tidl_modify_maxpool,
-        'reducemean': tidl_modify_reducemean
+        'reducemean': tidl_modify_reducemean,
+        'softmax': tidl_modify_softmax
 
 }
 
@@ -176,6 +178,7 @@ def get_optimizers():
         'split_batch_dim_to_parallel_input_branches': False,
         'convert_maxpool_to_cascaded_maxpool'       : False,
         'convert_reducemean'                        : False,
+        'convert_softmax'                           : False,
         # utilities specific
         'shape_inference_mode'      : 'all',
         'simplify_mode'             : None,
