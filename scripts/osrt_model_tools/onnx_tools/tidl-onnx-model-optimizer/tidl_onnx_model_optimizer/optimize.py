@@ -178,7 +178,8 @@ def get_optimizers():
         'split_batch_dim_to_parallel_input_branches': False,
         'convert_maxpool_to_cascaded_maxpool'       : False,
         'convert_reducemean'                        : False,
-        'convert_softmax'                           : False,
+        'convert_softmax_axis_channel_to_width'     : False,
+        'convert_softmax_axis_height_to_width'      : False,
         # utilities specific
         'shape_inference_mode'      : 'all',
         'simplify_mode'             : None,
