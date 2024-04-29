@@ -76,6 +76,10 @@ from .src.batch import tidl_modify_batch_dim
 from .src.concat import tidl_modify_concat
 from .src.maxpool import tidl_modify_maxpool
 from .src.reducemean import tidl_modify_reducemean
+from .src.gemm import tidl_modify_gemm
+from .src.matmul import tidl_modify_matmul
+from .src.global_avg_pool import tidl_modify_global_avg_pooling
+from .src.gather import tidl_modify_gather
 
 
 ### function definitions
@@ -85,8 +89,11 @@ opt_ops = {
         'resize': tidl_modify_resize,
         'concat': tidl_modify_concat,
         'maxpool': tidl_modify_maxpool,
-        'reducemean': tidl_modify_reducemean
-
+        'reducemean': tidl_modify_reducemean,
+        'gemm': tidl_modify_gemm,
+        'matmul': tidl_modify_matmul,
+        'global average_pooling': tidl_modify_global_avg_pooling,
+        'gather': tidl_modify_gather
 }
 
 NUM_OPS = len(opt_ops)
@@ -176,6 +183,10 @@ def get_optimizers():
         'split_batch_dim_to_parallel_input_branches': False,
         'convert_maxpool_to_cascaded_maxpool'       : False,
         'convert_reducemean'                        : False,
+        'convert_gemm_to_matmul_and_add'            : True,
+        'convert_matmul_to_conv_1x1s1'              : True,
+        'convert_large_global_avg_pooling_to_matmul': True,
+        'convert_gather_with_single_index_to_slice' : True,
         # utilities specific
         'shape_inference_mode'      : 'all',
         'simplify_mode'             : None,
