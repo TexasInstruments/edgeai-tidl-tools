@@ -80,6 +80,7 @@ from .src.gemm import tidl_modify_gemm
 from .src.matmul import tidl_modify_matmul
 from .src.global_avg_pool import tidl_modify_global_avg_pooling
 from .src.gather import tidl_modify_gather
+from .src.batchnorm import tidl_modify_batchnorm
 
 
 ### function definitions
@@ -93,7 +94,8 @@ opt_ops = {
         'gemm': tidl_modify_gemm,
         'matmul': tidl_modify_matmul,
         'global average_pooling': tidl_modify_global_avg_pooling,
-        'gather': tidl_modify_gather
+        'gather': tidl_modify_gather,
+        'batchnorm': tidl_modify_batchnorm
 }
 
 NUM_OPS = len(opt_ops)
@@ -187,6 +189,7 @@ def get_optimizers():
         'convert_matmul_to_conv_1x1s1'              : True,
         'convert_large_global_avg_pooling_to_matmul': True,
         'convert_gather_with_single_index_to_slice' : True,
+        'convert_batchnorm_input_to_4D'             : True,
         # utilities specific
         'shape_inference_mode'      : 'all',
         'simplify_mode'             : None,
