@@ -71,20 +71,17 @@ from .common import remove_node
 
 
 
-def tidl_modify_attention (graph: gs.Graph, onnx_graph: onnx.GraphProto, args: dict):
+def tidl_optimize_attention (graph: gs.Graph, onnx_graph: onnx.GraphProto):
     """
     Wrapper function to re-arrange and optimize self-attention block for Transformers
     """
     # create attention objects from the graph
     attention_blocks = tidl_find_attention_block (graph, onnx_graph)
-
-    if args['attention_block_optimization']:
-        logging.debug("Running attention_block_optimization")
-        if len(attention_blocks) > 0:
-            logging.info(f"Attention blocks detected: {len(attention_blocks)}, processing for optimization")
-        for idx, att in enumerate(attention_blocks):
-            logging.debug("\n"+bordered(f"Attention Block {idx}"))
-            att.optimize(graph)
+    if len(attention_blocks) > 0:
+        logging.info(f"Attention blocks detected: {len(attention_blocks)}, processing for optimization")
+    for idx, att in enumerate(attention_blocks):
+        logging.debug("\n"+bordered(f"Attention Block {idx}"))
+        att.optimize(graph)
 
 
 

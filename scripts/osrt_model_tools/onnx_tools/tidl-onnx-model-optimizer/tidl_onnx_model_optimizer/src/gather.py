@@ -67,15 +67,6 @@ import numpy as np
 
 
 
-def tidl_modify_gather(graph: gs.Graph, onnx_graph: onnx.GraphProto, args: dict):
-    """
-    Wrapper function to modify gather layers to satisfy TIDL constraints
-    """
-    if args['convert_gather_with_single_index_to_slice']:
-        logging.debug("Running convert_gather_with_single_index_to_slice")
-        tidl_convert_gather_with_single_index_to_slice(graph, onnx_graph)
-
-
 def tidl_convert_gather_with_single_index_to_slice(graph: gs.Graph, onnx_graph: onnx.GraphProto):
     """
     When Gather has single index = t, can be converted to

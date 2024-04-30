@@ -67,15 +67,6 @@ import numpy as np
 
 
 
-def tidl_modify_batchnorm (graph: gs.Graph, onnx_graph: onnx.GraphProto, args: dict):
-    """
-    Wrapper function to modify batchnorm layer to satisfy TIDL constraints
-    """
-    if args['convert_batchnorm_input_to_4D']:
-        logging.debug("Running convert_batchnorm_input_to_4D")
-        tidl_convert_batchnorm_input_to_4D (graph, onnx_graph)
-
-
 def tidl_convert_batchnorm_input_to_4D (graph: gs.Graph, onnx_graph: onnx.GraphProto):
     """
     Only 4D batchnorm (NCHW) with batchnorm on the channel is supported

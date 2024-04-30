@@ -69,34 +69,7 @@ import onnx
 from onnx import shape_inference
 from onnxsim import simplify
 
-### custom imports
-from .src.resize import tidl_modify_resize
-from .src.attention import tidl_modify_attention
-from .src.batch import tidl_modify_batch_dim
-from .src.concat import tidl_modify_concat
-from .src.maxpool import tidl_modify_maxpool
-from .src.reducemean import tidl_modify_reducemean
-from .src.gemm import tidl_modify_gemm
-from .src.matmul import tidl_modify_matmul
-from .src.global_avg_pool import tidl_modify_global_avg_pooling
-from .src.gather import tidl_modify_gather
-from .src.batchnorm import tidl_modify_batchnorm
-
-
-### function definitions
-opt_ops = {
-        'attention': tidl_modify_attention,
-        'batch': tidl_modify_batch_dim,
-        'resize': tidl_modify_resize,
-        'concat': tidl_modify_concat,
-        'maxpool': tidl_modify_maxpool,
-        'reducemean': tidl_modify_reducemean,
-        'gemm': tidl_modify_gemm,
-        'matmul': tidl_modify_matmul,
-        'global average_pooling': tidl_modify_global_avg_pooling,
-        'gather': tidl_modify_gather,
-        'batchnorm': tidl_modify_batchnorm
-}
+from .ops import opt_ops, get_optimizers, get_topological_sorted_key_order
 
 NUM_OPS = len(opt_ops)
 
@@ -125,11 +98,17 @@ def tidl_modify (model_path: str, out_model_path: str, args: dict):
 
 
     curr_op = 1
-    for key, func in opt_ops.items():
-        logging.info(f"[{curr_op}/{NUM_OPS}] {key.capitalize()} optimizations")
-        func(graph, onnx_graph, args)
-        # cleanup
-        graph.cleanup().toposort()
+    topo_sorted_keys = get_topological_sorted_key_order()
+    # logging.debug(topo_sorted_keys)
+    for key in topo_sorted_keys:
+        if args[key]:
+            logging.info(f"[{curr_op}/{NUM_OPS}] {key.capitalize()} optimization : Enabled")
+            func = opt_ops[key]
+            func(graph, onnx_graph)
+            # cleanup
+            graph.cleanup().toposort()
+        else:
+            logging.info(f"[{curr_op}/{NUM_OPS}] {key.capitalize()} optimization : Disabled")
         curr_op += 1
 
 
@@ -173,28 +152,6 @@ def format_logger (log_level):
         print(f"Unknown log level {log_level}")
 
 
-def get_optimizers():
-    """
-    Default optimizers option list
-    """
-    return {
-        # operation specific
-        'convert_resize_params_size_to_scale'       : True,
-        'convert_concat_axis_width_to_channel'      : False,
-        'attention_block_optimization'              : False,
-        'split_batch_dim_to_parallel_input_branches': False,
-        'convert_maxpool_to_cascaded_maxpool'       : False,
-        'convert_reducemean'                        : False,
-        'convert_gemm_to_matmul_and_add'            : True,
-        'convert_matmul_to_conv_1x1s1'              : True,
-        'convert_large_global_avg_pooling_to_matmul': True,
-        'convert_gather_with_single_index_to_slice' : True,
-        'convert_batchnorm_input_to_4D'             : True,
-        # utilities specific
-        'shape_inference_mode'      : 'all',
-        'simplify_mode'             : None,
-        'simplify_kwargs'           : None
-    }
 
 
 def optimize (model:str, out_model:str = None, verbose:bool= False, **kwargs):

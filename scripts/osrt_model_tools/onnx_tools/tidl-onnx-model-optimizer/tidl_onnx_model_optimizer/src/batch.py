@@ -74,14 +74,12 @@ START_NODE_NAME = "/Mul"
 END_NODE_NAME   = "/model/Transpose"
 
 
-def tidl_modify_batch_dim (graph: gs.Graph, onnx_graph: onnx.GraphProto, args: dict):
+def tidl_modify_batch_dim (graph: gs.Graph, onnx_graph: onnx.GraphProto):
     """
     Wrapper function to modify batch input dimension to satisfy TIDL constraints
     """
-    if args['split_batch_dim_to_parallel_input_branches']:
-        logging.debug("Running split_batch_dim_to_parallel_input_branches")
-        duplicate_for_multi_batch(graph, START_NODE_NAME, END_NODE_NAME)
-        split_batched_inputs(graph)
+    duplicate_for_multi_batch(graph, START_NODE_NAME, END_NODE_NAME)
+    split_batched_inputs(graph)
 
 
 def add_node(graph:gs.Graph, name:str,op:str, dtype, attrs, inputs, output_shapes=[]):

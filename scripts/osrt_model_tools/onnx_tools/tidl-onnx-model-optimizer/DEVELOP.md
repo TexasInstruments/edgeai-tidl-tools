@@ -18,25 +18,28 @@ In the following section, changes have to be made inside `tidl_onnx_model_optimi
 #### Case - I
 If you are writing a function which handles a layer/block which is already present, you are expected to keep the function in the .py file existing for that layer/block. For e.g., if you are adding a optimization function on resize layer, you are supposed to put `tidl_abc` function in `resize.py`.
 
-In this case you will require to add the function call to the wrapper function present in the .py file. For e.g., in `resize.py` you will have to add the call to `tidl_abc{...)}` call inside `tidl_modify_resize` wrapper function. You will have to add under the conditional flag `args['abc']` which will be added in the interface. Please add logging debug prints to indicate triggering of this specific function. For logging print formats, please refer to existing prints.
-
 #### Case - II
-If you are creating a function for a completely new layer/block, you will have to create a new .py file, which should be named as `<layer>.py` or `<block>.py`. Every such .py file will have a wrapper global function as the first function :
-
-`def tidl_modify_<layer/block> (graph: gs.Graph, onnx_graph: onnx.GraphProto, args: dict):`
-
-Once you create this wrapper function, please add your own specific optimization function as mentioned in Case-I.
+If you are creating a function for a completely new layer/block, you will have to create a new .py file, which should be named as `<layer>.py` or `<block>.py`. Put your function in this file.
 
 
 ## Interface
-Make the following changes in the file `tidl_onnx_model_optimizer/optimize.py`
+Make the following changes in the file `tidl_onnx_model_optimizer/ops.py`
 
 ### Control Flag
 You will require a new flag for enable/disbale control over your optimization. For that purpose you have to change the dict returned in the function `get_optimizers` to have a new entry `'abc'`. You can make the default value here True/False as per your need.
 
+### Dependency graph
+Your function might need to be run strictly after some other existing optimization function and before some functions. For e.g., say you are converting a unoptimal MatMul to Conv, you want all the optimizations which converts other layers to MatMul to run before this (as then you don't have to run your function multiple number of times).
+
+1. Add a new entry `'abc': []` in the dict `adj_list`.
+2. For any other key, `k`, if you need your function to run before function corresposding to k, modify your entry as `'abc': [k]`. Keep adding to this list like `[k1, k2, k3, ...]` for as many functions you need.
+3. If you want your funtion to strictly run after some other function corresposnding to key `k`, modify the entry for `k` as `k: [..., 'abc']`
+
+Please add a single line comment justfying your reason of adding a dependency, as these are good when a strict ordering of functions are necessary but costs time when there are lot of functions i.e., nodes in the dependency graph.
+
 ### Call to implemented function
 Finally you need to change the dict variable `opt_ops` if you have added a new .py file.
-Add a entry `"<layer/block>" : tidl_modify_<layer/block>` and voila! You are done.
+Add a entry `"abc" : tidl_abc` and voila! You are done.
 
 
 ## Good Practices

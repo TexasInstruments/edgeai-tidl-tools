@@ -64,15 +64,6 @@ import onnx
 import numpy as np
 
 
-def tidl_modify_gemm(graph: gs.Graph, onnx_graph: onnx.GraphProto, args: dict):
-    """
-    Wrapper function to modify Gemm layers to satisfy TIDL constraints
-    """
-    if args['convert_gemm_to_matmul_and_add']:
-        logging.debug("Running convert_gemm_to_matmul_and_add")
-        tidl_convert_gemm_to_matmul_and_add(graph, onnx_graph)
-
-
 def tidl_convert_gemm_to_matmul_and_add (graph: gs.Graph, onnx_graph: onnx.GraphProto):
     """
     Convert Gemm layer with constant B input to Matmul and

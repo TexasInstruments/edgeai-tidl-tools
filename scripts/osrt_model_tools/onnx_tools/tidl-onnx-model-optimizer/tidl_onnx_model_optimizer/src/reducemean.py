@@ -64,17 +64,8 @@ import onnx
 import numpy as np
 
 
-def tidl_modify_reducemean(graph: gs.Graph, onnx_graph: onnx.GraphProto, args: dict):
-    """
-    Wrapper function to modify ReduceMean layers to satisfy TIDL constraints
-    """
-    if args['convert_reducemean']:
-        logging.debug("Running convert_reducemean")
-        tidl_convert_reducemean(graph)
 
-
-
-def tidl_convert_reducemean(graph: gs.Graph):
+def tidl_convert_reducemean_to_matmul (graph: gs.Graph, onnx_graph: onnx.GraphProto):
     """
     The ReduceMean layer is replaced with the cascaded multiple layers, e.g.,
     "Reshape + MatMul + Reshape". Assume that

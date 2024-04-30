@@ -66,16 +66,6 @@ import onnx
 import numpy as np
 
 
-
-def tidl_modify_global_avg_pooling (graph: gs.Graph, onnx_graph: onnx.GraphProto, args: dict):
-    """
-    Wrapper function to modify global avg pooling layers to satisfy TIDL constraints
-    """
-    if args['convert_large_global_avg_pooling_to_matmul']:
-        logging.debug("Running convert_large_global_avg_pooling_to_matmul")
-        tidl_convert_large_global_avg_pooling_to_matmul (graph, onnx_graph)
-
-
 # threshold to consider global avg pooling as large
 LARGE_GLOBAL_AVG_POOLING_THRESHOLD = 1024
 

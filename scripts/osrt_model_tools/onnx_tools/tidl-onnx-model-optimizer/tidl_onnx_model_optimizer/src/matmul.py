@@ -64,14 +64,6 @@ import onnx
 import numpy as np
 
 
-def tidl_modify_matmul(graph: gs.Graph, onnx_graph: onnx.GraphProto, args: dict):
-    """
-    Wrapper function to modify Gemm layers to satisfy TIDL constraints
-    """
-    if args['convert_matmul_to_conv_1x1s1']:
-        logging.debug("Running convert_matmul_to_conv_1x1s1")
-        tidl_convert_matmul_to_conv_1x1s1(graph, onnx_graph)
-
 def tidl_convert_matmul_to_conv_1x1s1 (graph: gs.Graph, onnx_graph: onnx.GraphProto):
     """
     Function to convert MatMul layer to Convolution with kernel 1x1, stride 1x1

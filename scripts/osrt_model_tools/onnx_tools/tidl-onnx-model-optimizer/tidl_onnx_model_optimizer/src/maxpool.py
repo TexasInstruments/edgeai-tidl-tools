@@ -65,16 +65,6 @@ import onnx
 import numpy as np
 
 
-def tidl_modify_maxpool(graph: gs.Graph, onnx_graph: onnx.GraphProto, args: dict):
-    """
-    Wrapper function to modify MaxPool layers to satisfy TIDL constraints
-    """
-    if args['convert_maxpool_to_cascaded_maxpool']:
-        logging.debug("Running convert_maxpool_to_cascaded_maxpool")
-        tidl_convert_maxpool_to_cascaded_maxpool(graph, onnx_graph)
-
-
-
 def tidl_convert_maxpool_to_cascaded_maxpool(graph: gs.Graph, onnx_graph: onnx.GraphProto):
     """
     The MaxPool layer with large kernel (> 3x3) is replaced with
