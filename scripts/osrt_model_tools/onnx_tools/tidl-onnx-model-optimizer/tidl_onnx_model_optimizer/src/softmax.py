@@ -65,7 +65,6 @@ import onnx
 import numpy as np
 
 
-
 def tidl_convert_softmax_axis_channel_to_width(graph: gs.Graph, onnx_graph: onnx.GraphProto):
     """
     The SoftMax layer with operation in the channel dimension is replaced with
@@ -182,4 +181,73 @@ def tidl_convert_softmax_axis_height_to_width(graph: gs.Graph, onnx_graph: onnx.
                                          "Unable to convert axis to height")
 
 
+
+TIDL_SOFTMAX_LARGE_DIM_THRESHOLD        = 1024
+TIDL_GENERIC_SCRATCH_VOLUME             = 32 * 1024
+TIDL_SOFTMAX_OPTIMIAL_HEIGHT_DIM        = 64
+
+def tidl_push_large_channel_dim_to_height_for_width_wise_softmax (graph: gs.Graph, onnx_graph: onnx.GraphProto):
+    """
+    When a softmax has high value of dimensions channel and upper
+    it performs unoptimal. But reshaping the shape to have a larger
+    height can make it more efficient
+    """
+    softmax_nodes = [node for node in graph.nodes if node.op == "Softmax"]
+
+    for node in softmax_nodes:
+        # must be widthwise
+        inp = node.inputs[0]
+        if node.attrs['axis'] == (len(inp.shape) - 1):
+            # must have large channel dim value
+            if (len(inp.shape) > 2) and (inp.shape[-3] > TIDL_SOFTMAX_LARGE_DIM_THRESHOLD):
+                c, h, w = inp.shape[-3], inp.shape[-2], inp.shape[-1]
+                tot_vol = c * h * w
+                ch_lower_lim = int(np.ceil(tot_vol / TIDL_GENERIC_SCRATCH_VOLUME))
+                logging.debug(f"Lower limit for channel shape = {ch_lower_lim}")
+                # calculate ratio to reshape
+                new_shape = None
+                opt_ratio = 0.5
+                logging.debug(f"Searching for optimal shape (base ratio = {opt_ratio})...")
+                for new_channel in range(ch_lower_lim, c, 1):
+                    new_height = (c*h)/new_channel
+                    # check if height is integer
+                    if new_height == int(new_height):
+                        # check vector optimization
+                        t = new_height / TIDL_SOFTMAX_OPTIMIAL_HEIGHT_DIM
+                        t = t - int(t)
+                        if t > opt_ratio:
+                            opt_ratio = t
+                            new_shape = [new_channel, new_height, w]
+                            logging.debug(f"Found better optimization {t} with shape {new_shape}")
+
+
+
+                # add reshapes before
+                reshp_out = gs.Variable(name= f'{inp.name}_Opt_Reshape_out', dtype= np.float32)
+                reshp_shape = gs.Constant(name= f'{inp.name}_Opt_Reshape_shape',
+                                          values= np.array(new_shape, dtype= np.int64))
+                reshp = gs.Node(name= f'{inp.name}_Opt_Reshape', op= 'Reshape',
+                                inputs= [inp, reshp_shape], outputs= [reshp_out])
+
+                # add reshape node
+                logging.debug(f"Adding reshape node {reshp.name} to reshape input to"
+                              f"{new_shape}")
+                graph.nodes.append(reshp)
+
+
+                # add reshape after
+                node.inputs[0] = reshp_out
+                node_reshaped_out = gs.Variable(name= f'{node.name}_Reshaped_out', dtype= np.float32)
+                reshp_shape = gs.Constant(name= f'{node.name}_Opt_Reshape_shape',
+                                          values= np.array(inp.shape, dtype= np.int64))
+                reshp = gs.Node(name= f'{node.name}_out_Reshape', op= 'Reshape',
+                                inputs= [node_reshaped_out, reshp_shape], outputs= node.outputs)
+
+                # add reshape node
+                logging.debug(f"Adding reshape node {reshp.name} to reshape output to"
+                              f"{inp.shape}")
+                graph.nodes.append(reshp)
+
+                # change original softmax output
+                node.outputs = [node_reshaped_out]
 

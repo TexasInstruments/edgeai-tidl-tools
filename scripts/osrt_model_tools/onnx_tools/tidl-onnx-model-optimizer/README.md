@@ -54,6 +54,7 @@ The different optimizations performed are summarized here along with their defau
 | 11 | split_batch_dim_to_parallel_input_branches | If network has batch dimensions to some layers which does not suppport batch dim in TIDL framework, duplicate the layer and split in multiple branches so as each batch gets treated as different input to different branch | False |
 | 12 | convert_softmax_axis_height_to_width | The SoftMax layer with operation in the height dimension is replaced with Transpose -> SoftMax -> Transpose to satisfy constraint of SoftMax layer only occuring in width dimension | False |
 | 13 | convert_softmax_axis_channel_to_width | The SoftMax layer with operation in the channel dimension is replaced with Transpose -> SoftMax -> Transpose to satisfy constraint of SoftMax layer only occuring in width dimension | False |
+| 14 | push_large_channel_dim_to_height_for_width_wise_softmax | When a softmax has high value of dimensions channel and upper it performs unoptimal. But reshaping the shape to have a larger height can make it more efficient. Hence Softmax is changed to Reshape -> Softmax -> Reshape | True |
 
 
 
