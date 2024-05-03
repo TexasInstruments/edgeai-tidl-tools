@@ -65,21 +65,8 @@ import onnx
 import numpy as np
 
 
-def tidl_modify_softmax(graph: gs.Graph, onnx_graph: onnx.GraphProto, args: dict):
-    """
-    Wrapper function to modify SoftMax layers to satisfy TIDL constraints
-    """
 
-    if args['convert_softmax_axis_channel_to_width']:
-        logging.debug("Running convert_softmax_axis_channel_to_width")
-        tidl_convert_softmax_axis_channel_to_width(graph)
-
-    if args['convert_softmax_axis_height_to_width']:
-        logging.debug("Running convert_softmax_axis_height_to_width")
-        tidl_convert_softmax_axis_height_to_width(graph)
-
-
-def tidl_convert_softmax_axis_channel_to_width(graph: gs.Graph):
+def tidl_convert_softmax_axis_channel_to_width(graph: gs.Graph, onnx_graph: onnx.GraphProto):
     """
     The SoftMax layer with operation in the channel dimension is replaced with
     Transpose -> SoftMax -> Transpose to satisfy constraint of SoftMax layer only
@@ -137,7 +124,7 @@ def tidl_convert_softmax_axis_channel_to_width(graph: gs.Graph):
                                          "Unable to convert axis to channel")
 
 
-def tidl_convert_softmax_axis_height_to_width(graph: gs.Graph):
+def tidl_convert_softmax_axis_height_to_width(graph: gs.Graph, onnx_graph: onnx.GraphProto):
     """
     The SoftMax layer with operation in the height dimension is replaced with
     Transpose -> SoftMax -> Transpose to satisfy constraint of SoftMax layer only
@@ -193,6 +180,6 @@ def tidl_convert_softmax_axis_height_to_width(graph: gs.Graph):
         else:
             logging.critical(f"{softmax.inputs[0].name} input to {softmax.name} has no height dim"
                                          "Unable to convert axis to height")
-            
 
-            
+
+

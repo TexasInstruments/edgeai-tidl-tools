@@ -52,6 +52,8 @@ The different optimizations performed are summarized here along with their defau
 | 9 | convert_batchnorm_input_to_4D |  Batchnorm input with less than 4 dimension is converted to 4 dimension by adding 1's at the end, done using Reshaped before and after the layer. TIDL supports only 4D batchnorm (NCHW) with batchnorm on the channel | True |
 | 10 | attention_block_optimization | Attention block optimization function, identifies attention blocks and performs TIDL specific optimizations on the attention blocks as a whole | False |
 | 11 | split_batch_dim_to_parallel_input_branches | If network has batch dimensions to some layers which does not suppport batch dim in TIDL framework, duplicate the layer and split in multiple branches so as each batch gets treated as different input to different branch | False |
+| 12 | convert_softmax_axis_height_to_width | The SoftMax layer with operation in the height dimension is replaced with Transpose -> SoftMax -> Transpose to satisfy constraint of SoftMax layer only occuring in width dimension | False |
+| 13 | convert_softmax_axis_channel_to_width | The SoftMax layer with operation in the channel dimension is replaced with Transpose -> SoftMax -> Transpose to satisfy constraint of SoftMax layer only occuring in width dimension | False |
 
 
 
