@@ -196,7 +196,7 @@ cp_osrt_lib()
 
 
 SCRIPTDIR=`pwd`
-REL=09_02_06_00
+REL=09_02_07_00
 skip_cpp_deps=0
 skip_arm_gcc_download=0
 skip_x86_python_install=0
@@ -427,6 +427,7 @@ fi
 if [[ $arch == x86_64 && $skip_model_optimizer -eq 0 ]]; then
     cd $SCRIPTDIR/scripts/osrt_model_tools/onnx_tools/tidl-onnx-model-optimizer
     source ./setup.sh
+    cd $SCRIPTDIR
 fi
 
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$TIDL_TOOLS_PATH:$TIDL_TOOLS_PATH/osrt_deps:$TIDL_TOOLS_PATH/osrt_deps/opencv/

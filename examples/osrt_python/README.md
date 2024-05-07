@@ -196,17 +196,19 @@ Please refer [Quantization](../../docs/tidl_fsg_quantization.md) for more detail
 | advanced_options:pre-quantized_model    | This option enables reading of scales and zero points from an ONNX QDQ model and bypasses the need for calibration | 0 - disable, <br> 1 enable    | 0       | Model compilation | This impacts only ONNX models, for TF-Lite models quantization_scale_type=3 has the same effect |
 | advanced_options:high_resolution_optimization    | This option enables performance optimization for high resolution models  | 0 - disable, <br> 1 enable    | 0       | Model compilation | |
 | advanced_options:add_data_convert_ops   | This option embeds input and output format conversions (layout, data type, etc.) as part of model and performs the same in DSP instead of ARM    | 0 - disable, <br> 1 - Input format conversion <br> 2 - output format conversion <br> 3 - Input and output format conversion |    0      | Model compilation | This is currently an experimental feature |
+| advanced_options:network_name   | This option allows the user to set the network name (used for the name of the subgraph being delegated to C7x/MMA). If your model contains a network name, it will get used by default    | String |    "Subgraph"      | Model compilation |  |
+| advanced_options:c7x_firmware_version   |  Refer to [**Release version convention**](../../docs/version_compatibility_table.md). In case you are using firmware released as part of processor SDK RTOS, this field can be ignored. If you are using TIDL firmware release with a new patch release of the same "release line" then it is essential to use c7x_firmware_version explicitly      | String |    "09_02_06_00"      | Model compilation | Possible values are "09_02_07_00" & "09_02_06_00"   |
 | model_type                   | This option is meant to communicate to TIDL import library that specified model is object detection model | "OD" |  ""    | Model compilation | This option is required to be set to "OD" only if model is object detection, and compilation throws warning asking to explicitly specify this option as "OD", else this option can be ignored |
 | c7x_codegen        | This option is used to enable running TIDL-unsupported layers on DSP using TVM auto code generation feature | 0 - Run TIDL-unsupported layers on ARM, <br> 1 - Run TIDL-unsupported layers on DSP | 0 | Model compilation | This is a TVM specific feature, has undergone limited validation [^3]|
 | ti_internal_nc_flag   | internal use only     | -   | - | - | -|
 
 
-- [^1]: Specifying layer_type as part of deny_list option :   
+- [1]: Specifying layer_type as part of deny_list option :   
  Tflite runtime : Specify registration code as specified in tflite builtin ops - Please refer [Tflite builtin ops](https://github.com/tensorflow/tensorflow/blob/r2.3/tensorflow/lite/builtin_ops.h)  , e.g. "1, 2" to deny offloading 'AveragePool2d' and 'Concatenation' operators to TIDL.  
  ONNX runtime : Specify the ONNX operator name e.g. "MaxPool" to deny offloading Max pooling operator to TIDL
  TVM runtime : Specify TVM relay operator name e.g. "nn.conv2d" to deny offloading convolution operator to TIDL
-- [^2]: ONNX runtime - In case layer name is not present as part of layer in model, output name corresponding to output(0) for the particular layer can be specified
-- [^3]: Running TIDL-unsupported layers on DSP with parameter "c7x_codegen=1", requires Processor SDK 8.2 or newer. This feature has only been validated with selected models in TI's Edgeai-benchmark that are using the TVM flow.  We will continue to work on this feature
+- [2]: ONNX runtime - In case layer name is not present as part of layer in model, output name corresponding to output(0) for the particular layer can be specified
+- [3]: Running TIDL-unsupported layers on DSP with parameter "c7x_codegen=1", requires Processor SDK 8.2 or newer. This feature has only been validated with selected models in TI's Edgeai-benchmark that are using the TVM flow.  We will continue to work on this feature
 to improve the operator coverage and generate more performant DSP code.  If your model encounters problem with this feature, please set "c7x_codegen=0" and run the TIDL-unsupported layers on ARM.
 
 
