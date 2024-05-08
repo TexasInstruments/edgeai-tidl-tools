@@ -1,6 +1,14 @@
 
 # EdgeAI TIDL Tools Tags for compatible SDK version
 
+## Release version convention:
+- Processor SDK RTOS follows versioning scheme as Major.Minor.Patch.Build. Processor SDK RTOS provides TIDL firmware as part of its release
+- Edge AI TIDL tools (this repository) provides release of tools for model compilation and host emulation inference It also follows the same versioning convention.
+- Releases having same major number belong to same “release family”. Releases having same pair of {major.minor} version are referred as “release line” here
+- The tools are always maintained compatible to a firmware version of same “release line”. For example tools version of 9.2.7.0 is compatible with Processor SDK RTOS 9.2.5.0. Detailed version compatibility is provided in table
+
+---
+
 <div align="center">
 
 |EdgeAI TIDL Tools TAG         |           AM62 |           AM62A |          AM68A/J721S2 (TDA4AL, TDA4VL) |          AM68PA/J721E (TDA4VM)|          AM69A/J784S4(TDA4AP, TDA4VP,TDA4AH, TDA4VH)| AM67A (J722S)|
@@ -23,9 +31,3 @@
 </div>
 
 ---
-
-# Release version convention
-- Processor SDK RTOS follows versioning scheme as Major.Minor.Patch.Build. Processor SDK RTOS provides TIDL firmware as part of its release
-- Edge AI TIDL tools (this repository) provides release of tools for model compilation and host emulation inference It also follows the same versioning convention.
-- Releases having same major number belong to same “release family”. Releases having same pair of {major.minor} version are referred as “release line” here
-- The tools are always maintained compatible to a firmware version of same “release line”. For example tools version of 9.2.7.0 is compatible with Processor SDK RTOS 9.2.5.0. Detailed version compatibility is provided in table
