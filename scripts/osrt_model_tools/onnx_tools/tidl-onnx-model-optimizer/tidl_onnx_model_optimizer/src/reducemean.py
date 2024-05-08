@@ -77,37 +77,71 @@ def tidl_convert_reducemean_to_matmul (graph: gs.Graph, onnx_graph: onnx.GraphPr
     for idx, reduce_mean in enumerate(reduce_means):
 
         input_tensor = reduce_mean.inputs
-        input_shape = input_tensor[0].shape
+        input_shape  = input_tensor[0].shape
+
+        # input tensor dim. Should be 3D or 4D
+        numdims  = len(input_shape)
 
         axes     = reduce_mean.attrs['axes']
-        keepdims = reduce_mean.attrs['keepdims']
+        try:
+            keepdims = reduce_mean.attrs['keepdims']
+        except:
+            print(" Warning: keepdims does not exist. Set keepdims to 1")
+            keepdims = 1
 
-        assert len(input_shape) == 4, "The input tensor to ReduceMean should be a 4D tensor"
+        assert len(input_shape) >= 2, "The input tensor to ReduceMean should be a 2D, 3D or 4D tensor"
         assert len(axes) <= 2, "The length of Attribute axes should be 1 or 2"
-        assert axes[0] == 2 or axes[0] == 3, "Attribute axes should be 2 or 3"
 
-        B, C, H, W = input_shape
+        if numdims == 4:
+            assert axes[0] == 2 or axes[0] == -2 or axes[0] == 3 or axes[0] == -1, \
+                "Attribute axes should be 2 or 3"
+        elif numdims == 3:
+            assert axes[0] == 1 or axes[0] == -2 or axes[0] == 2 or axes[0] == -1, \
+                "Attribute axes should be 1 or 2"
+        elif numdims == 2:
+            assert axes[0] == 0 or axes[0] == -2 or axes[0] == 1 or axes[0] == -1,\
+                "Attribute axes should be 0 or 1"
+
+        if numdims == 4:
+            B, C, H, W = input_shape
+        elif numdims == 3:
+            C, H, W = input_shape
+        elif numdims == 2:
+            H, W = input_shape
 
         if len(axes) == 1:
 
-            if axes[0] == 2:
+            if (numdims == 4 and axes[0] == 2) or \
+               (numdims == 3 and axes[0] == 1) or \
+               (numdims == 2 and axes[0] == 0) or axes[0] == -2:
+
+                if numdims == 4:
+                    shape_outshape  = (B, C, W, H)
+                    shape_outmatmul = (B, C, W, 1)
+                    permidx = [0, 1, 3, 2]
+                elif numdims == 3:
+                    shape_outshape  = (C, W, H)
+                    shape_outmatmul = (C, W, 1)
+                    permidx = [0, 2, 1]
+                elif numdims == 2:
+                    shape_outshape  = (W, H)
+                    shape_outmatmul = (W, 1)
+                    permidx = [1, 0]
+
                 # 1. Transpose
                 var_outshape   = [gs.Variable(f"rm_transpose_out.{idx}",
-                                              dtype=np.float32, shape=(B, C, W, H))]
+                                              dtype=np.float32, shape=shape_outshape)]
                 transpose1 = gs.Node(op="Transpose", name=f"rm_transpose.{idx}.1",
-                                     attrs={"perm": [0,1,3,2]}, inputs=input_tensor,
+                                     attrs={"perm": permidx}, inputs=input_tensor,
                                      outputs=var_outshape)
                 graph.nodes.append(transpose1)
 
-                # reset B, C, H, W
-                B, C, H, W = transpose1.outputs[0].shape
-
                 # 2. MatMul
-                const_dim = W
+                const_dim = H
                 values  = np.ones(shape=(const_dim, 1), dtype=np.float32) / const_dim
                 const_inmatmul = gs.Constant(f"in_rm_matmul.{idx}", values=values)
                 var_outmatmul  = [gs.Variable(f"out_rm_matmul.{idx}",
-                                              dtype=np.float32, shape=(B, C, H, 1))]
+                                              dtype=np.float32, shape=shape_outmatmul)]
 
                 matmul = gs.Node(op="MatMul", name=f"rm_matmul.{idx}",
                                  inputs=[var_outshape[0], const_inmatmul],
@@ -117,15 +151,26 @@ def tidl_convert_reducemean_to_matmul (graph: gs.Graph, onnx_graph: onnx.GraphPr
                 # 3. Transpose or Reshape
                 if keepdims == 1:
                     transpose2 = gs.Node(op="Transpose", name=f"rm_transpose.{idx}.2",
-                                         attrs={"perm": [0,1,3,2]}, inputs=var_outmatmul,
+                                         attrs={"perm": permidx}, inputs=var_outmatmul,
                                          outputs=reduce_mean.outputs)
                     graph.nodes.append(transpose2)
                 else:
                     squeeze = gs.Node(op="Squeeze", name=f"rm_squeeze.{idx}",
-                                      attrs={"axes": 3}, inputs=var_outmatmul,
+                                      attrs={"axes": [-1]}, inputs=var_outmatmul,
                                       outputs=reduce_mean.outputs)
                     graph.nodes.append(squeeze)
-            elif axes[0] == 3:
+
+            elif (numdims == 4 and axes[0] == 3) or \
+                 (numdims == 3 and axes[0] == 2) or \
+                 (numdims == 2 and axes[0] == 1) or axes[0] == -1:
+
+                if numdims == 4:
+                    shape_outmatmul = (B, C, H, 1)
+                elif numdims == 3:
+                    shape_outmatmul = (C, H, 1)
+                elif numdims == 2:
+                    shape_outmatmul = (H, 1)
+
                 # 1. MatMul
                 const_dim = W
                 values  = np.ones(shape=(const_dim, 1), dtype=np.float32) / const_dim
@@ -135,7 +180,7 @@ def tidl_convert_reducemean_to_matmul (graph: gs.Graph, onnx_graph: onnx.GraphPr
                     var_outmatmul = reduce_mean.outputs
                 else:
                     var_outmatmul  = [gs.Variable(f"out_rm_matmul.{idx}",
-                                                  dtype=np.float32, shape=(B, C, H, 1))]
+                                                  dtype=np.float32, shape=shape_outmatmul)]
 
                 matmul = gs.Node(op="MatMul", name=f"rm_matmul.{idx}",
                                  inputs=[input_tensor[0], const_inmatmul], outputs=var_outmatmul)
@@ -144,44 +189,73 @@ def tidl_convert_reducemean_to_matmul (graph: gs.Graph, onnx_graph: onnx.GraphPr
                 # 2. Reshape
                 if keepdims == 0:
                     squeeze = gs.Node(op="Squeeze", name=f"rm_squeeze.{idx}",
-                                      attrs={"axes": 3}, inputs=var_outmatmul,
+                                      attrs={"axes": [-1]}, inputs=var_outmatmul,
                                       outputs=reduce_mean.outputs)
-                    print(squeeze)
                     graph.nodes.append(squeeze)
 
         elif len(axes) == 2:
+
+            if numdims == 4:
+                shape_outshape  = (B, 1, C, H*W)
+                shape_outmatmul = (B, 1, C, 1)
+                if keepdims == 1:
+                    shape_output = (B, C, 1, 1)
+                else:
+                    shape_output = (B, C)
+            elif numdims == 3:
+                shape_outshape  = (1, C, H*W)
+                shape_outmatmul = (1, C, 1)
+                if keepdims == 1:
+                    shape_output = (C, 1, 1)
+                else:
+                    shape_output = (C)
+            elif numdims == 2:
+                shape_outshape  = (1, H*W)
+                shape_outmatmul = (1, 1)
+
+
             # 1. Reshape node
-            newshape       = np.array([B, 1, C, H*W], dtype=np.int64)
+            newshape       = np.array(shape_outshape, dtype=np.int64)
             const_newshape = gs.Constant(f"rm_reshape_shape.{idx}.1", values=newshape)
             var_outshape   = [gs.Variable(f"rm_reshape_out.{idx}",
-                                          dtype=np.float32, shape=(B, 1, C, H*W))]
+                                          dtype=np.float32, shape=shape_outshape)]
 
             reshape1 = gs.Node(op="Reshape", name=f"rm_reshape.{idx}.1",
                                inputs=[input_tensor[0], const_newshape] , outputs=var_outshape)
             graph.nodes.append(reshape1)
 
-            # 2. MatMul
-            const_dim      = H*W
-            values         = np.ones(shape=(const_dim, 1), dtype=np.float32) / const_dim
-            const_inmatmul = gs.Constant(f"in_rm_matmul.{idx}", values=values)
-            var_outmatmul  = [gs.Variable(f"out_rm_matmul.{idx}",
-                                          dtype=np.float32, shape=(B, 1, C, 1))]
+            if numdims == 2:
+                assert keepdims == 1, "Attribute keepdims should be 1 for 2D tensor"
 
-            matmul = gs.Node(op="MatMul", name=f"rm_matmul.{idx}",
-                             inputs=[var_outshape[0], const_inmatmul], outputs=var_outmatmul)
-            graph.nodes.append(matmul)
+                # 2. MatMul
+                const_dim      = H*W
+                values         = np.ones(shape=(const_dim, 1), dtype=np.float32) / const_dim
+                const_inmatmul = gs.Constant(f"in_rm_matmul.{idx}", values=values)
 
-            # 3. Reshape
-            if keepdims == 1:
-                newshape = np.array([B, C, 1, 1], dtype=np.int64)
+                var_outmatmul = reduce_mean.outputs                
+                matmul = gs.Node(op="MatMul", name=f"rm_matmul.{idx}",
+                                 inputs=[var_outshape[0], const_inmatmul], outputs=var_outmatmul)
+                graph.nodes.append(matmul)
             else:
-                newshape = np.array([B, C], dtype=np.int64)
-            const_newshape = gs.Constant(f"rm_reshape_shape.{idx}.2", values=newshape)
+                # 2. MatMul
+                const_dim      = H*W
+                values         = np.ones(shape=(const_dim, 1), dtype=np.float32) / const_dim
+                const_inmatmul = gs.Constant(f"in_rm_matmul.{idx}", values=values)
+                var_outmatmul  = [gs.Variable(f"out_rm_matmul.{idx}",
+                                              dtype=np.float32, shape=shape_outmatmul)]
 
-            reshape2 = gs.Node(op="Reshape", name=f"rm_reshape.{idx}.2",
-                               inputs=[var_outmatmul[0], const_newshape],
-                               outputs=reduce_mean.outputs)
-            graph.nodes.append(reshape2)
+                matmul = gs.Node(op="MatMul", name=f"rm_matmul.{idx}",
+                                 inputs=[var_outshape[0], const_inmatmul], outputs=var_outmatmul)
+                graph.nodes.append(matmul)
+
+                # 3. Reshape: Output shape (newshape) depends on numdims and keepdims
+                newshape = np.array(shape_output, dtype=np.int64)
+                const_newshape = gs.Constant(f"rm_reshape_shape.{idx}.2", values=newshape)
+
+                reshape2 = gs.Node(op="Reshape", name=f"rm_reshape.{idx}.2",
+                                   inputs=[var_outmatmul[0], const_newshape],
+                                   outputs=reduce_mean.outputs)
+                graph.nodes.append(reshape2)
 
         # remove ReduceMean node by clearing its outputs
         reduce_mean.outputs.clear()
