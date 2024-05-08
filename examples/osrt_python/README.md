@@ -86,7 +86,7 @@ cd examples/osrt_python/tfl
 python3 tflrt_delegate.py
 ```
 
-Note : These scripts are only for basic functionally testing and performance check. Accuracy of the models can be benchmarked using the python module released here [edgeai-benchmark](https://github.com/TexasInstruments/edgeai-benchmark)
+Note : These scripts are only for basic functionally testing and performance check. Accuracy of the models can be benchmarked using the python module released here [edgeai-benchmark](https://github.com/TexasInstruments/edgeai-tensorlab/tree/main/edgeai-benchmark)
 
 
 ## User options for TIDL Acceleration

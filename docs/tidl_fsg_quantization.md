@@ -78,7 +78,7 @@ This section is only relevant in case user is doing [PTQ](#A.1.-Post-Training-Qu
 
 ### B.2.1. Advanced Bias calibration:
 - This feature can be enabled by user by setting accuracy_level = 1 which is one of the optional parameter for model compilation. Typically no other parameter is required to be set because default parameters works for most of the cases. It is observed that using 50 or more number of images gives considerable accuracy boost.
-- This feature applies a clipping to the weights and update the bias to compensate the DC errors introduced because of quantization. To understand details of this feature please refer the following <a href="https://github.com/TexasInstruments/edgeai-torchvision/blob/master/docs/pixel2pixel/Calibration.md">Link</a>
+- This feature applies a clipping to the weights and update the bias to compensate the DC errors introduced because of quantization.
 - User can also experiment with following parameters related to this option if required:
 	- advanced_options:calibration_iterations: Number of iteration to be used for bias calibration.
 	- advanced_options:calibration_frames: Number of input frames to be used for bias calibration.
@@ -128,7 +128,7 @@ This section is only relevant in case user is doing [PTQ](#A.1.-Post-Training-Qu
 - Once a model is trained with QAT, the feature map range values are inserted as part of the model. There is no need to use advanced calibration features for a QAT model.
 Example – CLIP, Minimum, PACT, RelU6 operators.
 - This option has resulted in accuracy drop to be very close to zero for most of the networks.
-- EdgeAI-TorchVision provides tools and examples to do Quantization Aware Training. With the tools provided, you can incorporate Quantization Aware Training in your code base with just a few lines of code change. For detailed documentation and code, please visit <a href="https://github.com/TexasInstruments/edgeai-torchvision/blob/master/docs/pixel2pixel/Quantization.md">Link</a>
+- EdgeAI-TorchVision provides tools and examples to do Quantization Aware Training. With the tools provided, you can incorporate Quantization Aware Training in your code base with just a few lines of code change. For detailed documentation and code, please visit <a href="https://github.com/TexasInstruments/edgeai-tensorlab/blob/main/edgeai-modeloptimization/torchmodelopt/README.md#quantization">Link</a>
 
 ---
 
@@ -151,5 +151,5 @@ Example – CLIP, Minimum, PACT, RelU6 operators.
 	- (3.3) To summarize, if you are getting poor accuracy with quantization, please check the following:
 		- (a) Weight decay is applied to all layers / parameters and that weight decay factor is good.
 		- (b) Ensure that all the Depthwise Convolution layers in the network have Batch Normalization layers after that - there is strictly no exception for this rule. Other Convolution layers in the network should also have Batch Normalization layers after that - however the very last Convolution layer in the network need not have it (for example the prediction layer in a segmentation network or detection network).
- 	- (3.4) Certain models such that has regression (continuous) outputs may need special handling to get the best accuracy with PTQ. Examples for such models are Object Detection models and Depth Estimation models. It is seen that mixed precision is a good way to improve the accuracy of such models. Mixed Precision here means using 16 bits for some selected layers. It is observed that it is beneficial to put the first and last convolution layers into 16 bits. 16bit layers can be easily specified by 'advanced_options:output_feature_16bit_names_list' in TIDL's compile options. Please see the examples [here](https://github.com/TexasInstruments/edgeai-modelzoo/blob/main/models/vision/depth_estimation/nyudepthv2/fast-depth/fast-depth_config.yaml) and [here](https://github.com/TexasInstruments/edgeai-modelzoo/blob/main/models/vision/detection/coco/edgeai-mmdet/yolox_nano_lite_416x416_20220214_model_config.yaml)
+ 	- (3.4) Certain models such that has regression (continuous) outputs may need special handling to get the best accuracy with PTQ. Examples for such models are Object Detection models and Depth Estimation models. It is seen that mixed precision is a good way to improve the accuracy of such models. Mixed Precision here means using 16 bits for some selected layers. It is observed that it is beneficial to put the first and last convolution layers into 16 bits. 16bit layers can be easily specified by 'advanced_options:output_feature_16bit_names_list' in TIDL's compile options. Please see the examples [here](https://github.com/TexasInstruments/edgeai-tensorlab/blob/main/edgeai-modelzoo/models/vision/depth_estimation/nyudepthv2/fast-depth/fast-depth_config.yaml) and [here](https://github.com/TexasInstruments/edgeai-tensorlab/blob/main/edgeai-modelzoo/models/vision/detection/coco/edgeai-mmdet/yolox_nano_lite_416x416_20220214_model_config.yaml)
 ---

@@ -11,9 +11,9 @@ TI's Edge AI solution simplifies the whole product life cycle of DNN development
 TI's Edge AI solution provides the right set of tools for both of these categories:
 
 * [**Edge AI Studio**](https://dev.ti.com/edgeai/): Integrated development environment for development of AI applications for edge processors, hosting tools like **Model Composer** to train, compile and deploy models with click of mouse button and **Model Analyzer** to let you evaluate and analyze deep learning model performance on TI devices from your browser in minutes
-* [**Model zoo**](https://github.com/TexasInstruments/edgeai-modelzoo): A large collection of pre-trained models for data scientists, which along with TI's Model Selection Tool enables picking the ideal model for TI's embedded devices
+* [**Model zoo**](https://github.com/TexasInstruments/edgeai-tensorlab/tree/main/edgeai-modelzoo): A large collection of pre-trained models for data scientists, which along with TI's Model Selection Tool enables picking the ideal model for TI's embedded devices
 * [**Training and quantization tools**](https://github.com/TexasInstruments/edgeai) for popular frameworks, allowing data scientists to make DNNs more suitable for TI devices
-* [**Edge AI Benchmark**](https://github.com/TexasInstruments/edgeai-benchmark): A python based framework which can allow you to  perform accuracy and performance benchmark. Accuracy benchmark can be performed without development board, but for  performance benchmark, a development board is needed.
+* [**Edge AI Benchmark**](https://github.com/TexasInstruments/edgeai-tensorlab/tree/main/edgeai-benchmark): A python based framework which can allow you to  perform accuracy and performance benchmark. Accuracy benchmark can be performed without development board, but for  performance benchmark, a development board is needed.
 * [**Edge AI TIDL Tools**](#edgeai-tidl-tools): Edge AI TIDL Tools provided in this repository shall be used for model compilation on X86. Artifacts from compilation process can used for Model inference. Model inference can happen on X86 machine (host emulation mode) or on development board with TI SOC. This repository also provides examples to be directly used on X86 target and can be used on development board with TI SOC. For deployment and execution on the development board, one has to use this package.
 
 The figure below illustrates the work flow of DNN development and deployment on TI devices:
@@ -78,7 +78,7 @@ The below table covers the supported operations with this repository on X86_PC a
 - Camera , Display and DL runtime based end-to-end pipeline development or benchmarking. 
   - Please refer [Processor SDK Linux for Edge AI](https://software-dl.ti.com/jacinto7/esd/processor-sdk-linux-am68a/latest/exports/edgeai-docs/common/sdk_overview.html) for such applications. This is for AM68A and similar inofmration can be found for other devices
 -  Benchmarking accuracy of models using TIDL acceleration with standard datasets, for e.g. - accuracy benchmarking using MS COCO dataset for object detection models. 
-   - Please refer  [edgeai-benchmark](https://github.com/TexasInstruments/edgeai-benchmark) for the same.
+   - Please refer  [edgeai-benchmark](https://github.com/TexasInstruments/edgeai-tensorlab/tree/main/edgeai-benchmark) for the same.
 
 ### Supported Devices
 - Following table shows the devices supported by this repository
@@ -158,7 +158,7 @@ The below table covers the supported operations with this repository on X86_PC a
 
 ## Validate and Benchmark out-of-box examples
 
-- We provide 10+ out-of-box examples for model compilation on X86_PC and Inference on X86_PC and  TI SOC in the below category of tasks. Refer  [**Model zoo**](https://github.com/TexasInstruments/edgeai-modelzoo) for complete set of validated models across multiple categories
+- We provide 10+ out-of-box examples for model compilation on X86_PC and Inference on X86_PC and  TI SOC in the below category of tasks. Refer  [**Model zoo**](https://github.com/TexasInstruments/edgeai-tensorlab/tree/main/edgeai-modelzoo) for complete set of validated models across multiple categories
   - Image classification
   - Object detection
   - Pixel level semantic Segmentation
