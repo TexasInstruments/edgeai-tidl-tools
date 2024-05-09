@@ -78,6 +78,7 @@ from .src.gather import tidl_convert_gather_with_single_index_to_slice
 from .src.batchnorm import tidl_convert_batchnorm_input_to_4D
 from .src.softmax import tidl_convert_softmax_axis_channel_to_width, tidl_convert_softmax_axis_height_to_width
 from .src.softmax import tidl_push_large_channel_dim_to_height_for_width_wise_softmax
+from .src.conv import tidl_convert_conv_large_pad_to_smaller_kernel
 
 
 ### function dict to execute
@@ -96,6 +97,7 @@ opt_ops = {
         'convert_softmax_axis_channel_to_width'     : tidl_convert_softmax_axis_channel_to_width,
         'convert_softmax_axis_height_to_width'      : tidl_convert_softmax_axis_height_to_width,
         'push_large_channel_dim_to_height_for_width_wise_softmax': tidl_push_large_channel_dim_to_height_for_width_wise_softmax,
+        'convert_conv_large_pad_to_smaller_kernel'  : tidl_convert_conv_large_pad_to_smaller_kernel,
 }
 
 
@@ -115,7 +117,8 @@ adj_list = {
         'convert_batchnorm_input_to_4D'             : [],
         'convert_softmax_axis_channel_to_width'     : [],
         'convert_softmax_axis_height_to_width'      : [],
-        'push_large_channel_dim_to_height_for_width_wise_softmax': []
+        'push_large_channel_dim_to_height_for_width_wise_softmax': [],
+        'convert_conv_large_pad_to_smaller_kernel'  : [],
 }
 
 def get_optimizers():
@@ -138,6 +141,7 @@ def get_optimizers():
         'convert_softmax_axis_channel_to_width'     : False,
         'convert_softmax_axis_height_to_width'      : False,
         'push_large_channel_dim_to_height_for_width_wise_softmax': True,
+        'convert_conv_large_pad_to_smaller_kernel'  : False,
 
         # utilities specific
         'shape_inference_mode'      : 'all',

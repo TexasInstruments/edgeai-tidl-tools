@@ -78,10 +78,10 @@ def tidl_convert_softmax_axis_channel_to_width(graph: gs.Graph, onnx_graph: onnx
         softmax_dimension = softmax.attrs["axis"]
 
         # Assumes tensor with channel axis, NxCxHxW or CxHxW order
-        if(len(softmax.inputs[0].shape) >= 3):
+        if len(softmax.inputs[0].shape) >= 3:
 
             # If softmax op occurs across channel axis
-            if(softmax_dimension == len(softmax.inputs[0].shape) - 3):
+            if softmax_dimension == (len(softmax.inputs[0].shape) - 3):
                 logging.debug(f"Converting axis for layer {softmax.name} from dimension {softmax_dimension} to {len(softmax.inputs[0].shape) - 1}")
 
                 # Permutation array
@@ -136,10 +136,10 @@ def tidl_convert_softmax_axis_height_to_width(graph: gs.Graph, onnx_graph: onnx.
         softmax_dimension = softmax.attrs["axis"]
 
         # Assumes tensor height axis, with NxCxHxW, CxHxW, HxW order
-        if(len(softmax.inputs[0].shape) >= 2):
+        if len(softmax.inputs[0].shape) >= 2:
 
             # If softmax op occurs across height
-            if(softmax_dimension == len(softmax.inputs[0].shape) - 2):
+            if softmax_dimension == (len(softmax.inputs[0].shape) - 2):
                 logging.debug(f"Converting axis for layer {softmax.name} from dimension {softmax_dimension} to {len(softmax.inputs[0].shape) - 1}")
 
                 # Permutation array
@@ -250,4 +250,3 @@ def tidl_push_large_channel_dim_to_height_for_width_wise_softmax (graph: gs.Grap
 
                 # change original softmax output
                 node.outputs = [node_reshaped_out]
-
