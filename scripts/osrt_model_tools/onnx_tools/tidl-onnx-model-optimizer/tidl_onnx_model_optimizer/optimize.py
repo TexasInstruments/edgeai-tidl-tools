@@ -107,6 +107,10 @@ def tidl_modify (model_path: str, out_model_path: str, args: dict):
             func(graph, onnx_graph)
             # cleanup
             graph.cleanup().toposort()
+
+            temp_model = gs.export_onnx(graph)
+            temp_model = shape_inference.infer_shapes(temp_model, check_type= True, strict_mode= True)
+            graph = gs.import_onnx(temp_model)
         else:
             logging.info(f"[{curr_op}/{NUM_OPS}] {key.capitalize()} optimization : Disabled")
         curr_op += 1
