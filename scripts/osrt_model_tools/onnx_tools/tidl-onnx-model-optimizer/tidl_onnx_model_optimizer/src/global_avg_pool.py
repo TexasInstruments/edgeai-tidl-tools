@@ -93,8 +93,8 @@ def tidl_convert_large_global_avg_pooling_to_matmul (graph: gs.Graph, onnx_graph
                               f"{dim[-2]}x{dim[-1]} => does not require conversion")
                 continue
 
-            # convert input from HxW to 1xHW
-            new_shape = np.array(dim[:-2] + [1, pool_size], dtype= np.int64)
+            # convert input from CxHxW to CxHW (flatten inner dimensions)
+            new_shape = np.array([1] + dim[:-2] + [pool_size], dtype= np.int64)
             # add reshape
             reshp_out = gs.Variable(name= f"{node.name}_inp_Reshape_out", dtype= np.float32)
             reshp_shape = gs.Constant(name= f"{node.name}_inp_Reshape_shape", values= new_shape)
@@ -112,11 +112,22 @@ def tidl_convert_large_global_avg_pooling_to_matmul (graph: gs.Graph, onnx_graph
 
             # add matmul
             matmul_const_inp = gs.Constant(name= f"{node.name}_MatMul_const", values= matmul_const_tensor)
+            matmul_output = gs.Variable(name= f"{node.name}_MatMul_out", dtype= np.float32)
             matmul = gs.Node(name= f"{node.name}_MatMul", op= "MatMul",
-                             inputs= [reshp_out, matmul_const_inp], outputs= node.outputs)
+                             inputs= [reshp_out, matmul_const_inp], outputs= [matmul_output])
             logging.debug(f"Adding MatMul {matmul.name}")
             graph.nodes.append(matmul)
 
+            # convert matmul output from D2xCx1 to D2xCx1x1 to match output
+            new_shape = np.array(node.outputs[0].shape, dtype= np.int64)
+            # add reshape
+            reshp_out = gs.Variable(name= f"{node.name}_matmul_out_Reshape_out", dtype= np.float32)
+            reshp_shape = gs.Constant(name= f"{node.name}_matmul_out_Reshape_shape", values= new_shape)
+            reshp = gs.Node(name= f"{node.name}_matmul_out_Reshape", op= "Reshape",
+                            inputs= [matmul.outputs[0], reshp_shape], outputs= node.outputs)
+
+            logging.debug(f"Adding Reshape node {reshp.name} to convert input to shape {tuple(new_shape)}")
+            graph.nodes.append(reshp)
 
             # clear node outputs
             node.outputs.clear()
