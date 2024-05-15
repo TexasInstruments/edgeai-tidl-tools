@@ -82,7 +82,7 @@ def tidl_convert_large_global_avg_pooling_to_matmul (graph: gs.Graph, onnx_graph
         if node.op == "GlobalAveragePool":
             dim  = node.inputs[0].shape
             # check if large enough to convert
-            if len(dim) <= 2:
+            if len(dim) < 2:
                 logging.critical(f"GlobalAveragePooling {node.name} does not have at least 2 dimension"
                                  "in inputs, cannot convert")
                 continue
@@ -93,8 +93,12 @@ def tidl_convert_large_global_avg_pooling_to_matmul (graph: gs.Graph, onnx_graph
                               f"{dim[-2]}x{dim[-1]} => does not require conversion")
                 continue
 
-            # convert input from CxHxW to CxHW (flatten inner dimensions)
-            new_shape = np.array([1] + dim[:-2] + [pool_size], dtype= np.int64)
+            # convert input from CxHxW to 1xCxHW (flatten inner dimensions)
+            if len(dim) >= 3:
+                new_shape = np.array(dim[:-3] + [1, dim[-3], pool_size], dtype= np.int64)
+            # case of HxW handled
+            else:
+                new_shape = np.array([1, pool_size], dtype= np.int64)
             # add reshape
             reshp_out = gs.Variable(name= f"{node.name}_inp_Reshape_out", dtype= np.float32)
             reshp_shape = gs.Constant(name= f"{node.name}_inp_Reshape_shape", values= new_shape)
