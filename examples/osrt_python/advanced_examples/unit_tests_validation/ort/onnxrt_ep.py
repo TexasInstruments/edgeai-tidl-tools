@@ -30,6 +30,8 @@ args = parser.parse_args()
 os.environ["TIDL_RT_PERFSTATS"] = "1"
 
 so = rt.SessionOptions()
+# so.graph_optimization_level = rt.GraphOptimizationLevel.ORT_DISABLE_ALL
+so.log_severity_level=3
 
 print("Available execution providers : ", rt.get_available_providers())
 
@@ -153,9 +155,14 @@ def run_model(model, mIdx):
     ################################################################
     
     # run session
-    output_dict, proc_time, sub_graph_time = infer_image(sess)
-    total_proc_time = total_proc_time + proc_time if ('total_proc_time' in locals()) else proc_time
-    sub_graphs_time = sub_graphs_time + sub_graph_time if ('sub_graphs_time' in locals()) else sub_graph_time
+    if platform.machine() == 'aarch64':
+        num_frames = 100
+    else:
+        num_frames = 1
+    for i in range(num_frames):
+        output_dict, proc_time, sub_graph_time = infer_image(sess)
+        total_proc_time = total_proc_time + proc_time if ('total_proc_time' in locals()) else proc_time
+        sub_graphs_time = sub_graphs_time + sub_graph_time if ('sub_graphs_time' in locals()) else sub_graph_time
     
     total_proc_time = total_proc_time /1000000
     sub_graphs_time = sub_graphs_time/1000000
@@ -169,6 +176,8 @@ def run_model(model, mIdx):
             else:
                 out.tofile('../outputs/output_test/onnx/' + os.path.basename(config['model_path']) + '_' + output_name + '.bin')
     print('Completed model - ', os.path.basename(config['model_path']))
+    log = f'\n \nName : {model:50s}, Total time : {total_proc_time/(i+1):10.2f}, Offload Time : {sub_graphs_time/(i+1):10.2f} , DDR RW MBs : 0\n \n ' #{classes} \n \n'
+    print(log)
     if ncpus > 1:
         sem.release()
 
