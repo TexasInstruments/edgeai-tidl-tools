@@ -79,6 +79,7 @@ from .src.batchnorm import tidl_convert_batchnorm_input_to_4D
 from .src.softmax import tidl_convert_softmax_axis_channel_to_width, tidl_convert_softmax_axis_height_to_width
 from .src.softmax import tidl_push_large_channel_dim_to_height_for_width_wise_softmax
 from .src.conv import tidl_convert_conv_large_pad_to_smaller_kernel
+from .src.layernorm import tidl_expand_layernorm_to_component_ops
 
 
 ### function dict to execute
@@ -98,6 +99,7 @@ opt_ops = {
         'convert_softmax_axis_height_to_width'      : tidl_convert_softmax_axis_height_to_width,
         'push_large_channel_dim_to_height_for_width_wise_softmax': tidl_push_large_channel_dim_to_height_for_width_wise_softmax,
         'convert_conv_large_pad_to_smaller_kernel'  : tidl_convert_conv_large_pad_to_smaller_kernel,
+        'expand_layernorm_to_component_ops'         : tidl_expand_layernorm_to_component_ops,
 }
 
 
@@ -119,6 +121,7 @@ adj_list = {
         'convert_softmax_axis_height_to_width'      : [],
         'push_large_channel_dim_to_height_for_width_wise_softmax': [],
         'convert_conv_large_pad_to_smaller_kernel'  : [],
+        'expand_layernorm_to_component_ops'         : ['attention_block_optimization']
 }
 
 def get_optimizers():
@@ -134,7 +137,7 @@ def get_optimizers():
         'convert_maxpool_to_cascaded_maxpool'       : False,
         'convert_reducemean_to_matmul'              : False,
         'convert_gemm_to_matmul_and_add'            : True,
-        'convert_matmul_to_conv_1x1s1'              : True,
+        'convert_matmul_to_conv_1x1s1'              : False,
         'convert_large_global_avg_pooling_to_matmul': True,
         'convert_gather_with_single_index_to_slice' : True,
         'convert_batchnorm_input_to_4D'             : True,
@@ -142,6 +145,7 @@ def get_optimizers():
         'convert_softmax_axis_height_to_width'      : False,
         'push_large_channel_dim_to_height_for_width_wise_softmax': True,
         'convert_conv_large_pad_to_smaller_kernel'  : False,
+        'expand_layernorm_to_component_ops'         : True,
 
         # utilities specific
         'shape_inference_mode'      : 'all',
