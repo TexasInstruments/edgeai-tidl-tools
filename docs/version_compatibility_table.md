@@ -5,6 +5,7 @@
 
 |EdgeAI TIDL Tools TAG         |           AM62 |           AM62A |          AM68A/J721S2 (TDA4AL, TDA4VL) |          AM68PA/J721E (TDA4VM)|          AM69A/J784S4(TDA4AP, TDA4VP,TDA4AH, TDA4VH)|
 | ---------------------------- |:--------------:|:---------------:|:--------------:|:--------------:|:-------------:|
+|  09_01_08_00                  |   09_01_00_08  |     Processor SDK LINUX : 09.01.00.07 | Processor SDK LINUX 09.01.00.06<br /> Processor SDK RTOS 09.01.00.06   |   Processor SDK LINUX 09.01.00.06<br /> Processor SDK RTOS 09.01.00.06  | Processor SDK LINUX 09.01.00.06<br /> Processor SDK RTOS 09.01.00.06   |
 |  09_01_07_00                  |   09_01_00_08  |     Processor SDK LINUX : 09.01.00.07 | Processor SDK LINUX 09.01.00.06<br /> Processor SDK RTOS 09.01.00.06   |   Processor SDK LINUX 09.01.00.06<br /> Processor SDK RTOS 09.01.00.06  | Processor SDK LINUX 09.01.00.06<br /> Processor SDK RTOS 09.01.00.06   |
 |  09_01_06_00                  |   09_01_00_08  |     Processor SDK LINUX : 09.01.00.07 | Processor SDK LINUX 09.01.00.06<br /> Processor SDK RTOS 09.01.00.06   |   Processor SDK LINUX 09.01.00.06<br /> Processor SDK RTOS 09.01.00.06  | Processor SDK LINUX 09.01.00.06<br /> Processor SDK RTOS 09.01.00.06   |
 |  09_01_04_00                  |   09_01_00_08  |     Processor SDK LINUX : 09.01.00.07 | Processor SDK LINUX 09.01.00.06<br /> Processor SDK RTOS 09.01.00.06   |   Processor SDK LINUX 09.01.00.06<br /> Processor SDK RTOS 09.01.00.06  | Processor SDK LINUX 09.01.00.06<br /> Processor SDK RTOS 09.01.00.06   |

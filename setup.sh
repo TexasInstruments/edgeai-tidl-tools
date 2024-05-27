@@ -196,7 +196,7 @@ cp_osrt_lib()
 
 
 SCRIPTDIR=`pwd`
-REL=09_01_07_00
+REL=09_01_08_00
 skip_cpp_deps=0
 skip_arm_gcc_download=0
 skip_x86_python_install=0
