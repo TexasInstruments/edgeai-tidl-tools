@@ -86,7 +86,7 @@ if platform.machine() != 'aarch64':
 
 models = {
     'models/public/onnx/resnet18_opset9.onnx': {'model_url': 'https://git.ti.com/cgit/jacinto-ai/jacinto-ai-modelzoo/plain/models/vision/classification/imagenet1k/torchvision/resnet18_opset9.onnx', 'type': 'onnx'},
-    'models/public/tflite/mobilenet_v1_1.0_224.tflite': {'model_url': 'https://tfhub.dev/tensorflow/lite-model/mobilenet_v1_1.0_224/1/default/1?lite-format=tflite', 'type': 'tflite'},
+    'models/public/tflite/mobilenet_v1_1.0_224.tflite': {'model_url': 'https://git.ti.com/cgit/jacinto-ai/jacinto-ai-modelzoo/plain/models/vision/classification/imagenet1k/tf1-models/mobilenet_v1_1.0_224.tflite', 'type': 'tflite'},
 
 }
 
@@ -110,7 +110,7 @@ def download_model(mpath):
             r = requests.get(url, allow_redirects=True, headers=headers)
             open(mpath, 'wb').write(r.content)
             #run shape inference
-            if model_info['type'] is 'onnx':
+            if model_info['type'] == 'onnx':
                 print("Running shape inference for ", mpath)
                 onnx.shape_inference.infer_shapes_path(mpath, mpath)
         else :
