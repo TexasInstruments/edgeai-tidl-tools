@@ -61,6 +61,20 @@ Common utlity functions and useful graph algorithms
 from typing import List
 import onnx_graphsurgeon as gs
 
+class UniqueIdGenerator:
+    """
+    Unique Id for making name uniques
+    """
+    def __init__(self):
+        self.id = 0
+
+    def get_id (self) -> int:
+        """return unique id"""
+        self.id += 1
+        return self.id
+
+id_generator = UniqueIdGenerator()
+
 def find_in_layers (curr_layer: gs.Node) -> List[gs.Node]:
     """
     Return all input nodes to a given node

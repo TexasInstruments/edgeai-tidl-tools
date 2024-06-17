@@ -62,7 +62,7 @@ import logging
 import onnx_graphsurgeon as gs
 import onnx
 import numpy as np
-
+from .common import id_generator
 
 def tidl_convert_matmul_to_conv_1x1s1 (graph: gs.Graph, onnx_graph: onnx.GraphProto):
     """
@@ -107,9 +107,9 @@ def tidl_convert_matmul_to_conv_1x1s1 (graph: gs.Graph, onnx_graph: onnx.GraphPr
 
                     # not special case: H != 1
                     if h != 1:
-                        tr_out = gs.Variable(name= f"{inp.name}_Transpose_out", dtype= np.float32)
+                        tr_out = gs.Variable(name= f"{inp.name}_Conv_Transpose_out_{id_generator.get_id()}", dtype= np.float32)
                         tr_attr = {'perm': [1, 0]}
-                        tr = gs.Node(name= f"{inp.name}_Transpose", op= "Transpose", attrs= tr_attr,
+                        tr = gs.Node(name= f"{inp.name}_Conv_Transpose__{id_generator.get_id()}", op= "Transpose", attrs= tr_attr,
                                      inputs= [inp], outputs= [tr_out])
 
                         # add transpose
@@ -125,38 +125,65 @@ def tidl_convert_matmul_to_conv_1x1s1 (graph: gs.Graph, onnx_graph: onnx.GraphPr
                         new_inp = inp
 
                     # add reshape
-                    reshp_out = gs.Variable(name= f"{inp.name}_Reshape_out", dtype= np.float32)
-                    reshp_shape = gs.Constant(name= f"{inp.name}_Reshape_shape",
+                    reshp_out = gs.Variable(name= f"{inp.name}_Conv_Reshape_out_{id_generator.get_id()}", dtype= np.float32)
+                    reshp_shape = gs.Constant(name= f"{inp.name}_Conv_Reshape_shape_{id_generator.get_id()}",
                                               values= np.array([1, w, h, 1], dtype= np.int64))
-                    reshp = gs.Node(name= f"{inp.name}_Reshape", op= "Reshape",
+                    reshp = gs.Node(name= f"{inp.name}_Conv_Reshape_{id_generator.get_id()}", op= "Reshape",
                                     inputs= [new_inp, reshp_shape], outputs= [reshp_out])
 
                     logging.debug(f"Adding Reshape {reshp.name} for converting input to "
                                   f"shape {[1, w, h, 1]}")
                     graph.nodes.append(reshp)
-
                     #forward input
                     new_inp = reshp_out
+                elif len(inp_dim) == 3:
+                    tr_out = gs.Variable(name= f"{inp.name}_Conv_Transpose_out_{id_generator.get_id()}", dtype= np.float32)
+                    # set perm array
+                    perm = list(range(len(inp_dim)))
+                    perm = [perm[-1]] + perm[-3:-1]
+                    tr_attr = {'perm': perm}
+                    tr = gs.Node(name= f"{inp.name}_Conv_Transpose_{id_generator.get_id()}", op= "Transpose", attrs= tr_attr,
+                                    inputs= [inp], outputs= [tr_out])
+                    # add transpose
+                    logging.debug(f"Adding Transpose {tr.name} for converting input from "
+                                    f"{tuple(inp_dim)} to {tuple(perm)}")
+                    graph.nodes.append(tr)
+                    # forward input
+                    new_inp = tr_out
+                    # as this is 3D input, need to be converted to 4D for Conv layer
+                    # add reshape
+                    reshp_out = gs.Variable(name= f"{inp.name}_Conv_Reshape_out_{id_generator.get_id()}", dtype= np.float32)
+                    reshp_shape = gs.Constant(name= f"{inp.name}_Conv_Reshape_shape_{id_generator.get_id()}",
+                                              values= np.array([1, inp_dim[-1]] + inp_dim[-3:-1],
+                                                               dtype= np.int64))
+                    reshp = gs.Node(name= f"{inp.name}_Conv_Reshape_{id_generator.get_id()}", op= "Reshape",
+                                    inputs= [new_inp, reshp_shape], outputs= [reshp_out])
+
+                    logging.debug(f"Adding Reshape {reshp.name} for converting input to "
+                                  f"shape {reshp_shape.values}")
+                    graph.nodes.append(reshp)
+                    #forward input
+                    new_inp = reshp_out
+
                 else:
-                    logging.critical("Input to matmul with 3 dimension is not supported for"
-                                     "conversion currently")
+                    logging.critical("Input to matmul with unsupported number of dimension "
+                                     "is not supported for conversion currently")
                     continue
             # only one transpose will suffice
             else:
-                tr_out = gs.Variable(name= f"{inp.name}_Transpose_out", dtype= np.float32)
+                tr_out = gs.Variable(name= f"{inp.name}_Conv_Transpose_out_{id_generator.get_id()}", dtype= np.float32)
                 # set perm array
                 perm = list(range(len(inp_dim)))
                 perm = perm[:-3] + [perm[-1]] + perm[-3:-1]
                 tr_attr = {'perm': perm}
 
-                tr = gs.Node(name= f"{inp.name}_Transpose", op= "Transpose", attrs= tr_attr,
+                tr = gs.Node(name= f"{inp.name}_Conv_Transpose_{id_generator.get_id()}", op= "Transpose", attrs= tr_attr,
                                 inputs= [inp], outputs= [tr_out])
 
                 # add transpose
                 logging.debug(f"Adding Transpose {tr.name} for converting input from "
                                 f"{tuple(inp_dim)} to {tuple(perm)}")
                 graph.nodes.append(tr)
-
                 # forward input
                 new_inp = tr_out
 
@@ -166,9 +193,9 @@ def tidl_convert_matmul_to_conv_1x1s1 (graph: gs.Graph, onnx_graph: onnx.GraphPr
                 'strides': [1, 1],
             }
 
-            conv_out = gs.Variable(name= f"{node.name}_Conv_out", dtype= np.float32)
-            conv_kernel = gs.Constant(name= f"{node.name}_Conv_weights", values= kernel)
-            conv = gs.Node(name= f"{node.name}_Conv", op= "Conv", attrs= conv_attrs,
+            conv_out = gs.Variable(name= f"{node.name}_Conv_out_{id_generator.get_id()}", dtype= np.float32)
+            conv_kernel = gs.Constant(name= f"{node.name}_Conv_weights_{id_generator.get_id()}", values= kernel)
+            conv = gs.Node(name= f"{node.name}_Conv_{id_generator.get_id()}", op= "Conv", attrs= conv_attrs,
                            inputs= [new_inp, conv_kernel], outputs= [conv_out])
 
             # add node
@@ -190,41 +217,62 @@ def tidl_convert_matmul_to_conv_1x1s1 (graph: gs.Graph, onnx_graph: onnx.GraphPr
                     # add reshape
                     if h != 1:
                         new_shape = [m, h]
-                        reshp_out = gs.Variable(name= f"{node.name}_Reshape_out", dtype= np.float32)
+                        reshp_out = gs.Variable(name= f"{node.name}_Conv_Reshape_out_{id_generator.get_id()}", dtype= np.float32)
                         reshp_out_list = [reshp_out]
-                        # forward input
-                        new_inp = reshp_out
                     else:
                         new_shape = [1, m]
                         reshp_out_list = node.outputs
 
-                    reshp_shape = gs.Constant(name= f"{node.name}_Reshape_shape",
+                    reshp_shape = gs.Constant(name= f"{node.name}_Conv_Reshape_shape_{id_generator.get_id()}",
                                               values= np.array(new_shape, dtype= np.int64))
-                    reshp = gs.Node(name= f"{node.name}_Reshape", op= "Reshape",
+                    reshp = gs.Node(name= f"{node.name}_Conv_Reshape_{id_generator.get_id()}", op= "Reshape",
                                     inputs= [new_inp, reshp_shape], outputs= reshp_out_list)
-
                     logging.debug(f"Adding Reshape {reshp.name} for converting output to "
                                   f"shape {new_shape}")
                     graph.nodes.append(reshp)
+                    # forward input
+                    new_inp = reshp_out
 
                     # not special case: H != 1
                     if h != 1:
-                        tr_out = gs.Variable(name= f"{node.name}_Transpose_out", dtype= np.float32)
                         tr_attr = {'perm': [1, 0]}
-                        tr = gs.Node(name= f"{node.name}_Transpose", op= "Transpose", attrs= tr_attr,
+                        tr = gs.Node(name= f"{node.name}_Conv_Transpose_{id_generator.get_id()}", op= "Transpose", attrs= tr_attr,
                                      inputs= [new_inp], outputs= node.outputs)
 
                         # add transpose
                         logging.debug(f"Adding Transpose {tr.name} for converting output from "
                                       f"{h}x{m} to {m}x{h}")
                         graph.nodes.append(tr)
-
-                        # forward input
-                        new_inp = tr_out
                     else:
                         # report no transpose
                         logging.debug(f"Skipping Transpose for converting output from "
                                       f"{h}x{m} to {m}x{h} as h = 1")
+                elif len(inp_dim) == 3:
+                    # add reshape to remove the additional dimension
+                    c, h, m = inp_dim[-3], inp_dim[-2], kernel_shape[0]
+                    new_shape = [m, c, h]
+                    reshp_out = gs.Variable(name= f"{node.name}_Conv_Reshape_out_{id_generator.get_id()}", dtype= np.float32)
+                    reshp_shape = gs.Constant(name= f"{node.name}_Conv_Reshape_shape_{id_generator.get_id()}",
+                                              values= np.array(new_shape, dtype= np.int64))
+                    reshp = gs.Node(name= f"{node.name}_Conv_Reshape_{id_generator.get_id()}", op= "Reshape",
+                                    inputs= [new_inp, reshp_shape], outputs= [reshp_out])
+
+                    logging.debug(f"Adding Reshape {reshp.name} for converting output to "
+                                  f"shape {new_shape}")
+                    graph.nodes.append(reshp)
+                    # forward input
+                    new_inp = reshp_out
+
+                    # add transpose
+                    tr_attr = {'perm': [1, 2, 0]}
+                    tr = gs.Node(name= f"{node.name}_Conv_Transpose_{id_generator.get_id()}", op= "Transpose", attrs= tr_attr,
+                                    inputs= [new_inp], outputs= node.outputs)
+                    # add transpose
+                    logging.debug(f"Adding Transpose {tr.name} for converting output with "
+                                  f"perm {tr_attr['perm']}")
+                    graph.nodes.append(tr)
+
+
 
             # only one transpose will suffice
             else:
@@ -233,7 +281,7 @@ def tidl_convert_matmul_to_conv_1x1s1 (graph: gs.Graph, onnx_graph: onnx.GraphPr
                 perm = perm[:-3] + perm[-2:] + [perm[-3]]
                 tr_attr = {'perm': perm}
 
-                tr = gs.Node(name= f"{inp.name}_Transpose", op= "Transpose", attrs= tr_attr,
+                tr = gs.Node(name= f"{inp.name}_Conv_Transpose_{id_generator.get_id()}", op= "Transpose", attrs= tr_attr,
                                 inputs= [new_inp], outputs= node.outputs)
 
                 # add transpose
