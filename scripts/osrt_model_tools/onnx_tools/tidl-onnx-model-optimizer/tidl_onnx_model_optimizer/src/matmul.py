@@ -297,7 +297,7 @@ def tidl_push_matmul_channel_in_height (graph: gs.Graph, onnx_graph: onnx.GraphP
     Matmul layers with one input broadcasted across channel and other input with
     small plane size can have the channel and height axis merged
     """
-    matmul_nodes = [node for node in graph.nodes() if node.op_type() == "MatMul"]
+    matmul_nodes = [node for node in graph.nodes if node.op == "MatMul"]
 
     for node in matmul_nodes:
         if  len(node.inputs) == 2 and \
@@ -307,8 +307,9 @@ def tidl_push_matmul_channel_in_height (graph: gs.Graph, onnx_graph: onnx.GraphP
             var_inp, const_inp = node.inputs[0], node.inputs[1]
             var_inp_shape = var_inp.shape
             # check if it is broadcast channelwise
-            if len(var_inp.shape) == 3 and len(const_inp) == 2:
-                logging.debug(f"MatMul Node {node.name} has channel-wise broadcast, "
+            if len(var_inp.shape) == 3 and len(const_inp.shape) == 2:
+                logging.debug(f"MatMul Node {node.name} has channel-wise broadcast of "
+                              f"{var_inp.shape} x {const_inp.shape}, "
                               f"Pushing channel dim {var_inp_shape[0]} to height in the input")
                 c, h, w = var_inp_shape[0], var_inp_shape[1], var_inp_shape[2]
                 # add reshape before
@@ -329,7 +330,7 @@ def tidl_push_matmul_channel_in_height (graph: gs.Graph, onnx_graph: onnx.GraphP
                                          dtype= np.float32)
                 # add reshape after
                 reshp_shape = gs.Constant(name= f"{node.name}_Reshape_shape_{id_generator.get_id()}",
-                                        values= np.array([c, h, w], dtype= np.int64))
+                                        values= np.array([c, h, const_inp.shape[1]], dtype= np.int64))
                 reshp = gs.Node(name= f"{node.name}_Reshape_{id_generator.get_id()}", op= "Reshape",
                                 inputs= [matmul_out, reshp_shape],
                                 outputs= node.outputs)

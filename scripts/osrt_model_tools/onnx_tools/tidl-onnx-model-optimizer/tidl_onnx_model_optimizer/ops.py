@@ -115,7 +115,7 @@ adj_list = {
         'convert_gemm_to_matmul_and_add'            : [],
         'convert_matmul_to_conv_1x1s1'              : ['convert_gemm_to_matmul_and_add'     # don't want the matmul from gemm to change
                                                        ],
-        'convert_large_global_avg_pooling_to_matmul': [],
+        'convert_large_global_avg_pooling_to_matmul': ['push_matmul_channel_in_height'],
         'convert_gather_with_single_index_to_slice' : [],
         'convert_batchnorm_input_to_4D'             : [],
         'convert_softmax_axis_channel_to_width'     : [],
