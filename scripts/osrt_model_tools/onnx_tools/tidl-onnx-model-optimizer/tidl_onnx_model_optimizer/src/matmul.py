@@ -291,3 +291,51 @@ def tidl_convert_matmul_to_conv_1x1s1 (graph: gs.Graph, onnx_graph: onnx.GraphPr
 
             # clear this node
             node.outputs.clear()
+
+def tidl_push_matmul_channel_in_height (graph: gs.Graph, onnx_graph: onnx.GraphProto):
+    """
+    Matmul layers with one input broadcasted across channel and other input with
+    small plane size can have the channel and height axis merged
+    """
+    matmul_nodes = [node for node in graph.nodes() if node.op_type() == "MatMul"]
+
+    for node in matmul_nodes:
+        if  len(node.inputs) == 2 and \
+            isinstance(node.inputs[0], gs.Variable) and \
+            isinstance(node.inputs[1], gs.Constant) :
+            # extract inputs
+            var_inp, const_inp = node.inputs[0], node.inputs[1]
+            var_inp_shape = var_inp.shape
+            # check if it is broadcast channelwise
+            if len(var_inp.shape) == 3 and len(const_inp) == 2:
+                logging.debug(f"MatMul Node {node.name} has channel-wise broadcast, "
+                              f"Pushing channel dim {var_inp_shape[0]} to height in the input")
+                c, h, w = var_inp_shape[0], var_inp_shape[1], var_inp_shape[2]
+                # add reshape before
+                reshp_shape = gs.Constant(name= f"{var_inp.name}_Reshape_shape_{id_generator.get_id()}",
+                                        values= np.array([1, c*h, w], dtype= np.int64))
+                reshp_out = gs.Variable(name= f"{var_inp.name}_Reshaped_out_{id_generator.get_id()}",
+                                        dtype= np.float32)
+                reshp = gs.Node(name= f"{var_inp.name}_Reshape_{id_generator.get_id()}", op= "Reshape",
+                                inputs= [var_inp, reshp_shape], outputs= [reshp_out])
+                # add node
+                graph.nodes.append(reshp)
+                logging.debug(f"Adding node {reshp.name} for reshaping input to {reshp_shape.values}")
+
+                # redirect node input
+                node.inputs[0] = reshp_out
+                # new output for matmul
+                matmul_out = gs.Variable(name= f"{node.name}_Reshaped_out_{id_generator.get_id()}",
+                                         dtype= np.float32)
+                # add reshape after
+                reshp_shape = gs.Constant(name= f"{node.name}_Reshape_shape_{id_generator.get_id()}",
+                                        values= np.array([c, h, w], dtype= np.int64))
+                reshp = gs.Node(name= f"{node.name}_Reshape_{id_generator.get_id()}", op= "Reshape",
+                                inputs= [matmul_out, reshp_shape],
+                                outputs= node.outputs)
+                # add node
+                graph.nodes.append(reshp)
+                logging.debug(f"Adding node {reshp.name} for reshaping input to {reshp_shape.values}")
+
+                # redirect node output
+                node.outputs[0] = matmul_out

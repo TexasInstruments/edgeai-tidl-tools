@@ -72,7 +72,7 @@ from .src.concat import tidl_convert_concat_axis_width_to_channel
 from .src.maxpool import tidl_convert_maxpool_to_cascaded_maxpool
 from .src.reducemean import tidl_convert_reducemean_to_matmul
 from .src.gemm import tidl_convert_gemm_to_matmul_and_add
-from .src.matmul import tidl_convert_matmul_to_conv_1x1s1
+from .src.matmul import tidl_convert_matmul_to_conv_1x1s1, tidl_push_matmul_channel_in_height
 from .src.global_avg_pool import tidl_convert_large_global_avg_pooling_to_matmul
 from .src.gather import tidl_convert_gather_with_single_index_to_slice
 from .src.batchnorm import tidl_convert_batchnorm_input_to_4D
@@ -100,6 +100,7 @@ opt_ops = {
         'push_large_channel_dim_to_height_for_width_wise_softmax': tidl_push_large_channel_dim_to_height_for_width_wise_softmax,
         'convert_conv_large_pad_to_smaller_kernel'  : tidl_convert_conv_large_pad_to_smaller_kernel,
         'expand_layernorm_to_component_ops'         : tidl_expand_layernorm_to_component_ops,
+        'push_matmul_channel_in_height'             : tidl_push_matmul_channel_in_height,
 }
 
 
@@ -121,7 +122,8 @@ adj_list = {
         'convert_softmax_axis_height_to_width'      : [],
         'push_large_channel_dim_to_height_for_width_wise_softmax': [],
         'convert_conv_large_pad_to_smaller_kernel'  : [],
-        'expand_layernorm_to_component_ops'         : ['attention_block_optimization']
+        'expand_layernorm_to_component_ops'         : ['attention_block_optimization'],
+        'push_matmul_channel_in_height'             : [],
 }
 
 def get_optimizers():
@@ -130,22 +132,23 @@ def get_optimizers():
     """
     return {
         # operation specific
-        'convert_resize_params_size_to_scale'       : True,
+        'convert_resize_params_size_to_scale'       : False,
         'convert_concat_axis_width_to_channel'      : False,
         'attention_block_optimization'              : False,
         'split_batch_dim_to_parallel_input_branches': False,
         'convert_maxpool_to_cascaded_maxpool'       : False,
         'convert_reducemean_to_matmul'              : False,
-        'convert_gemm_to_matmul_and_add'            : True,
+        'convert_gemm_to_matmul_and_add'            : False,
         'convert_matmul_to_conv_1x1s1'              : False,
         'convert_large_global_avg_pooling_to_matmul': True,
-        'convert_gather_with_single_index_to_slice' : True,
-        'convert_batchnorm_input_to_4D'             : True,
+        'convert_gather_with_single_index_to_slice' : False,
+        'convert_batchnorm_input_to_4D'             : False,
         'convert_softmax_axis_channel_to_width'     : False,
         'convert_softmax_axis_height_to_width'      : False,
-        'push_large_channel_dim_to_height_for_width_wise_softmax': True,
+        'push_large_channel_dim_to_height_for_width_wise_softmax': False,
         'convert_conv_large_pad_to_smaller_kernel'  : False,
-        'expand_layernorm_to_component_ops'         : True,
+        'expand_layernorm_to_component_ops'         : False,
+        'push_matmul_channel_in_height'             : True,
 
         # utilities specific
         'shape_inference_mode'      : 'all',
