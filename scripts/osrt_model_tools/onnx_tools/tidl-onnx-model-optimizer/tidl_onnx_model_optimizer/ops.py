@@ -112,7 +112,7 @@ adj_list = {
         'split_batch_dim_to_parallel_input_branches': [],
         'convert_maxpool_to_cascaded_maxpool'       : [],
         'convert_reducemean_to_matmul'				: [],
-        'convert_gemm_to_matmul_and_add'            : [],
+        'convert_gemm_to_matmul_and_add'            : ['convert_large_global_avg_pooling_to_matmul'],
         'convert_matmul_to_conv_1x1s1'              : ['convert_gemm_to_matmul_and_add'     # don't want the matmul from gemm to change
                                                        ],
         'convert_large_global_avg_pooling_to_matmul': ['push_matmul_channel_in_height'],
@@ -138,7 +138,7 @@ def get_optimizers():
         'split_batch_dim_to_parallel_input_branches': False,
         'convert_maxpool_to_cascaded_maxpool'       : False,
         'convert_reducemean_to_matmul'              : False,
-        'convert_gemm_to_matmul_and_add'            : False,
+        'convert_gemm_to_matmul_and_add'            : True,
         'convert_matmul_to_conv_1x1s1'              : False,
         'convert_large_global_avg_pooling_to_matmul': True,
         'convert_gather_with_single_index_to_slice' : False,

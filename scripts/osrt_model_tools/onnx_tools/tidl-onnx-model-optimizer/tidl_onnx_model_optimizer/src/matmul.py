@@ -62,7 +62,7 @@ import logging
 import onnx_graphsurgeon as gs
 import onnx
 import numpy as np
-from .common import id_generator
+from .common import id_generator, find_out_layer, is_single_const_single_var_input
 
 def tidl_convert_matmul_to_conv_1x1s1 (graph: gs.Graph, onnx_graph: onnx.GraphProto):
     """
@@ -306,6 +306,8 @@ def tidl_push_matmul_channel_in_height (graph: gs.Graph, onnx_graph: onnx.GraphP
             # extract inputs
             var_inp, const_inp = node.inputs[0], node.inputs[1]
             var_inp_shape = var_inp.shape
+            # check if bias is there
+            bias = find_matmul_bias(node, graph)
             # check if it is broadcast channelwise
             if len(var_inp.shape) == 3 and len(const_inp.shape) == 2:
                 logging.debug(f"MatMul Node {node.name} has channel-wise broadcast of "
@@ -325,6 +327,12 @@ def tidl_push_matmul_channel_in_height (graph: gs.Graph, onnx_graph: onnx.GraphP
 
                 # redirect node input
                 node.inputs[0] = reshp_out
+                if bias is not None:
+                    logging.debug(f"Found bias {bias.name}, adding reshape after bias")
+                    # clear bias input shape
+                    node.outputs[0].shape = None
+                    # forward node to bias
+                    node = bias
                 # new output for matmul
                 matmul_out = gs.Variable(name= f"{node.name}_Reshaped_out_{id_generator.get_id()}",
                                          dtype= np.float32)
@@ -340,3 +348,37 @@ def tidl_push_matmul_channel_in_height (graph: gs.Graph, onnx_graph: onnx.GraphP
 
                 # redirect node output
                 node.outputs[0] = matmul_out
+
+
+def find_matmul_bias (matmul: gs.Node, graph: gs.Graph) -> gs.Node|None:
+    """
+    Given a MatMul node and a graph, return node if it is a bias
+    after the MatMul
+    checks:
+    1. if an Add is after MatMul
+    2. Add has constant input
+    3. Constant input of Add has appropriate dimension
+    like, if MatMul has HxM * MxN then Add must have
+    constant input N
+    """
+    assert matmul.op == "MatMul", "Not MatMul node, cannot find bias for this node"
+
+
+    if  len(matmul.inputs) == 2 and \
+        isinstance(matmul.inputs[0], gs.Variable) and \
+        isinstance(matmul.inputs[1], gs.Constant):
+        # search for bias add
+        for node in graph.nodes:
+            if  find_out_layer(matmul, 0) == node:
+                if node.op == "Add" and is_single_const_single_var_input(node):
+                    # check for dimension match
+                    matmul_const_inp_shape = matmul.inputs[1].shape
+                    add_const_inp_shape = node.inputs[1].shape if \
+                        isinstance(node.inputs[1], gs.Constant) else node.inputs[0].shape
+                    if matmul_const_inp_shape[-1] == add_const_inp_shape[-1]:
+                        return node
+                #endif
+            #endif
+        #endfor
+    #endif
+    return None

@@ -57,7 +57,7 @@ The different optimizations performed are summarized here along with their defau
 | 14 | push_large_channel_dim_to_height_for_width_wise_softmax | When a softmax has high value of dimensions channel and upper it performs unoptimal. But reshaping the shape to have a larger height can make it more efficient. Hence Softmax is changed to Reshape -> Softmax -> Reshape | True |
 | 15 | convert_conv_large_pad_to_smaller_kernel | Convolution layer with large kernels and small inputs might be unsupported when pad is greater than the input dimension. This can be converted to Conv with smaller kernel and less pad for support | False |
 | 16 | expand_layernorm_to_component_ops | The LayerNormalization-17 layer from ONNX is not supported by TIDL. We can expand this layer to it's fundamental operators to make it supported in TIDL | True |
-
+| 17 | push_matmul_channel_in_height | Matmul layers with one input broadcasted across channel and other input with small plane size can have the channel and height axis merged to get optimized performance | False |
 
 
 ### NOTE
