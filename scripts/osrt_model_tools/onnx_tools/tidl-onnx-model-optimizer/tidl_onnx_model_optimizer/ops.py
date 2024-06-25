@@ -132,7 +132,7 @@ def get_optimizers():
     """
     return {
         # operation specific
-        'convert_resize_params_size_to_scale'       : False,
+        'convert_resize_params_size_to_scale'       : True,
         'convert_concat_axis_width_to_channel'      : False,
         'attention_block_optimization'              : False,
         'split_batch_dim_to_parallel_input_branches': False,
@@ -141,14 +141,14 @@ def get_optimizers():
         'convert_gemm_to_matmul_and_add'            : True,
         'convert_matmul_to_conv_1x1s1'              : False,
         'convert_large_global_avg_pooling_to_matmul': True,
-        'convert_gather_with_single_index_to_slice' : False,
-        'convert_batchnorm_input_to_4D'             : False,
-        'convert_softmax_axis_channel_to_width'     : False,
-        'convert_softmax_axis_height_to_width'      : False,
-        'push_large_channel_dim_to_height_for_width_wise_softmax': False,
+        'convert_gather_with_single_index_to_slice' : True,
+        'convert_batchnorm_input_to_4D'             : True,
+        'convert_softmax_axis_channel_to_width'     : True,
+        'convert_softmax_axis_height_to_width'      : True,
+        'push_large_channel_dim_to_height_for_width_wise_softmax': True,
         'convert_conv_large_pad_to_smaller_kernel'  : False,
-        'expand_layernorm_to_component_ops'         : False,
-        'push_matmul_channel_in_height'             : True,
+        'expand_layernorm_to_component_ops'         : True,
+        'push_matmul_channel_in_height'             : False,
 
         # utilities specific
         'shape_inference_mode'      : 'all',
