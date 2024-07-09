@@ -42,6 +42,11 @@ Finally you need to change the dict variable `opt_ops` if you have added a new .
 Add a entry `"abc" : tidl_abc` and voila! You are done.
 
 
+## Debug Your Added Transformation
+
+You can use the test_optimise.py script, where you can specify the path to the original onnx model as well as modify the test_optimizers function in ops.py to specify the transformation that needs to be debugged. 
+
+
 ## Good Practices
 For good practices ensure to use the logging library facility and add useful debug logs wherever you seem necessary 🙂.
 Also please try to run pylint on the code as this codebase has been developed with pylint coding guidelines. If you are using pylint in your VS Code, you can add these settings to ensure consistency:

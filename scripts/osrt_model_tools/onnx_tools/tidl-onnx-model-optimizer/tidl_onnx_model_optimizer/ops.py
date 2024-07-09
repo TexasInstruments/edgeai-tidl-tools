@@ -80,6 +80,7 @@ from .src.softmax import tidl_convert_softmax_axis_channel_to_width, tidl_conver
 from .src.softmax import tidl_push_large_channel_dim_to_height_for_width_wise_softmax
 from .src.conv import tidl_convert_conv_large_pad_to_smaller_kernel
 from .src.layernorm import tidl_expand_layernorm_to_component_ops
+from .src.slice import tidl_expand_slice_across_multiple_axis
 
 
 ### function dict to execute
@@ -101,6 +102,7 @@ opt_ops = {
         'convert_conv_large_pad_to_smaller_kernel'  : tidl_convert_conv_large_pad_to_smaller_kernel,
         'expand_layernorm_to_component_ops'         : tidl_expand_layernorm_to_component_ops,
         'push_matmul_channel_in_height'             : tidl_push_matmul_channel_in_height,
+        'expand_slice_across_multiple_axis'         : tidl_expand_slice_across_multiple_axis,
 }
 
 
@@ -124,6 +126,7 @@ adj_list = {
         'convert_conv_large_pad_to_smaller_kernel'  : [],
         'expand_layernorm_to_component_ops'         : ['attention_block_optimization'],
         'push_matmul_channel_in_height'             : [],
+        'expand_slice_across_multiple_axis'         : [],
 }
 
 def get_optimizers():
@@ -149,15 +152,27 @@ def get_optimizers():
         'convert_conv_large_pad_to_smaller_kernel'  : False,
         'expand_layernorm_to_component_ops'         : True,
         'push_matmul_channel_in_height'             : False,
+        'expand_slice_across_multiple_axis'         : True,
 
         # utilities specific
         'shape_inference_mode'      : 'all',
         'simplify_mode'             : None,
         'simplify_kwargs'           : None
     }
+    
+def test_optimizers():
+    """
+    Specify the individual optmizers that need to be tested
+    """
+    return {
+        # operation specific to be specified here
+        'expand_slice_across_multiple_axis' : True,
 
-
-
+        # utilities specific
+        'shape_inference_mode'      : 'all',
+        'simplify_mode'             : None,
+        'simplify_kwargs'           : None
+    }
 
 class DependencyGraph:
     """
