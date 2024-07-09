@@ -62,46 +62,43 @@ import logging
 import onnx_graphsurgeon as gs
 import onnx
 import numpy as np
-import math
-import copy
-
 
 
 def tidl_expand_slice_across_multiple_axis (graph: gs.Graph, onnx_graph: onnx.GraphProto):
     """
     Convert the Slice across multiple axis to multiple slices in series
     """
-
     nodes = graph.nodes
-    tensors = graph.tensors()
-
     node_iter = 0
+    
     for node in nodes:
-        if node.op == "Slice" and node.inputs[1].values.size>1 : # slice is across multiple axis
+        if (node.op == "Slice") and isinstance(node.inputs[1], gs.Constant) and (node.inputs[1].values.size > 1): 
+            # slice is across multiple axis
+            node_name = node.inputs[1].name if node.name=='' else node.name 
             
-            node_name = node.inputs[1].name if node.name is '' else node.name 
+            len_inputs = len(node.inputs)
+            if len_inputs<4: # all_axes isn't defined
+                logging.warning(f"All Axes isn't defined in a multi-axis slice node : {node_name}")
+                continue
             
-            orig_output = node.outputs[0]
             all_starts = node.inputs[1].values
+            len_axes = len(all_starts)
             all_ends = node.inputs[2].values
             all_axes = node.inputs[3].values
-            all_steps = node.inputs[4].values
-            len_axes = len(node.inputs[1].values)
+            if len_inputs > 4: # steps are provided
+                all_steps = node.inputs[4].values
+            else:
+                all_steps = np.ones(len_axes, dtype=np.int64)
+   
             prev_slice_node = None
-            
             for i in range(len_axes):
                 curr_start = gs.Constant(name= node_name + "_start_" + str(node_iter) + "_" + str(i), values=np.array([all_starts[i]]))
                 curr_end = gs.Constant(name= node_name + "_end_" + str(node_iter) + "_" + str(i), values=np.array([all_ends[i]]))
                 curr_axis = gs.Constant(name= node_name + "_axis_" + str(node_iter) + "_" + str(i), values=np.array([all_axes[i]]))
                 curr_step = gs.Constant(name= node_name + "_step_" + str(node_iter) + "_" + str(i), values=np.array([all_steps[i]]))
+                interim_output = gs.Variable(name= node_name + "_out_" + str(node_iter) + "_" + str(i), dtype=np.float32)
                 
-                curr_inp_shape = node.inputs[0].shape if prev_slice_node is None else prev_slice_node.outputs[0].shape
-                interim_output_shape = copy.deepcopy(curr_inp_shape)
-                interim_output_shape[all_axes[i]] = math.floor(interim_output_shape[all_axes[i]]/all_steps[i])
-                
-                interim_output = gs.Variable(name= node_name + "_out_" + str(node_iter) + "_" + str(i), dtype=np.float32, shape=interim_output_shape)
-                
-                node_output = orig_output if i==(len_axes-1) else interim_output
+                node_output = node.outputs[0] if i==(len_axes-1) else interim_output
                 node_input = node.inputs[0] if i==0 else prev_slice_node.outputs[0]
 
                 slice_node = gs.Node(name= node_name + "_" + str(node_iter) + "_" + str(all_axes[i]), op= "Slice",
