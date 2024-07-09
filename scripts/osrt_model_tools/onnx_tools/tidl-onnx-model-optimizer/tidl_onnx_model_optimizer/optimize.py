@@ -101,7 +101,7 @@ def tidl_modify (model_path: str, out_model_path: str, args: dict):
     topo_sorted_keys = get_topological_sorted_key_order()
     # logging.debug(topo_sorted_keys)
     for key in topo_sorted_keys:
-        if args[key]:
+        if (key in args) and args[key]:
             logging.info(f"[{curr_op}/{NUM_OPS}] {key.capitalize()} optimization : Enabled")
             func = opt_ops[key]
             func(graph, onnx_graph)
@@ -158,7 +158,7 @@ def format_logger (log_level):
 
 
 
-def optimize (model:str, out_model:str = None, verbose:bool= False, **kwargs):
+def optimize (model:str, out_model:str = None, verbose:bool= False, custom_optimizers:dict=None, **kwargs):
     """
     Main function
     ---------------------------------------------------------
@@ -184,7 +184,7 @@ def optimize (model:str, out_model:str = None, verbose:bool= False, **kwargs):
     Empty
     """
     # argument parsing
-    args = get_optimizers()
+    args = get_optimizers() if custom_optimizers is None else custom_optimizers
     args['log_level'] = "debug" if verbose else "info"
     for key, val in kwargs.items():
         args[key] = val
