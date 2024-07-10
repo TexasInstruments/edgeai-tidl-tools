@@ -81,6 +81,7 @@ from .src.softmax import tidl_push_large_channel_dim_to_height_for_width_wise_so
 from .src.conv import tidl_convert_conv_large_pad_to_smaller_kernel
 from .src.layernorm import tidl_expand_layernorm_to_component_ops
 from .src.slice import tidl_expand_slice_across_multiple_axis
+from .src.instancenorm import tidl_convert_instancenorm_to_layernorm
 
 
 ### function dict to execute
@@ -103,6 +104,7 @@ opt_ops = {
         'expand_layernorm_to_component_ops'         : tidl_expand_layernorm_to_component_ops,
         'push_matmul_channel_in_height'             : tidl_push_matmul_channel_in_height,
         'expand_slice_across_multiple_axis'         : tidl_expand_slice_across_multiple_axis,
+        'convert_instancenorm_to_layernorm'         : tidl_convert_instancenorm_to_layernorm
 }
 
 
@@ -127,6 +129,7 @@ adj_list = {
         'expand_layernorm_to_component_ops'         : ['attention_block_optimization'],
         'push_matmul_channel_in_height'             : [],
         'expand_slice_across_multiple_axis'         : [],
+        'convert_instancenorm_to_layernorm'         : ['expand_layernorm_to_component_ops']
 }
 
 def get_optimizers():
@@ -153,6 +156,7 @@ def get_optimizers():
         'expand_layernorm_to_component_ops'         : True,
         'push_matmul_channel_in_height'             : False,
         'expand_slice_across_multiple_axis'         : True,
+        'convert_instancenorm_to_layernorm'         : True,
 
         # utilities specific
         'shape_inference_mode'      : 'all',
@@ -166,7 +170,7 @@ def test_optimizers():
     """
     return {
         # operation specific to be specified here
-        'expand_slice_across_multiple_axis' : True,
+        'convert_instancenorm_to_layernorm' : True,
 
         # utilities specific
         'shape_inference_mode'      : 'all',

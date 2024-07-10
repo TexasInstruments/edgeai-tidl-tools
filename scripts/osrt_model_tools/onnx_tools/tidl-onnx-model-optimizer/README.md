@@ -59,6 +59,7 @@ The different optimizations performed are summarized here along with their defau
 | 16 | expand_layernorm_to_component_ops | The LayerNormalization-17 layer from ONNX is not supported by TIDL. We can expand this layer to it's fundamental operators to make it supported in TIDL | True |
 | 17 | push_matmul_channel_in_height | Matmul layers with one input broadcasted across channel and other input with small plane size can have the channel and height axis merged to get optimized performance | False |
 | 18 | expand_slice_across_multiple_axis | Slice along a single axis is currently supported for TIDL import. This will split the slice into multiple slices each acting on a single axis. | True |
+| 19 | convert_instancenorm_to_layernorm | InstanceNormalisation is not supported in TIDL, converting it to LayerNorm with the same functionality. | True |
 
 
 ### NOTE
