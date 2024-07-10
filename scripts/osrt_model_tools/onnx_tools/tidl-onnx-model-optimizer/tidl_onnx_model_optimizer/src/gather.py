@@ -64,6 +64,7 @@ import logging
 import onnx_graphsurgeon as gs
 import onnx
 import numpy as np
+from .common import has_unk_axis
 
 
 
@@ -76,7 +77,7 @@ def tidl_convert_gather_with_single_index_to_slice(graph: gs.Graph, onnx_graph: 
     tensors = graph.tensors()
 
     for node in nodes:
-        if node.op == "Gather":
+        if node.op == "Gather" and isinstance(node.inputs[1], gs.Constant) and (not has_unk_axis(node.inputs[0])):
             inp, idx = node.inputs[0], node.inputs[1]
             # check if single index
             gather_indices = np.array(tensors[idx.name].values, dtype= np.int64)
@@ -84,7 +85,8 @@ def tidl_convert_gather_with_single_index_to_slice(graph: gs.Graph, onnx_graph: 
 
                 axis = node.attrs['axis']
                 # add Slice
-                slice_out = gs.Variable(name= f"{node.name}_Slice_out", dtype= np.float32)
+                input_dtype = node.inputs[0].dtype
+                slice_out = gs.Variable(name= f"{node.name}_Slice_out", dtype= input_dtype)
                 starts = np.reshape(gather_indices, (1,))
                 slice_starts = gs.Constant(name= f"{node.name}_Slice_starts",
                                            values= starts)

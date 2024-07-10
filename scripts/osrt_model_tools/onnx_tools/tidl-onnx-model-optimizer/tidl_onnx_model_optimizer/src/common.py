@@ -196,3 +196,11 @@ def bordered(text):
         res.append('│' + (s + ' ' * width)[:width] + '│')
     res.append('└' + '─' * width + '┘')
     return '\n'.join(res)
+
+def has_unk_axis(inp : gs.Variable):
+    shp = inp.shape
+    for iter in shp:
+        if not isinstance(iter, int):
+            return True
+    return False
+    
