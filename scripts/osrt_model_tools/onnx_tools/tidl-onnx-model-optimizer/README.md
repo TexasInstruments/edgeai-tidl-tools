@@ -60,6 +60,7 @@ The different optimizations performed are summarized here along with their defau
 | 17 | push_matmul_channel_in_height | Matmul layers with one input broadcasted across channel and other input with small plane size can have the channel and height axis merged to get optimized performance | False |
 | 18 | expand_slice_across_multiple_axis | Slice along a single axis is currently supported for TIDL import. This will split the slice into multiple slices each acting on a single axis. | True |
 | 19 | convert_instancenorm_to_layernorm | InstanceNormalisation is not supported in TIDL, converting it to LayerNorm with the same functionality. | True |
+| 20 | convert_unsqueeze_to_reshape | Converts the Unsqueeze layer to reshape layer for support. | True |
 
 
 ### NOTE

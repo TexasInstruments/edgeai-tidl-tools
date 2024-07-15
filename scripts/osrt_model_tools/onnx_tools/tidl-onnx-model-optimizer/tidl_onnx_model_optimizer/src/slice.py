@@ -78,7 +78,7 @@ def tidl_expand_slice_across_multiple_axis (graph: gs.Graph, onnx_graph: onnx.Gr
             
             len_inputs = len(node.inputs)
             if len_inputs<4: # all_axes isn't defined
-                logging.warning(f"All Axes isn't defined in a multi-axis slice node : {node_name}")
+                logging.warning(f"All Axes isn't defined in a multi-axis slice node : {node_name}. Skipping the conversion")
                 continue
             
             all_starts = node.inputs[1].values
@@ -107,6 +107,34 @@ def tidl_expand_slice_across_multiple_axis (graph: gs.Graph, onnx_graph: onnx.Gr
                 logging.debug(f"Adding Node {slice_node.name}")
                 graph.nodes.append(slice_node)
                 prev_slice_node = slice_node 
+                
+            node.outputs.clear()
+            node_iter += 1
+            
+
+def tidl_add_slice_step_axis (graph: gs.Graph, onnx_graph: onnx.GraphProto):
+    """
+    TIDL has some bug with supporting slice when step axis is not present, adding the default value
+    """
+    nodes = graph.nodes
+    node_iter = 0
+    
+    for node in nodes:
+        if (node.op == "Slice") and isinstance(node.inputs[1], gs.Constant) and len(node.inputs)<5: 
+            # slice is found, however, it has missing axes and/or step
+            node_name = node.inputs[1].name if node.name=='' else node.name 
+            len_inputs = len(node.inputs)
+            node_input = node.inputs[0]
+            slice_start =  node.inputs[1]
+            slice_end =  node.inputs[2]
+            slice_axes = node.inputs[3]
+            slice_steps = gs.Constant(name= node_name + "_step_" + str(node_iter), values=np.ones(slice_start.values.shape[0], dtype=np.int64))
+            
+            slice_node = gs.Node(name= node_name + "_" + str(node_iter), op= "Slice",
+                inputs= [node_input, slice_start, slice_end, slice_axes, slice_steps], outputs = [node.outputs[0]])
+            
+            logging.debug(f"Adding Node {slice_node.name}")
+            graph.nodes.append(slice_node)
                 
             node.outputs.clear()
             node_iter += 1

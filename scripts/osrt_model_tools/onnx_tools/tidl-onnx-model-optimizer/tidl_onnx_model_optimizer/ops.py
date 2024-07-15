@@ -82,6 +82,7 @@ from .src.conv import tidl_convert_conv_large_pad_to_smaller_kernel
 from .src.layernorm import tidl_expand_layernorm_to_component_ops
 from .src.slice import tidl_expand_slice_across_multiple_axis
 from .src.instancenorm import tidl_convert_instancenorm_to_layernorm
+from .src.unsqueeze import tidl_convert_unsqueeze_to_reshape
 
 
 ### function dict to execute
@@ -104,7 +105,8 @@ opt_ops = {
         'expand_layernorm_to_component_ops'         : tidl_expand_layernorm_to_component_ops,
         'push_matmul_channel_in_height'             : tidl_push_matmul_channel_in_height,
         'expand_slice_across_multiple_axis'         : tidl_expand_slice_across_multiple_axis,
-        'convert_instancenorm_to_layernorm'         : tidl_convert_instancenorm_to_layernorm
+        'convert_instancenorm_to_layernorm'         : tidl_convert_instancenorm_to_layernorm,
+        'convert_unsqueeze_to_reshape'              : tidl_convert_unsqueeze_to_reshape,
 }
 
 
@@ -117,8 +119,7 @@ adj_list = {
         'convert_maxpool_to_cascaded_maxpool'       : [],
         'convert_reducemean_to_matmul'				: [],
         'convert_gemm_to_matmul_and_add'            : ['convert_large_global_avg_pooling_to_matmul'],
-        'convert_matmul_to_conv_1x1s1'              : ['convert_gemm_to_matmul_and_add'     # don't want the matmul from gemm to change
-                                                       ],
+        'convert_matmul_to_conv_1x1s1'              : ['convert_gemm_to_matmul_and_add'],     # don't want the matmul from gemm to change                                          
         'convert_large_global_avg_pooling_to_matmul': ['push_matmul_channel_in_height'],
         'convert_gather_with_single_index_to_slice' : [],
         'convert_batchnorm_input_to_4D'             : [],
@@ -129,7 +130,8 @@ adj_list = {
         'expand_layernorm_to_component_ops'         : ['attention_block_optimization'],
         'push_matmul_channel_in_height'             : [],
         'expand_slice_across_multiple_axis'         : [],
-        'convert_instancenorm_to_layernorm'         : ['expand_layernorm_to_component_ops']
+        'convert_instancenorm_to_layernorm'         : ['expand_layernorm_to_component_ops'],
+        'convert_unsqueeze_to_reshape'              : [],
 }
 
 def get_optimizers():
@@ -157,6 +159,7 @@ def get_optimizers():
         'push_matmul_channel_in_height'             : False,
         'expand_slice_across_multiple_axis'         : True,
         'convert_instancenorm_to_layernorm'         : True,
+        'convert_unsqueeze_to_reshape'              : True,
 
         # utilities specific
         'shape_inference_mode'      : 'all',
@@ -170,7 +173,7 @@ def test_optimizers():
     """
     return {
         # operation specific to be specified here
-        'convert_instancenorm_to_layernorm' : True,
+        'convert_unsqueeze_to_reshape' : True,
 
         # utilities specific
         'shape_inference_mode'      : 'all',
