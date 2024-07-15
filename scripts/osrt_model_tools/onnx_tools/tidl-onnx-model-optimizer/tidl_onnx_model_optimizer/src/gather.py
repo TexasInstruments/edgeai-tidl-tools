@@ -79,30 +79,37 @@ def tidl_convert_gather_with_single_index_to_slice(graph: gs.Graph, onnx_graph: 
     for node in nodes:
         if node.op == "Gather" and isinstance(node.inputs[1], gs.Constant) and (not has_unk_axis(node.inputs[0])):
             inp, idx = node.inputs[0], node.inputs[1]
+            if len(inp.shape)<3:
+                logging.info(f"The Gather node {node.name} is currently not supported for conversion to slice and reshape ! ")
+                continue
             # check if single index
             gather_indices = np.array(tensors[idx.name].values, dtype= np.int64)
             if len(gather_indices.shape) == 0:
-
                 axis = node.attrs['axis']
                 # add Slice
                 input_dtype = node.inputs[0].dtype
-                slice_out = gs.Variable(name= f"{node.name}_Slice_out", dtype= input_dtype)
-                starts = np.reshape(gather_indices, (1,))
-                slice_starts = gs.Constant(name= f"{node.name}_Slice_starts",
-                                           values= starts)
-                ends = starts + 1
-                slice_ends = gs.Constant(name= f"{node.name}_Slice_ends",
-                                           values= ends)
-                slice_axes = gs.Constant(name= f"{node.name}_Slice_axes",
-                                           values= np.array([axis], dtype= np.int64))
-                slc = gs.Node(name= f"{node.name}_Slice", op= "Slice",
-                                inputs= [node.inputs[0], slice_starts, slice_ends, slice_axes],
-                                outputs= [slice_out])
+                slice_out = gs.Variable(name= f"{node.name}_Slice_out", dtype= input_dtype) if axis!=0 else node.inputs[0]
+                # slicing will happen along the batch dimension if axis=0, the reshape will take of that, no need of slice
+                
+                if axis != 0: 
+                    starts = np.reshape(gather_indices, (1,))
+                    slice_starts = gs.Constant(name= f"{node.name}_Slice_starts",
+                                            values= starts)
+                    ends = starts + 1
+                    slice_ends = gs.Constant(name= f"{node.name}_Slice_ends",
+                                            values= ends)
+                    slice_axes = gs.Constant(name= f"{node.name}_Slice_axes",
+                                            values= np.array([axis], dtype= np.int64))
+                    slice_steps = gs.Constant(name= f"{node.name}_Slice_steps",
+                                            values= np.array([1], dtype= np.int64))
+                    slc = gs.Node(name= f"{node.name}_Slice", op= "Slice",
+                                    inputs= [node.inputs[0], slice_starts, slice_ends, slice_axes, slice_steps],
+                                    outputs= [slice_out])
 
 
-                logging.debug(f"Adding Slice {slc.name} with axes {slice_axes.values}, "
-                              f"starts {slice_starts.values} and ends {slice_ends.values}")
-                graph.nodes.append(slc)
+                    logging.debug(f"Adding Slice {slc.name} with axes {slice_axes.values}, "
+                                f"starts {slice_starts.values} and ends {slice_ends.values}")
+                    graph.nodes.append(slc)
 
                 # add reshape to fix extra singular dim from slice
                 new_shape = list(inp.shape)
