@@ -1,2 +1,2 @@
-from .onnx_tools import *
-from .tflite_tools import *
+from . import onnx_tools
+from . import tflite_tools

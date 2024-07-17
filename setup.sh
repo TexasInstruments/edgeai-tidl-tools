@@ -425,7 +425,7 @@ fi
 
 # graph optimizer tool setup
 if [[ $arch == x86_64 && $skip_model_optimizer -eq 0 ]]; then
-    cd $SCRIPTDIR/scripts/osrt_model_tools/onnx_tools/tidl-onnx-model-optimizer
+    cd $SCRIPTDIR/scripts
     source ./setup.sh
     cd $SCRIPTDIR
 fi

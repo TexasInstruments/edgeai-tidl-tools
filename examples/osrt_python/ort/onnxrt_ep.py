@@ -22,7 +22,7 @@ from model_configs import *
 model_optimizer_found = False
 if platform.machine() != 'aarch64':
     try:
-        from tidl_onnx_model_optimizer import optimize
+        from osrt_model_tools.onnx_tools.tidl_onnx_model_optimizer import optimize
         model_optimizer_found = True
     except ModuleNotFoundError as e:
         print("Skipping import of model optimizer")
