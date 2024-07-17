@@ -110,6 +110,29 @@ def main():
             'Source': 'https://bitbucket.itg.ti.com/projects/EDGEAI-ALGO/repos/edgeai-modelutils/browse',
         },
     )
+    
+    setup(
+        name='tidl_onnx_model_utils',
+        version=version_str,
+        description='TIDL ONNX Graph Utilities',
+        long_description=long_description,
+        long_description_content_type='text/markdown',
+        url='https://bitbucket.itg.ti.com/projects/EDGEAI-ALGO/repos/edgeai-modelutils/browse',
+        author='EdgeAI, TIDL & Analytics Algo Teams',
+        author_email='edgeai-devkit@list.ti.com',
+        classifiers=[
+            'Development Status :: 4 - Beta'
+            'Programming Language :: Python :: 3.10'
+        ],
+        keywords = 'artifical intelligence, deep learning, quantization',
+        python_requires='>=3.10',
+        packages=find_packages(),
+        include_package_data=True,
+        install_requires=requirements,
+        project_urls={
+            'Source': 'https://bitbucket.itg.ti.com/projects/EDGEAI-ALGO/repos/edgeai-modelutils/browse',
+        },
+    )
 
 
 if __name__ == '__main__':

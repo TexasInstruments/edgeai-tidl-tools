@@ -4,6 +4,7 @@ This module contains various modifications and optimization on the original ONNX
 ## Setup
 For setting up execute the command
 
+    cd ../onnx_tools
     source ./setup.sh
 
 This depends on the [onnx-graphsurgeon](https://github.com/NVIDIA/TensorRT/tree/master/tools/onnx-graphsurgeon)

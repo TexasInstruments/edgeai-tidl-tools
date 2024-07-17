@@ -70,6 +70,7 @@ from onnx import shape_inference
 from onnxsim import simplify
 
 from .ops import opt_ops, get_optimizers, get_topological_sorted_key_order
+from .src.common import format_logger
 
 NUM_OPS = len(opt_ops)
 
@@ -132,31 +133,7 @@ def tidl_modify (model_path: str, out_model_path: str, args: dict):
 
     # svae to output path
     onnx.save(out_model, out_model_path)
-
-
-def format_logger (log_level):
-    """
-    Format logger
-    """
-
-    logging.basicConfig(format='[%(levelname)s]:%(message)s')
-    # colored logs
-    yellow  = "\x1b[33;20m"
-    red     = "\x1b[31;1m"
-    reset   = "\x1b[0m"
-    logging.addLevelName(logging.WARNING, yellow + logging.getLevelName(logging.WARNING) + reset)
-    logging.addLevelName(logging.CRITICAL, yellow + logging.getLevelName(logging.WARNING) + reset)
-    logging.addLevelName(logging.ERROR, red + logging.getLevelName(logging.ERROR) + reset)
-    # set log level
-    if log_level == "info":
-        logging.getLogger().setLevel(logging.INFO)
-    elif log_level == "debug":
-        logging.getLogger().setLevel(logging.DEBUG)
-    else:
-        print(f"Unknown log level {log_level}")
-
-
-
+    
 
 def optimize (model:str, out_model:str = None, verbose:bool= False, custom_optimizers:dict=None, **kwargs):
     """

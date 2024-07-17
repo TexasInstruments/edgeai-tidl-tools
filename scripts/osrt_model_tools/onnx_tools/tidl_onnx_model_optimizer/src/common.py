@@ -60,6 +60,7 @@ Common utlity functions and useful graph algorithms
 """
 from typing import List
 import onnx_graphsurgeon as gs
+import logging
 
 class UniqueIdGenerator:
     """
@@ -177,6 +178,14 @@ def is_first_node(node: gs.Node) -> bool:
         return True
     return False
 
+def is_end_node(node: gs.Node) -> bool:
+    """
+    Return True if a node is an output node of the model
+    """
+    if len(find_out_layers(node)) == 0:
+        return True
+    return False
+
 def is_single_const_single_var_input(node: gs.Node):
     """
     Return true if the node has input 1 constant and 1 variable
@@ -204,3 +213,24 @@ def has_unk_axis(inp : gs.Variable):
             return True
     return False
     
+def format_logger (log_level):
+    """
+    Format logger
+    """
+
+    logging.basicConfig(format='[%(levelname)s]:%(message)s')
+    # colored logs
+    yellow  = "\x1b[33;20m"
+    red     = "\x1b[31;1m"
+    reset   = "\x1b[0m"
+    logging.addLevelName(logging.WARNING, yellow + logging.getLevelName(logging.WARNING) + reset)
+    logging.addLevelName(logging.CRITICAL, yellow + logging.getLevelName(logging.WARNING) + reset)
+    logging.addLevelName(logging.ERROR, red + logging.getLevelName(logging.ERROR) + reset)
+    # set log level
+    if log_level == "info":
+        logging.getLogger().setLevel(logging.INFO)
+    elif log_level == "debug":
+        logging.getLogger().setLevel(logging.DEBUG)
+    else:
+        print(f"Unknown log level {log_level}")
+
