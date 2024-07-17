@@ -65,7 +65,7 @@ import logging
 import onnx_graphsurgeon as gs
 import onnx
 
-from tidl_onnx_model_optimizer.src.common import format_logger, find_out_layers, is_end_node
+from ..tidl_onnx_model_optimizer.src.common import format_logger, find_out_layers, is_end_node
 
 
 def get_all_nodes(node, end_nodes, deny_list_nodes):
