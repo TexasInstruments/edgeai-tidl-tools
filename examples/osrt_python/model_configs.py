@@ -171,7 +171,7 @@ models_configs = {
     # TVM DLR OOB Models
     'cl-dlr-tflite_inceptionnetv3' : {
         'model_path' : os.path.join(models_base_path, 'inception_v3.tflite'),
-        'source' : {'model_url': 'https://tfhub.dev/tensorflow/lite-model/inception_v3/1/default/1?lite-format=tflite', 'opt': True,  'infer_shape' : False},
+        'source' : {'model_url': 'https://git.ti.com/cgit/jacinto-ai/jacinto-ai-modelzoo/plain/models/vision/classification/imagenet1k/tf1-models/inception_v3.tflite', 'opt': True,  'infer_shape' : False},
         'mean': [127.5, 127.5, 127.5],
         'scale' : [1/127.5, 1/127.5, 1/127.5],
         'num_images' : numImages,

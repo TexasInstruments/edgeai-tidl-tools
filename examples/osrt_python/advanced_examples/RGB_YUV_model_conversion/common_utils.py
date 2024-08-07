@@ -19,7 +19,7 @@ else :
     # setting path
     sys.path.append(parent+"/../../")
     from scripts.osrt_model_tools.tflite_tools import tflite_model_opt as tflOpt
-    from scripts.osrt_model_tools.onnx_tools   import onnx_model_opt as onnxOpt
+    from scripts.osrt_model_tools.onnx_tools.tidl_onnx_model_utils   import onnx_model_opt as onnxOpt
 
     from caffe2onnx.src.load_save_model import loadcaffemodel, saveonnxmodel
     from caffe2onnx.src.caffe2onnx import Caffe2Onnx

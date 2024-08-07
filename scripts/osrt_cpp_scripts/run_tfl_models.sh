@@ -2,7 +2,7 @@
 cd ../../
 Field_Separator=$IFS
 IFS=,
-arch=$(uname -p)
+arch=$(uname -m)
 if [[ $arch == x86_64 ]]; then
 loop_count=2
 elif [[ $arch == aarch64 ]]; then

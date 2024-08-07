@@ -648,7 +648,7 @@ if((${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" AND ${
                     /usr/lib 
                     /usr/local/dlr
                     /usr/lib/aarch64-linux-gnu
-                    /usr/lib/python3.10/site-packages/dlr/
+                    /usr/lib/python3.12/site-packages/dlr/
                     $ENV{HOME}/.local/dlr/                 
     )
 endif()
@@ -678,8 +678,8 @@ if( ((NOT ${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" 
                   # Enable these when migrating to tflite 2.12
                   /usr/local/dlr
                   /usr/lib/aarch64-linux-gnu
-                  /usr/lib/python3.10/site-packages/dlr/
-                  /usr/local/lib/python3.10/dist-packages/dlr/
+                  /usr/lib/python3.12/site-packages/dlr/
+                  /usr/local/lib/python3.12/dist-packages/dlr/
                   $ENV{HOME}/.local/dlr/                  
   )
   set(SYSTEM_LINK_LIBS
@@ -704,7 +704,7 @@ if( ((NOT ${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" 
                   /usr/include
                   /usr/local/include
                   /usr/local/dlr
-                  /usr/lib/python3.10/site-packages/dlr/include #for am68pa evm
+                  /usr/lib/python3.12/site-packages/dlr/include #for am68pa evm
                   /usr/include/tensorflow/lite/tools/pip_package/gen/tflite_pip/python3/cmake_build/flatbuffers/include/
                   ${PROJECT_SOURCE_DIR}
                   ${PROJECT_SOURCE_DIR}/..
@@ -773,7 +773,7 @@ function(build_app)
       set(ADV_UTILS_LIB "utils_adv")
     endif()
     target_link_libraries(${app}
-                          -Wl,--start-group
+                          -Wl,--unresolved-symbols=ignore-in-shared-libs,--start-group
                           ${COMMON_LINK_LIBS}
                           ${TARGET_LINK_LIBS}
                           ${SYSTEM_LINK_LIBS}

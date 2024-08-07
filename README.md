@@ -127,7 +127,7 @@ The below table covers the supported operations with this repository on X86_PC a
   - Run below one time setup for system level packages. This needs sudo permission, get it installed by your system administrator if required.
 
 ```
-  sudo apt-get install libyaml-cpp-dev
+  sudo apt-get install libyaml-cpp-dev libglib2.0-dev
 ```
 
   - Make sure you have all permission for the current directory before proceeding 
@@ -179,7 +179,7 @@ python3 ./scripts/gen_test_report.py
 model-artifacts/
 models/
 output_images/
-test_report_pc.csv
+test_report_pc_${soc}.csv
 ```
 -  An output image can be found for each model in the'output_images' folder, similar to what's shown below
 

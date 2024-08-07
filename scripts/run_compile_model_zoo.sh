@@ -1,6 +1,6 @@
 #!/bin/bash
 CURDIR=`pwd`
-arch=$(uname -p)
+arch=$(uname -m)
 if [[ $arch == x86_64 ]]; then
     echo "X64 Architecture"
 elif [[ $arch == aarch64 ]]; then
