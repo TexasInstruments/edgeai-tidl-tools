@@ -127,7 +127,7 @@ The below table covers the supported operations with this repository on X86_PC a
   - Run below one time setup for system level packages. This needs sudo permission, get it installed by your system administrator if required.
 
 ```
-  sudo apt-get install libyaml-cpp-dev
+  sudo apt-get install libyaml-cpp-dev python-setuptools
 ```
 
   - Make sure you have all permission for the current directory before proceeding 
