@@ -3,3 +3,8 @@ __pycache__
 gcc-arm*
 examples/jupyter_notebooks/.ipynb_checkpoints/
 
+build
+model-artifacts
+models
+ti-cgt-c7000_3.1.0.LTS
+tidl_tools
