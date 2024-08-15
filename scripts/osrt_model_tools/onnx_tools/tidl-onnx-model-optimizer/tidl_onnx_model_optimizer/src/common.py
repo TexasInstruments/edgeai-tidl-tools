@@ -60,6 +60,7 @@ Common utlity functions and useful graph algorithms
 """
 from typing import List
 import onnx_graphsurgeon as gs
+import onnx
 
 class UniqueIdGenerator:
     """
@@ -196,3 +197,57 @@ def bordered(text):
         res.append('│' + (s + ' ' * width)[:width] + '│')
     res.append('└' + '─' * width + '┘')
     return '\n'.join(res)
+
+def reset_shape_inference(onnx_graph:onnx.GraphProto):
+    '''
+    Clear all value_info entries that hold shape inference information
+    '''
+    while len(onnx_graph.value_info) > 0: 
+        onnx_graph.value_info.pop()
+    return onnx_graph
+
+def tidl_remove_duplicates(graph:gs.Graph, onnx_graph:onnx.GraphProto, do_cleanup=True):
+    '''
+    Some nodes are simply duplicates of each other. There is no need to process these, and we can reuse the outputs of one for all of them
+    '''
+    replacement_node_pairs = []
+    for i, node_i in enumerate(graph.nodes):
+        
+        for j, node_j in enumerate(graph.nodes):
+            if node_i.op != node_j.op: continue
+
+            nodes_to_remove = list(map(lambda x: x[1], replacement_node_pairs))
+
+            if node_i == node_j or node_i in nodes_to_remove: 
+                continue # skip itself
+            elif node_i.inputs != node_j.inputs or node_i.attrs != node_j.attrs:
+                continue 
+
+            # hang onto the nodes we will remove/replace. We should not remove them while iterating
+            replacement_node_pairs.append((node_i, node_j)) #(node to keep as replacement, node to remove)
+            
+
+    print(list(map(lambda x: x[0], replacement_node_pairs)))
+
+    for n in replacement_node_pairs: 
+        removal_node = n[1]
+        keep_node = n[0]
+        removal_outputs = removal_node.outputs
+        keep_outputs = keep_node.outputs
+
+        # for each output in the node to remove, find the consuming nodes and change their input to use the output that we will keep
+        out_layers = find_out_layers(removal_node)
+
+        for layer in out_layers:
+            for i, in_tensor in enumerate(layer.inputs):
+                for j, out_tensor in enumerate(removal_outputs):
+                    if in_tensor == out_tensor:
+                        
+                        replacement_tensor = keep_outputs[j]
+                        layer.inputs[i] = replacement_tensor
+
+        #clear the outputs to that graph.cleanup() will remove them
+        removal_node.outputs.clear()
+
+    if do_cleanup:
+        graph.cleanup().toposort()
