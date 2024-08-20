@@ -2,7 +2,6 @@ include(GNUInstallDirs)
 
 # add_compile_options(-std=c++11)
 
-
 IF(NOT CMAKE_BUILD_TYPE)
   SET(CMAKE_BUILD_TYPE Release)
 ENDIF()
@@ -86,6 +85,12 @@ if(ARMNN_ENABLE)
       add_compile_options(-DARMNN_ENABLE=1)
     endif()
   endif()
+
+if(ENABLE_SDK_9_2_COMPATIBILITY)
+  set(TARGET_DEVICE_PYTHON python3.10)
+else()
+  set(TARGET_DEVICE_PYTHON python3.12)
+endif()
 
 set(TFLITE_2_12_LIBS 
   # Enable these when migrating to tflite 2.12
@@ -648,7 +653,7 @@ if((${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" AND ${
                     /usr/lib 
                     /usr/local/dlr
                     /usr/lib/aarch64-linux-gnu
-                    /usr/lib/python3.12/site-packages/dlr/
+                    /usr/lib/${TARGET_DEVICE_PYTHON}/site-packages/dlr/
                     $ENV{HOME}/.local/dlr/                 
     )
 endif()
@@ -678,8 +683,8 @@ if( ((NOT ${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" 
                   # Enable these when migrating to tflite 2.12
                   /usr/local/dlr
                   /usr/lib/aarch64-linux-gnu
-                  /usr/lib/python3.12/site-packages/dlr/
-                  /usr/local/lib/python3.12/dist-packages/dlr/
+                  /usr/lib/${TARGET_DEVICE_PYTHON}/site-packages/dlr/
+                  /usr/local/lib/${TARGET_DEVICE_PYTHON}/dist-packages/dlr/
                   $ENV{HOME}/.local/dlr/                  
   )
   set(SYSTEM_LINK_LIBS
@@ -704,7 +709,7 @@ if( ((NOT ${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" 
                   /usr/include
                   /usr/local/include
                   /usr/local/dlr
-                  /usr/lib/python3.12/site-packages/dlr/include #for am68pa evm
+                  /usr/lib/${TARGET_DEVICE_PYTHON}/site-packages/dlr/include #for am68pa evm
                   /usr/include/tensorflow/lite/tools/pip_package/gen/tflite_pip/python3/cmake_build/flatbuffers/include/
                   ${PROJECT_SOURCE_DIR}
                   ${PROJECT_SOURCE_DIR}/..
