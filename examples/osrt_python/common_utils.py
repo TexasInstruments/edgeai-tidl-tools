@@ -18,8 +18,14 @@ else :
     parent = os.path.dirname(os.path.dirname(current))
     # setting path
     sys.path.append(parent)
-    from scripts.osrt_model_tools.tflite_tools import tflite_model_opt as tflOpt
-    from scripts.osrt_model_tools.onnx_tools.tidl_onnx_model_utils   import onnx_model_opt as onnxOpt
+    try:
+        from scripts.osrt_model_tools.tflite_tools import tflite_model_opt as tflOpt
+    except ImportError:
+        pass
+    try:
+        from scripts.osrt_model_tools.onnx_tools.tidl_onnx_model_utils   import onnx_model_opt as onnxOpt
+    except ImportError:
+        pass
 
     from caffe2onnx.src.load_save_model import loadcaffemodel, saveonnxmodel
     from caffe2onnx.src.caffe2onnx import Caffe2Onnx
@@ -201,10 +207,15 @@ def download_model(models_configs, model_name):
 
                 if model_source['opt'] == True:
                     if filename[-1] == '.onnx':
-                        onnxOpt.tidlOnnxModelOptimize(abs_path,abs_path, scale, mean)
+                        try:
+                            onnxOpt.tidlOnnxModelOptimize(abs_path,abs_path, scale, mean)
+                        except NameError:
+                            print("\n[WARNING] Model optimizer dependencies not present. Run setup.sh script without --skip_model_optimizer \n")
                     elif filename[-1] == '.tflite':
-                        tflOpt.tidlTfliteModelOptimize(abs_path,abs_path, scale, mean)
-
+                        try:
+                            tflOpt.tidlTfliteModelOptimize(abs_path,abs_path, scale, mean)
+                        except NameError:
+                            print("\n[WARNING] Model optimizer dependencies not present. Run setup.sh script without --skip_model_optimizer \n")
                 if (filename[-1] == '.onnx') and (model_source['infer_shape'] == True) :
                     onnx.shape_inference.infer_shapes_path(model_path, model_path)
             
