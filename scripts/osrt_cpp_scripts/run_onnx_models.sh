@@ -41,14 +41,6 @@ fi
 
 # #running default models
 
-#cl-onnx-default models
-DataList="cl-ort-resnet18-v1"
-for val in $DataList;
-do
- echo $val
- ./bin/Release/ort_main -f "model-artifacts/${val}/" -v 1 -i "test_data/airshow.jpg"  -c ${loop_count}
-done
-
 #od,ss-onnx-deafult models
 DataList="od-ort-ssd-lite_mobilenetv2_fpn"
 
