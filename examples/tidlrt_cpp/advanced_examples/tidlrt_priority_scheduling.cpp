@@ -14,12 +14,12 @@ limitations under the License.
 ==============================================================================*/
 
 #include "classification.h"
-#include <fcntl.h>      // NOLINT(build/include_order)
-#include <getopt.h>     // NOLINT(build/include_order)
-#include <sys/time.h>   // NOLINT(build/include_order)
-#include <sys/types.h>  // NOLINT(build/include_order)
-#include <sys/uio.h>    // NOLINT(build/include_order)
-#include <unistd.h>     // NOLINT(build/include_order)
+#include <fcntl.h>    
+#include <getopt.h>   
+#include <sys/time.h> 
+#include <sys/types.h>
+#include <sys/uio.h>  
+#include <unistd.h>   
 
 #include <cstdarg>
 #include <cstdio>
@@ -33,7 +33,7 @@ limitations under the License.
 #include <string>
 #include <unordered_set>
 #include <vector>
-
+#include <fstream>
 
 
 #include <opencv2/core/core.hpp>
@@ -53,6 +53,8 @@ limitations under the License.
 
 #include "../../osrt_cpp/utils/include/ti_logger.h"
 #include "../../osrt_cpp/utils/include/utility_functs.h"
+
+using namespace std::chrono;
 
 #define LOG(x) std::cerr
 
@@ -74,7 +76,8 @@ typedef struct
     float max_pre_empt_delay;
     int model_id;
     Settings *s;
-    /* Below can potentially be replaced with data from io buffer descriptor */
+    int is_reference_run;
+    std::string model_name;
     int in_width;
     int in_height;
     int in_numCh;
@@ -87,94 +90,6 @@ typedef struct
     int out_element_type;
     float actual_times;
 } model_struct;
-
-
-
-
-// Takes a file name, and loads a list of labels from it, one per line, and
-// returns a vector of the strings. It pads with empty strings so the length
-// of the result is a multiple of 16, because our model expects that.
-int32_t ReadLabelsFile(const std::string& file_name,
-                            std::vector<std::string>* result,
-                            size_t* found_label_count) {
-  std::ifstream file(file_name);
-  if (!file) {
-    LOG(FATAL) << "Labels file " << file_name << " not found\n";
-    return -1;
-  }
-  result->clear();
-  std::string line;
-  while (std::getline(file, line)) {
-    result->push_back(line);
-  }
-  *found_label_count = result->size();
-  const int padding = 16;
-  while (result->size() % padding) {
-    result->emplace_back();
-  }
-  return 0;
-}
-
-// Returns the top N confidence values over threshold in the provided vector,
-// sorted by confidence in descending order.
-template <class T>
-void get_top_n(T* prediction, int prediction_size, size_t num_results,
-               float threshold, std::vector<std::pair<float, int>>* top_results,
-               bool input_floating) {
-  // Will contain top N results in ascending order.
-  std::priority_queue<std::pair<float, int>, std::vector<std::pair<float, int>>,
-                      std::greater<std::pair<float, int>>>
-      top_result_pq;
-
-  const long count = prediction_size;  // NOLINT(runtime/int)
-  for (int i = 0; i < count; ++i) {
-    float value;
-    if (input_floating)
-      value = prediction[i];
-    else
-      value = prediction[i] / 255.0;
-    // Only add it if it beats the threshold and has a chance at being in
-    // the top N.
-    if (value < threshold) {
-      continue;
-    }
-
-    top_result_pq.push(std::pair<float, int>(value, i));
-
-    // If at capacity, kick the smallest value out.
-    if (top_result_pq.size() > num_results) {
-      top_result_pq.pop();
-    }
-  }
-
-  // Copy to output vector and reverse into descending order.
-  while (!top_result_pq.empty()) {
-    top_results->push_back(top_result_pq.top());
-    top_result_pq.pop();
-  }
-
-  std::reverse(top_results->begin(), top_results->end());
-}
-
-template <class T>
-int preprocImage(const std::string &input_image_name, T *out, int wanted_height, int wanted_width, int wanted_channels, float mean, float scale)
-{
-    int i;
-    uint8_t *pSrc;
-    cv::Mat image = cv::imread(input_image_name, cv::IMREAD_COLOR);
-    cv::cvtColor(image, image, cv::COLOR_BGR2RGB);
-    cv::resize(image, image, cv::Size(wanted_width, wanted_height), 0, 0, cv::INTER_AREA);
-
-    if (image.channels() != wanted_channels)
-    {
-      printf("Warning : Number of channels wanted differs from number of channels in the actual image \n");
-      return (-1);
-    }
-    pSrc = (uint8_t *)image.data;
-    for (i = 0; i < wanted_height * wanted_width * wanted_channels; i++)
-      out[i] = ((T)pSrc[i] - mean) / scale;
-    return 0;
-}
 
 
 void getModelNameromArtifactsDir(char* path, char * net_name, char *io_name)
@@ -228,8 +143,6 @@ void * infer(void * argument) {
 
   getModelNameromArtifactsDir((char *)artifacts_path.c_str(), net_name, io_name);
 
-  printf("Model Files names : %s,%s\n", net_name, io_name);
-
   sTIDLRT_Params_t prms;
   void *handle = NULL;
   int32_t status;
@@ -268,6 +181,11 @@ void * infer(void * argument) {
 
   prms.traceLogLevel = 0;
   prms.traceWriteLevel = 0;
+
+  prms.targetPriority = arg->priority;
+  prms.maxPreEmptDelay = arg->max_pre_empt_delay;
+  prms.coreNum = 1;
+
   pthread_mutex_lock(&priority_lock);
   status = TIDLRT_create(&prms, &handle);
   pthread_mutex_unlock(&priority_lock);
@@ -282,109 +200,75 @@ void * infer(void * argument) {
   in[j] = &in_tensor;
   status = TIDLRT_setTensorDefault(in[j]);
   in[j]->layout = TIDLRT_LT_NCHW;
-  //strcpy((char *)in[j]->name, tensor->name);
   in[j]->elementType = TIDLRT_Uint8;
   int32_t in_tensor_size = arg->in_width * arg->in_height * arg->in_numCh * arg->in_element_size_in_bytes;
 
-  if (s->device_mem)
-  { 
-      in[j]->ptr =  TIDLRT_allocSharedMem(64, in_tensor_size);
-      in[j]->memType = TIDLRT_MEM_SHARED;
-  }
-  else
-  {
-      in[j]->ptr =  malloc(in_tensor_size);
-  }
-
+  in[j]->ptr =  TIDLRT_allocSharedMem(64, in_tensor_size);
+  in[j]->memType = TIDLRT_MEM_SHARED;
 
   out[j] = &out_tensor;
   status = TIDLRT_setTensorDefault(out[j]);
   out[j]->layout = TIDLRT_LT_NCHW;
-  //strcpy((char *)in[j]->name, tensor->name);
-  if(arg->model_id == 0)
-  {
-    out[j]->elementType = TIDLRT_Uint8;
-  }
-  else if(arg->model_id == 1)
-  {
-    out[j]->elementType = TIDLRT_Float32;
-  }
+  out[j]->elementType = arg->out_element_type;
+
   int32_t out_tensor_size = arg->out_width * arg->out_height * arg->out_numCh * arg->out_element_size_in_bytes;
 
-  if (s->device_mem)
-  { 
-      out[j]->ptr =  TIDLRT_allocSharedMem(64, out_tensor_size);
-      out[j]->memType = TIDLRT_MEM_SHARED;
-  }
-  else
-  {
-      out[j]->ptr =  malloc(out_tensor_size);
-  }
-
+  out[j]->ptr =  TIDLRT_allocSharedMem(64, out_tensor_size);
+  out[j]->memType = TIDLRT_MEM_SHARED;
+  
   /* Use random number generator with a seed to create input */
   unsigned int seed = arg->model_id;
   int min = 0;
-  int max = 256;
-  unsigned char * inPtr = (unsigned char *)(in[j]->ptr);
+  int max = 255;
+  char * inPtr = (char *)(in[j]->ptr);
   for(int i = 0; i < in_tensor_size; i++)
   {
     inPtr[i] = rand_r(&seed) % (max - min + 1) + min;
-    if (i < 10)
-    {
-      std::cout << std::to_string(inPtr[i]) << " ";
-    }
   }
   std::cout << "\n";
 
-  // status = preprocImage<uint8_t>(s->input_image_name, (uint8_t*)in[j]->ptr, 224, 224, 3, s->input_mean, s->input_std);
-
-  LOG(INFO) << "invoked \n";
-
   struct timeval start_time, stop_time;
-  gettimeofday(&start_time, nullptr);
+  int k = 0;
+  std::string output_filename;
 
-  /* Need to do this for prescribed amount of time */
-  for (int i = 0; i < s->loop_count; i++)
+  if(arg->is_reference_run == 1)
   {
-    TIDLRT_invoke(handle, in, out);
+    gettimeofday(&start_time, nullptr);
+    for(int i = 0; i < arg->s->loop_count; i++)
+    {
+      TIDLRT_invoke(handle, in, out);
+    }
+    gettimeofday(&stop_time, nullptr);
+    arg->actual_times = (get_us(stop_time) - get_us(start_time)) / (s->loop_count * 1000);
+
+    LOG_INFO("Model %s :: Actual time  = %f ms \n", arg->model_name.c_str(), (get_us(stop_time) - get_us(start_time)) / (arg->s->loop_count * 1000));
+
+    output_filename = "output_reference_" + arg->model_name + ".bin";
+  }
+  else if (arg->is_reference_run == 0)
+  {
+    gettimeofday(&start_time, nullptr);
+    auto finish = system_clock::now() + minutes{1};
+    do
+    {
+      TIDLRT_invoke(handle, in, out);
+      k++;
+    } while (system_clock::now() < finish);
+    gettimeofday(&stop_time, nullptr);
+
+    LOG_INFO("Model %s :: Average time with pre-emption = %f ms \n", arg->model_name.c_str(), (get_us(stop_time) - get_us(start_time)) / (k * 1000));
+    LOG_INFO("Model %s :: Total number of iterations run = %d \n", arg->model_name.c_str(), k);
+
+    output_filename = "output_test_" + arg->model_name + ".bin";
   }
 
-  gettimeofday(&stop_time, nullptr);
-
-  LOG(INFO) << "average time: "
-            << (get_us(stop_time) - get_us(start_time)) / (s->loop_count * 1000)
-            << " ms \n";
-  const float threshold = 0.001f;
-
-  arg->actual_times = (get_us(stop_time) - get_us(start_time)) / (s->loop_count * 1000);
-#if 0
-  std::vector<std::pair<float, int>> top_results;
-
-  float *output = (float *)out[j]->ptr;
-  int output_size = 1000;
-
-  get_top_n<float>(output, output_size,
-                    s->number_of_results, threshold, &top_results, true);
-
-  std::vector<std::string> labels;
-  size_t label_count;
-
-  if (ReadLabelsFile(s->labels_file_name, &labels, &label_count) != 0)
-    exit(-1);
-
-  for (const auto &result : top_results)
-  {
-    const float confidence = result.first;
-    int index = result.second;
-    LOG(INFO) << confidence << ": " << index << " " << labels[index] << "\n";
-  }
-#endif
-  LOG_INFO("Deactivating \n");
+  char * outPtr = (char *)out[j]->ptr;
+  std::ofstream fs(output_filename, std::ios::out | std::ios::binary | std::ios::out);
+  fs.write(outPtr, out_tensor_size);
+  fs.close();
 
   status = TIDLRT_deactivate(handle);
   status = TIDLRT_delete(handle);
-
-  LOG_INFO("Delete done \n");
 
   if (s->device_mem)
   {
@@ -403,7 +287,6 @@ void * infer(void * argument) {
       }
     }
   }
-  LOG_INFO("Pointers freed \n");
   // return 0;
   void * retPtr;
   return retPtr;
@@ -421,7 +304,7 @@ int getActualRunTime(model_struct *arg0, model_struct *arg1)
   infer(arg0);
   LOG_INFO("Inferring model 2 \n");
   infer(arg1);
-  LOG_INFO("Run times of model 0 and 1 are: %f %f\n",arg0->actual_times, arg1->actual_times);
+  LOG_INFO("Actual run times of models are : \n %s -- %f \n %s -- %f \n", arg0->model_name.c_str(), arg0->actual_times, arg1->model_name.c_str(),arg1->actual_times);
   return RETURN_SUCCESS;   
 }
 
@@ -438,9 +321,8 @@ int runInference(Settings * s)
         if(i == 0)
         {
           args[i].model_artifacts_path = "model-artifacts/ss-ort-deeplabv3lite_mobilenetv2";
-          // args[i].model_artifacts_path = "model-artifacts/cl-ort-resnet18-v1";
           args[i].priority = 1;
-          args[i].max_pre_empt_delay = 3; 
+          args[i].max_pre_empt_delay = 0; 
           /* Dims */
           args[i].in_width = 512;
           args[i].in_height = 512;
@@ -451,7 +333,7 @@ int runInference(Settings * s)
           args[i].out_height = 512;
           args[i].out_numCh = 1;
           args[i].out_element_size_in_bytes = 1;
-          args[i].out_element_type = TIDLRT_Float32;
+          args[i].out_element_type = TIDLRT_Uint8;
         }
         if(i == 1)
         {
@@ -468,16 +350,26 @@ int runInference(Settings * s)
           args[i].out_height = 1;
           args[i].out_numCh = 1;
           args[i].out_element_size_in_bytes = 4;
-          args[i].out_element_type = TIDLRT_Uint8;
+          args[i].out_element_type = TIDLRT_Float32;
         }
+        std::string modelName = args[i].model_artifacts_path;
+        size_t sep = modelName.find_last_of("\\/");
+        if (sep != std::string::npos)
+            modelName = modelName.substr(sep + 1, modelName.size() - sep - 1);
+        args[i].model_name = modelName;
     }
 
     s->number_of_threads = 1;
     s->loop_count = 10;
+
+    /* Reference run starts */
     
+    args[0].is_reference_run = 1;
+    args[1].is_reference_run = 1;
+
     if (RETURN_FAIL == getActualRunTime(&args[0], &args[1]))
             return RETURN_FAIL;
-    LOG_INFO("Actual runtime found \n");
+
     if (pthread_mutex_init(&priority_lock, NULL) != 0)
     {
         LOG_ERROR("\n mutex init has failed\n");
@@ -492,6 +384,10 @@ int runInference(Settings * s)
         LOG_ERROR("barrier creation failied exiting\n");
         return RETURN_FAIL;
     }
+
+    /* Test run starts */
+    args[0].is_reference_run = 0;
+    args[1].is_reference_run = 0;
 
     pthread_t ptid[2 * NUM_PRIORITIES];
     LOG_INFO("************* Creating threads *************** \n");
@@ -513,6 +409,7 @@ int runInference(Settings * s)
     return RETURN_SUCCESS;
 }
 
+/* Options are kept same as base application --- can be updated to take model_struct arguments */
 void display_usage() {
   LOG(INFO)
       << "label_image\n"
@@ -541,21 +438,7 @@ int main(int argc, char** argv) {
   while (1) {
     static struct option long_options[] = {
         {"accelerated", required_argument, nullptr, 'a'},
-        {"device_mem", required_argument, nullptr, 'd'},
-        {"artifact_path", required_argument, nullptr, 'f'},
-        {"count", required_argument, nullptr, 'c'},
-        {"verbose", required_argument, nullptr, 'v'},
-        {"image", required_argument, nullptr, 'i'},
-        {"labels", required_argument, nullptr, 'l'},
-        {"tflite_model", required_argument, nullptr, 'm'},
-        {"profiling", required_argument, nullptr, 'p'},
         {"threads", required_argument, nullptr, 't'},
-        {"input_mean", required_argument, nullptr, 'b'},
-        {"input_std", required_argument, nullptr, 's'},
-        {"num_results", required_argument, nullptr, 'r'},
-        {"max_profiling_buffer_entries", required_argument, nullptr, 'e'},
-        {"warmup_runs", required_argument, nullptr, 'w'},
-        {"gl_backend", required_argument, nullptr, 'g'},
         {nullptr, 0, nullptr, 0}};
 
     /* getopt_long stores the option index here. */
@@ -570,58 +453,7 @@ int main(int argc, char** argv) {
 
     switch (c) {
       case 'a':
-        s.accel = strtol(optarg, nullptr, 10);  // NOLINT(runtime/deprecated_fn)
-        break;
-      case 'b':
-        s.input_mean = strtod(optarg, nullptr);
-        break;
-      case 'c':
-        s.loop_count =
-            strtol(optarg, nullptr, 10);  // NOLINT(runtime/deprecated_fn)
-        break;
-      case 'd':
-        s.device_mem =
-            strtol(optarg, nullptr, 10);  // NOLINT(runtime/deprecated_fn)
-        break;
-      case 'e':
-        s.max_profiling_buffer_entries =
-            strtol(optarg, nullptr, 10);  // NOLINT(runtime/deprecated_fn)
-        break;
-      case 'f':
-        s.artifact_path = optarg;
-        break;
-      case 'g':
-        s.gl_backend =
-            strtol(optarg, nullptr, 10);  // NOLINT(runtime/deprecated_fn)
-        break;
-      case 'i':
-        s.input_image_name = optarg;
-        break;
-      case 'l':
-        s.labels_file_name = optarg;
-        break;
-      case 'p':
-        s.profiling =
-            strtol(optarg, nullptr, 10);  // NOLINT(runtime/deprecated_fn)
-        break;
-      case 'r':
-        s.number_of_results =
-            strtol(optarg, nullptr, 10);  // NOLINT(runtime/deprecated_fn)
-        break;
-      case 's':
-        s.input_std = strtod(optarg, nullptr);
-        break;
-      case 't':
-        s.number_of_threads = strtol(  // NOLINT(runtime/deprecated_fn)
-            optarg, nullptr, 10);
-        break;
-      case 'v':
-        s.verbose =
-            strtol(optarg, nullptr, 10);  // NOLINT(runtime/deprecated_fn)
-        break;
-      case 'w':
-        s.number_of_warmup_runs =
-            strtol(optarg, nullptr, 10);  // NOLINT(runtime/deprecated_fn)
+        s.accel = strtol(optarg, nullptr, 10);
         break;
       case 'h':
       case '?':
