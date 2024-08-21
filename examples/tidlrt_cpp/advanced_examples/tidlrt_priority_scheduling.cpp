@@ -74,14 +74,17 @@ typedef struct
     float max_pre_empt_delay;
     int model_id;
     Settings *s;
+    /* Below can potentially be replaced with data from io buffer descriptor */
     int in_width;
     int in_height;
     int in_numCh;
     int in_element_size_in_bytes;
+    int in_element_type;
     int out_width;
     int out_height;
     int out_numCh;
     int out_element_size_in_bytes;
+    int out_element_type;
     float actual_times;
 } model_struct;
 
@@ -263,8 +266,8 @@ void * infer(void * argument) {
   prms.ioBufDescPtr = malloc(prms.io_capacity);
   status = TIDLReadBinFromFile(io_name, prms.ioBufDescPtr, prms.io_capacity);
 
-  //prms.traceLogLevel = 3;
-  //prms.traceWriteLevel = 3;
+  prms.traceLogLevel = 0;
+  prms.traceWriteLevel = 0;
   pthread_mutex_lock(&priority_lock);
   status = TIDLRT_create(&prms, &handle);
   pthread_mutex_unlock(&priority_lock);
@@ -278,41 +281,63 @@ void * infer(void * argument) {
   int32_t j = 0;
   in[j] = &in_tensor;
   status = TIDLRT_setTensorDefault(in[j]);
-  in[j]->layout = TIDLRT_LT_NHWC;
+  in[j]->layout = TIDLRT_LT_NCHW;
   //strcpy((char *)in[j]->name, tensor->name);
   in[j]->elementType = TIDLRT_Uint8;
-  int32_t in_tensor_szie = 224 * 224 * 3 * sizeof(uint8_t);
+  int32_t in_tensor_size = arg->in_width * arg->in_height * arg->in_numCh * arg->in_element_size_in_bytes;
 
   if (s->device_mem)
   { 
-      in[j]->ptr =  TIDLRT_allocSharedMem(64, in_tensor_szie);
+      in[j]->ptr =  TIDLRT_allocSharedMem(64, in_tensor_size);
       in[j]->memType = TIDLRT_MEM_SHARED;
   }
   else
   {
-      in[j]->ptr =  malloc(in_tensor_szie);
+      in[j]->ptr =  malloc(in_tensor_size);
   }
 
 
   out[j] = &out_tensor;
   status = TIDLRT_setTensorDefault(out[j]);
-  out[j]->layout = TIDLRT_LT_NHWC;
+  out[j]->layout = TIDLRT_LT_NCHW;
   //strcpy((char *)in[j]->name, tensor->name);
-  out[j]->elementType = TIDLRT_Float32;
-  int32_t out_tensor_szie = 1001 * sizeof(float);
+  if(arg->model_id == 0)
+  {
+    out[j]->elementType = TIDLRT_Uint8;
+  }
+  else if(arg->model_id == 1)
+  {
+    out[j]->elementType = TIDLRT_Float32;
+  }
+  int32_t out_tensor_size = arg->out_width * arg->out_height * arg->out_numCh * arg->out_element_size_in_bytes;
 
   if (s->device_mem)
   { 
-      out[j]->ptr =  TIDLRT_allocSharedMem(64, out_tensor_szie);
+      out[j]->ptr =  TIDLRT_allocSharedMem(64, out_tensor_size);
       out[j]->memType = TIDLRT_MEM_SHARED;
   }
   else
   {
-      out[j]->ptr =  malloc(out_tensor_szie);
+      out[j]->ptr =  malloc(out_tensor_size);
   }
 
   /* Use random number generator with a seed to create input */
-  status = preprocImage<uint8_t>(s->input_image_name, (uint8_t*)in[j]->ptr, 224, 224, 3, s->input_mean, s->input_std);
+  unsigned int seed = arg->model_id;
+  int min = 0;
+  int max = 256;
+  unsigned char * inPtr = (unsigned char *)(in[j]->ptr);
+  for(int i = 0; i < in_tensor_size; i++)
+  {
+    inPtr[i] = rand_r(&seed) % (max - min + 1) + min;
+    if (i < 10)
+    {
+      std::cout << std::to_string(inPtr[i]) << " ";
+    }
+  }
+  std::cout << "\n";
+
+  // status = preprocImage<uint8_t>(s->input_image_name, (uint8_t*)in[j]->ptr, 224, 224, 3, s->input_mean, s->input_std);
+
   LOG(INFO) << "invoked \n";
 
   struct timeval start_time, stop_time;
@@ -332,11 +357,11 @@ void * infer(void * argument) {
   const float threshold = 0.001f;
 
   arg->actual_times = (get_us(stop_time) - get_us(start_time)) / (s->loop_count * 1000);
-
+#if 0
   std::vector<std::pair<float, int>> top_results;
 
   float *output = (float *)out[j]->ptr;
-  int output_size = 1001;
+  int output_size = 1000;
 
   get_top_n<float>(output, output_size,
                     s->number_of_results, threshold, &top_results, true);
@@ -353,7 +378,7 @@ void * infer(void * argument) {
     int index = result.second;
     LOG(INFO) << confidence << ": " << index << " " << labels[index] << "\n";
   }
-
+#endif
   LOG_INFO("Deactivating \n");
 
   status = TIDLRT_deactivate(handle);
@@ -380,8 +405,8 @@ void * infer(void * argument) {
   }
   LOG_INFO("Pointers freed \n");
   // return 0;
-  void * ptr;
-  return ptr;
+  void * retPtr;
+  return retPtr;
 }
 
 
@@ -412,19 +437,21 @@ int runInference(Settings * s)
         args[i].s = s;
         if(i == 0)
         {
-          // args[i].model_artifacts_path = "model-artifacts/ss-ort-deeplabv3lite_mobilenetv2";
-          args[i].model_artifacts_path = "model-artifacts/cl-ort-resnet18-v1";
+          args[i].model_artifacts_path = "model-artifacts/ss-ort-deeplabv3lite_mobilenetv2";
+          // args[i].model_artifacts_path = "model-artifacts/cl-ort-resnet18-v1";
           args[i].priority = 1;
           args[i].max_pre_empt_delay = 3; 
           /* Dims */
           args[i].in_width = 512;
           args[i].in_height = 512;
-          args[i].in_numCh = 1;
-          args[i].in_element_size_in_bytes = 4;
+          args[i].in_numCh = 3;
+          args[i].in_element_size_in_bytes = 1;
+          args[i].in_element_type = TIDLRT_Uint8;
           args[i].out_width = 512;
           args[i].out_height = 512;
           args[i].out_numCh = 1;
-          args[i].out_element_size_in_bytes = 8;
+          args[i].out_element_size_in_bytes = 1;
+          args[i].out_element_type = TIDLRT_Float32;
         }
         if(i == 1)
         {
@@ -435,11 +462,13 @@ int runInference(Settings * s)
           args[i].in_width = 224;
           args[i].in_height = 224;
           args[i].in_numCh = 3;
-          args[i].in_element_size_in_bytes = 4;
+          args[i].in_element_size_in_bytes = 1;
+          args[i].in_element_type = TIDLRT_Uint8;
           args[i].out_width = 1000;
           args[i].out_height = 1;
           args[i].out_numCh = 1;
           args[i].out_element_size_in_bytes = 4;
+          args[i].out_element_type = TIDLRT_Uint8;
         }
     }
 
@@ -478,8 +507,6 @@ int runInference(Settings * s)
         pthread_join(ptid[2 * i], NULL);
         pthread_join(ptid[2 * i + 1], NULL);
     }
-    pthread_create(&ptid[1], &tattr, &infer, &args[1]);
-    pthread_join(ptid[1], NULL);
 
     pthread_barrierattr_destroy(&barr_attr);
     pthread_mutex_destroy(&priority_lock);
