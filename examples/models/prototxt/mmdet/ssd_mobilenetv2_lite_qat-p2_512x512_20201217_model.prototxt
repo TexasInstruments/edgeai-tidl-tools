@@ -1,0 +1,108 @@
+name: "ssd"
+caffe_ssd {
+  box_input: "1142"
+  box_input: "1168"
+  box_input: "1194"
+  box_input: "1220"
+  box_input: "1246"
+  box_input: "1272"
+  class_input: "1129"
+  class_input: "1155"
+  class_input: "1181"
+  class_input: "1207"
+  class_input: "1233"
+  class_input: "1259"
+  output: "boxes"
+  output: "labels"
+  in_width: 512
+  in_height: 512
+  prior_box_param {
+    min_size: 20.0
+    max_size: 51.0
+    aspect_ratio: 2.0
+    flip: true
+    clip: false
+    variance: 0.1
+    variance: 0.1
+    variance: 0.2
+    variance: 0.2
+    step: 16.0
+  }
+  prior_box_param {
+    min_size: 51.0
+    max_size: 153.0
+    aspect_ratio: 2.0
+    aspect_ratio: 3.0
+    flip: true
+    clip: false
+    variance: 0.1
+    variance: 0.1
+    variance: 0.2
+    variance: 0.2
+    step: 32.0
+  }
+  prior_box_param {
+    min_size: 153.0
+    max_size: 256.0
+    aspect_ratio: 2.0
+    aspect_ratio: 3.0
+    flip: true
+    clip: false
+    variance: 0.1
+    variance: 0.1
+    variance: 0.2
+    variance: 0.2
+    step: 64.0
+  }
+  prior_box_param {
+    min_size: 256.0
+    max_size: 358.0
+    aspect_ratio: 2.0
+    aspect_ratio: 3.0
+    flip: true
+    clip: false
+    variance: 0.1
+    variance: 0.1
+    variance: 0.2
+    variance: 0.2
+    step: 128.0
+  }
+  prior_box_param {
+    min_size: 358.0
+    max_size: 460.0
+    aspect_ratio: 2.0
+    aspect_ratio: 3.0
+    flip: true
+    clip: false
+    variance: 0.1
+    variance: 0.1
+    variance: 0.2
+    variance: 0.2
+    step: 256.0
+  }
+  prior_box_param {
+    min_size: 460.0
+    max_size: 563.0
+    aspect_ratio: 2.0
+    flip: true
+    clip: false
+    variance: 0.1
+    variance: 0.1
+    variance: 0.2
+    variance: 0.2
+    step: 512.0
+  }
+  detection_output_param {
+    num_classes: 81
+    share_location: true
+    background_label_id: 80
+    nms_param {
+      nms_threshold: 0.45
+      top_k: 200
+    }
+    code_type: CENTER_SIZE
+    keep_top_k: 200
+    confidence_threshold: 0.3
+  }
+  framework: "MMDetection"
+}

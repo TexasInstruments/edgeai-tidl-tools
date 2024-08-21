@@ -1,0 +1,48 @@
+name: "yolo_v3"
+tidl_yolo {
+  yolo_param {
+    input: "823"
+    anchor_width: 116.0
+    anchor_width: 156.0
+    anchor_width: 373.0
+    anchor_height: 90.0
+    anchor_height: 198.0
+    anchor_height: 326.0
+  }
+  yolo_param {
+    input: "830"
+    anchor_width: 30.0
+    anchor_width: 62.0
+    anchor_width: 59.0
+    anchor_height: 61.0
+    anchor_height: 45.0
+    anchor_height: 119.0
+  }
+  yolo_param {
+    input: "837"
+    anchor_width: 10.0
+    anchor_width: 16.0
+    anchor_width: 33.0
+    anchor_height: 13.0
+    anchor_height: 30.0
+    anchor_height: 23.0
+  }
+  detection_output_param {
+    num_classes: 80
+    share_location: true
+    background_label_id: -1
+    nms_param {
+      nms_threshold: 0.45
+      top_k: 200
+    }
+    code_type: CENTER_SIZE_EXP
+    keep_top_k: 200
+    confidence_threshold: 0.3
+  }
+  name: "yolo_v3"
+  in_width: 512
+  in_height: 512
+  output: "boxes"
+  output: "labels"
+  framework: "MMDetection"
+}

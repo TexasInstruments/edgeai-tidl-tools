@@ -1,5 +1,5 @@
 
-# EdgeAI TIDL Tools Tags for compatible SDK version
+# EdgeAI TIDL Tools Version for compatible SDK version
 
 ## Release version convention:
 - Processor SDK RTOS follows versioning scheme as Major.Minor.Patch.Build. Processor SDK RTOS provides TIDL firmware as part of its release
@@ -11,7 +11,7 @@
 
 <div align="center">
 
-|EdgeAI TIDL Tools TAG         |           AM62 |           AM62A |          AM68A/J721S2 (TDA4AL, TDA4VL) |          AM68PA/J721E (TDA4VM)|          AM69A/J784S4(TDA4AP, TDA4VP,TDA4AH, TDA4VH)| AM67A (J722S)|          Notes|
+|EdgeAI TIDL Tools Version       |           AM62 |           AM62A |          AM68A/J721S2 (TDA4AL, TDA4VL) |          AM68PA/J721E (TDA4VM)|          AM69A/J784S4(TDA4AP, TDA4VP,TDA4AH, TDA4VH)| AM67A (J722S)|          Notes|
 | ---------------------------- |:--------------:|:---------------:|:--------------:|:--------------:|:-------------:|:-------------:|:-------------:|
 |  10_00_04_00                  |   10_00_07_04  |     Processor SDK LINUX : 10.00.00.08 | Processor SDK LINUX 10.00.00.08<br /> Processor SDK RTOS 10.00.00.05   |   Processor SDK LINUX 10.00.00.08<br /> Processor SDK RTOS 10.00.00.05  | Processor SDK LINUX 10.00.00.08<br /> Processor SDK RTOS 10.00.00.05   | Processor SDK LINUX 10.00.00.08<br /> Processor SDK RTOS 10.00.00.05   |          |
 |  10_00_03_00                  |   09_02_01_09  |     Processor SDK LINUX : 09.02.00.05 | Processor SDK LINUX 09.02.00.05<br /> Processor SDK RTOS 09.02.00.05   |   Processor SDK LINUX 09.02.00.05<br /> Processor SDK RTOS 09.02.00.05  | Processor SDK LINUX 09.02.00.05<br /> Processor SDK RTOS 09.02.00.05   | Processor SDK LINUX 09.02.00.05<br /> Processor SDK RTOS 09.02.00.05   |  This release is backward compatible with SDK 9.2. Please follow the steps [here](backward_compatibility.md) to enable compatibility        |

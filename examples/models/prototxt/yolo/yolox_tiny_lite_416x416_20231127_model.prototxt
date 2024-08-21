@@ -1,0 +1,35 @@
+name: "yolox"
+tidl_yolo {
+  yolo_param {
+    input: "187"
+    anchor_width: 8.0
+    anchor_height: 8.0
+  }
+  yolo_param {
+    input: "188"
+    anchor_width: 16.0
+    anchor_height: 16.0
+  }
+  yolo_param {
+    input: "189"
+    anchor_width: 32.0
+    anchor_height: 32.0
+  }
+  detection_output_param {
+    num_classes: 80
+    share_location: true
+    background_label_id: -1
+    nms_param {
+      nms_threshold: 0.45
+      top_k: 200
+    }
+    code_type: CODE_TYPE_YOLO_X
+    keep_top_k: 200
+    confidence_threshold: 0.3
+  }
+  name: "yolox"
+  in_width: 416
+  in_height: 416
+  output: "detections"
+  framework: "YOLOv5"
+}

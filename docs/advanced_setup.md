@@ -15,7 +15,7 @@ The following environment variables must be exported to configure the docker bas
 
 | No | Environment Variable | Default | Available Options | Notes |
 |:--:|:---------------------|:--------|:------------------|:------|
-| 1  | SOC | Unset | AM62A, AM67A, AM68A, AM69A, AM68PA | Must be set to the appropriate device|
+| 1  | SOC | Unset | am62a, am67a, am68a, am69a, am68pa | Must be set to the appropriate device|
 | 2  | TIDL_TOOLS_TYPE | Unset | Unset, GPU| Setting TIDL_TOOLS_TYPE=GPU sets up the docker image for tidl tools built with OpenACC based acceleration<br /> GPU tools require a NVIDIA GPU with CUDA Support [^1]|
 | 3  | USE_PROXY | Unset | Unset, ti | Should only be set if within TI network|
 </div>
@@ -44,6 +44,7 @@ Steps to build and run the docker image:
 
         cd /home/root/
         # Supported SOC name strings am62, am62a, am67a, am68a, am68pa, am69a
+        # Note: am62 doesn't support hardware acceleration & GPU tools are not supported for it
         export SOC=<Your SOC name>
         #Set TIDL_TOOLS_TYPE to GPU if using GPU tools
         export TIDL_TOOLS_TYPE=<Your Tools Type (GPU)>

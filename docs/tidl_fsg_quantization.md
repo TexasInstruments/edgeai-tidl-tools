@@ -5,16 +5,16 @@
 - [Quantization](#Quantization)
 - [Introduction](#Introduction)
 - [A. Quantization Options](#A.-Quantization-Options)
-	- [A.1. Post Training Quantization (PTQ):](#A.1.-Post-Training-Quantization-(PTQ):)
-	- [A.1. Simple Calibration](#A.2.-Prequantized-Models:)
+	- [A.1. Post Training Quantization (PTQ)](#A.1.-Post-Training-Quantization-(PTQ))
+	- [A.1. Simple Calibration](#A.2.-Prequantized-Models)
 - [B. Calibration Options](#B.-Calibration-Options)
 	- [B.1. Simple Calibration](#B.1.-Simple-Calibration)
 	- [B.2. Advanced Calibration](#B.2.-Advanced-Calibration)
-		- [B.2.1. Advanced Bias calibration:](#B.2.1.-Advanced-Bias-calibration:)
-		- [B.2.2. Histogram based activation range collection:](#B.2.2.-Histogram-based-activation-range-collection:)
+		- [B.2.1. Advanced Bias calibration](#B.2.1.-Advanced-Bias-calibration)
+		- [B.2.2. Histogram based activation range collection](#B.2.2.-Histogram-based-activation-range-collection)
 - [C. Mixed Precision](#C.-Mixed-Precision)
-	- [C.1. Manual Mixed Precision:](#C.1.-Manual-Mixed-Precision:)
-	- [C.2. Automated Mixed Precision:](#C.2.-Automated-Mixed-Precision:)
+	- [C.1. Manual Mixed Precision](#C.1.-Manual-Mixed-Precision)
+	- [C.2. Automated Mixed Precision](#C.2.-Automated-Mixed-Precision)
 - [Guidelines for Getting Best Accuracy](#Example-Workflow-for-Getting-Best-Accuracy)
 <!-- /TOC -->
 
@@ -41,7 +41,7 @@ This page introduces various quantization options available as part of TI's Deep
 TIDL-RT supports the following mechanisms to enable fixed point inference:
 - A.1. Post Training Quantization (PTQ) : Floating point models, where TIDL's PTQ algorithm calibrates & quantizes the network
 - A.2. Pre-quantized Models :  Fixed point models which bypass TIDL's calibration phase. [ONNX QDQ models](https://onnxruntime.ai/docs/performance/model-optimizations/quantization.html#onnx-quantization-representation-format) and [TFLite Pre-quantized models](https://www.tensorflow.org/lite/performance/post_training_quantization) are allowed for this mechanism  
-## A.1. Post Training Quantization (PTQ):
+## A.1. Post Training Quantization (PTQ)
 
 - Training free Quantization – Simplest to use
 - This method converts floating point models into fixed point. It requires representative calibration data to determine scales & zero points for fixed point inference
@@ -49,7 +49,7 @@ TIDL-RT supports the following mechanisms to enable fixed point inference:
 	- It is recommended to set "advanced_options:quantization_scale_type" to 4 (Asymmetric quantization) for devices which can support it
 - Mixed precision - layers can be configured to be a mix of 8-bit/16-bit to provide better accuracy. Refer to [MixedPrecision][#Mixed Precision] for details on the options provided
 - Please refer to the [Calibration][#Calibration] section for further information on additional options to tune the TIDL-RT's PTQ process
-## A.2. Prequantized Models:
+## A.2. Prequantized Models
 
 - TIDL can support import of pre quantized models: 
 	- <a href="https://onnxruntime.ai/docs/performance/model-optimizations/quantization.html#onnx-quantization-representation-format">ONNX QDQ Models</a> : This requires "advanced_options:prequantized_model" to be set to 1
@@ -76,21 +76,21 @@ This section is only relevant in case user is doing [PTQ](#A.1.-Post-Training-Qu
 ## B.2. Advanced Calibration
 - TIDL product provides some advance options for calibration as listed below:
 
-### B.2.1. Advanced Bias calibration:
+### B.2.1. Advanced Bias calibration
 - This feature can be enabled by user by setting accuracy_level = 1 which is one of the optional parameter for model compilation. Typically no other parameter is required to be set because default parameters works for most of the cases. It is observed that using 50 or more number of images gives considerable accuracy boost.
 - This feature applies a clipping to the weights and update the bias to compensate the DC errors introduced because of quantization.
 - User can also experiment with following parameters related to this option if required:
 	- advanced_options:calibration_iterations: Number of iteration to be used for bias calibration.
 	- advanced_options:calibration_frames: Number of input frames to be used for bias calibration.
    
-### B.2.2. Histogram based activation range collection:
+### B.2.2. Histogram based activation range collection
 - To enable this feature user needs to set accuracy_level = 9 and advanced_options:activation_clipping = 1/0 to enable/disable this feature.
 - This feature uses the histogram of feature map activation ranges to remove outliers which can affect the overall range. This may help in reducing the accuracy loss due to quantization in some of the networks.
 
 ---
 
 # C. Mixed Precision
-## C.1. Manual Mixed Precision:
+## C.1. Manual Mixed Precision
 - This feature allows user to run only certain layers in higher precision ( i.e. in 16 bit) whereas rest of the network runs in 8 bit. As the precision keeps changing throughout the network this feature is called as Mixed Precision.
 - User can use this feature using following ways :
 	- Manually selecting layers for mixed precision :
@@ -105,7 +105,7 @@ This section is only relevant in case user is doing [PTQ](#A.1.-Post-Training-Qu
 		- TIDL_PoolingLayer ( Excluding Max pooling layer) 
 		- TIDL_EltWiseLayer
 
-## C.2. Automated Mixed Precision:
+## C.2. Automated Mixed Precision
 This section is only relevant in case user is doing [PTQ](#A.1.-Post-Training-Quantization-(PTQ):) with TI tool chain
 - This is an enhancement to the mixed precision feature. It enables automatic selection of layers to be set to 16 bit for improved accuracy
 - The accuracy improvement with mixed precision comes with a performance cost. This feature accepts a parameter to specify the user-tolerable performance cost and accordingly sets the most impactful layers to 16 bit to meet the user specified performance constraint

@@ -1,5 +1,6 @@
 # Enabling backward compatibility
 
+This section describes how to use an updated tools version (Say from SDK 10.x) with a lower SDK version (e.g. SDK 9.2). The tools version will clearly call out that if this is possible in the [Version Compatibility Table](../docs/version_compatibility_table.md). Additionally, a C7X firmware patch must be applied on the older SDK for this feature to work.
 ## Setup on Target Device
   - Follow the steps below on the target device to patch the wheels, libraries and shared object files.
  - The script provided downloads and replaces the following components on the target device filesystem:
@@ -14,7 +15,7 @@
 ```
 mv /usr/include/onnxruntime /usr/include/onnxruntime_old
 mv /usr/include/tensorflow /usr/include/tensorflow_old
-mv /usr/lib/tflite_2.21 /usr/lib/tflite_2.21_old
+mv /usr/lib/tflite_2.12 /usr/lib/tflite_2.12_old
 source ./setup_target_device.sh
 ```
 

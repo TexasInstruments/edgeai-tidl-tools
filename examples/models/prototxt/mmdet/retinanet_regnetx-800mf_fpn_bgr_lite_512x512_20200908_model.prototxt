@@ -1,0 +1,42 @@
+name: "retinanet"
+tidl_retinanet {
+  box_input: "788"
+  box_input: "844"
+  box_input: "900"
+  box_input: "956"
+  box_input: "1012"
+  class_input: "784"
+  class_input: "840"
+  class_input: "896"
+  class_input: "952"
+  class_input: "1008"
+  output: "boxes"
+  output: "labels"
+  in_width: 512
+  in_height: 512
+  x_scale: 1.0
+  y_scale: 1.0
+  width_scale: 1.0
+  height_scale: 1.0
+  score_converter: SIGMOID
+  anchor_param {
+    aspect_ratio: 0.5
+    aspect_ratio: 1.0
+    aspect_ratio: 2.0
+    octave_base_scale: 4.0
+    scales_per_octave: 3
+  }
+  detection_output_param {
+    num_classes: 80
+    share_location: true
+    background_label_id: -1
+    nms_param {
+      nms_threshold: 0.45
+      top_k: 200
+    }
+    code_type: CENTER_SIZE
+    keep_top_k: 200
+    confidence_threshold: 0.3
+  }
+  framework: "MMDetection"
+}

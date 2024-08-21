@@ -173,6 +173,8 @@ cmake ../examples && make -j && cd ..
 source ./scripts/run_python_examples.sh
 python3 ./scripts/gen_test_report.py
 ```
+
+- You can find the models used and their corresponding inference parameters at ```./examples/osrt_python/model_configs.py```
 - The execution of above step will generate compiled-model artifacts and output images at ```./edgeai-tidl-tools/output_images```. These outputs images can be compared against the expected outputs in ```/edgeai-tidl-tools/test_data/refs-pc-{soc}```, this confirms successful installation / setup on PC
 
 ```
@@ -229,5 +231,6 @@ python3 ./scripts/gen_test_report.py
   - [**Model Optimization**](scripts/README.md)  
   - [**Multi-core inference for devices with multiple DSP cores**](docs/tidl_fsg_multi_c7x.md)
   - [**Support for Vision Transformers**](docs/tidl_fsg_vtfr.md)
+  - [**TIDL-RT: Input and Output Tensor Format**](docs/tidl_fsg_io_tensors_format.md)
 ## License
 Please see the license under which this repository is made available: [LICENSE](./LICENSE)

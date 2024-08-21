@@ -23,25 +23,11 @@ The below table covers the current status of transformer operators:
 
 - TIDL currently supports vision transformers via ONNX models only
 - TIDL has validated vision transformers from [**timm**](https://github.com/huggingface/pytorch-image-models/tree/main) exported to ONNX in the current release
+- Support for the following models has been added,
+    - DEIT, SWIN, DETR, Segformer (models will be part of our [**ModelZoo**](https://github.com/TexasInstruments/edgeai-tensorlab/tree/main/edgeai-modelzoo) soon)
 - Accuracy with 8-bit quantization is not yet achieved with variety of models, for example SWIN architecture suffers accuracy loss with 8-bit quantization
 - ONNX-RT Optimization Level must be set to ORT_DISABLE_ALL while compiling models offloaded to C7x for vision transformers
 
-## Roadmap
-We plan to support the following networks & features in our upcoming releases:
-
-<div align="center">
-
-| SDK Version | Network/Features                                                                                                                                                                 | 
-|----------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| SDK 9.2  (This release) | Improved support for transformers (Latency & Accuracy) <br> Support for DETR, SWIN | 
-| SDK 10.0 (July'2024) | Additional optimization (latency and accuracy) of transformer modules <br> Support for DETR-3D, Segformer <br> Support for low latency mode for multiple C7x(s) for transformer architectures | 
-| SDK 10.1 (Nov'2024) | Support for BEVFormer (ECCV 2022), BEVFormer-V2, StreamPETR (ICCV 2023), Deformable DETR <br> Deformable attention <br> Temporal information fusion | 
-| SDK 10.2 and beyond  | Other state of the art architectures <br> Deformable convolution | 
-
-</div>
-Above mentioned feature set for future releases are indicative and subject to change based upon industry needs and research in this field
-<br>
-<br>
 
 # TIDL Layer Mapping of Transformer Operators
 

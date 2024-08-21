@@ -1,0 +1,108 @@
+name: "ssd"
+caffe_ssd {
+  box_input: "741"
+  box_input: "749"
+  box_input: "757"
+  box_input: "765"
+  box_input: "773"
+  box_input: "781"
+  class_input: "737"
+  class_input: "745"
+  class_input: "753"
+  class_input: "761"
+  class_input: "769"
+  class_input: "777"
+  output: "boxes"
+  output: "labels"
+  in_width: 512
+  in_height: 512
+  prior_box_param {
+    min_size: 20.0
+    max_size: 51.0
+    aspect_ratio: 2.0
+    flip: true
+    clip: false
+    variance: 0.1
+    variance: 0.1
+    variance: 0.2
+    variance: 0.2
+    step: 8.0
+  }
+  prior_box_param {
+    min_size: 51.0
+    max_size: 153.0
+    aspect_ratio: 2.0
+    aspect_ratio: 3.0
+    flip: true
+    clip: false
+    variance: 0.1
+    variance: 0.1
+    variance: 0.2
+    variance: 0.2
+    step: 16.0
+  }
+  prior_box_param {
+    min_size: 153.0
+    max_size: 256.0
+    aspect_ratio: 2.0
+    aspect_ratio: 3.0
+    flip: true
+    clip: false
+    variance: 0.1
+    variance: 0.1
+    variance: 0.2
+    variance: 0.2
+    step: 32.0
+  }
+  prior_box_param {
+    min_size: 256.0
+    max_size: 358.0
+    aspect_ratio: 2.0
+    aspect_ratio: 3.0
+    flip: true
+    clip: false
+    variance: 0.1
+    variance: 0.1
+    variance: 0.2
+    variance: 0.2
+    step: 64.0
+  }
+  prior_box_param {
+    min_size: 358.0
+    max_size: 460.0
+    aspect_ratio: 2.0
+    aspect_ratio: 3.0
+    flip: true
+    clip: false
+    variance: 0.1
+    variance: 0.1
+    variance: 0.2
+    variance: 0.2
+    step: 128.0
+  }
+  prior_box_param {
+    min_size: 460.0
+    max_size: 563.0
+    aspect_ratio: 2.0
+    flip: true
+    clip: false
+    variance: 0.1
+    variance: 0.1
+    variance: 0.2
+    variance: 0.2
+    step: 256.0
+  }
+  detection_output_param {
+    num_classes: 81
+    share_location: true
+    background_label_id: 80
+    nms_param {
+      nms_threshold: 0.45
+      top_k: 200
+    }
+    code_type: CENTER_SIZE
+    keep_top_k: 200
+    confidence_threshold: 0.3
+  }
+  framework: "MMDetection"
+}

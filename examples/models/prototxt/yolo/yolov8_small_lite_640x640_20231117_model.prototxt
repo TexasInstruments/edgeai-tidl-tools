@@ -1,0 +1,49 @@
+name: "yolo_v8"
+
+caffe_ssd {
+  name: "yolo_v8"
+  in_width: 640
+  in_height: 640
+
+  class_input: "129"
+  class_input: "139"
+  class_input: "149"
+
+  box_input: "134"
+  box_input: "144"
+  box_input: "154"
+
+ head_param {
+    input: "129"
+  }
+ head_param {
+    input: "139"
+  }
+ head_param {
+    input: "149"
+  }
+ head_param {
+    input: "134"
+ }
+ head_param {
+    input: "144"
+ }
+ head_param {
+    input: "154"
+ }
+
+  detection_output_param {
+    num_classes: 80
+    share_location: true
+    background_label_id: -1
+    nms_param {
+      nms_threshold: 0.45
+      top_k: 200
+    }
+    code_type: CODE_TYPE_DIST2BBOX
+    keep_top_k: 100
+    confidence_threshold: 0.1
+  }
+  score_converter: SIGMOID
+  output: "detections"
+}
