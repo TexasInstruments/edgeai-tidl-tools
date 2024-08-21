@@ -283,7 +283,10 @@ def run_model(model, mIdx):
 if len(args.models) > 0:
     models = args.models
 else :
-    models = ['od-ort-ssd-lite_mobilenetv2_fpn']
+    models = ['cl-ort-resnet18-v1', 'od-ort-ssd-lite_mobilenetv2_fpn']
+    if(SOC == "am69a"):
+        models.append('cl-ort-resnet18-v1_4batch') # Model to demonstrate multi core parallel batch processing
+        models.append('cl-ort-resnet18_1MP_low_latency') # Model to demonstrate multi core low latency inference
     if(SOC not in ("am62a","am67a")):
         models.append('ss-ort-deeplabv3lite_mobilenetv2')
 
