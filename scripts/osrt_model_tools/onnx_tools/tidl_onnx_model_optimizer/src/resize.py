@@ -62,6 +62,7 @@ Module containing Resize layer specific functions and optimizations
 import logging
 import onnx_graphsurgeon as gs
 import onnx
+from onnx import numpy_helper
 import numpy as np
 
 
@@ -75,30 +76,46 @@ def tidl_convert_resize_params_size_to_scale(graph: gs.Graph,
     [Variable Input, roi, scales, sizes]
     """
     tensors = graph.tensors()
+
     for node in graph.nodes:
         # check if satisfy criteria
         if node.op == "Resize":
             # if not 4 inputs, do not consider
-            if len(node.inputs) != 4:
-                continue
-            var, roi, scales, sizes = node.inputs[0], node.inputs[1], node.inputs[2], node.inputs[3]
-            # if sizes is not empty and scales are empty and both are constant
-            if (not np.any(scales.shape)) and np.any(sizes.shape) \
-                and isinstance(sizes, gs.Constant):
-                reshaped_sizes = np.array(tensors[sizes.name].values, dtype=np.float32)
-                in_sizes = np.array(var.shape, dtype=np.float32)
-                scale_params = reshaped_sizes/in_sizes
-
-                # check scale parameter values
-                for t in scale_params:
-                    if np.log2(t) != int(np.log2(t)):
-                        logging.warning(f"{node.name} has scale not as power of "
-                                        f"2 which is not supported by TIDL")
-                scale_name = f"{node.name}.scales"
-                scales_updated = gs.Constant(name=scale_name, values=scale_params)
-                node.inputs = [var, roi, scales_updated]
-                logging.debug(f"Updating resize node {node.name} inputs from "
-                              f"sizes to scale {scale_params}")
+            if len(node.inputs) == 4:
+                var, roi, scales, sizes = node.inputs[0], node.inputs[1], node.inputs[2], node.inputs[3]
+                # if sizes is not empty and scales are empty and both are constant
+                if (not np.any(scales.shape)) and np.any(sizes.shape) \
+                    and isinstance(sizes, gs.Constant):
+                    reshaped_sizes = np.array(tensors[sizes.name].values, dtype=np.float32)
+                    in_sizes = np.array(var.shape, dtype=np.float32)
+                    scale_params = reshaped_sizes/in_sizes
+                    #roi initializer
+                    if roi.shape is None:
+                        roi_const = np.array([], dtype=np.float32)
+                        initializer_name = f"{node.name}.roi_const_name"
+                        roi_const_name = numpy_helper.from_array(roi_const, name=initializer_name)
+                        onnx_graph.initializer.append(roi_const_name)
+                        roi = gs.Constant(name=initializer_name, values=roi_const) 
+                    # check scale parameter values
+                    for t in scale_params:
+                        if np.log2(t) != int(np.log2(t)):
+                            logging.warning(f"{node.name} has scale not as power of "
+                                            f"2 which is not supported by TIDL")
+                    scale_name = f"{node.name}.scales"
+                    scales_updated = gs.Constant(name=scale_name, values=scale_params)
+                    node.inputs = [var, roi, scales_updated]
+                    logging.debug(f"Updating resize node {node.name} inputs from "
+                                f"sizes to scale {scale_params}")
+            elif len(node.inputs) == 3:
+                var, roi, scales = node.inputs[0], node.inputs[1], node.inputs[2]
+                #roi initializer
+                if roi.shape is None:
+                    roi_const = np.array([], dtype=np.float32)
+                    initializer_name = f"{node.name}.roi_const_name"
+                    roi_const_name = numpy_helper.from_array(roi_const, name=initializer_name)
+                    onnx_graph.initializer.append(roi_const_name)
+                    roi = gs.Constant(name=initializer_name, values=roi_const) 
+                node.inputs = [var, roi, scales]
             # endif
         # endif
     # endfor
