@@ -3,7 +3,6 @@ import platform
 import os
 import sys
 from PIL import Image
-
 import argparse
 
 parser = argparse.ArgumentParser()
@@ -34,7 +33,6 @@ def preprocess_for_tflite_inceptionnetv3(image_path):
 
     # read the image using openCV
     img = cv2.imread(image_path)
-    
     # convert to RGB
     img = img[:,:,::-1]
     
@@ -61,10 +59,8 @@ def preprocess_for_tflite_inceptionnetv3(image_path):
     img = img.astype('uint8')
     #for mean, scale, ch in zip([128, 128, 128], [0.0078125, 0.0078125, 0.0078125], range(img.shape[2])):
     #        img[:,:,ch] = ((img[:,:,ch] - mean) * scale)
-     
     # convert HWC to NHWC
     img = np.expand_dims(img, axis=0)
-    
     return img
 
 def postprocess_for_tflite_inceptionnetv3(res):
@@ -74,10 +70,8 @@ def postprocess_for_tflite_inceptionnetv3(res):
 def preprocess_for_onnx_mobilenetv2(image_path):
     import cv2
     import numpy as np
-    
     # read the image using openCV
     img = cv2.imread(image_path)
-    
     # convert to RGB
     img = img[:,:,::-1]
     
@@ -191,11 +185,11 @@ def model_create_and_run(model_dir,
     log = f'\n \nCompleted_Model : {mIdx+1:5d}, Name : {os.path.basename(model_dir):50s}, Total time : {proc_time/numImages:10.2f}, Offload Time : {proc_time/numImages:10.2f} , DDR RW MBs : 0, Output File : {output_file_name}\n \n ' #{classes} \n \n'
     print(log) 
 
-
 model_output_directory = '../../../model-artifacts/cl-dlr-tflite_inceptionnetv3'
 if platform.machine() == 'aarch64':
     model_output_directory = model_output_directory+'_device'
-   
+model_output_directory = model_output_directory+'/artifacts'
+
 model_create_and_run(model_output_directory, 'input',
                         preprocess_for_tflite_inceptionnetv3,
                         postprocess_for_tflite_inceptionnetv3, 0)
@@ -205,18 +199,19 @@ if ( args.run_model_zoo ):
     model_output_directory = '../../../model-artifacts/cl-3090_tvmdlr_imagenet1k_torchvision_mobilenet_v2_tv_onnx'
 if platform.machine() == 'aarch64':
     model_output_directory = model_output_directory+'_device'
+model_output_directory = model_output_directory+'/artifacts'
 
 model_create_and_run(model_output_directory, 'input.1Net_IN',
                         preprocess_for_onnx_mobilenetv2,
                         postprocess_for_onnx_mobilenetv2, 1)
 
 if platform.machine() == 'aarch64':
-    model_output_directory = '../../../model-artifacts/cl-dlr-timm_mobilenetv3_large_100_device'
+    model_output_directory = '../../../model-artifacts/cl-dlr-timm_mobilenetv3_large_100_device/artifacts'
     model_create_and_run(model_output_directory, 'input.1',
                         preprocess_for_mxnet_mobilenetv3,
                         postprocess_for_onnx_mobilenetv2, 1)
 
-    model_output_directory = '../../../model-artifacts/cl-dlr-timm_mobilenetv3_large_100_device_c7x'
+    model_output_directory = '../../../model-artifacts/cl-dlr-timm_mobilenetv3_large_100_device_c7x/artifacts'
     model_create_and_run(model_output_directory, 'input.1',
                         preprocess_for_mxnet_mobilenetv3,
                         postprocess_for_onnx_mobilenetv2, 1)

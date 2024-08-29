@@ -16,6 +16,10 @@ parent = os.path.dirname(current)
 sys.path.append(parent)
 from common_utils import *
 from model_configs import *
+import edgeai_benchmark
+
+settings = AttrDict(save_output=False, detection_threshold=0.3, detection_keep_top_k = 200)
+postprocess_transforms_creator = edgeai_benchmark.postprocess.PostProcessTransforms(settings)
 
 required_options = {
 "tidl_tools_path":tidl_tools_path,
@@ -83,8 +87,6 @@ def get_benchmark_output(interpreter):
     copy_time = copy_time if len(subgraphIds) == 1 else 0
     return copy_time, totaltime, proc_time, write_total/1000000, read_total/1000000
 
-
-
 def infer_image(interpreter, image_files, config):
   input_details = interpreter.get_input_details()
   output_details = interpreter.get_output_details()
@@ -105,12 +107,12 @@ def infer_image(interpreter, image_files, config):
       input_data[i] = temp_input_data[0] 
   if floating_model:
     input_data = np.float32(input_data)
-    for mean, scale, ch in zip(config['mean'], config['scale'], range(input_data.shape[3])):
+    for mean, scale, ch in zip(config['session']['input_mean'], config['session']['input_scale'], range(input_data.shape[3])):
         input_data[:,:,:, ch] = ((input_data[:,:,:, ch]- mean) * scale)
   else:
     input_data = np.uint8(input_data)
-    config['mean'] = [0, 0, 0]
-    config['scale']  = [1, 1, 1]
+    config['session']['input_mean'] = [0, 0, 0]
+    config['session']['input_scale']  = [1, 1, 1]
 
   interpreter.resize_tensor_input(input_details[0]['index'], [batch, new_height, new_width, channel])
   interpreter.allocate_tensors()
@@ -137,11 +139,11 @@ def run_model(model, mIdx):
         download_model(models_configs, model)
     config = models_configs[model]
  
-    if config['model_type'] == 'classification':
+    if config['task_type'] == 'classification':
         test_images = class_test_images
-    elif config['model_type'] == 'od':
+    elif config['task_type'] == 'detection':
         test_images = od_test_images
-    elif config['model_type'] == 'seg':
+    elif config['task_type'] == 'segmentation':
         test_images = seg_test_images
 
     #set delegate options
@@ -152,12 +154,12 @@ def run_model(model, mIdx):
         delegate_options.update(config['optional_options'])
 
     # stripping off the ss-tfl- from model namne
-    delegate_options['artifacts_folder'] = delegate_options['artifacts_folder'] + '/' + model + '/'
+    delegate_options['artifacts_folder'] = delegate_options['artifacts_folder'] + '/' + model + '/artifacts'
 
-    #
-    if config['model_type'] == 'od':
-        delegate_options['object_detection:meta_layers_names_list'] = config['meta_layers_names_list'] if ('meta_layers_names_list' in config) else ''
-        delegate_options['object_detection:meta_arch_type'] = config['meta_arch_type'] if ('meta_arch_type' in config) else -1
+    if config['task_type'] == 'detection':
+        delegate_options['object_detection:meta_layers_names_list'] = config['session'].get('meta_layers_names_list', '')
+        delegate_options['object_detection:meta_arch_type'] = config['session'].get('meta_arch_type', -1)
+        
     if ('object_detection:confidence_threshold' in config  and 'object_detection:top_k' in config ):
         delegate_options['object_detection:confidence_threshold'] = config['object_detection:confidence_threshold']
         delegate_options['object_detection:top_k'] = config['object_detection:top_k']
@@ -174,22 +176,54 @@ def run_model(model, mIdx):
     else:
         input_image = test_images 
 
-    numFrames = config['num_images']
+    numFrames = config['extra_info']['num_images']
     if(args.compile):
         if numFrames > delegate_options['advanced_options:calibration_frames']:
             numFrames = delegate_options['advanced_options:calibration_frames']
     
     ############   set interpreter  ################################
     if args.disable_offload : 
-        interpreter = tflite.Interpreter(model_path=config['model_path'], num_threads=2)
+        interpreter = tflite.Interpreter(model_path=config['session']['model_path'], num_threads=2)
     elif args.compile:
-        interpreter = tflite.Interpreter(model_path=config['model_path'], \
+        interpreter = tflite.Interpreter(model_path=config["session"]["model_path"], \
                         experimental_delegates=[tflite.load_delegate(os.path.join(tidl_tools_path, 'tidl_model_import_tflite.so'), delegate_options)])
     else:
-        interpreter = tflite.Interpreter(model_path=config['model_path'], \
+        interpreter = tflite.Interpreter(model_path=config['session']['model_path'], \
                         experimental_delegates=[tflite.load_delegate('libtidl_tfl_delegate.so', delegate_options)])
     ################################################################
+
+    input_details = interpreter.get_input_details()
+    input_name = input_details[0]['name']
+    type = 'tensor(float)'
+    height = input_details[0]['shape'][1]
+    width  = input_details[0]['shape'][2]
+    channel = input_details[0]['shape'][3]
+    batch  = input_details[0]['shape'][0]
+    shape = [int(batch), int(channel), int(height), int(width)]
+    input_details = {'name' : input_name,
+                     'shape' : shape,
+                     'type' : type}
+
+    output_details =interpreter.get_output_details()
+    output_name = output_details[0]['name']
+    type = 'tensor(float)'
+    num_class = output_details[0]['shape'][1]
+    batch  = output_details[0]['shape'][0]
+    shape = [int(batch), int(num_class)]
+    output_details = {'name' : input_name,
+                    'shape' : shape,
+                    'type' : type}
+
+    config["session"]['input_details'] = input_details
+    config["session"]['output_details'] = output_details
+
+    if config['task_type'] == 'detection' :
+        postprocess_object = postprocess_transforms_creator.get_transform_detection_base(**config['postprocess'])
+        config['postprocess'] = pretty_object(postprocess_object)['kwargs']
     
+    if config['task_type'] == 'segmentation' :
+        postproc_segmenation_tflite = postprocess_transforms_creator.get_transform_segmentation_tflite(**config['postprocess'])
+
     # run interpreter
     for i in range(numFrames):
         start_index = i%len(input_image)
@@ -211,18 +245,33 @@ def run_model(model, mIdx):
     # output post processing
     if(args.compile == False):  # post processing enabled only for inference
         images = []
-        if config['model_type'] == 'classification':
+        if config['task_type'] == 'classification':
             for j in range(batch):         
                 classes, image = get_class_labels(output[0][j],imgs[j])
                 images.append(image)
                 print("\n", classes)
-        elif config['model_type'] == 'od':
+        elif config['task_type'] == 'detection':
             for j in range(batch):
-                classes, image = det_box_overlay(output, imgs[j], config['od_type'])
+                source_img = imgs[j].convert("RGBA")
+                draw = ImageDraw.Draw(source_img)
+                info_dict = {}
+                info_dict['data_shape'] = (imgs[j].size[1], imgs[j].size[0], 3)
+                info_dict['resize_shape'] = (imgs[j].size[1], imgs[j].size[0], 3)
+                info_dict['resize_border'] = (0, 0, 0, 0)
+                output = postprocess_object(output,info_dict=info_dict)
+                classes, image = det_box_overlay(output, imgs[j], config['extra_info']['od_type'])
                 images.append(image)
-        elif config['model_type'] == 'seg':
+
+        elif config['task_type'] == 'segmentation':
             for j in range(batch):
-                classes, image = seg_mask_overlay(output[0][j], imgs[j])
+                source_img = imgs[j].convert("RGBA")
+                draw = ImageDraw.Draw(source_img)
+                info_dict = {}
+                info_dict['data_shape'] = (imgs[j].size[1], imgs[j].size[0], 3)
+                info_dict['resize_shape'] = (imgs[j].size[1], imgs[j].size[0], 3)
+                info_dict['resize_border'] = (0, 0, 0, 0)
+                output = postproc_segmenation_tflite(output,info_dict=info_dict)
+                classes, image = seg_mask_overlay(output[j], imgs[j])
                 images.append(image)
         else:
             print("Not a valid model type")
@@ -257,8 +306,6 @@ if ( args.run_model_zoo ):
             ]
 log = f'Running {len(models)} Models - {models}\n'
 print(log)
-
-
 
 def join_one(nthreads):
     global run_count

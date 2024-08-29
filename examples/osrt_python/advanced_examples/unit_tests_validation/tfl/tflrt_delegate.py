@@ -111,11 +111,11 @@ def run_model(model, mIdx):
         delegate_options.update(config.get('model_specific_options'))
 
     # stripping off the ss-tfl- from model namne
-    delegate_options['artifacts_folder'] = delegate_options['artifacts_folder'] + '/' + model + '/'
+    delegate_options['artifacts_folder'] = delegate_options['artifacts_folder'] + '/' + model + '/artifacts'
 
-    if config['model_type'] == 'od':
-        delegate_options['object_detection:meta_layers_names_list'] = config['meta_layers_names_list'] if ('meta_layers_names_list' in config) else ''
-        delegate_options['object_detection:meta_arch_type'] = config['meta_arch_type'] if ('meta_arch_type' in config) else -1
+    if config['task_type'] == 'detection':
+        delegate_options['object_detection:meta_layers_names_list'] = config['extra_info']['meta_layers_names_list'] if ('meta_layers_names_list' in config) else ''
+        delegate_options['object_detection:meta_arch_type'] = config['extra_info']['meta_arch_type'] if ('meta_arch_type' in config) else -1
 
     # delete the contents of this folder
     if (args.compile or args.disable_offload):

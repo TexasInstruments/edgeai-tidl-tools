@@ -20,7 +20,7 @@ model_id = 'cl-dlr-timm_mobilenetv3_large_100'
 #download_model(models_configs, model_id)
 
 # model specifics
-model_path = models_configs[model_id]['model_path']
+model_path = models_configs[model_id]['session']['model_path']
 model_input_name = 'input.1'
 model_input_shape = (1, 3, 224, 224)
 model_input_dtype = 'float32'
@@ -55,6 +55,7 @@ build_target = 'llvm -device=arm_cpu -mtriple=aarch64-linux-gnu'
 cross_cc_args = {'cc' : os.path.join(os.environ['ARM64_GCC_PATH'], 'bin', 'aarch64-none-linux-gnu-gcc')}
 cgt7x_bin = os.path.join(os.environ['CGT7X_ROOT'], 'bin', 'cl7x')
 model_output_directory = model_output_directory+'_device'
+model_output_directory = model_output_directory+'/artifacts'
 
 # image preprocessing for calibration
 def preprocess_for_mxnet_mobilenetv3(image_path):
@@ -94,16 +95,9 @@ def preprocess_for_mxnet_mobilenetv3(image_path):
     # convert HWC to NCHW
     img = np.expand_dims(np.transpose(img, (2,0,1)),axis=0)
     # hard coding config values
-    config = {
-            'mean': [128.0, 128.0, 128.0],
-            'scale' :[1, 1 , 1],
-            'std' :[0.0078125, 0.0078125, 0.0078125],
-            'data_layout': 'NCHW',
-            'resize' : [256, 256],
-            'crop' : [224, 224],
-            'model_type': 'classification',
-            'model_path': model_path,
-            'session_name' : models_configs[model_id]['session_name']}
+
+
+    config = models_configs[model_id]
 
     gen_param_yaml(model_output_directory, config, 224, 224)
     return img

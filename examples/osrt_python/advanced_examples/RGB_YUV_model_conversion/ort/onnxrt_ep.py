@@ -147,11 +147,11 @@ def run_model(model, mIdx):
     
     #set input images for demo
     config = models_configs[model]
-    if config['model_type'] == 'classification':
+    if config['task_type'] == 'classification':
         test_images = class_test_images
-    elif config['model_type'] == 'od':
+    elif config['task_type'] == 'detection':
         test_images = od_test_images
-    elif config['model_type'] == 'seg':
+    elif config['task_type'] == 'segmentation':
         test_images = seg_test_images
     
     delegate_options = {}
@@ -159,11 +159,11 @@ def run_model(model, mIdx):
     delegate_options.update(optional_options)   
 
     # stripping off the ss-ort- from model namne
-    delegate_options['artifacts_folder'] = delegate_options['artifacts_folder'] + '/' + model + '/' #+ 'tempDir/' 
+    delegate_options['artifacts_folder'] = delegate_options['artifacts_folder'] + '/' + model + '/artifacts' #+ 'tempDir/' 
 
-    if config['model_type'] == 'od':
-        delegate_options['object_detection:meta_layers_names_list'] = config['meta_layers_names_list'] if ('meta_layers_names_list' in config) else ''
-        delegate_options['object_detection:meta_arch_type'] = config['meta_arch_type'] if ('meta_arch_type' in config) else -1
+    if config['task_type'] == 'detection':
+        delegate_options['object_detection:meta_layers_names_list'] = config['extra_info']['meta_layers_names_list'] if ('meta_layers_names_list' in config) else ''
+        delegate_options['object_detection:meta_arch_type'] = config['extra_info']['meta_arch_type'] if ('meta_arch_type' in config) else -1
 
     
     # delete the contents of this folder
@@ -182,7 +182,7 @@ def run_model(model, mIdx):
     else:
         input_image = test_images
     
-    numFrames = config['num_images']
+    numFrames = config['extra_info']['num_images']
     if(args.compile):
         if numFrames > delegate_options['advanced_options:calibration_frames']:
             numFrames = delegate_options['advanced_options:calibration_frames']
@@ -220,17 +220,17 @@ def run_model(model, mIdx):
     output_file_name = "py_out_"+model+'_'+os.path.basename(input_image[i%len(input_image)])
     if(args.compile == False):  # post processing enabled only for inference
         images = []
-        if config['model_type'] == 'classification':
+        if config['task_type'] == 'classification':
             for j in range(batch):
                 classes, image = get_class_labels(output[0][j],imgs[j])
                 print("\n", classes)
                 images.append(image)
-        elif config['model_type'] == 'od':
+        elif config['task_type'] == 'detection':
              for j in range(batch):
-                classes, image = det_box_overlay(output, imgs[j], config['od_type'], config['framework'])
+                classes, image = det_box_overlay(output, imgs[j], config['extra_info']['od_type'], config['extra_info']['framework'])
                 images.append(image)
             
-        elif config['model_type'] == 'seg':
+        elif config['task_type'] == 'segmentation':
             for j in range(batch):                
                 imgs[j] = imgs[j].resize((output[0][j].shape[1], output[0][j].shape[2]),PIL.Image.LANCZOS)
                 classes, image = seg_mask_overlay(output[0][j],imgs[j])

@@ -173,11 +173,11 @@ def run_model(model, mIdx):
         download_model(models_configs, model)
     config = models_configs[model]
  
-    if config['model_type'] == 'classification':
+    if config['task_type'] == 'classification':
         test_images = class_test_images
-    elif config['model_type'] == 'od':
+    elif config['task_type'] == 'detection':
         test_images = od_test_images
-    elif config['model_type'] == 'seg':
+    elif config['task_type'] == 'segmentation':
         test_images = seg_test_images
 
     #set delegate options
@@ -185,11 +185,11 @@ def run_model(model, mIdx):
     delegate_options.update(required_options)
     delegate_options.update(optional_options)
     # stripping off the ss-tfl- from model namne
-    delegate_options['artifacts_folder'] = delegate_options['artifacts_folder'] + '/' + model + '/'
+    delegate_options['artifacts_folder'] = delegate_options['artifacts_folder'] + '/' + model + '/artifacts'
 
-    if config['model_type'] == 'od':
-        delegate_options['object_detection:meta_layers_names_list'] = config['meta_layers_names_list'] if ('meta_layers_names_list' in config) else ''
-        delegate_options['object_detection:meta_arch_type'] = config['meta_arch_type'] if ('meta_arch_type' in config) else -1
+    if config['task_type'] == 'detection':
+        delegate_options['object_detection:meta_layers_names_list'] = config['extra_info']['meta_layers_names_list'] if ('meta_layers_names_list' in config) else ''
+        delegate_options['object_detection:meta_arch_type'] = config['extra_info']['meta_arch_type'] if ('meta_arch_type' in config) else -1
     if ('object_detection:confidence_threshold' in config  and 'object_detection:top_k' in config ):
         delegate_options['object_detection:confidence_threshold'] = config['object_detection:confidence_threshold']
         delegate_options['object_detection:top_k'] = config['object_detection:top_k']
@@ -206,7 +206,7 @@ def run_model(model, mIdx):
     else:
         input_image = test_images 
 
-    numFrames = config['num_images']
+    numFrames = config['extra_info']['num_images']
     if(args.compile):
         if numFrames > delegate_options['advanced_options:calibration_frames']:
             numFrames = delegate_options['advanced_options:calibration_frames']
@@ -251,16 +251,16 @@ def run_model(model, mIdx):
     # output post processing
     if(args.compile == False):  # post processing enabled only for inference
         images = []
-        if config['model_type'] == 'classification':
+        if config['task_type'] == 'classification':
             for j in range(batch):         
                 classes, image = get_class_labels(output[0][j],imgs[j])
                 images.append(image)
                 print("\n", classes)
-        elif config['model_type'] == 'od':
+        elif config['task_type'] == 'detection':
             for j in range(batch):
-                classes, image = det_box_overlay(output, imgs[j], config['od_type'])
+                classes, image = det_box_overlay(output, imgs[j], config['extra_info']['od_type'])
                 images.append(image)
-        elif config['model_type'] == 'seg':
+        elif config['task_type'] == 'segmentation':
             for j in range(batch):
                 classes, image = seg_mask_overlay(output[0][j], imgs[j])
                 images.append(image)

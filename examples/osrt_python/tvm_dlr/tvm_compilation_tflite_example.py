@@ -21,7 +21,7 @@ model_id = 'cl-dlr-tflite_inceptionnetv3'
 download_model(models_configs, model_id)
 
 # model specifics
-model_path = models_configs[model_id]['model_path']
+model_path = models_configs[model_id]['session']['model_path']
 model_input_name = 'input'
 model_input_height = 299
 model_input_width = 299
@@ -53,7 +53,7 @@ if args.device:
 else:
     build_target = 'llvm'
     cross_cc_args = {}
-   
+model_output_directory = model_output_directory+'/artifacts'
 # image preprocessing for calibration 
 def preprocess_for_tflite_inceptionnetv3(image_path):
     import cv2
@@ -91,16 +91,8 @@ def preprocess_for_tflite_inceptionnetv3(image_path):
      
     # convert HWC to NHWC
     img = np.expand_dims(img, axis=0)
-    # hard coding config values 
-    config = {
-            'mean': [0, 0, 0],
-            'scale' :[1, 1, 1],
-            'data_layout': 'NHWC',
-            'resize' : [model_input_height, model_input_width],
-            'crop' : [model_input_height, model_input_width],
-            'model_type': 'classification',
-            'model_path': model_path,
-            'session_name' : models_configs[model_id]['session_name']}
+
+    config = models_configs[model_id]
    
     gen_param_yaml(model_output_directory, config, model_input_height, model_input_width)
     return img

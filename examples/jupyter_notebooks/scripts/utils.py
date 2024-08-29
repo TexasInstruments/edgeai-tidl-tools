@@ -83,7 +83,6 @@ if platform.machine() != 'aarch64':
     import requests
     import onnx
 
-
 models = {
     'models/public/onnx/resnet18_opset9.onnx': {'model_url': 'https://git.ti.com/cgit/jacinto-ai/jacinto-ai-modelzoo/plain/models/vision/classification/imagenet1k/torchvision/resnet18_opset9.onnx', 'type': 'onnx'},
     'models/public/tflite/mobilenet_v1_1.0_224.tflite': {'model_url': 'https://git.ti.com/cgit/jacinto-ai/jacinto-ai-modelzoo/plain/models/vision/classification/imagenet1k/tf1-models/mobilenet_v1_1.0_224.tflite', 'type': 'tflite'},
@@ -115,7 +114,6 @@ def download_model(mpath):
                 onnx.shape_inference.infer_shapes_path(mpath, mpath)
         else :
             print(f'Model infor for {mpath} Not found')
-
 
 image_id_name_pairs = {
     'dog' : 'sample-images/dog.jpg',
@@ -232,8 +230,6 @@ selected_model_id = widgets.Dropdown(
     description='Select Model:',
     disabled=False,
 )
-
-
 Image_source = widgets.RadioButtons(
     options=['Local', 'Web'],
     value='Local',
@@ -241,7 +237,6 @@ Image_source = widgets.RadioButtons(
     description='Image Soure:',
     disabled=False
 )
-
 image_ulr = widgets.Text(
     value='https://github.com/dmlc/mxnet.js/blob/master/data/cat.png',
     #placeholder='NA',
@@ -466,6 +461,7 @@ def det_box_overlay(outputs, org_image_rgb, thr, postprocess, org_size, size):
     info_dict['data_shape'] = (org_size[1], org_size[0], 3)
     info_dict['resize_shape'] = (size[1], size[0], 3)
     info_dict['resize_border'] = (0, 0, 0, 0)
+    info_dict['dataset_info'] = {}
     outputs, info_dict = postprocess(outputs, info_dict)
 
     for i in range(int(outputs.shape[0])):

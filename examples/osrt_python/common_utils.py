@@ -5,6 +5,9 @@ import numpy as np
 from PIL import Image, ImageFont, ImageDraw, ImageEnhance
 import yaml
 import shutil
+import json
+from params_base import *
+from config_utils import *
 
 if platform.machine() == 'aarch64':
     numImages = 100
@@ -103,58 +106,53 @@ optional_options = {
 modelzoo_path = '../../../../../../jacinto-ai-modelzoo/models'
 modelforest_path = '../../../../../../jacinto-ai-modelforest/models'
 
-
 lables = '../../../test_data/labels.txt'
 models_base_path = '../../../models/public/'
+model_artifacts_base_path = '../../../model-artifacts/'
 
 def gen_param_yaml(artifacts_folder_path, config, new_height, new_width):
+
     resize = []
     crop = []
     resize.append(new_width)
     resize.append(new_height)
     crop.append(new_width)
     crop.append(new_height)
-    if(config['model_type'] == "classification"):
+    if(config['task_type'] == "classification"):
         model_type = "classification"
-    elif(config['model_type'] == "od"):
+    elif(config['task_type'] == 'detection'):
         model_type = "detection"
-    elif(config['model_type'] == "seg"):
+    elif(config['task_type'] == 'segmentation'):
         model_type = "segmentation"
-    model_file = config['model_path'].split("/")[0]
-    dict_file =[]
+    model_file = config['task_type'].split("/")[0]
+    dict_file = dict()
     layout = 'NCHW'
-    if config['session_name'] == 'tflitert':
+    if config['session']['session_name'] == 'tflitert':
         layout = 'NHWC'
-    
-    model_file_name = os.path.basename(config['model_path'])
-    
-    dict_file.append( {'session' :  {'artifacts_folder': '',
-                                     'model_folder': 'model',
-                                     'model_path': model_file_name,
-                                     'session_name': config['session_name']} ,
-                      'task_type' : model_type,
-                      'target_device': 'pc',
-                      'postprocess':{'data_layout' : layout },
-                      'preprocess' :{'data_layout' : layout ,
-                                    'mean':config['mean'],
-                                    'scale':config['scale'],
-                                    'resize':resize,
-                                    'crop':crop
-                                     } })
-    
-    if(config['model_type'] == "od"):
-        if(config['od_type'] == "SSD"):
-            dict_file[0]['postprocess']['formatter'] = {'name' : 'DetectionBoxSL2BoxLS', 'src_indices' : [5,4]}
-        elif(config['od_type'] == "HasDetectionPostProcLayer"):
-            dict_file[0]['postprocess']['formatter'] = {'name' : 'DetectionYXYX2XYXY','src_indices' : [1,0,3,2]}
-        
-        dict_file[0]['postprocess']['detection_thr'] = 0.3
+    model_file_name = os.path.basename(config['task_type'])
 
-    with open(os.path.join(artifacts_folder_path, "param.yaml"), 'w') as file:
-        documents = yaml.dump(dict_file[0], file)
+    config['preprocess']['add_flip_image'] = False
+    config['session']['artifacts_folder'] = artifacts_folder
+    config['session']['input_data_layout'] = layout
+    config['session']['target_device'] = SOC.upper()
 
-    if (config['session_name'] == 'tflitert') or (config['session_name'] == 'onnxrt'):
-        shutil.copy(config['model_path'], os.path.join(artifacts_folder_path,model_file_name))
+    if(config['task_type'] == 'detection'):
+        if(config['extra_info']['label_offset_type'] == '80to90'):
+            config['postprocess']['label_offset_pred']=coco_det_label_offset_80to90(label_offset=config['extra_info']['label_offset'])
+        else:
+            config['postprocess']['label_offset_pred']=coco_det_label_offset_90to90(label_offset=config['extra_info']['label_offset'])
+
+    # with open(os.path.join(artifacts_folder_path, "param.yaml"), 'w') as file:
+    #     documents = yaml.dump(config, file)
+    param_dict = pretty_object(config)
+    param_dict.pop('source')
+    param_dict.pop('extra_info')
+    
+    artifacts_model_path = artifacts_folder_path[:-9]
+    with open(os.path.join(artifacts_model_path, "param.yaml"), 'w') as file:
+        documents = yaml.safe_dump(param_dict, file, sort_keys=False)
+    if (config['session']['session_name'] == 'tflitert') or (config['session']['session_name'] == 'onnxrt'):
+        shutil.copy(config['session']['model_path'], os.path.join(artifacts_folder_path,model_file_name))
 
 headers = {
 'User-Agent': 'My User Agent 1.0',
@@ -169,21 +167,23 @@ def get_url_from_link_file(url):
 
 def download_model(models_configs, model_name): 
 
+    model_artifacts_path = model_artifacts_base_path + model_name + '/model'
+    if not os.path.isdir(model_artifacts_path):
+        os.makedirs(model_artifacts_path)
+
     if(model_name in models_configs.keys()):
+        model_path = models_configs[model_name]['session']['model_path']
         if('source' in models_configs[model_name].keys()):
             model_source = models_configs[model_name]['source']
-            model_path = models_configs[model_name]['model_path']
             if(not os.path.isfile(model_path)):
                 # Check whether the specified path exists or not
                 if not os.path.exists(os.path.dirname(model_path)):
                     # Create a new directory because it does not exist 
                     os.makedirs(os.path.dirname(model_path))
-
-                if('original_model_type' in models_configs[model_name].keys()) and models_configs[model_name]['original_model_type'] == 'caffe':
+                if('original_model_type' in models_configs[model_name]['extra_info'].keys()) and models_configs[model_name]['extra_info']['original_model_type'] == 'caffe':
                     print("Downloading  ", model_source['prototext'])
                     r = requests.get(get_url_from_link_file(model_source['model_url']), allow_redirects=True, headers=headers)
                     open(model_source['prototext'], 'wb').write(r.content)
-
                     print("Downloading  ", model_source['caffe_model'])
                     r = requests.get(get_url_from_link_file(model_source['caffe_model_url']), allow_redirects=True, headers=headers)
                     open(model_source['caffe_model'], 'wb').write(r.content)
@@ -201,33 +201,27 @@ def download_model(models_configs, model_name):
             
                 filename = os.path.splitext(model_path)
                 abs_path = os.path.realpath(model_path)
+                input_mean = models_configs[model_name]['session']['input_mean']
+                input_scale = models_configs[model_name]['session']['input_scale']
 
-                mean = models_configs[model_name]['mean']
-                scale = models_configs[model_name]['scale']
-
-                if model_source['opt'] == True:
+                if models_configs[model_name]['session']['input_optimization'] == True:
                     if filename[-1] == '.onnx':
-                        try:
-                            onnxOpt.tidlOnnxModelOptimize(abs_path,abs_path, scale, mean)
-                        except NameError:
-                            print("\n[WARNING] Model optimizer dependencies not present. Run setup.sh script without --skip_model_optimizer \n")
+                        onnxOpt.tidlOnnxModelOptimize(abs_path,abs_path, input_scale, input_mean)
                     elif filename[-1] == '.tflite':
-                        try:
-                            tflOpt.tidlTfliteModelOptimize(abs_path,abs_path, scale, mean)
-                        except NameError:
-                            print("\n[WARNING] Model optimizer dependencies not present. Run setup.sh script without --skip_model_optimizer \n")
-                if (filename[-1] == '.onnx') and (model_source['infer_shape'] == True) :
+                        tflOpt.tidlTfliteModelOptimize(abs_path,abs_path, input_scale, input_mean)
+                if (filename[-1] == '.onnx') and (models_configs[model_name]['source']['infer_shape'] == True) :
                     onnx.shape_inference.infer_shapes_path(model_path, model_path)
-            
-            if('meta_layers_names_list' in models_configs[model_name].keys()):
-                meta_layers_names_list = models_configs[model_name]['meta_layers_names_list']
-                if(not os.path.isfile(meta_layers_names_list)):
+
+            if('meta_layers_names_list' in models_configs[model_name]['session'].keys()):
+                meta_layers_names_list = models_configs[model_name]['session']['meta_layers_names_list']
+                if(meta_layers_names_list is not None and not os.path.isfile(meta_layers_names_list)):
                     print("Downloading  ", meta_layers_names_list)
                     r = requests.get(get_url_from_link_file(model_source['meta_arch_url']), allow_redirects=True, headers=headers)
                     open(meta_layers_names_list, 'wb').write(r.content)
+                shutil.copy(meta_layers_names_list,model_artifacts_path)
+        shutil.copy(model_path,model_artifacts_path)
     else :
         print(f'{model_name} ot found in availbale list of model configs - {models_configs.keys()}')
-
 
 def load_labels(filename):
   with open(filename, 'r') as f:
@@ -294,6 +288,7 @@ def seg_mask_overlay(output_data, org_image_rgb):
   output_data = np.squeeze(output_data)
   if (output_data.ndim > 2) :
     output_data = output_data.argmax(axis=2)
+    # output_data = output_data.argmax(axis=0) #segformer
   output_data = np.squeeze(output_data)
   mask_image_rgb  = mask_transform(output_data) 
   org_image  = RGB2YUV(org_image_rgb)
@@ -317,13 +312,12 @@ def det_box_overlay(outputs, org_image_rgb, od_type, framework=None):
         if(len(outputs[0].shape) == 2):
             num_boxes = int(outputs[0].shape[0])        
             for i in range(num_boxes):
-                if(outputs[0][i][4] > 0.3) :
+                if(outputs[0][i][5] > 0.3) :
                     xmin = outputs[0][i][0]
                     ymin = outputs[0][i][1]
                     xmax = outputs[0][i][2]
                     ymax = outputs[0][i][3]
-                    print(outputs[1][i])
-                    draw.rectangle(((int(xmin), int(ymin)), (int(xmax), int(ymax))), outline = colors_list[int(outputs[1][i])%len(colors_list)], width=2)
+                    draw.rectangle(((int(xmin), int(ymin)), (int(xmax), int(ymax))), outline = colors_list[int(outputs[0][i][4])%len(colors_list)], width=2)
         elif(len(outputs[0].shape) == 1):
             num_boxes = 1    
             for i in range(num_boxes):
@@ -332,7 +326,7 @@ def det_box_overlay(outputs, org_image_rgb, od_type, framework=None):
                     ymin = outputs[i][1]
                     xmax = outputs[i][2]
                     ymax = outputs[i][3]
-                    draw.rectangle(((int(xmin), int(ymin)), (int(xmax), int(ymax))), outline = colors_list[int(outputs[1])%len(colors_list)], width=2)
+                    draw.rectangle(((int(xmin), int(ymin)), (int(xmax), int(ymax))), outline = colors_list[int(outputs[i][4])%len(colors_list)], width=2)
     #SSD
     elif(od_type == 'SSD'):
         outputs = [np.squeeze(output_i) for output_i in outputs]
@@ -346,24 +340,25 @@ def det_box_overlay(outputs, org_image_rgb, od_type, framework=None):
                 draw.rectangle(((int(xmin*source_img.width), int(ymin*source_img.height)), (int(xmax*source_img.width), int(ymax*source_img.height))), outline = colors_list[int(outputs[1][i])%len(colors_list)], width=2)
     #yolov5
     elif(od_type == "YoloV5"):
-        outputs = [np.squeeze(output_i) for output_i in outputs]
+        # outputs = [np.squeeze(output_i) for output_i in outputs]
         num_boxes = int(outputs[0].shape[0])
         for i in range(num_boxes):
-            if(outputs[0][i][4] > 0.3) :
+            if(outputs[0][i][5] > 0.3) :
                 xmin = outputs[0][i][0]
                 ymin = outputs[0][i][1]
                 xmax = outputs[0][i][2]
                 ymax = outputs[0][i][3]
-                draw.rectangle(((int(xmin), int(ymin)), (int(xmax), int(ymax))), outline = colors_list[int(outputs[0][i][5])%len(colors_list)], width=2)
+                draw.rectangle(((int(xmin), int(ymin)), (int(xmax), int(ymax))), outline = colors_list[int(outputs[0][i][4])%len(colors_list)], width=2)
     
     elif(od_type == "HasDetectionPostProcLayer"):  # model has detection post processing layer
-        for i in range(int(outputs[3][0])):
-            if(outputs[2][0][i] > 0.1) :
-                ymin = outputs[0][0][i][0]
-                xmin = outputs[0][0][i][1]
-                ymax = outputs[0][0][i][2]
-                xmax = outputs[0][0][i][3]
-                draw.rectangle(((int(xmin*source_img.width), int(ymin*source_img.height)), (int(xmax*source_img.width), int(ymax*source_img.height))), outline = colors_list[int(outputs[1][0][i])%len(colors_list)], width=2)
+        num_boxes = int(outputs[0].shape[0])
+        for i in range(num_boxes):
+            if(outputs[0][i][5] > 0.1) :
+                xmin = outputs[0][i][0]
+                ymin = outputs[0][i][1]
+                xmax = outputs[0][i][2]
+                ymax = outputs[0][i][3]
+                draw.rectangle(((int(xmin), int(ymin)), (int(xmax), int(ymax))), outline = colors_list[int(outputs[0][i][4])%len(colors_list)], width=2)
     elif(od_type == "EfficientDetLite"): # model does not have detection post processing layer 
         for i in range(int(outputs[0].shape[1])):
             if(outputs[0][0][i][5] > 0.3) :
@@ -373,7 +368,6 @@ def det_box_overlay(outputs, org_image_rgb, od_type, framework=None):
                 xmax = outputs[0][0][i][4]
                 print(outputs[0][0][i][6])
                 draw.rectangle(((int(xmin), int(ymin)), (int(xmax), int(ymax))), outline = colors_list[int(outputs[0][0][i][6])%len(colors_list)], width=2)
-
 
     source_img = source_img.convert("RGB")
     return(classes, source_img)

@@ -18,6 +18,10 @@ parent = os.path.dirname(current)
 sys.path.append(parent)
 from common_utils import *
 from model_configs import *
+import edgeai_benchmark
+
+settings = AttrDict(save_output=False, detection_threshold=0.05, detection_keep_top_k = 200)
+postprocess_transforms_creator = edgeai_benchmark.postprocess.PostProcessTransforms(settings)
 
 model_optimizer_found = False
 if platform.machine() != 'aarch64':
@@ -53,7 +57,6 @@ calib_images = ['../../../test_data/airshow.jpg',
 class_test_images = ['../../../test_data/airshow.jpg']
 od_test_images    = ['../../../test_data/ADE_val_00001801.jpg']
 seg_test_images   = ['../../../test_data/ADE_val_00001801.jpg']
-
 
 sem = multiprocessing.Semaphore(0)
 if platform.machine() == 'aarch64':
@@ -102,7 +105,6 @@ def get_benchmark_output(interpreter):
     totaltime = benchmark_dict['ts:run_end'] -  benchmark_dict['ts:run_start']
     return copy_time, proc_time, totaltime
 
-
 def infer_image(sess, image_files, config):
   input_details = sess.get_inputs()
   input_name = input_details[0].name
@@ -121,13 +123,13 @@ def infer_image(sess, image_files, config):
       input_data[i] = temp_input_data[0]
   if floating_model:
     input_data = np.float32(input_data)
-    for mean, scale, ch in zip(config['mean'], config['scale'], range(input_data.shape[1])):
+    for mean, scale, ch in zip(config["session"]['input_mean'], config["session"]['input_scale'], range(input_data.shape[1])):
         input_data[:,ch,:,:] = ((input_data[:,ch,:,:]- mean) * scale)
   else:
     input_data = np.uint8(input_data)
-    config['mean'] = [0, 0, 0]
-    config['scale']  = [1, 1, 1]
-
+    config["session"]['input_mean'] = [0, 0, 0]
+    config["session"]['input_scale']  = [1, 1, 1]
+  
   start_time = time.time()
   output = list(sess.run(None, {input_name: input_data}))
   #output = list(sess.run(None, {input_name: input_data, input_details[1].name: np.array([[416,416]], dtype = np.float32)}))
@@ -171,11 +173,11 @@ def run_model(model, mIdx):
 
     #set input images for demo
     config = models_configs[model]
-    if config['model_type'] == 'classification':
+    if config['task_type'] == 'classification':
         test_images = class_test_images
-    elif config['model_type'] == 'od':
+    elif config['task_type'] == 'detection':
         test_images = od_test_images
-    elif config['model_type'] == 'seg':
+    elif config['task_type'] == 'segmentation':
         test_images = seg_test_images
 
     delegate_options = {}
@@ -186,15 +188,15 @@ def run_model(model, mIdx):
 
 
     # stripping off the ss-ort- from model namne
-    delegate_options['artifacts_folder'] = delegate_options['artifacts_folder'] + '/' + model + '/' #+ 'tempDir/'
+    delegate_options['artifacts_folder'] = delegate_options['artifacts_folder'] + '/' + model + '/artifacts' #+ 'tempDir/'
 
     # disabling onnxruntime optimizations for vision transformers
     if (model == 'cl-ort-deit-tiny'):
         so.graph_optimization_level = rt.GraphOptimizationLevel.ORT_DISABLE_ALL
-    
-    if config['model_type'] == 'od':
-        delegate_options['object_detection:meta_layers_names_list'] = config['meta_layers_names_list'] if ('meta_layers_names_list' in config) else ''
-        delegate_options['object_detection:meta_arch_type'] = config['meta_arch_type'] if ('meta_arch_type' in config) else -1
+        
+    if config['task_type'] == 'detection':
+        delegate_options['object_detection:meta_layers_names_list'] = config['session'].get('meta_layers_names_list', '')
+        delegate_options['object_detection:meta_arch_type'] = config['session'].get('meta_arch_type', -1)
     
     # delete the contents of this folder
     if args.compile or args.disable_offload:
@@ -203,16 +205,16 @@ def run_model(model, mIdx):
             [os.remove(os.path.join(root, f)) for f in files]
             [os.rmdir(os.path.join(root, d)) for d in dirs]
 
-    if(args.compile == True):
+    if(args.compile == True ):
         input_image = calib_images
         import onnx
-        log = f'\nRunning shape inference on model {config["model_path"]} \n'
+        log = f'\nRunning shape inference on model {config["session"]["model_path"]} \n'
         print(log)
-        onnx.shape_inference.infer_shapes_path(config['model_path'], config['model_path'])
+        onnx.shape_inference.infer_shapes_path(config["session"]['model_path'], config["session"]['model_path'])
     else:
         input_image = test_images
-
-    numFrames = config['num_images']
+    
+    numFrames = config['extra_info']['num_images']
     if(args.compile):
         if numFrames > delegate_options['advanced_options:calibration_frames']:
             numFrames = delegate_options['advanced_options:calibration_frames']
@@ -220,14 +222,50 @@ def run_model(model, mIdx):
     ############   set interpreter  ################################
     if args.disable_offload :
         EP_list = ['CPUExecutionProvider']
-        sess = rt.InferenceSession(config['model_path'] , providers=EP_list,sess_options=so)
+        sess = rt.InferenceSession(config["session"]["model_path"] , providers=EP_list,sess_options=so)
     elif args.compile:
         EP_list = ['TIDLCompilationProvider','CPUExecutionProvider']
-        sess = rt.InferenceSession(config['model_path'] ,providers=EP_list, provider_options=[delegate_options, {}], sess_options=so)
+        sess = rt.InferenceSession(config["session"]["model_path"],providers=EP_list, provider_options=[delegate_options, {}], sess_options=so)
     else:
         EP_list = ['TIDLExecutionProvider','CPUExecutionProvider']
-        sess = rt.InferenceSession(config['model_path'] ,providers=EP_list, provider_options=[delegate_options, {}], sess_options=so)
+        sess = rt.InferenceSession(config["session"]["model_path"],providers=EP_list, provider_options=[delegate_options, {}], sess_options=so)
     ################################################################
+
+    # session : adding input_details and output_details to pipeline_config
+    input_details = sess.get_inputs()
+    input_name = input_details[0].name
+    type = input_details[0].type
+    height = input_details[0].shape[2]
+    width  = input_details[0].shape[3]
+    channel = input_details[0].shape[1]
+    batch  = input_details[0].shape[0]
+    shape = [batch, channel, height, width]
+
+    input_details = {'name' : input_name,
+                     'shape' : shape,
+                     'type' : type}
+
+    output_details = sess.get_outputs()
+    output_name = output_details[0].name
+    type = output_details[0].type
+    num_class = output_details[0].shape[1]
+    batch  = output_details[0].shape[0]
+    shape = [batch, num_class]
+
+    output_details = {'name' : input_name,
+                    'shape' : shape,
+                    'type' : type}
+
+    config["session"]['input_details'] = input_details
+    config["session"]['output_details'] = output_details
+
+    # postprocess : create posrprocess object
+    if config['task_type'] == 'detection' :
+        postprocess_object = postprocess_transforms_creator.get_transform_detection_base(**config['postprocess'])
+        config['postprocess'] = pretty_object(postprocess_object)['kwargs']
+    
+    if config['task_type'] == 'segmentation' :
+        postproc_segmentation_onnx = postprocess_transforms_creator.get_transform_segmentation_onnx()
 
     # run session
     for i in range(numFrames):
@@ -236,7 +274,8 @@ def run_model(model, mIdx):
         input_details = sess.get_inputs()
         batch = input_details[0].shape[0]
         input_images = []
-        # for batch processing diff image needed for a single  input
+
+        # for batch processing diff image needed for a single  input 
         for j in range(batch):
             input_images.append(input_image[(start_index+j)%len(input_image)])
         imgs, output, proc_time, sub_graph_time, height, width  = infer_image(sess, input_images, config)
@@ -250,20 +289,36 @@ def run_model(model, mIdx):
     output_file_name = "py_out_"+model+'_'+os.path.basename(input_image[i%len(input_image)])
     if(args.compile == False):  # post processing enabled only for inference
         images = []
-        if config['model_type'] == 'classification':
+        if config['task_type'] == 'classification':
             for j in range(batch):
                 classes, image = get_class_labels(output[0][j],imgs[j])
                 print("\n", classes)
                 images.append(image)
-        elif config['model_type'] == 'od':
+        elif config['task_type'] == 'detection':
              for j in range(batch):
-                classes, image = det_box_overlay(output, imgs[j], config['od_type'], config['framework'])
-                images.append(image)
+                source_img = imgs[j].convert("RGBA")
+                draw = ImageDraw.Draw(source_img)
+                info_dict = {}
+                info_dict['data_shape'] = (imgs[j].size[1], imgs[j].size[0], 3)
+                info_dict['resize_shape'] = (imgs[j].size[1], imgs[j].size[0], 3)
+                info_dict['resize_border'] = (0, 0, 0, 0)
 
-        elif config['model_type'] == 'seg':
+                output = postprocess_object(output,info_dict=info_dict)
+                classes, image = det_box_overlay(output, imgs[j], config['extra_info']['od_type'], config['extra_info']['framework'])
+                images.append(image)
+            
+        elif config['task_type'] == 'segmentation':
+            
             for j in range(batch):
-                imgs[j] = imgs[j].resize((output[0][j].shape[-1], output[0][j].shape[-2]),PIL.Image.LANCZOS)
-                classes, image = seg_mask_overlay(output[0][j],imgs[j])
+                imgs[j] = imgs[j].resize((output[0][j].shape[-2], output[0][j].shape[-1]),PIL.Image.LANCZOS)
+                source_img = imgs[j].convert("RGBA")
+                draw = ImageDraw.Draw(source_img)
+                info_dict = {}
+                info_dict['data_shape'] = (imgs[j].size[1], imgs[j].size[0], 3)
+                info_dict['resize_shape'] = (imgs[j].size[1], imgs[j].size[0], 3)
+                info_dict['resize_border'] = (0, 0, 0, 0)
+                output = postproc_segmentation_onnx(output,info_dict=info_dict)
+                classes, image = seg_mask_overlay(output[j],imgs[j])
                 images.append(image)
         else:
             print("Not a valid model type")
@@ -281,6 +336,7 @@ def run_model(model, mIdx):
     if ncpus > 1:
         sem.release()
 
+models = ['cl-ort-resnet18-v1']
 
 #models = models_configs.keys()
 if len(args.models) > 0:
@@ -294,7 +350,7 @@ else :
         models.append('ss-ort-deeplabv3lite_mobilenetv2')
 
 if ( args.run_model_zoo ):
-    models = [
+    models = [ 
              'od-8020_onnxrt_coco_edgeai-mmdet_ssd_mobilenetv2_lite_512x512_20201214_model_onnx',
              'od-8200_onnxrt_coco_edgeai-mmdet_yolox_nano_lite_416x416_20220214_model_onnx',
             #  'od-8420_onnxrt_widerface_edgeai-mmdet_yolox_s_lite_640x640_20220307_model_onnx',# not working -
@@ -329,7 +385,6 @@ if ncpus > 1:
 else :
     for mIdx, model in enumerate(models):
         run_model(model, mIdx)
-
 
 
 """

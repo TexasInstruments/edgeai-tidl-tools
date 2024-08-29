@@ -24,7 +24,7 @@ if ( args.run_model_zoo ):
 download_model(models_configs, model_id)
 
 # model specifics
-model_path = models_configs[model_id]['model_path']
+model_path = models_configs[model_id]['session']['model_path']
 model_input_name = 'input.1Net_IN'
 model_input_shape = (1, 3, 224, 224)
 model_input_dtype = 'float32'
@@ -52,7 +52,7 @@ if args.device:
 else:
     build_target = 'llvm'
     cross_cc_args = {}
-
+model_output_directory = model_output_directory+'/artifacts'
 # image preprocessing for calibration
 def preprocess_for_onnx_mobilenetv2(image_path):
     import cv2
@@ -90,16 +90,8 @@ def preprocess_for_onnx_mobilenetv2(image_path):
 
     # convert HWC to NCHW
     img = np.expand_dims(np.transpose(img, (2,0,1)),axis=0)
-    # hard coding config values
-    config = {
-            'mean': [0, 0, 0],
-            'scale' :[1, 1 , 1],
-            'data_layout': 'NCHW',
-            'resize' : [224, 224],
-            'crop' : [224, 224],
-            'model_type': 'classification',
-            'model_path': model_path,
-            'session_name' : models_configs[model_id]['session_name']}
+
+    config = models_configs[model_id]
 
     gen_param_yaml(model_output_directory, config, 224, 224)
     return img
@@ -113,7 +105,6 @@ for root, dirs, files in os.walk(model_output_directory, topdown=False):
 
 if args.offload:
     from tvm.relay.backend.contrib import tidl
-
     assert args.num_bits in [8, 16, 32]
     assert args.num_subgraphs_max <= 16
 

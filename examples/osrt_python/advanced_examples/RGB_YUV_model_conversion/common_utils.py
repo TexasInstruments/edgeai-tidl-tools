@@ -108,11 +108,11 @@ def gen_param_yaml(artifacts_folder_path, config, new_height, new_width):
     resize.append(new_height)
     crop.append(new_width)
     crop.append(new_height)
-    if(config['model_type'] == "classification"):
+    if(config['task_type'] == "classification"):
         model_type = "classification"
-    elif(config['model_type'] == "od"):
+    elif(config['task_type'] == 'detection'):
         model_type = "detection"
-    elif(config['model_type'] == "seg"):
+    elif(config['task_type'] == 'segmentation'):
         model_type = "segmentation"
     model_file = config['model_path'].split("/")[0]
     dict_file =[]
@@ -136,10 +136,10 @@ def gen_param_yaml(artifacts_folder_path, config, new_height, new_width):
                                     'crop':crop
                                      } })
     
-    if(config['model_type'] == "od"):
-        if(config['od_type'] == "SSD"):
+    if(config['task_type'] == 'detection'):
+        if(config['extra_info']['od_type'] == "SSD"):
             dict_file[0]['postprocess']['formatter'] = {'name' : 'DetectionBoxSL2BoxLS', 'src_indices' : [5,4]}
-        elif(config['od_type'] == "HasDetectionPostProcLayer"):
+        elif(config['extra_info']['od_type'] == "HasDetectionPostProcLayer"):
             dict_file[0]['postprocess']['formatter'] = {'name' : 'DetectionYXYX2XYXY','src_indices' : [1,0,3,2]}
         
         dict_file[0]['postprocess']['detection_thr'] = 0.3
@@ -215,7 +215,7 @@ def download_model(models_configs, model_name):
                     onnx.shape_inference.infer_shapes_path(model_path, model_path)
             
             if('meta_layers_names_list' in models_configs[model_name].keys()):
-                meta_layers_names_list = models_configs[model_name]['meta_layers_names_list']
+                meta_layers_names_list = models_configs[model_name]['extra_info']['meta_layers_names_list']
                 if(not os.path.isfile(meta_layers_names_list)):
                     print("Downloading  ", meta_layers_names_list)
                     r = requests.get(get_url_from_link_file(model_source['meta_arch_url']), allow_redirects=True, headers=headers)
@@ -357,7 +357,6 @@ def det_box_overlay(outputs, org_image_rgb, od_type, framework=None):
                 xmax = outputs[0][0][i][4]
                 print(outputs[0][0][i][6])
                 draw.rectangle(((int(xmin), int(ymin)), (int(xmax), int(ymax))), outline = colors_list[int(outputs[0][0][i][6])%len(colors_list)], width=2)
-
 
     source_img = source_img.convert("RGB")
     return(classes, source_img)
