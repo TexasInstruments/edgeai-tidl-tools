@@ -132,9 +132,371 @@ class Attention (ABC):
         logging.debug("Abstract Attention class has nothing to optimize")
 
 
+class TorchLikeAttention (Attention):
+    """
+    Torch-like attention structure needs to be optimized 
+    """
+    def __init__(self):
+        super().__init__()
+        
+        self.split_qkv = -1
+        self.q_t = -1
+        self.k_t = -1
+        self.v_t = -1
+        
+        self.q_reshape = -1
+        self.k_reshape = -1
+        self.v_reshape = -1
+        
+        self.q_add = -1
+        self.k_add = -1
+        self.v_add = -1
+        
+        # nodes to remove output shape after optimization is done
+        self.remove_output_shape_list = list()
+        
+    def optimize(self, graph: gs.Graph):
+        """
+        Torch-like attention specific optmization
+        """
+        logging.debug(f"Optimizing attention block {self.printable_attention(graph)}")
+        # run various optimizations
+        # set optmize to true to start processing
+        self.optimize_ok = True
+        # populate layers for optimization
+        self.populate_structure_specific_layers(graph)
+        # process optmizing changes
+        self.remove_q_and_v_transpose(graph)
+        self.adjust_k_transpose(graph)
+        
+        self.remove_q_and_k_and_v_reshape(graph)
+        
+        self.add_transpose_and_reshape_before_split(graph)
+        
+        self.adjust_split(graph)
+        
+        self.adjust_q_and_k_and_v_add(graph)
+        
+        self.add_squeeze(graph)
+        
+        # remove stale data
+        self.remove_outdated_output_shapes(graph)
+
+        
+    def populate_structure_specific_layers (self, graph: gs.Graph):
+        """
+        After attention object is created with basic necessary layers
+        and the layer where Q,K,V split happens is consolidated,
+        this function identifies layers which are specific to deit-like
+        attention structures before the layer that splits Q,K,V
+        """
+        if not self.optimize_ok:
+            return
+
+        nodes = graph.nodes
+        if self.split_qkv == -1:
+            return
+        # fill up layers before Q, K, V split
+        # traceback input considering only single input
+
+        # MatMul
+        curr_layer = nodes[self.split_qkv]
+        while (curr_layer is not None) and (curr_layer.op != "MatMul") and (curr_layer != nodes[0]):
+            curr_layer = find_in_layer(curr_layer, 0)
+
+        if (curr_layer is not None) and (curr_layer != nodes[0]):
+            self.b_matmul = find_node_idx(curr_layer, graph)
+        else:
+            logging.critical(f"Could not find MatMul projection preceeding "\
+                             f"Attention Block ::{self.printable_attention(graph)}")
+            self.optimize_ok = False
+            return
+
+        # Transpose Q, K
+        matmul_qkt = nodes[self.matmul_qkt]
+        transpose_nodes = find_in_layers(matmul_qkt)
+        for t_node in transpose_nodes:
+            if t_node.attrs['perm'] == [0,2,1,3]:
+                self.q_t = find_node_idx(t_node, graph)
+            elif t_node.attrs['perm'] == [0,2,3,1]:
+                self.k_t = find_node_idx(t_node, graph)
+            else:
+                logging.critical(f"Invalid structure: {matmul_qkt.name} does not have "
+                             f"transpose of required dimensions") 
+                self.optimize_ok = False
+                return    
+        
+        # Transpose V
+        matmul_qktv = nodes[self.matmul_qktv]
+        input_nodes = find_in_layers(matmul_qktv)
+        for node in input_nodes:
+            if node.op == "Transpose":
+                self.v_t = find_node_idx(node, graph)
+        if self.v_t == -1 :
+            logging.critical(f"Invalid structure: {matmul_qktv.name} does not have "
+                             f"transpose before it") 
+            self.optimize_ok = False
+            return    
+        
+        # Reshape Q,K,V
+        q_reshape = find_in_layer(nodes[self.q_t], 0)
+        k_reshape = find_in_layer(nodes[self.k_t], 0)
+        v_reshape = find_in_layer(nodes[self.v_t], 0)
+        
+        self.q_reshape = find_node_idx(q_reshape, graph)
+        self.k_reshape = find_node_idx(k_reshape, graph)
+        self.v_reshape = find_node_idx(v_reshape, graph)
+        
+        if (q_reshape.op != "Reshape") or (v_reshape.op != "Reshape") \
+            or (k_reshape.op != "Reshape"):
+                logging.critical(f"Invalid structure: {nodes[self.q_t].name} or k orv  does not have "
+                             f"reshape before it") 
+                self.optimize_ok = False
+                return  
+            
+        # Add Q,K,V
+        q_add = find_in_layer(q_reshape, 0)
+        k_add = find_in_layer(k_reshape, 0)
+        v_add = find_in_layer(v_reshape, 0)
+        
+        self.q_add = find_node_idx(q_add, graph)
+        self.k_add = find_node_idx(k_add, graph)
+        self.v_add = find_node_idx(v_add, graph)
+        
+        if (q_add.op != "Add") or (v_add.op != "Add") \
+            or (k_add.op != "Add"):
+                logging.critical(f"Invalid structure: {q_reshape.name} or k or v  does not have "
+                             f"add before it") 
+                self.optimize_ok = False
+                return
+        
+
+        # if reaches this point, ok for optmization
+        self.optimize_ok = True
+        
+    def remove_q_and_v_transpose (self, graph: gs.Graph):
+        """
+        """
+        if not self.optimize_ok:
+            return
+        nodes = graph.nodes
+
+        q_t = nodes[self.q_t]
+        v_t = nodes[self.v_t]
+        logging.debug(f"Removing node {q_t.name}")
+        remove_node(q_t)
+        logging.debug(f"Removing node {v_t.name}")
+        remove_node(v_t)
+        
+        self.remove_output_shape_list.append(self.q_t)
+        self.remove_output_shape_list.append(self.v_t)
+
+        # optimization ok is reached point
+        self.optimize_ok = True
+        
+    def adjust_k_transpose (self, graph: gs.Graph):
+        """
+        """
+        if not self.optimize_ok:
+            return
+        nodes = graph.nodes
+        
+        transpose_node = nodes[self.k_t]
+        if transpose_node.op == "Transpose":
+            transpose_node.attrs['perm'] = [0,1,3,2]
+            logging.debug(f"{transpose_node.name} perm changed to {transpose_node.attrs['perm']}")
+
+            # need to remove old output shapes
+            self.remove_output_shape_list.append(self.k_t)
+
+        else:
+            logging.critical(f"Unsupported operation {transpose_node.op} at transpose"
+                             f"location in node {transpose_node.name}")
+            self.optimize_ok = False
+            return
+        #endif
+        
+        # optimization ok is reached point
+        self.optimize_ok = True
+        
+    def remove_q_and_k_and_v_reshape (self, graph: gs.Graph):
+        """
+        """
+        if not self.optimize_ok:
+            return
+        nodes = graph.nodes
+
+        q_reshape = nodes[self.q_reshape]
+        k_reshape = nodes[self.k_reshape]
+        v_reshape = nodes[self.v_reshape]
+        
+        logging.debug(f"Removing node {q_reshape.name}")
+        remove_node(q_reshape)
+        logging.debug(f"Removing node {k_reshape.name}")
+        remove_node(k_reshape)
+        logging.debug(f"Removing node {v_reshape.name}")
+        remove_node(v_reshape)
+        
+        self.remove_output_shape_list.append(self.q_reshape)
+        self.remove_output_shape_list.append(self.k_reshape)
+        self.remove_output_shape_list.append(self.v_reshape)
+
+        # optimization ok is reached point
+        self.optimize_ok = True   
+    
+    def remove_outdated_output_shapes (self, graph: gs.Graph):
+        """
+        After updating, many output tensors have different shapes
+        Remove existing shapes to help running shape inference
+        """
+        nodes = graph.nodes
+
+        for idx in self.remove_output_shape_list:
+            node = nodes[idx]
+            logging.debug(f"Removing old shape of {node.name} output")
+            for outp in node.outputs:
+                outp.shape = None
+                
+                
+    def add_transpose_and_reshape_before_split (self, graph: gs.Graph):
+
+        """
+        Add transpose and reshape layers before spliting layer to maintain consistency
+
+        """
+        if not self.optimize_ok:
+            return
+        nodes = graph.nodes
+
+        split_node = nodes[self.split_qkv]
+        b_matmul_node = nodes[self.b_matmul]
+        
+        tr_perm = {"perm": np.array([2,0,3,1,4], dtype=np.int64)}
+        
+        tr_out = gs.Variable(f"tr_{b_matmul_node.inputs[0].name}", dtype= np.float32)
+        tr = gs.Node(name= f"Transpose_{b_matmul_node.inputs[0].name}" ,
+            op= "Transpose", attrs= tr_perm,
+            inputs= [b_matmul_node.outputs[0]], outputs= [tr_out])
+        logging.debug(f"Adding new node to graph {tr}")
+        graph.nodes.append(tr)
+        
+        split_node.inputs[0] = tr_out
+        
+        dims = np.insert(nodes[self.q_reshape].inputs[1].values, -2, 3)
+        reshape_dims = gs.Constant(name= f"{b_matmul_node.inputs[0].name}_reshape_dims", values= dims)
+              
+        reshape_out = gs.Variable(f"reshape_val_{b_matmul_node.inputs[0].name}", dtype= np.float32)
+                
+        reshape = gs.Node(name= f"Reshape_{b_matmul_node.inputs[0].name}" ,
+            op= "Reshape", inputs= [b_matmul_node.outputs[0], reshape_dims],
+            outputs= [reshape_out])
+        logging.debug(f"Adding new node to graph {reshape}")
+        graph.nodes.append(reshape)
+        
+        tr.inputs[0] = reshape_out
+
+        # optimization ok is reached point
+        self.optimize_ok = True 
+        
+    def adjust_split(self, graph: gs.Graph):
+        """
+        """
+        if not self.optimize_ok:
+            return
+        nodes = graph.nodes
+        
+        split_qkv = nodes[self.split_qkv]
+        if split_qkv.op == "Split":
+            split_qkv.attrs['axis'] = 0
+            split_qkv.inputs[1] = gs.Constant(name= f"{nodes[self.b_matmul].inputs[0].name}_new", \
+                values = np.array([1,1,1], dtype=np.int64))
+            logging.debug(f"{split_qkv.name} axis and split changed to \
+                {split_qkv.attrs['axis']} and {split_qkv.inputs[1].values} ")
+
+            # need to remove old output shapes
+            self.remove_output_shape_list.append(self.split_qkv)
+
+        else:
+            logging.critical(f"Unsupported operation {split_qkv.op} at split"
+                             f"location in node {split_qkv.name}")
+            self.optimize_ok = False
+            return
+        #endif
+        
+        # optimization ok is reached point
+        self.optimize_ok = True
+        
+    def adjust_q_and_k_and_v_add (self, graph: gs.Graph):
+        """
+        """
+        if not self.optimize_ok:
+            return
+        nodes = graph.nodes
+
+        q_add = nodes[self.q_add]
+        k_add = nodes[self.k_add]
+        v_add = nodes[self.v_add]
+        
+        bias_value = np.concatenate((q_add.inputs[0].values, k_add.inputs[0].values, v_add.inputs[0].values))
+        
+        logging.debug(f"Removing node {q_add.name}")
+        remove_node(q_add)
+        logging.debug(f"Removing node {k_add.name}")
+        remove_node(k_add)
+        logging.debug(f"Removing node {v_add.name}")
+        remove_node(v_add)
+        
+        self.remove_output_shape_list.append(self.q_add)
+        self.remove_output_shape_list.append(self.k_add)
+        self.remove_output_shape_list.append(self.v_add)
+        
+        b_matmul = nodes[self.b_matmul]
+        
+        add_out = gs.Variable(f"add_out_{b_matmul.inputs[0].name}", dtype= np.float32)
+        add_wts = gs.Constant(name= f"{b_matmul.inputs[0].name}_Bias_Add_constant", values= bias_value)
+        add = gs.Node(name= f"{b_matmul.inputs[0].name}_Bias_Add", op= "Add",
+                        inputs= [b_matmul.outputs[0], add_wts], outputs= [add_out])
+        logging.debug(f"Adding Add node {add.name} with bias from {b_matmul.inputs[0].name}")
+        graph.nodes.append(add)
+        
+        b_matmul.outputs[0].outputs[0].inputs[0] = add_out
+
+        # optimization ok is reached point
+        self.optimize_ok = True
+        
+    def add_squeeze(self, graph):
+    
+        """
+        Add squeeze after split in all the outputs
+
+        """
+        if not self.optimize_ok:
+            return
+        nodes = graph.nodes
+
+        split_node = nodes[self.split_qkv]
+        b_matmul_node = nodes[self.b_matmul]
+        
+        for j, out_split in enumerate(split_node.outputs):
+            
+            axes = gs.Constant(name= f"{b_matmul_node.inputs[0].name}_squeeze_{j}_axes", values= np.array([0]))
+            squeeze_out = gs.Variable(f"squeeze_{j}_var_{b_matmul_node.inputs[0].name}", dtype= np.float32)
+            squeeze = gs.Node(name= f"Squeeze{j}_{b_matmul_node.inputs[0].name}" ,
+                op= "Squeeze",
+                inputs= [out_split, axes], outputs= [squeeze_out])
+            logging.debug(f"Adding new node to graph {squeeze}")
+            graph.nodes.append(squeeze)
+            
+            for i, inp in enumerate(out_split.outputs[0].inputs):
+                if inp == out_split:
+                    out_split.outputs[0].inputs[i] = squeeze_out
+
+        # optimization ok is reached point
+        self.optimize_ok = True   
+
 class DeitLikeAttention (Attention):
     """
-    Deit-like attention structure - classic attention for vision transformer
+    Deit-like attention structure - classic attention for vision transformer (based on old timm)
     """
     def __init__(self):
         super().__init__()
@@ -798,7 +1160,8 @@ def tidl_find_attention_block (graph: gs.Graph, onnx_graph: onnx.GraphProto) -> 
                         (curr_layer.op == "Split" or curr_layer.op =="Transpose") :
                         # common ancestor found and this is some split layer
                         split_qkv = find_node_idx(curr_layer, graph)
-                        att = DeitLikeAttention()
+                        # att = DeitLikeAttention()
+                        att = TorchLikeAttention()
                         att.split_qkv = split_qkv
                         logging.debug(f"Found common ancestor of {inp_node.name}, "\
                             f"{q_side_in_node.name} and {kt_side_in_node.name} as "\

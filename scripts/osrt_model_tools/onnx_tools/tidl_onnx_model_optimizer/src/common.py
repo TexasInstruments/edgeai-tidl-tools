@@ -166,8 +166,13 @@ def remove_node (node: gs.Node):
     """
     Remove node from graph
     """
+    # for inp_node in find_in_layers(node):
+    #     inp_node.outputs = node.outputs
+    #     node.outputs.clear()
     for inp_node in find_in_layers(node):
-        inp_node.outputs = node.outputs
+        for i, opt in enumerate(inp_node.outputs):
+            if opt.outputs[0] == node:
+                inp_node.outputs[i] = node.outputs[0]
         node.outputs.clear()
 
 def is_first_node(node: gs.Node) -> bool:
