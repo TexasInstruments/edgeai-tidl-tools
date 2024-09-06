@@ -82,35 +82,32 @@ def tidl_convert_large_global_avg_pooling_to_matmul (graph: gs.Graph, onnx_graph
         if node.op == "GlobalAveragePool":
             dim  = node.inputs[0].shape
             # check if large enough to convert
-            if len(dim) < 3:
+            if len(dim) <= 2:
                 logging.critical(f"GlobalAveragePooling {node.name} does not have at least 3 dimension"
                                  "in inputs, cannot convert")
                 continue
-            
-            pool_size = dim[-1]*dim[-2] if len(dim)>3 else dim[-1]
+            if len(dim) == 3:  # NxCxL shape
+                pool_size = dim[-1]
+            else:
+                pool_size = dim[-1]*dim[-2]
             if (pool_size) < LARGE_GLOBAL_AVG_POOLING_THRESHOLD:
-                logging.debug(f"GlobalAveragePooling {node.name} is not large enough with HxW as "
+                logging.debug(f"GlobalAveragePooling {node.name} is not large enough with outermost as "
                               f"{pool_size} => does not require conversion")
                 continue
 
-            # # convert input from CxHxW to 1xCxHW (flatten inner dimensions)
-            # if len(dim) >= 3:
-            #     new_shape = np.array(dim[:-3] + [1, dim[-3], pool_size], dtype= np.int64)
-            # # case of HxW handled
-            # else:
-            #     new_shape = np.array([dim[:2], pool_size], dtype= np.int64)
-
+            # convert input from NxCxHxW to NxCxHW (flatten inner dimensions)
+            reshp_out = node.inputs[0]
             if len(dim) > 3:
+                new_shape = np.array(dim[:-3] + [dim[-3], pool_size], dtype= np.int64)
                 # add reshape
-                new_shape = np.array(dim[:2]+np.product(dim[2:]))
                 reshp_out = gs.Variable(name= f"{node.name}_inp_Reshape_out", dtype= np.float32)
                 reshp_shape = gs.Constant(name= f"{node.name}_inp_Reshape_shape", values= new_shape)
                 reshp = gs.Node(name= f"{node.name}_inp_Reshape", op= "Reshape",
                                 inputs= [node.inputs[0], reshp_shape], outputs= [reshp_out])
 
                 logging.debug(f"Adding Reshape node {reshp.name} to convert input to shape {tuple(new_shape)}")
-                graph.nodes.append(reshp)
-            
+                graph.nodes.append(reshp)               
+
             # setup const tensor
             matmul_const_tensor = np.array([1/pool_size] * pool_size, dtype= np.float32)
             matmul_const_tensor = np.reshape(matmul_const_tensor, (pool_size, 1))
@@ -119,14 +116,9 @@ def tidl_convert_large_global_avg_pooling_to_matmul (graph: gs.Graph, onnx_graph
 
             # add matmul
             matmul_const_inp = gs.Constant(name= f"{node.name}_MatMul_const", values= matmul_const_tensor)
-            if len(dim) > 3:
-                matmul_output = gs.Variable(name= f"{node.name}_MatMul_out", dtype= np.float32)
-                matmul = gs.Node(name= f"{node.name}_MatMul", op= "MatMul",
-                                inputs= [reshp_out, matmul_const_inp], outputs= [matmul_output])
-            else:
-                matmul_output = node.outputs[0]
-                matmul = gs.Node(name= f"{node.name}_MatMul", op= "MatMul",
-                                inputs= [node.inputs[0], matmul_const_inp], outputs= [matmul_output])
+            matmul_output = gs.Variable(name= f"{node.name}_MatMul_out", dtype= np.float32) if len(dim) > 3 else node.outputs[0]
+            matmul = gs.Node(name= f"{node.name}_MatMul", op= "MatMul",
+                             inputs= [reshp_out, matmul_const_inp], outputs= [matmul_output])
             logging.debug(f"Adding MatMul {matmul.name}")
             graph.nodes.append(matmul)
 
@@ -138,7 +130,17 @@ def tidl_convert_large_global_avg_pooling_to_matmul (graph: gs.Graph, onnx_graph
                 reshp_shape = gs.Constant(name= f"{node.name}_matmul_out_Reshape_shape", values= new_shape)
                 reshp = gs.Node(name= f"{node.name}_matmul_out_Reshape", op= "Reshape",
                                 inputs= [matmul.outputs[0], reshp_shape], outputs= node.outputs)
+            if len(dim) > 3: 
+                # convert matmul output from D2xCx1 to D2xCx1x1 to match output
+                new_shape = np.array(node.outputs[0].shape, dtype= np.int64)
+                # add reshape
+                reshp_out = gs.Variable(name= f"{node.name}_matmul_out_Reshape_out", dtype= np.float32)
+                reshp_shape = gs.Constant(name= f"{node.name}_matmul_out_Reshape_shape", values= new_shape)
+                reshp = gs.Node(name= f"{node.name}_matmul_out_Reshape", op= "Reshape",
+                                inputs= [matmul.outputs[0], reshp_shape], outputs= node.outputs)
 
+                logging.debug(f"Adding Reshape node {reshp.name} to convert input to shape {tuple(new_shape)}")
+                graph.nodes.append(reshp)
                 logging.debug(f"Adding Reshape node {reshp.name} to convert input to shape {tuple(new_shape)}")
                 graph.nodes.append(reshp)
 

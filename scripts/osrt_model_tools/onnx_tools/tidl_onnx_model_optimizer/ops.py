@@ -119,7 +119,7 @@ adj_list = {
         'convert_concat_axis_width_to_channel'      : [],
         'split_batch_dim_to_parallel_input_branches': [],
         'convert_maxpool_to_cascaded_maxpool'       : [],
-        'convert_reducemean_to_matmul'				: [],
+        'convert_reducemean_to_matmul'				: ['expand_layernorm_to_component_ops'],
         'convert_gemm_to_matmul_and_add'            : ['convert_large_global_avg_pooling_to_matmul'],
         'convert_matmul_to_conv_1x1s1'              : ['convert_gemm_to_matmul_and_add'],     # don't want the matmul from gemm to change                                          
         'convert_large_global_avg_pooling_to_matmul': ['push_matmul_channel_in_height'],
