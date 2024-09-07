@@ -47,7 +47,6 @@ limitations under the License.
 #include <functional>
 #include <queue>
 
-
 #include "itidl_rt.h"
 #include "tidlrt_priority_scheduling.h"
 
@@ -67,17 +66,17 @@ pthread_mutex_t priority_lock;
 pthread_barrier_t barrier;
 
 #define NUM_PRIORITIES 2
+#define MAX_THREADS 8
 
 
+#define MAX_MODELS_PER_THREAD 8
+
+/* This struct specifies the arguments expected to be provided by user */
 typedef struct
 {
     std::string model_artifacts_path;
     int priority;
     float max_pre_empt_delay;
-    int model_id;
-    Settings *s;
-    int is_reference_run;
-    std::string model_name;
     int in_width;
     int in_height;
     int in_numCh;
@@ -88,9 +87,28 @@ typedef struct
     int out_numCh;
     int out_element_size_in_bytes;
     int out_element_type;
-    float actual_times;
-} model_struct;
+} model_input_info;
 
+typedef struct 
+{
+  std::string model_name;
+  int test_id;
+  int thread_id;
+  int model_id;
+  float actual_times;
+  int num_iterations_run;
+  float avg_time;
+} model_generic_info;
+
+/* These are arguments passed to infer function call as part of the pthread call */
+typedef struct
+{
+  int num_models_in_thread;
+  model_input_info * model_input_args[MAX_MODELS_PER_THREAD];    /* Info provided for individual model */
+  Settings * s;               /* common argument across threads - pass pointer */
+  int is_reference_run;
+  model_generic_info * model_info[MAX_MODELS_PER_THREAD];
+} thread_arguments;
 
 void getModelNameromArtifactsDir(char* path, char * net_name, char *io_name)
 {
@@ -114,6 +132,7 @@ void getModelNameromArtifactsDir(char* path, char * net_name, char *io_name)
   fclose(fp);
   return;
 }
+
 int32_t TIDLReadBinFromFile(const char *fileName, void *addr, int32_t size)
 {
     FILE *fptr = NULL;
@@ -131,173 +150,310 @@ int32_t TIDLReadBinFromFile(const char *fileName, void *addr, int32_t size)
     return -1;
 }
 
-
 void * infer(void * argument) {
 
-  model_struct *arg = (model_struct *)argument;
+  thread_arguments *arg = (thread_arguments *)argument;
   Settings *s = arg->s;
-  std::string artifacts_path = arg->model_artifacts_path;
-  
-  char net_name[512];
-  char io_name[512];
+  int num_models = arg->num_models_in_thread;
 
-  getModelNameromArtifactsDir((char *)artifacts_path.c_str(), net_name, io_name);
+  void * handles[MAX_MODELS_PER_THREAD];
+  sTIDLRT_Tensor_t *in[MAX_MODELS_PER_THREAD][16];
+  sTIDLRT_Tensor_t *out[MAX_MODELS_PER_THREAD][16];
+  int out_tensor_sizes[MAX_MODELS_PER_THREAD][16];
 
-  sTIDLRT_Params_t prms;
-  void *handle = NULL;
   int32_t status;
 
-  status = TIDLRT_setParamsDefault(&prms);
-
-
-  FILE * fp_network = fopen(net_name, "rb");
-  if (fp_network == NULL)
+  for(int i = 0; i < num_models; i++) /* Loop for creation of all models */
   {
-    printf("Invoke  : ERROR: Unable to open network file %s \n", net_name);
-    // return -1;
+    model_generic_info * model_info = arg->model_info[i];
+    model_input_info * model_input_args = arg->model_input_args[i];
+
+    std::string artifacts_path = model_input_args->model_artifacts_path;
+    
+    char net_name[512];
+    char io_name[512];
+
+    getModelNameromArtifactsDir((char *)artifacts_path.c_str(), net_name, io_name);
+
+    sTIDLRT_Params_t prms;
+    void *handle = NULL;
+
+    status = TIDLRT_setParamsDefault(&prms);
+
+    FILE * fp_network = fopen(net_name, "rb");
+    if (fp_network == NULL)
+    {
+      printf("Invoke  : ERROR: Unable to open network file %s \n", net_name);
+      // return -1;
+    }
+    prms.stats = (sTIDLRT_PerfStats_t*)malloc(sizeof(sTIDLRT_PerfStats_t));
+
+    fseek(fp_network, 0, SEEK_END);
+    prms.net_capacity = ftell(fp_network);
+    fseek(fp_network, 0, SEEK_SET);
+    fclose(fp_network);
+    prms.netPtr = malloc(prms.net_capacity);
+
+    status = TIDLReadBinFromFile(net_name, prms.netPtr, prms.net_capacity);
+
+    FILE * fp_config = fopen(io_name, "rb");
+    if (fp_config == NULL)
+    {
+      printf("Invoke  : ERROR: Unable to open IO config file %s \n", io_name);
+      // return -1;
+    }
+    fseek(fp_config, 0, SEEK_END);
+    prms.io_capacity = ftell(fp_config);
+    fseek(fp_config, 0, SEEK_SET);
+    fclose(fp_config);
+    prms.ioBufDescPtr = malloc(prms.io_capacity);
+    status = TIDLReadBinFromFile(io_name, prms.ioBufDescPtr, prms.io_capacity);
+
+    prms.traceLogLevel = 0;
+    prms.traceWriteLevel = 0;
+
+    prms.targetPriority = model_input_args->priority;
+    prms.maxPreEmptDelay = model_input_args->max_pre_empt_delay;
+    prms.coreNum = 1;
+
+    pthread_mutex_lock(&priority_lock); /*Remove this and test */
+    status = TIDLRT_create(&prms, &handle);
+    handles[i] = handle;
+    pthread_mutex_unlock(&priority_lock);
+
+    sTIDLRT_Tensor_t in_tensor;
+    sTIDLRT_Tensor_t out_tensor;
+
+    int32_t j = 0; /* Currently implemented only for models with 1 input and 1 output */
+    in[i][j] = &in_tensor;
+    status = TIDLRT_setTensorDefault(in[i][j]);
+    in[i][j]->layout = TIDLRT_LT_NCHW;
+    in[i][j]->elementType = TIDLRT_Uint8;
+    int32_t in_tensor_size = model_input_args->in_width * model_input_args->in_height * model_input_args->in_numCh * model_input_args->in_element_size_in_bytes;
+
+    in[i][j]->ptr =  TIDLRT_allocSharedMem(64, in_tensor_size);
+    in[i][j]->memType = TIDLRT_MEM_SHARED;
+
+    out[i][j] = &out_tensor;
+    status = TIDLRT_setTensorDefault(out[i][j]);
+    out[i][j]->layout = TIDLRT_LT_NCHW;
+    out[i][j]->elementType = model_input_args->out_element_type;
+
+    int32_t out_tensor_size = model_input_args->out_width * model_input_args->out_height * model_input_args->out_numCh * model_input_args->out_element_size_in_bytes;
+    out_tensor_sizes[i][0] = out_tensor_size;
+    out[i][j]->ptr =  TIDLRT_allocSharedMem(64, out_tensor_size);
+    out[i][j]->memType = TIDLRT_MEM_SHARED;
+    
+    /* Use random number generator with a seed to create input */
+    unsigned int seed = model_info->model_id;
+    int min = 0;
+    int max = 255;
+    char * inPtr = (char *)(in[i][j]->ptr);
+    for(int m = 0; m < in_tensor_size; m++)
+    {
+      inPtr[m] = rand_r(&seed) % (max - min + 1) + min;
+    }
   }
-  prms.stats = (sTIDLRT_PerfStats_t*)malloc(sizeof(sTIDLRT_PerfStats_t));
-
-  fseek(fp_network, 0, SEEK_END);
-  prms.net_capacity = ftell(fp_network);
-  fseek(fp_network, 0, SEEK_SET);
-  fclose(fp_network);
-  prms.netPtr = malloc(prms.net_capacity);
-
-  status = TIDLReadBinFromFile(net_name, prms.netPtr, prms.net_capacity);
-
-  FILE * fp_config = fopen(io_name, "rb");
-  if (fp_config == NULL)
-  {
-    printf("Invoke  : ERROR: Unable to open IO config file %s \n", io_name);
-    // return -1;
-  }
-  fseek(fp_config, 0, SEEK_END);
-  prms.io_capacity = ftell(fp_config);
-  fseek(fp_config, 0, SEEK_SET);
-  fclose(fp_config);
-  prms.ioBufDescPtr = malloc(prms.io_capacity);
-  status = TIDLReadBinFromFile(io_name, prms.ioBufDescPtr, prms.io_capacity);
-
-  prms.traceLogLevel = 0;
-  prms.traceWriteLevel = 0;
-
-  prms.targetPriority = arg->priority;
-  prms.maxPreEmptDelay = arg->max_pre_empt_delay;
-  prms.coreNum = 1;
-
-  pthread_mutex_lock(&priority_lock);
-  status = TIDLRT_create(&prms, &handle);
-  pthread_mutex_unlock(&priority_lock);
-
-  sTIDLRT_Tensor_t *in[16];
-  sTIDLRT_Tensor_t *out[16];
-
-  sTIDLRT_Tensor_t in_tensor;
-  sTIDLRT_Tensor_t out_tensor;
-
-  int32_t j = 0;
-  in[j] = &in_tensor;
-  status = TIDLRT_setTensorDefault(in[j]);
-  in[j]->layout = TIDLRT_LT_NCHW;
-  in[j]->elementType = TIDLRT_Uint8;
-  int32_t in_tensor_size = arg->in_width * arg->in_height * arg->in_numCh * arg->in_element_size_in_bytes;
-
-  in[j]->ptr =  TIDLRT_allocSharedMem(64, in_tensor_size);
-  in[j]->memType = TIDLRT_MEM_SHARED;
-
-  out[j] = &out_tensor;
-  status = TIDLRT_setTensorDefault(out[j]);
-  out[j]->layout = TIDLRT_LT_NCHW;
-  out[j]->elementType = arg->out_element_type;
-
-  int32_t out_tensor_size = arg->out_width * arg->out_height * arg->out_numCh * arg->out_element_size_in_bytes;
-
-  out[j]->ptr =  TIDLRT_allocSharedMem(64, out_tensor_size);
-  out[j]->memType = TIDLRT_MEM_SHARED;
-  
-  /* Use random number generator with a seed to create input */
-  unsigned int seed = arg->model_id;
-  int min = 0;
-  int max = 255;
-  char * inPtr = (char *)(in[j]->ptr);
-  for(int i = 0; i < in_tensor_size; i++)
-  {
-    inPtr[i] = rand_r(&seed) % (max - min + 1) + min;
-  }
-  std::cout << "\n";
 
   struct timeval start_time, stop_time;
-  int k = 0;
   std::string output_filename;
 
   if(arg->is_reference_run == 1)
   {
-    gettimeofday(&start_time, nullptr);
-    for(int i = 0; i < arg->s->loop_count; i++)
+    for(int i = 0; i < num_models; i++)
     {
-      TIDLRT_invoke(handle, in, out);
+      gettimeofday(&start_time, nullptr);
+      for(int j = 0; j < s->loop_count; j++)
+      {
+        TIDLRT_invoke(handles[i], in[i], out[i]);
+      }
+      gettimeofday(&stop_time, nullptr);
+      arg->model_info[i]->actual_times = (get_us(stop_time) - get_us(start_time)) / (s->loop_count * 1000);
+
+      LOG_INFO("Model %s :: Actual time  = %f ms \n", arg->model_info[i]->model_name.c_str(), (get_us(stop_time) - get_us(start_time)) / (arg->s->loop_count * 1000));
+
+      output_filename = "output_reference_" + arg->model_info[i]->model_name + "_" + std::to_string(arg->model_info[i]->test_id) + "_" + std::to_string(arg->model_info[i]->thread_id) + "_" + std::to_string(arg->model_info[i]->thread_id) + ".bin";
     }
-    gettimeofday(&stop_time, nullptr);
-    arg->actual_times = (get_us(stop_time) - get_us(start_time)) / (s->loop_count * 1000);
-
-    LOG_INFO("Model %s :: Actual time  = %f ms \n", arg->model_name.c_str(), (get_us(stop_time) - get_us(start_time)) / (arg->s->loop_count * 1000));
-
-    output_filename = "output_reference_" + arg->model_name + ".bin";
   }
   else if (arg->is_reference_run == 0)
   {
+    for(int i = 0; i < num_models; i++)
+    {
+      arg->model_info[i]->num_iterations_run = 0;
+      output_filename = "output_test_" + arg->model_info[i]->model_name + "_" + std::to_string(arg->model_info[i]->test_id) + "_" + std::to_string(arg->model_info[i]->thread_id) + "_" + std::to_string(arg->model_info[i]->thread_id) + ".bin";
+    }
+
     gettimeofday(&start_time, nullptr);
     auto finish = system_clock::now() + minutes{1};
     do
     {
-      TIDLRT_invoke(handle, in, out);
-      k++;
+      for(int i = 0; i < num_models; i++)
+      {
+        TIDLRT_invoke(handles[i], in[i], out[i]);
+        arg->model_info[i]->num_iterations_run++;
+      }
     } while (system_clock::now() < finish);
     gettimeofday(&stop_time, nullptr);
 
-    LOG_INFO("Model %s :: Average time with pre-emption = %f ms \n", arg->model_name.c_str(), (get_us(stop_time) - get_us(start_time)) / (k * 1000));
-    LOG_INFO("Model %s :: Total number of iterations run = %d \n", arg->model_name.c_str(), k);
-
-    output_filename = "output_test_" + arg->model_name + ".bin";
+    LOG_INFO("Model %s :: Average time with pre-emption = %f ms \n", arg->model_info[0]->model_name.c_str(), (get_us(stop_time) - get_us(start_time)) / (arg->model_info[0]->num_iterations_run * 1000));
+    LOG_INFO("Model %s :: Total number of iterations run = %d \n", arg->model_info[0]->model_name.c_str(), arg->model_info[0]->num_iterations_run);
   }
 
-  char * outPtr = (char *)out[j]->ptr;
-  std::ofstream fs(output_filename, std::ios::out | std::ios::binary | std::ios::out);
-  fs.write(outPtr, out_tensor_size);
-  fs.close();
-
-  status = TIDLRT_deactivate(handle);
-  status = TIDLRT_delete(handle);
-
-  if (s->device_mem)
+  int j = 0;
+  for(int i = 0; i < num_models; i++)
   {
-    for (uint32_t i = 0; i < 1; i++)
+    char * outPtr = (char *)out[i][j]->ptr;
+    std::ofstream fs(output_filename, std::ios::out | std::ios::binary | std::ios::out);
+    fs.write(outPtr, out_tensor_sizes[i][0]);
+    fs.close();
+
+    status = TIDLRT_deactivate(handles[i]);
+    status = TIDLRT_delete(handles[i]);
+  }
+
+  for (uint32_t i = 0; i < num_models; i++)
+  {
+    if (in[i][0]->ptr)
     {
-      if (in_ptrs[i])
-      {
-        TIDLRT_freeSharedMem(in[i]->ptr);
-      }
+      // TIDLRT_freeSharedMem(in[i][0]->ptr);
     }
-    for (uint32_t i = 0; i < 1; i++)
+    if (out[i][0]->ptr)
     {
-      if (out_ptrs[i])
-      {
-        TIDLRT_freeSharedMem(in[i]->ptr);
-      }
+      // TIDLRT_freeSharedMem(out[i][0]->ptr);
     }
   }
-  // return 0;
+
   void * retPtr;
   return retPtr;
 }
 
+std::vector<std::vector<std::vector<model_input_info>>> gPriorityMapping = 
+{
+  /* Test 1 */
+  {
+    /* Threads*/
+    {
+      /* Models in each thread */
+      {"model-artifacts/ss-ort-deeplabv3lite_mobilenetv2", 0, FLT_MAX, 512, 512, 3, 1, TIDLRT_Uint8, 512, 512, 1, 1, TIDLRT_Uint8}
+    },
+    {
+      {"model-artifacts/cl-ort-resnet18-v1", 0, FLT_MAX, 224, 224, 3, 1, TIDLRT_Uint8, 1000, 1, 1, 4, TIDLRT_Float32}
+    }
+  },
+  {
+    /* Threads*/
+    {
+      /* Models in each thread */
+      {"model-artifacts/ss-ort-deeplabv3lite_mobilenetv2", 1, 0, 512, 512, 3, 1, TIDLRT_Uint8, 512, 512, 1, 1, TIDLRT_Uint8}
+    },
+    {
+      {"model-artifacts/cl-ort-resnet18-v1", 0, FLT_MAX, 224, 224, 3, 1, TIDLRT_Uint8, 1000, 1, 1, 4, TIDLRT_Float32}
+    }
+  }
 
-/**
- *  \brief  Get the actual run time of model if ran individually
- *  \param  arg tfl_model_struct containing models details to be ran
- * @returns int status
- */
+};
+
+int runInference(Settings * s)
+{
+  s->number_of_threads = 1;
+  s->loop_count = 10;
+
+  int ret;
+  int num_tests = gPriorityMapping.size();
+  LOG_INFO("Num tests = %d \n", num_tests);
+  
+  for(int i = 0; i < num_tests; i++) /* for each test */
+  {
+    auto& test = gPriorityMapping[i];
+    int num_threads = test.size();
+    thread_arguments thread_args[MAX_THREADS];
+    model_generic_info modelInfo[MAX_THREADS][MAX_MODELS_PER_THREAD];
+    std::vector<thread_arguments *> thread_arguments_all;
+    for(int j = 0; j < num_threads; j++) /* For each thread in test */
+    {
+      auto& thread_info = test[j];
+      for(int k = 0; k < thread_info.size(); k++) /* For each model in thread */
+      {
+        auto& model_inputs = thread_info[k];
+        modelInfo[j][k].test_id = i;
+        modelInfo[j][k].thread_id = j;
+        modelInfo[j][k].model_id = k;
+        /* Populate model name */
+        std::string modelName = model_inputs.model_artifacts_path;
+        size_t sep = modelName.find_last_of("\\/");
+        if (sep != std::string::npos)
+            modelName = modelName.substr(sep + 1, modelName.size() - sep - 1);
+        modelInfo[j][k].model_name = modelName;
+        /***************/
+
+        thread_args[j].model_input_args[k] = &model_inputs;
+        thread_args[j].model_info[k] = &modelInfo[j][0];
+      }
+      thread_args[j].num_models_in_thread = thread_info.size();
+      thread_args[j].s = s;
+      /* Run to get reference run results - base output and base inference time */
+      thread_args[j].is_reference_run = 1;
+      infer(&thread_args[j]);
+      thread_args[j].is_reference_run = 0;
+
+    }
+
+    /* thread spawning and running inference in parallel */
+    if (pthread_mutex_init(&priority_lock, NULL) != 0)
+    {
+        LOG_ERROR("\n mutex init has failed\n");
+        // return RETURN_FAIL;
+    }
+    pthread_attr_t tattr;
+    ret = pthread_attr_init(&tattr);
+    if (ret != 0)
+    {
+        LOG_ERROR("barrier creation failed exiting\n");
+        // return RETURN_FAIL;
+    }
+
+    pthread_t ptid[MAX_THREADS];
+    LOG_INFO("************* Creating threads *************** \n");
+    for (size_t i = 0; i < num_threads; i++)
+    {
+        /* Creating a new thread*/
+        pthread_create(&ptid[i], &tattr, &infer, &thread_args[i]);
+    }
+    for (size_t i = 0; i < num_threads; i++)
+    {
+        // Waiting for the created thread to terminate
+        pthread_join(ptid[i], NULL);
+    }
+
+    pthread_mutex_destroy(&priority_lock);
+  }
+  return RETURN_SUCCESS;
+}
+#if 0
+/* Primitive code for just 2 models with different priorities and single test at a time */
+
+typedef struct
+{
+    std::string model_artifacts_path;
+    int priority;
+    float max_pre_empt_delay;
+    int model_id;
+    Settings *s;
+    int is_reference_run;
+    std::string model_name;
+    int in_width;
+    int in_height;
+    int in_numCh;
+    int in_element_size_in_bytes;
+    int in_element_type;
+    int out_width;
+    int out_height;
+    int out_numCh;
+    int out_element_size_in_bytes;
+    int out_element_type;
+    float actual_times;
+} model_struct;
+
 int getActualRunTime(model_struct *arg0, model_struct *arg1)
 {
   LOG_INFO("Inferring model 1 \n");
@@ -307,7 +463,6 @@ int getActualRunTime(model_struct *arg0, model_struct *arg1)
   LOG_INFO("Actual run times of models are : \n %s -- %f \n %s -- %f \n", arg0->model_name.c_str(), arg0->actual_times, arg1->model_name.c_str(),arg1->actual_times);
   return RETURN_SUCCESS;   
 }
-
 
 int runInference(Settings * s)
 {
@@ -408,26 +563,13 @@ int runInference(Settings * s)
     pthread_mutex_destroy(&priority_lock);
     return RETURN_SUCCESS;
 }
+#endif
 
 /* Options are kept same as base application --- can be updated to take model_struct arguments */
 void display_usage() {
   LOG(INFO)
-      << "label_image\n"
       << "--accelerated, -a: [0|1], use Android NNAPI or not\n"
-      << "--old_accelerated, -d: [0|1], use old Android NNAPI delegate or not\n"
-      << "--artifact_path, -f: [0|1], Path for Delegate artifacts folder \n"
-      << "--count, -c: loop interpreter->Invoke() for certain times\n"
-      << "--gl_backend, -g: use GL GPU Delegate on Android\n"
-      << "--input_mean, -b: input mean\n"
-      << "--input_std, -s: input standard deviation\n"
-      << "--image, -i: image_name.bmp\n"
-      << "--labels, -l: labels for the model\n"
-      << "--tflite_model, -m: model_name.tflite\n"
-      << "--profiling, -p: [0|1], profiling or not\n"
-      << "--num_results, -r: number of results to show\n"
       << "--threads, -t: number of threads\n"
-      << "--verbose, -v: [0|1] print more information\n"
-      << "--warmup_runs, -w: number of warmup runs\n"
       << "\n";
 }
 
