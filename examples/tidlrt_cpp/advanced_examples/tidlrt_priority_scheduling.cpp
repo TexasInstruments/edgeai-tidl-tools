@@ -13,65 +13,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "classification.h"
-#include <fcntl.h>    
-#include <getopt.h>   
-#include <sys/time.h> 
-#include <sys/types.h>
-#include <sys/uio.h>  
-#include <unistd.h>   
-
-#include <cstdarg>
-#include <cstdio>
-#include <cstdlib>
-#include <fstream>
-#include <iomanip>
-#include <iostream>
-#include <map>
-#include <memory>
-#include <sstream>
-#include <string>
-#include <unordered_set>
-#include <vector>
-#include <fstream>
-
-
-#include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-#include "opencv2/imgcodecs.hpp"
-#include "opencv2/imgproc/imgproc_c.h"
-#include <iostream>
-#include  <cstring>
-#include <algorithm>
-#include <functional>
-#include <queue>
-
-#include "itidl_rt.h"
-#include "tidlrt_priority_scheduling.h"
-
-#include "../../osrt_cpp/utils/include/ti_logger.h"
-#include "../../osrt_cpp/utils/include/utility_functs.h"
+#include "tidlrt_priority_scheduling_utils.h"
 
 using namespace std::chrono;
-
-#define LOG(x) std::cerr
-
-void* in_ptrs[16] = {NULL};
-void* out_ptrs[16]= {NULL};
 
 double get_us(struct timeval t) { return (t.tv_sec * 1000000 + t.tv_usec); }
 
 pthread_mutex_t priority_lock;
 pthread_barrier_t barrier;
 
-#define NUM_PRIORITIES 2
 #define MAX_THREADS 8
-
-
 #define MAX_MODELS_PER_THREAD 8
 
-/* This struct specifies the arguments expected to be provided by user */
+/* This struct specifies the arguments expected to be provided by user as part of the gPriorityMapping */
 typedef struct
 {
     std::string model_artifacts_path;
@@ -89,6 +43,7 @@ typedef struct
     int out_element_type;
 } model_input_info;
 
+/* Information specific to each individual model being run as part of tests */
 typedef struct 
 {
   std::string model_name;
@@ -105,55 +60,90 @@ typedef struct
 {
   int num_models_in_thread;
   model_input_info * model_input_args[MAX_MODELS_PER_THREAD];    /* Info provided for individual model */
-  Settings * s;               /* common argument across threads - pass pointer */
-  int is_reference_run;
+  Priority_settings * s;               /* common argument across threads - pass pointer */
+  int is_reference_run;      /* Reference run is used to get reference output and inference runtimes */
   model_generic_info * model_info[MAX_MODELS_PER_THREAD];
 } thread_arguments;
 
-void getModelNameromArtifactsDir(char* path, char * net_name, char *io_name)
+
+/* Structure to store results for each test to be used for further analysis */
+typedef struct
 {
-  char sys_cmd[500];
-  sprintf(sys_cmd, "ls %s/*net.bin | head -1", path);
-  FILE * fp = popen(sys_cmd,  "r");
-  if (fp == NULL)
-  {
-    printf("Error while runing command : %s", sys_cmd);
-  }
-  fscanf(fp, "%s", net_name);
-  fclose(fp);
+  std::string output_test_filename[MAX_THREADS][MAX_MODELS_PER_THREAD];
+  std::string output_ref_filename[MAX_THREADS][MAX_MODELS_PER_THREAD];
+  int num_iterations[MAX_THREADS][MAX_MODELS_PER_THREAD];
+  int functional_result[MAX_THREADS][MAX_MODELS_PER_THREAD];
+  float max_pre_empt_delay[MAX_THREADS][MAX_MODELS_PER_THREAD];
+  int priority[MAX_THREADS][MAX_MODELS_PER_THREAD];
+} aggregate_results;
 
-  sprintf(sys_cmd, "ls %s/*io_1.bin | head -1", path);
-  fp = popen(sys_cmd,  "r");
-  if (fp == NULL)
-  {
-    printf("Error while runing command : %s", sys_cmd);
-  }
-  fscanf(fp, "%s", io_name);
-  fclose(fp);
-  return;
-}
-
-int32_t TIDLReadBinFromFile(const char *fileName, void *addr, int32_t size)
+/* Specify tests to be run -- Vector of tests, each test has N threads, with each thread running M models */
+std::vector<std::vector<std::vector<model_input_info>>> gPriorityMapping = 
 {
-    FILE *fptr = NULL;
-    fptr = fopen((const char *)fileName, "rb");
-    if (fptr)
+  /* Test 1 */
+  {
+    /* Threads*/
     {
-      fread(addr, size, 1, fptr);
-      fclose(fptr);
-      return 0;
-    }
-    else
+      /* Models in each thread */
+      {"model-artifacts/ss-ort-deeplabv3lite_mobilenetv2", 0, FLT_MAX, 512, 512, 3, 1, TIDLRT_Uint8, 512, 512, 1, 1, TIDLRT_Uint8}
+    },
     {
-      printf("Could not open %s file for reading \n", fileName);
+      {"model-artifacts/cl-ort-resnet18-v1", 0, FLT_MAX, 224, 224, 3, 1, TIDLRT_Uint8, 1000, 1, 1, 4, TIDLRT_Float32}
     }
-    return -1;
-}
+  },
+  /* Test 2 */
+  {
+    /* Threads*/
+    {
+      /* Models in each thread */
+      {"model-artifacts/ss-ort-deeplabv3lite_mobilenetv2", 1, FLT_MAX, 512, 512, 3, 1, TIDLRT_Uint8, 512, 512, 1, 1, TIDLRT_Uint8}
+    },
+    {
+      {"model-artifacts/cl-ort-resnet18-v1", 0, FLT_MAX, 224, 224, 3, 1, TIDLRT_Uint8, 1000, 1, 1, 4, TIDLRT_Float32}
+    }
+  },
+  /* Test 3 */
+  {
+    /* Threads*/
+    {
+      /* Models in each thread */
+      {"model-artifacts/ss-ort-deeplabv3lite_mobilenetv2", 1, 7, 512, 512, 3, 1, TIDLRT_Uint8, 512, 512, 1, 1, TIDLRT_Uint8}
+    },
+    {
+      {"model-artifacts/cl-ort-resnet18-v1", 0, FLT_MAX, 224, 224, 3, 1, TIDLRT_Uint8, 1000, 1, 1, 4, TIDLRT_Float32}
+    }
+  },
+  /* Test 4 */
+  {
+    /* Threads*/
+    {
+      /* Models in each thread */
+      {"model-artifacts/ss-ort-deeplabv3lite_mobilenetv2", 1, 3, 512, 512, 3, 1, TIDLRT_Uint8, 512, 512, 1, 1, TIDLRT_Uint8}
+    },
+    {
+      {"model-artifacts/cl-ort-resnet18-v1", 0, FLT_MAX, 224, 224, 3, 1, TIDLRT_Uint8, 1000, 1, 1, 4, TIDLRT_Float32}
+    }
+  },
+  /* Test 5 */
+  {
+    /* Threads*/
+    {
+      /* Models in each thread */
+      {"model-artifacts/ss-ort-deeplabv3lite_mobilenetv2", 1, 0, 512, 512, 3, 1, TIDLRT_Uint8, 512, 512, 1, 1, TIDLRT_Uint8}
+    },
+    {
+      {"model-artifacts/cl-ort-resnet18-v1", 0, FLT_MAX, 224, 224, 3, 1, TIDLRT_Uint8, 1000, 1, 1, 4, TIDLRT_Float32}
+    }
+  }
 
+};
+
+
+/* Core inference function which does TIDLRT_Create followed by TIDLRT_invoke */
 void * infer(void * argument) {
 
   thread_arguments *arg = (thread_arguments *)argument;
-  Settings *s = arg->s;
+  Priority_settings *s = arg->s;
   int num_models = arg->num_models_in_thread;
 
   void * handles[MAX_MODELS_PER_THREAD];
@@ -184,7 +174,6 @@ void * infer(void * argument) {
     if (fp_network == NULL)
     {
       printf("Invoke  : ERROR: Unable to open network file %s \n", net_name);
-      // return -1;
     }
     prms.stats = (sTIDLRT_PerfStats_t*)malloc(sizeof(sTIDLRT_PerfStats_t));
 
@@ -200,7 +189,6 @@ void * infer(void * argument) {
     if (fp_config == NULL)
     {
       printf("Invoke  : ERROR: Unable to open IO config file %s \n", io_name);
-      // return -1;
     }
     fseek(fp_config, 0, SEEK_END);
     prms.io_capacity = ftell(fp_config);
@@ -272,7 +260,7 @@ void * infer(void * argument) {
 
       LOG_INFO("Model %s :: Actual time  = %f ms \n", arg->model_info[i]->model_name.c_str(), (get_us(stop_time) - get_us(start_time)) / (arg->s->loop_count * 1000));
 
-      output_filename = "output_reference_" + arg->model_info[i]->model_name + "_" + std::to_string(arg->model_info[i]->test_id) + "_" + std::to_string(arg->model_info[i]->thread_id) + "_" + std::to_string(arg->model_info[i]->thread_id) + ".bin";
+      output_filename = "examples/tidlrt_cpp/advanced_examples/outputs/output_reference_" + arg->model_info[i]->model_name + "_" + std::to_string(arg->model_info[i]->test_id) + "_" + std::to_string(arg->model_info[i]->thread_id) + "_" + std::to_string(arg->model_info[i]->thread_id) + ".bin";
     }
   }
   else if (arg->is_reference_run == 0)
@@ -280,11 +268,11 @@ void * infer(void * argument) {
     for(int i = 0; i < num_models; i++)
     {
       arg->model_info[i]->num_iterations_run = 0;
-      output_filename = "output_test_" + arg->model_info[i]->model_name + "_" + std::to_string(arg->model_info[i]->test_id) + "_" + std::to_string(arg->model_info[i]->thread_id) + "_" + std::to_string(arg->model_info[i]->thread_id) + ".bin";
+      output_filename = "examples/tidlrt_cpp/advanced_examples/outputs/output_test_" + arg->model_info[i]->model_name + "_" + std::to_string(arg->model_info[i]->test_id) + "_" + std::to_string(arg->model_info[i]->thread_id) + "_" + std::to_string(arg->model_info[i]->thread_id) + ".bin";
     }
 
     gettimeofday(&start_time, nullptr);
-    auto finish = system_clock::now() + minutes{1};
+    auto finish = system_clock::now() + minutes{s->test_duration};
     do
     {
       for(int i = 0; i < num_models; i++)
@@ -311,56 +299,156 @@ void * infer(void * argument) {
     status = TIDLRT_delete(handles[i]);
   }
 
-  for (uint32_t i = 0; i < num_models; i++)
-  {
-    if (in[i][0]->ptr)
-    {
-      // TIDLRT_freeSharedMem(in[i][0]->ptr);
-    }
-    if (out[i][0]->ptr)
-    {
-      // TIDLRT_freeSharedMem(out[i][0]->ptr);
-    }
-  }
-
   void * retPtr;
   return retPtr;
 }
 
-std::vector<std::vector<std::vector<model_input_info>>> gPriorityMapping = 
+
+/* TI Internal testing function - Used to analyze test results and give a PASS/FAIL result for pre-emption test */
+int analyzeResults(aggregate_results * results)
 {
-  /* Test 1 */
+  int status;
+  int num_tests = gPriorityMapping.size();
+  /* Print results table */
+  std::stringstream tableStream;
+  std::string tableString;
+  std::vector<std::string> header = {"Test id",
+                                     "Model 1 - Priority",
+                                     "Model 1 - Max prempt delay",
+                                     "Model 2 - Priority",
+                                     "Model 2 - Max prempt delay",
+                                     "Model 1 - Num iterations",
+                                     "Model 2 - Num iterations",
+                                     "Model 1 - Functional",
+                                     "Model 2 - Functional",
+                                     "Test status"
+                                    };
+  std::vector<std::vector<std::string>> data = {};
+  std::vector<TIDL_table_align_t> columnAlignment = {ALIGN_LEFT,ALIGN_LEFT,ALIGN_LEFT,ALIGN_LEFT,ALIGN_LEFT,ALIGN_LEFT,ALIGN_LEFT,ALIGN_RIGHT,ALIGN_RIGHT,ALIGN_RIGHT};
+
+  int overall_status = 1;
+  for(int i = 0; i < num_tests; i++)
   {
-    /* Threads*/
+    std::vector<std::string> test_results;
+    int test_status = 1;
+    test_results.push_back(std::to_string(i + 1));
+    /* Functional testing */
+    int num_threads = gPriorityMapping[i].size();
+
+    test_results.push_back(std::to_string(results[i].priority[0][0]));
+    if(results[i].max_pre_empt_delay[0][0] == FLT_MAX)
     {
-      /* Models in each thread */
-      {"model-artifacts/ss-ort-deeplabv3lite_mobilenetv2", 0, FLT_MAX, 512, 512, 3, 1, TIDLRT_Uint8, 512, 512, 1, 1, TIDLRT_Uint8}
-    },
-    {
-      {"model-artifacts/cl-ort-resnet18-v1", 0, FLT_MAX, 224, 224, 3, 1, TIDLRT_Uint8, 1000, 1, 1, 4, TIDLRT_Float32}
+      test_results.push_back("FLT_MAX");
     }
-  },
-  {
-    /* Threads*/
+    else
     {
-      /* Models in each thread */
-      {"model-artifacts/ss-ort-deeplabv3lite_mobilenetv2", 1, 0, 512, 512, 3, 1, TIDLRT_Uint8, 512, 512, 1, 1, TIDLRT_Uint8}
-    },
-    {
-      {"model-artifacts/cl-ort-resnet18-v1", 0, FLT_MAX, 224, 224, 3, 1, TIDLRT_Uint8, 1000, 1, 1, 4, TIDLRT_Float32}
+      test_results.push_back(std::to_string(results[i].max_pre_empt_delay[0][0]));
     }
+    test_results.push_back(std::to_string(results[i].priority[1][0]));
+    if(results[i].max_pre_empt_delay[1][0] == FLT_MAX)
+    {
+      test_results.push_back("FLT_MAX");
+    }
+    else
+    {
+      test_results.push_back(std::to_string(results[i].max_pre_empt_delay[1][0]));
+    }
+    test_results.push_back(std::to_string(results[i].num_iterations[0][0]));
+    test_results.push_back(std::to_string(results[i].num_iterations[1][0]));
+
+    std::string sysCmd = "diff " + results[i].output_ref_filename[0][0] + " " + results[i].output_test_filename[0][0];
+    status = system(sysCmd.c_str());
+    if (WIFEXITED(status))
+    {
+      std::string function =  WEXITSTATUS(status) == 0 ? "TRUE" : "FALSE";
+      test_results.push_back(function);
+      if(status != 0)
+      {
+        test_status &= 0;
+      }
+    }
+    else
+    {
+      LOG_INFO("Diff returned with incorrect status for model 1");
+      test_status &= 0;
+    }
+    
+    sysCmd = "diff " + results[i].output_ref_filename[1][0] + " " + results[i].output_test_filename[1][0];
+    status = system(sysCmd.c_str());
+    if (WIFEXITED(status))
+    {
+      std::string function =  WEXITSTATUS(status) == 0 ? "TRUE" : "FALSE";
+      test_results.push_back(function);
+      if(status != 0)
+      {
+        test_status &= 0;
+      }
+    }
+    else
+    {
+      LOG_INFO("Diff returned with incorrect status for model 2");
+      test_status &= 0;
+    }
+    
+    if(i == 0)
+    {
+      float ratio = float(results[i].num_iterations[0][0]) / float(results[i].num_iterations[1][0]);
+      if(! ( (ratio < 1.1) && (ratio > 0.9) ))
+      {
+         test_status &= 0;
+      }
+    }
+    else /* i > 0 */
+    {
+      if(! (results[i].num_iterations[0][0] < results[i - 1].num_iterations[0][0]))
+      {
+        test_status &= 0;
+      }
+    }
+    if(test_status == 1)
+    {
+      test_results.push_back("TRUE");
+    }
+    else
+    {
+      test_results.push_back("FALSE");
+    }
+
+    data.push_back(test_results);
+    overall_status &= test_status;
   }
 
-};
+  if(!data.empty())
+  {
+    TIDL_createTable(tableStream, header, data, 1, columnAlignment, false);
+    tableString = tableStream.str();
+    printf("%s\n",tableString.c_str());
+  }
 
-int runInference(Settings * s)
+  if(overall_status == 1)
+  {
+    printf("Final test status - PASS \n");
+  }
+  else
+  {
+    printf("Final test status - FAIL \n");
+  }
+
+  return overall_status;
+}
+
+
+/* Base inference function which parses tests and creates threads to run the tests */
+int runInference(Priority_settings * s)
 {
-  s->number_of_threads = 1;
-  s->loop_count = 10;
-
   int ret;
   int num_tests = gPriorityMapping.size();
   LOG_INFO("Num tests = %d \n", num_tests);
+  int final_status = 1;
+
+  system("mkdir -p examples/tidlrt_cpp/advanced_examples/outputs");
+
+  aggregate_results results[num_tests];
   
   for(int i = 0; i < num_tests; i++) /* for each test */
   {
@@ -368,7 +456,6 @@ int runInference(Settings * s)
     int num_threads = test.size();
     thread_arguments thread_args[MAX_THREADS];
     model_generic_info modelInfo[MAX_THREADS][MAX_MODELS_PER_THREAD];
-    std::vector<thread_arguments *> thread_arguments_all;
     for(int j = 0; j < num_threads; j++) /* For each thread in test */
     {
       auto& thread_info = test[j];
@@ -388,6 +475,9 @@ int runInference(Settings * s)
 
         thread_args[j].model_input_args[k] = &model_inputs;
         thread_args[j].model_info[k] = &modelInfo[j][0];
+
+        results[i].priority[j][k] = model_inputs.priority;
+        results[i].max_pre_empt_delay[j][k] = model_inputs.max_pre_empt_delay;
       }
       thread_args[j].num_models_in_thread = thread_info.size();
       thread_args[j].s = s;
@@ -395,21 +485,18 @@ int runInference(Settings * s)
       thread_args[j].is_reference_run = 1;
       infer(&thread_args[j]);
       thread_args[j].is_reference_run = 0;
-
     }
 
     /* thread spawning and running inference in parallel */
     if (pthread_mutex_init(&priority_lock, NULL) != 0)
     {
         LOG_ERROR("\n mutex init has failed\n");
-        // return RETURN_FAIL;
     }
     pthread_attr_t tattr;
     ret = pthread_attr_init(&tattr);
     if (ret != 0)
     {
-        LOG_ERROR("barrier creation failed exiting\n");
-        // return RETURN_FAIL;
+        LOG_ERROR("pthread_attr_init failed \n");
     }
 
     pthread_t ptid[MAX_THREADS];
@@ -426,176 +513,63 @@ int runInference(Settings * s)
     }
 
     pthread_mutex_destroy(&priority_lock);
+
+    /* Save test run data for further analysis */
+    for (size_t j = 0; j < num_threads; j++)
+    {
+      for(int k = 0; k < thread_args[j].num_models_in_thread; k++)
+      {
+        results[i].num_iterations[j][k] = thread_args[j].model_info[k]->num_iterations_run;
+        results[i].output_ref_filename[j][k] = "examples/tidlrt_cpp/advanced_examples/outputs/output_reference_" + thread_args[j].model_info[k]->model_name + "_" + std::to_string(thread_args[j].model_info[k]->test_id) 
+                    + "_" + std::to_string(thread_args[j].model_info[k]->thread_id) + "_" + std::to_string(thread_args[j].model_info[k]->thread_id) + ".bin";
+        results[i].output_test_filename[j][k] = "examples/tidlrt_cpp/advanced_examples/outputs/output_test_" + thread_args[j].model_info[k]->model_name + "_" + std::to_string(thread_args[j].model_info[k]->test_id) 
+                    + "_" + std::to_string(thread_args[j].model_info[k]->thread_id) + "_" + std::to_string(thread_args[j].model_info[k]->thread_id) + ".bin"; 
+      }
+    }
   }
-  return RETURN_SUCCESS;
-}
-#if 0
-/* Primitive code for just 2 models with different priorities and single test at a time */
-
-typedef struct
-{
-    std::string model_artifacts_path;
-    int priority;
-    float max_pre_empt_delay;
-    int model_id;
-    Settings *s;
-    int is_reference_run;
-    std::string model_name;
-    int in_width;
-    int in_height;
-    int in_numCh;
-    int in_element_size_in_bytes;
-    int in_element_type;
-    int out_width;
-    int out_height;
-    int out_numCh;
-    int out_element_size_in_bytes;
-    int out_element_type;
-    float actual_times;
-} model_struct;
-
-int getActualRunTime(model_struct *arg0, model_struct *arg1)
-{
-  LOG_INFO("Inferring model 1 \n");
-  infer(arg0);
-  LOG_INFO("Inferring model 2 \n");
-  infer(arg1);
-  LOG_INFO("Actual run times of models are : \n %s -- %f \n %s -- %f \n", arg0->model_name.c_str(), arg0->actual_times, arg1->model_name.c_str(),arg1->actual_times);
-  return RETURN_SUCCESS;   
+  
+  if(s->disable_result_analysis != 1)
+  {
+    final_status = analyzeResults(&results[0]);
+  }
+  
+  return final_status;
 }
 
-int runInference(Settings * s)
-{
-    model_struct args[NUM_PRIORITIES];
-    int ret;
-    for (size_t i = 0; i < NUM_PRIORITIES; i++)
-    {
-        LOG_INFO("Prep model %d\n", i);
-        args[i].model_id = i;
-        args[i].s = s;
-        if(i == 0)
-        {
-          args[i].model_artifacts_path = "model-artifacts/ss-ort-deeplabv3lite_mobilenetv2";
-          args[i].priority = 1;
-          args[i].max_pre_empt_delay = 0; 
-          /* Dims */
-          args[i].in_width = 512;
-          args[i].in_height = 512;
-          args[i].in_numCh = 3;
-          args[i].in_element_size_in_bytes = 1;
-          args[i].in_element_type = TIDLRT_Uint8;
-          args[i].out_width = 512;
-          args[i].out_height = 512;
-          args[i].out_numCh = 1;
-          args[i].out_element_size_in_bytes = 1;
-          args[i].out_element_type = TIDLRT_Uint8;
-        }
-        if(i == 1)
-        {
-          args[i].model_artifacts_path = "model-artifacts/cl-ort-resnet18-v1";
-          args[i].priority = 0;
-          args[i].max_pre_empt_delay = FLT_MAX;
-          /* Dims */
-          args[i].in_width = 224;
-          args[i].in_height = 224;
-          args[i].in_numCh = 3;
-          args[i].in_element_size_in_bytes = 1;
-          args[i].in_element_type = TIDLRT_Uint8;
-          args[i].out_width = 1000;
-          args[i].out_height = 1;
-          args[i].out_numCh = 1;
-          args[i].out_element_size_in_bytes = 4;
-          args[i].out_element_type = TIDLRT_Float32;
-        }
-        std::string modelName = args[i].model_artifacts_path;
-        size_t sep = modelName.find_last_of("\\/");
-        if (sep != std::string::npos)
-            modelName = modelName.substr(sep + 1, modelName.size() - sep - 1);
-        args[i].model_name = modelName;
-    }
 
-    s->number_of_threads = 1;
-    s->loop_count = 10;
-
-    /* Reference run starts */
-    
-    args[0].is_reference_run = 1;
-    args[1].is_reference_run = 1;
-
-    if (RETURN_FAIL == getActualRunTime(&args[0], &args[1]))
-            return RETURN_FAIL;
-
-    if (pthread_mutex_init(&priority_lock, NULL) != 0)
-    {
-        LOG_ERROR("\n mutex init has failed\n");
-        return RETURN_FAIL;
-    }
-    pthread_attr_t tattr;
-    ret = pthread_attr_init(&tattr);
-    pthread_barrierattr_t barr_attr;
-    ret = pthread_barrier_init(&barrier, &barr_attr, (2 * s->number_of_threads));
-    if (ret != 0)
-    {
-        LOG_ERROR("barrier creation failied exiting\n");
-        return RETURN_FAIL;
-    }
-
-    /* Test run starts */
-    args[0].is_reference_run = 0;
-    args[1].is_reference_run = 0;
-
-    pthread_t ptid[2 * NUM_PRIORITIES];
-    LOG_INFO("************* Creating threads *************** \n");
-    for (size_t i = 0; i < s->number_of_threads; i++)
-    {
-        /* Creating a new thread*/
-        pthread_create(&ptid[2 * i], &tattr, &infer, &args[0]);
-        pthread_create(&ptid[2 * i + 1], &tattr, &infer, &args[1]);
-    }
-    for (size_t i = 0; i < s->number_of_threads; i++)
-    {
-        // Waiting for the created thread to terminate
-        pthread_join(ptid[2 * i], NULL);
-        pthread_join(ptid[2 * i + 1], NULL);
-    }
-
-    pthread_barrierattr_destroy(&barr_attr);
-    pthread_mutex_destroy(&priority_lock);
-    return RETURN_SUCCESS;
-}
-#endif
-
-/* Options are kept same as base application --- can be updated to take model_struct arguments */
 void display_usage() {
   LOG(INFO)
-      << "--accelerated, -a: [0|1], use Android NNAPI or not\n"
-      << "--threads, -t: number of threads\n"
+      << "--test_duration, -t: Duration of each individual test in minutes \n"
+      << "--disable_result_analysis, -r: [1/0] : Result analysis is meant for internal testing, disable for external applications \n"
       << "\n";
 }
 
 int main(int argc, char** argv) {
-  Settings s;
+  Priority_settings s;
 
   int c;
   while (1) {
     static struct option long_options[] = {
-        {"accelerated", required_argument, nullptr, 'a'},
-        {"threads", required_argument, nullptr, 't'},
+        {"test_duration", required_argument, nullptr, 't'},
+        {"disable_result_analysis", required_argument, nullptr, 'r'},
         {nullptr, 0, nullptr, 0}};
 
     /* getopt_long stores the option index here. */
     int option_index = 0;
 
     c = getopt_long(argc, argv,
-                    "a:b:c:d:e:f:g:i:l:m:p:r:s:t:v:w:", long_options,
+                    "t:r:", long_options,
                     &option_index);
 
     /* Detect the end of the options. */
     if (c == -1) break;
 
     switch (c) {
-      case 'a':
-        s.accel = strtol(optarg, nullptr, 10);
+      case 't':
+        s.test_duration = strtol(optarg, nullptr, 10);
+        break;
+      case 'r':
+        s.disable_result_analysis = strtol(optarg, nullptr, 10);
         break;
       case 'h':
       case '?':

@@ -60,31 +60,75 @@
 *
 */
 
-#ifndef TIDLRT_C_EXAMPLE
-#define TIDLRT_C_EXAMPLE
+#ifndef TIDLRT_PREEMPTION_EXAMPLE
+#define TIDLRT_PREEMPTION_EXAMPLE
 
+#define LOG(x) std::cerr
+
+#include <fcntl.h>    
+#include <getopt.h>   
+#include <sys/time.h> 
+#include <sys/types.h>
+#include <sys/uio.h>  
+#include <unistd.h>  
+
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <map>
+#include <memory>
+#include <sstream>
 #include <string>
+#include <unordered_set>
+#include <vector>
+#include <fstream>
+#include <ostream>
+#include <regex>
+#include <iterator>
 
-struct Settings {
-  bool verbose = false;
-  bool accel = false;
-  bool device_mem = false;
-  bool input_floating = false;
-  bool profiling = false;
-  bool allow_fp16 = false;
-  bool gl_backend = false;
-  bool hexagon_delegate = false;
-  int loop_count = 1;
-  float input_mean = 0;
-  float input_std = 1;
-  std::string artifact_path = "";
-  std::string input_image_name = "./grace_hopper.bmp";
-  std::string labels_file_name = "./labels.txt";
-  std::string input_layer_type = "uint8_t";
-  int number_of_threads = 4;
-  int number_of_results = 5;
-  int max_profiling_buffer_entries = 1024;
-  int number_of_warmup_runs = 2;
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include "opencv2/imgcodecs.hpp"
+#include "opencv2/imgproc/imgproc_c.h"
+#include <iostream>
+#include  <cstring>
+#include <algorithm>
+#include <functional>
+#include <queue>
+
+#include "itidl_rt.h"
+
+#include "../../osrt_cpp/utils/include/ti_logger.h"
+#include "../../osrt_cpp/utils/include/utility_functs.h"
+
+struct Priority_settings {
+  int test_duration = 1;
+  int disable_result_analysis = 0;
+  int loop_count = 10; /* Number of iterations to get reference inference runtime */
 };
 
-#endif   //TIDLRT_C_EXAMPLE
+typedef enum {
+    ALIGN_LEFT = 0,
+    ALIGN_RIGHT,
+    ALIGN_CENTER
+} TIDL_table_align_t;
+
+void TIDL_createTable(std::ostream &stream,
+                      std::vector<std::string> header,
+                      std::vector<std::vector<std::string>> data,
+                      int32_t padding,
+                      std::vector<TIDL_table_align_t> columnAlignment,
+                      bool printSeperator = false);
+
+void getModelNameromArtifactsDir(char* path, char * net_name, char *io_name);
+
+int32_t TIDLReadBinFromFile(const char *fileName, void *addr, int32_t size);
+
+std::string removeAnsi(std::string str);
+
+
+#endif   //TIDLRT_PREEMPTION_EXAMPLE

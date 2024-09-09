@@ -7,6 +7,6 @@ project(${PROJ_NAME})
 include(${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/common.cmake)
 
 set(TIDL_RT_APP_SRCS
-    tidlrt_priority_scheduling.cpp)
+    tidlrt_priority_scheduling.cpp tidlrt_priority_scheduling_utils.cpp)
 
 build_app(${PROJ_NAME} TIDL_RT_APP_SRCS)
