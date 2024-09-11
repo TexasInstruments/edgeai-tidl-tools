@@ -171,7 +171,8 @@ def model_create_and_run(model_dir,
 
     res = postprocess_func(res)
 
-    output_file_name = "py_out_"+model_dir.split("/")[-1]+'_'+os.path.basename(img_path)
+    model = model_dir.split("/")[-2]
+    output_file_name = "py_out_"+model+'_'+os.path.basename(img_path)
 
     image_pil = Image.open(img_path).convert('RGB')
     classes, image = get_class_labels(res,image_pil)
@@ -182,7 +183,7 @@ def model_create_and_run(model_dir,
         os.makedirs(output_images_folder)
     image.save(output_images_folder + output_file_name, "JPEG") 
     
-    log = f'\n \nCompleted_Model : {mIdx+1:5d}, Name : {os.path.basename(model_dir):50s}, Total time : {proc_time/numImages:10.2f}, Offload Time : {proc_time/numImages:10.2f} , DDR RW MBs : 0, Output File : {output_file_name}\n \n ' #{classes} \n \n'
+    log = f'\n \nCompleted_Model : {mIdx+1:5d}, Name : {model:50s}, Total time : {proc_time/numImages:10.2f}, Offload Time : {proc_time/numImages:10.2f} , DDR RW MBs : 0, Output File : {output_file_name}\n \n ' #{classes} \n \n'
     print(log) 
 
 model_output_directory = '../../../model-artifacts/cl-dlr-tflite_inceptionnetv3'

@@ -44,7 +44,7 @@ DataList="cl-tfl-mobilenet_v1_1.0_224"
 for val in $DataList;
 do
  echo $val
- ./bin/Release/tfl_main -f "model-artifacts/${val}/" -v 1 -i "test_data/airshow.jpg" -c ${loop_count}
+ ./bin/Release/tfl_main -f "model-artifacts/${val}/artifacts/" -v 1 -i "test_data/airshow.jpg" -c ${loop_count}
 done
 
 #od,ss-tflite-deafult models
@@ -52,7 +52,7 @@ DataList="ss-tfl-deeplabv3_mnv2_ade20k_float"
 for val in $DataList;
 do
  echo $val
- ./bin/Release/tfl_main -f "model-artifacts/${val}/" -v 1 -i "test_data/ADE_val_00001801.jpg" -c ${loop_count}
+ ./bin/Release/tfl_main -f "model-artifacts/${val}/artifacts/" -v 1 -i "test_data/ADE_val_00001801.jpg" -c ${loop_count}
 done
 
 cd -

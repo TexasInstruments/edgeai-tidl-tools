@@ -56,7 +56,7 @@ fi
 for val in $DataList;
 do
  echo $val
- ./bin/Release/dlr_main -f "model-artifacts/${val}/" -v 1 -i "test_data/airshow.jpg"  -c ${loop_count}
+ ./bin/Release/dlr_main -f "model-artifacts/${val}/artifacts/" -v 1 -i "test_data/airshow.jpg"  -c ${loop_count}
 done
 
 cd -

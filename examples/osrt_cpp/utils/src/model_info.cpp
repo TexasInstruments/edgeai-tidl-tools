@@ -161,11 +161,11 @@ namespace tidl
                 LOG_ERROR("Preprocess configuration parameters missing.\n");
                 status = -1;
             }
-            else if (!preProc["mean"])
+            else if (!session["input_mean"])
             {
                 LOG_ERROR("Mean value specification missing. Setting deafult mean: 0\n");
             }
-            else if (!preProc["scale"])
+            else if (!session["input_scale"])
             {
                 LOG_ERROR("Scale value specification missing.Setting default scale: 1\n");
             }
@@ -209,8 +209,8 @@ namespace tidl
                 config.dataLayout = preProc["data_layout"].as<std::string>();
 
                 /* Read the mean values */
-                if(preProc["mean"]){
-                    const YAML::Node &meanNode = preProc["mean"];
+                if(session["input_mean"]){
+                    const YAML::Node &meanNode = session["input_mean"];
                     for (uint32_t i = 0; i < meanNode.size(); i++)
                     {
                         config.mean.push_back(meanNode[i].as<float>());
@@ -221,8 +221,8 @@ namespace tidl
                 }
 
                 /* Read the scale values */
-                if(preProc["mean"]){
-                    const YAML::Node &scaleNode = preProc["scale"];
+                if(session["input_scale"]){
+                    const YAML::Node &scaleNode = session["input_scale"];
                     for (uint32_t i = 0; i < scaleNode.size(); i++)
                     {
                         config.scale.push_back(scaleNode[i].as<float>());
@@ -416,6 +416,7 @@ namespace tidl
         {
             YAML::Node yaml;
             int32_t status = 0;
+            m_modelPath = m_modelPath.erase(m_modelPath.size()-10);
             const std::string &configFile = m_modelPath + "/param.yaml";
 
             /* Check if the specified configuration file exists */

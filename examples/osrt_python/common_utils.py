@@ -131,8 +131,11 @@ def gen_param_yaml(artifacts_folder_path, config, new_height, new_width):
         layout = 'NHWC'
     model_file_name = os.path.basename(config['task_type'])
 
+    model_path = config['session']['model_path']
+    model_name = model_path.split("/")[-1]
     config['preprocess']['add_flip_image'] = False
-    config['session']['artifacts_folder'] = artifacts_folder
+    config['session']['artifacts_folder'] = "artifacts"
+    config['session']['model_path'] = "model/"+model_name
     config['session']['input_data_layout'] = layout
     config['session']['target_device'] = SOC.upper()
 
@@ -142,17 +145,23 @@ def gen_param_yaml(artifacts_folder_path, config, new_height, new_width):
         else:
             config['postprocess']['label_offset_pred']=coco_det_label_offset_90to90(label_offset=config['extra_info']['label_offset'])
 
+    if isinstance(config['preprocess']['crop'],int):
+        config['preprocess']['crop'] = (config['preprocess']['crop'],config['preprocess']['crop'])
+    if isinstance(config['preprocess']['resize'],int):
+        config['preprocess']['resize'] = (config['preprocess']['resize'],config['preprocess']['resize'])
+
     # with open(os.path.join(artifacts_folder_path, "param.yaml"), 'w') as file:
     #     documents = yaml.dump(config, file)
     param_dict = pretty_object(config)
     param_dict.pop('source')
     param_dict.pop('extra_info')
     
-    artifacts_model_path = artifacts_folder_path[:-9]
-    with open(os.path.join(artifacts_model_path, "param.yaml"), 'w') as file:
+    artifacts_model_path_yaml = artifacts_folder_path[:-9]
+    artifacts_model_path_yaml = os.path.join(artifacts_model_path_yaml, "param.yaml")
+    with open(artifacts_model_path_yaml, 'w') as file:
         documents = yaml.safe_dump(param_dict, file, sort_keys=False)
     if (config['session']['session_name'] == 'tflitert') or (config['session']['session_name'] == 'onnxrt'):
-        shutil.copy(config['session']['model_path'], os.path.join(artifacts_folder_path,model_file_name))
+        shutil.copy(model_path, os.path.join(artifacts_folder_path,model_file_name))
 
 headers = {
 'User-Agent': 'My User Agent 1.0',
