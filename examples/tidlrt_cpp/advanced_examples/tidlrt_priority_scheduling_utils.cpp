@@ -1,17 +1,64 @@
-/* Copyright 2017 The TensorFlow Authors. All Rights Reserved.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-==============================================================================*/
+/*
+*
+* Copyright (c) {2020 - 2024} Texas Instruments Incorporated
+*
+* All rights reserved not granted herein.
+*
+* Limited License.
+*
+* Texas Instruments Incorporated grants a world-wide, royalty-free, non-exclusive
+* license under copyrights and patents it now or hereafter owns or controls to make,
+* have made, use, import, offer to sell and sell ("Utilize") this software subject to the
+* terms herein.  With respect to the foregoing patent license, such license is granted
+* solely to the extent that any such patent is necessary to Utilize the software alone.
+* The patent license shall not apply to any combinations which include this software,
+* other than combinations with devices manufactured by or for TI ("TI Devices").
+* No hardware patent is licensed hereunder.
+*
+* Redistributions must preserve existing copyright notices and reproduce this license
+* (including the above copyright notice and the disclaimer and (if applicable) source
+* code license limitations below) in the documentation and/or other materials provided
+* with the distribution
+*
+* Redistribution and use in binary form, without modification, are permitted provided
+* that the following conditions are met:
+*
+* *       No reverse engineering, decompilation, or disassembly of this software is
+* permitted with respect to any software provided in binary form.
+*
+* *       any redistribution and use are licensed by TI for use only with TI Devices.
+*
+* *       Nothing shall obligate TI to provide you with source code for the software
+* licensed and provided to you in object code.
+*
+* If software source code is provided to you, modification and redistribution of the
+* source code are permitted provided that the following conditions are met:
+*
+* *       any redistribution and use of the source code, including any resulting derivative
+* works, are licensed by TI for use only with TI Devices.
+*
+* *       any redistribution and use of any object code compiled from the source code
+* and any resulting derivative works, are licensed by TI for use only with TI Devices.
+*
+* Neither the name of Texas Instruments Incorporated nor the names of its suppliers
+*
+* may be used to endorse or promote products derived from this software without
+* specific prior written permission.
+*
+* DISCLAIMER.
+*
+* THIS SOFTWARE IS PROVIDED BY TI AND TI'S LICENSORS "AS IS" AND ANY EXPRESS
+* OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+* OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+* IN NO EVENT SHALL TI AND TI'S LICENSORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+* INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+* BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+* DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
+* OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+* OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+* OF THE POSSIBILITY OF SUCH DAMAGE.
+*
+*/
 
 #include "tidlrt_priority_scheduling_utils.h"
 using namespace std::chrono;
@@ -207,6 +254,17 @@ int32_t TIDLReadBinFromFile(const char *fileName, void *addr, int32_t size)
     return -1;
 }
 
+int doesDirectoryExist(const char *path)
+{
+  struct stat stats;
+  stat(path, &stats);
+  if (S_ISDIR(stats.st_mode))
+      return 1;
+
+  return 0;
+}
+
+
 #if 0
 /* Primitive code for just 2 models with different priorities and single test at a time */
 
@@ -229,7 +287,7 @@ typedef struct
     int out_numCh;
     int out_element_size_in_bytes;
     int out_element_type;
-    float actual_times;
+    float actual_time;
 } model_struct;
 
 int getActualRunTime(model_struct *arg0, model_struct *arg1)
@@ -238,7 +296,7 @@ int getActualRunTime(model_struct *arg0, model_struct *arg1)
   infer(arg0);
   LOG_INFO("Inferring model 2 \n");
   infer(arg1);
-  LOG_INFO("Actual run times of models are : \n %s -- %f \n %s -- %f \n", arg0->model_name.c_str(), arg0->actual_times, arg1->model_name.c_str(),arg1->actual_times);
+  LOG_INFO("Actual run times of models are : \n %s -- %f \n %s -- %f \n", arg0->model_name.c_str(), arg0->actual_time, arg1->model_name.c_str(),arg1->actual_time);
   return RETURN_SUCCESS;   
 }
 

@@ -1,17 +1,64 @@
-/* Copyright 2017 The TensorFlow Authors. All Rights Reserved.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-==============================================================================*/
+/*
+*
+* Copyright (c) {2020 - 2024} Texas Instruments Incorporated
+*
+* All rights reserved not granted herein.
+*
+* Limited License.
+*
+* Texas Instruments Incorporated grants a world-wide, royalty-free, non-exclusive
+* license under copyrights and patents it now or hereafter owns or controls to make,
+* have made, use, import, offer to sell and sell ("Utilize") this software subject to the
+* terms herein.  With respect to the foregoing patent license, such license is granted
+* solely to the extent that any such patent is necessary to Utilize the software alone.
+* The patent license shall not apply to any combinations which include this software,
+* other than combinations with devices manufactured by or for TI ("TI Devices").
+* No hardware patent is licensed hereunder.
+*
+* Redistributions must preserve existing copyright notices and reproduce this license
+* (including the above copyright notice and the disclaimer and (if applicable) source
+* code license limitations below) in the documentation and/or other materials provided
+* with the distribution
+*
+* Redistribution and use in binary form, without modification, are permitted provided
+* that the following conditions are met:
+*
+* *       No reverse engineering, decompilation, or disassembly of this software is
+* permitted with respect to any software provided in binary form.
+*
+* *       any redistribution and use are licensed by TI for use only with TI Devices.
+*
+* *       Nothing shall obligate TI to provide you with source code for the software
+* licensed and provided to you in object code.
+*
+* If software source code is provided to you, modification and redistribution of the
+* source code are permitted provided that the following conditions are met:
+*
+* *       any redistribution and use of the source code, including any resulting derivative
+* works, are licensed by TI for use only with TI Devices.
+*
+* *       any redistribution and use of any object code compiled from the source code
+* and any resulting derivative works, are licensed by TI for use only with TI Devices.
+*
+* Neither the name of Texas Instruments Incorporated nor the names of its suppliers
+*
+* may be used to endorse or promote products derived from this software without
+* specific prior written permission.
+*
+* DISCLAIMER.
+*
+* THIS SOFTWARE IS PROVIDED BY TI AND TI'S LICENSORS "AS IS" AND ANY EXPRESS
+* OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+* OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+* IN NO EVENT SHALL TI AND TI'S LICENSORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+* INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+* BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+* DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
+* OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+* OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+* OF THE POSSIBILITY OF SUCH DAMAGE.
+*
+*/
 
 #include "tidlrt_priority_scheduling_utils.h"
 
@@ -50,7 +97,7 @@ typedef struct
   int test_id;
   int thread_id;
   int model_id;
-  float actual_times;
+  float baseline_time_without_preemption;
   int num_iterations_run;
   float avg_time;
 } model_generic_info;
@@ -75,6 +122,8 @@ typedef struct
   int functional_result[MAX_THREADS][MAX_MODELS_PER_THREAD];
   float max_pre_empt_delay[MAX_THREADS][MAX_MODELS_PER_THREAD];
   int priority[MAX_THREADS][MAX_MODELS_PER_THREAD];
+  float avg_time[MAX_THREADS][MAX_MODELS_PER_THREAD];
+  float baseline_time_without_preemption[MAX_THREADS][MAX_MODELS_PER_THREAD];
 } aggregate_results;
 
 /* Specify tests to be run -- Vector of tests, each test has N threads, with each thread running M models */
@@ -125,6 +174,17 @@ std::vector<std::vector<std::vector<model_input_info>>> gPriorityMapping =
     }
   },
   /* Test 5 */
+  {
+    /* Threads*/
+    {
+      /* Models in each thread */
+      {"model-artifacts/ss-ort-deeplabv3lite_mobilenetv2", 1, 0.3, 512, 512, 3, 1, TIDLRT_Uint8, 512, 512, 1, 1, TIDLRT_Uint8}
+    },
+    {
+      {"model-artifacts/cl-ort-resnet18-v1", 0, FLT_MAX, 224, 224, 3, 1, TIDLRT_Uint8, 1000, 1, 1, 4, TIDLRT_Float32}
+    }
+  },
+  /* Test 6 */
   {
     /* Threads*/
     {
@@ -204,7 +264,7 @@ void * infer(void * argument) {
     prms.maxPreEmptDelay = model_input_args->max_pre_empt_delay;
     prms.coreNum = 1;
 
-    pthread_mutex_lock(&priority_lock); /*Remove this and test */
+    pthread_mutex_lock(&priority_lock);
     status = TIDLRT_create(&prms, &handle);
     handles[i] = handle;
     pthread_mutex_unlock(&priority_lock);
@@ -244,21 +304,25 @@ void * infer(void * argument) {
   }
 
   struct timeval start_time, stop_time;
+  struct timeval start_invoke, end_invoke;
+  double infer_time = 0;
   std::string output_filename;
 
   if(arg->is_reference_run == 1)
   {
     for(int i = 0; i < num_models; i++)
     {
-      gettimeofday(&start_time, nullptr);
+      float baseline_time_without_preemption = 0;
       for(int j = 0; j < s->loop_count; j++)
       {
+        gettimeofday(&start_time, nullptr);
         TIDLRT_invoke(handles[i], in[i], out[i]);
+        gettimeofday(&stop_time, nullptr);
+        baseline_time_without_preemption += get_us(stop_time) - get_us(start_time);
       }
-      gettimeofday(&stop_time, nullptr);
-      arg->model_info[i]->actual_times = (get_us(stop_time) - get_us(start_time)) / (s->loop_count * 1000);
+      arg->model_info[i]->baseline_time_without_preemption = baseline_time_without_preemption / (s->loop_count * 1000);
 
-      LOG_INFO("Model %s :: Actual time  = %f ms \n", arg->model_info[i]->model_name.c_str(), (get_us(stop_time) - get_us(start_time)) / (arg->s->loop_count * 1000));
+      LOG_INFO("Model %s :: Actual time  = %f ms \n", arg->model_info[i]->model_name.c_str(), arg->model_info[i]->baseline_time_without_preemption);
 
       output_filename = "examples/tidlrt_cpp/advanced_examples/outputs/output_reference_" + arg->model_info[i]->model_name + "_" + std::to_string(arg->model_info[i]->test_id) + "_" + std::to_string(arg->model_info[i]->thread_id) + "_" + std::to_string(arg->model_info[i]->thread_id) + ".bin";
     }
@@ -268,8 +332,12 @@ void * infer(void * argument) {
     for(int i = 0; i < num_models; i++)
     {
       arg->model_info[i]->num_iterations_run = 0;
+      arg->model_info[i]->avg_time = 0;
       output_filename = "examples/tidlrt_cpp/advanced_examples/outputs/output_test_" + arg->model_info[i]->model_name + "_" + std::to_string(arg->model_info[i]->test_id) + "_" + std::to_string(arg->model_info[i]->thread_id) + "_" + std::to_string(arg->model_info[i]->thread_id) + ".bin";
     }
+
+    /* Wait for all threads to synchronize before Invoke runs start across threads */
+    pthread_barrier_wait(&barrier);
 
     gettimeofday(&start_time, nullptr);
     auto finish = system_clock::now() + minutes{s->test_duration};
@@ -277,13 +345,21 @@ void * infer(void * argument) {
     {
       for(int i = 0; i < num_models; i++)
       {
+        gettimeofday(&start_invoke, nullptr);
         TIDLRT_invoke(handles[i], in[i], out[i]);
+        gettimeofday(&end_invoke, nullptr);
         arg->model_info[i]->num_iterations_run++;
+        arg->model_info[i]->avg_time += get_us(end_invoke) - get_us(start_invoke);
       }
     } while (system_clock::now() < finish);
     gettimeofday(&stop_time, nullptr);
 
-    LOG_INFO("Model %s :: Average time with pre-emption = %f ms \n", arg->model_info[0]->model_name.c_str(), (get_us(stop_time) - get_us(start_time)) / (arg->model_info[0]->num_iterations_run * 1000));
+    for(int i = 0; i < num_models; i++) /* Average over number of iterations */
+    {
+      arg->model_info[i]->avg_time = arg->model_info[i]->avg_time / (arg->model_info[i]->num_iterations_run * 1000);
+    }
+
+    LOG_INFO("Model %s :: Average time with pre-emption = %f ms \n", arg->model_info[0]->model_name.c_str(), arg->model_info[0]->avg_time);
     LOG_INFO("Model %s :: Total number of iterations run = %d \n", arg->model_info[0]->model_name.c_str(), arg->model_info[0]->num_iterations_run);
   }
 
@@ -305,32 +381,58 @@ void * infer(void * argument) {
 
 
 /* TI Internal testing function - Used to analyze test results and give a PASS/FAIL result for pre-emption test */
-int analyzeResults(aggregate_results * results)
+int analyzeResults(aggregate_results * results, int test_duration)
 {
+  printf("\n\n ################### Results summary #######################\n\n");
   int status;
   int num_tests = gPriorityMapping.size();
-  /* Print results table */
+  /***** Set up results table header *****/
   std::stringstream tableStream;
   std::string tableString;
   std::vector<std::string> header = {"Test id",
-                                     "Model 1 - Priority",
-                                     "Model 1 - Max prempt delay",
-                                     "Model 2 - Priority",
-                                     "Model 2 - Max prempt delay",
-                                     "Model 1 - Num iterations",
-                                     "Model 2 - Num iterations",
-                                     "Model 1 - Functional",
-                                     "Model 2 - Functional",
+                                     "N1 - Pri",
+                                     "N1 - Delay",
+                                     "N2 - Pri",
+                                     "N2 - Delay",
+                                     "N1 - Iterations",
+                                     "N2 - Iterations",
+                                     "N1 - Functionality",
+                                     "N2 - Functionality",
                                      "Test status"
                                     };
   std::vector<std::vector<std::string>> data = {};
   std::vector<TIDL_table_align_t> columnAlignment = {ALIGN_LEFT,ALIGN_LEFT,ALIGN_LEFT,ALIGN_LEFT,ALIGN_LEFT,ALIGN_LEFT,ALIGN_LEFT,ALIGN_RIGHT,ALIGN_RIGHT,ALIGN_RIGHT};
 
-  int overall_status = 1;
+  int overall_status = STATUS_PASS; /* Status across all tests */
+
+  float percentage_overhead[num_tests];
+
+  /* Get baseline data for preemption testing */
+  int baseline_test = -1;
+  int same_priority_test = -1;
+  float baseline_time_with_preemption_high_pri;
+  for(int i = 0; i < num_tests; i++)
+  {
+    /* Test with low priority model having max preempt delay = 0 is the baseline test - almost immediate preemption */
+    if(results[i].priority[0][0] == 1 && results[i].max_pre_empt_delay[0][0] == 0)
+    {
+      baseline_test = i;
+      baseline_time_with_preemption_high_pri = results[i].avg_time[1][0];
+      LOG_INFO("Baseline time with pre-emption for high priority model : %f ms\n", baseline_time_with_preemption_high_pri);
+    }
+    if(results[i].priority[0][0] == results[i].priority[1][0])
+    {
+      same_priority_test = i;
+    }
+  }
+
+  /**********************************/
+
+  /*** Testing ***/
   for(int i = 0; i < num_tests; i++)
   {
     std::vector<std::string> test_results;
-    int test_status = 1;
+    int test_status = STATUS_PASS;
     test_results.push_back(std::to_string(i + 1));
     /* Functional testing */
     int num_threads = gPriorityMapping[i].size();
@@ -356,62 +458,102 @@ int analyzeResults(aggregate_results * results)
     test_results.push_back(std::to_string(results[i].num_iterations[0][0]));
     test_results.push_back(std::to_string(results[i].num_iterations[1][0]));
 
+    /*************************************** Functionality testing ******************************/
+    /* Model 1 */
     std::string sysCmd = "diff " + results[i].output_ref_filename[0][0] + " " + results[i].output_test_filename[0][0];
     status = system(sysCmd.c_str());
     if (WIFEXITED(status))
     {
-      std::string function =  WEXITSTATUS(status) == 0 ? "TRUE" : "FALSE";
+      std::string function =  WEXITSTATUS(status) == 0 ? "PASS" : "FAIL";
       test_results.push_back(function);
       if(status != 0)
       {
-        test_status &= 0;
+        test_status &= STATUS_FAIL;
       }
     }
     else
     {
       LOG_INFO("Diff returned with incorrect status for model 1");
-      test_status &= 0;
+      test_status &= STATUS_FAIL;
     }
-    
+    /* Model 2 */
     sysCmd = "diff " + results[i].output_ref_filename[1][0] + " " + results[i].output_test_filename[1][0];
     status = system(sysCmd.c_str());
     if (WIFEXITED(status))
     {
-      std::string function =  WEXITSTATUS(status) == 0 ? "TRUE" : "FALSE";
+      std::string function =  WEXITSTATUS(status) == 0 ? "PASS" : "FAIL";
       test_results.push_back(function);
       if(status != 0)
       {
-        test_status &= 0;
+        test_status &= STATUS_FAIL;
       }
     }
     else
     {
       LOG_INFO("Diff returned with incorrect status for model 2");
-      test_status &= 0;
+      test_status &= STATUS_FAIL;
     }
-    
-    if(i == 0)
+    /***********************************************************************************/
+
+    /************************* Pre-emption tests **************************************/
+    if(i == same_priority_test)
     {
-      float ratio = float(results[i].num_iterations[0][0]) / float(results[i].num_iterations[1][0]);
-      if(! ( (ratio < 1.1) && (ratio > 0.9) ))
+      /* Same priority models -- Maximum difference of 1 iteration since round robin scheduling */
+      int diff_iterations = results[i].num_iterations[0][0] - results[i].num_iterations[1][0];
+      std::vector<int> valid_diff_iterations = {-1, 0, 1};
+      if(std::find(valid_diff_iterations.begin(), valid_diff_iterations.end(), diff_iterations) == valid_diff_iterations.end())
       {
-         test_status &= 0;
+         test_status &= STATUS_FAIL;
+         LOG_INFO("Same priority models show a difference in num iterations which is > 1 \n");
       }
     }
-    else /* i > 0 */
+    else /* Different priority models tests */
     {
-      if(! (results[i].num_iterations[0][0] < results[i - 1].num_iterations[0][0]))
+      /* Tests are in decreasing order of max preempt delay, so iterations of low priority model should decrease */
+      if (i != 0) /* cannot test for (i - 1) in this case */
       {
-        test_status &= 0;
+        if(! (results[i].num_iterations[0][0] < results[i - 1].num_iterations[0][0]))
+        {
+          test_status &= STATUS_FAIL;
+          LOG_INFO("Test %d Iterations for low priority model did not decrease with decreasing max pre empt delay \n", i);
+        }
+      }
+
+      if(baseline_test != -1)
+      {
+        /* High priority Curr test time with preemption < baseline test time with preemption + MAX(max preempt delay of all lower priority models) */ 
+        int high_priority_model_idx = (results[i].priority[0][0] > results[i].priority[1][0]) ? 1 : 0; 
+        if(results[i].avg_time[1][0] > baseline_time_with_preemption_high_pri + results[i].max_pre_empt_delay[0][0])
+        {
+          test_status &= STATUS_FAIL;
+          LOG_INFO("Inference time of high priority model %f > (baseline time %f + max preempt delay of low priority model %f) \n", 
+          results[i].avg_time[1][0], baseline_time_with_preemption_high_pri, results[i].max_pre_empt_delay[0][0]);
+        }
+      }
+      else
+      {
+        test_status &= STATUS_FAIL;
+        LOG_INFO("Baseline test with max preempt delay = 0 for low priority model missing \n");
       }
     }
-    if(test_status == 1)
+    /********************************************************************/
+
+    /**** Calculate preemption overhead ******/
+    float actual_time_for_model_inference = 0;
+    for(int j = 0; j < num_threads; j++)
     {
-      test_results.push_back("TRUE");
+      actual_time_for_model_inference += results[i].baseline_time_without_preemption[j][0] * results[i].num_iterations[j][0];
+    }
+    float overhead = (test_duration * 60.0 * 1000.0 - actual_time_for_model_inference); /* in ms */
+    percentage_overhead[i] = overhead / (test_duration * 60.0 * 1000.0) * 100;
+
+    if(test_status == STATUS_PASS)
+    {
+      test_results.push_back("PASS");
     }
     else
     {
-      test_results.push_back("FALSE");
+      test_results.push_back("FAIL");
     }
 
     data.push_back(test_results);
@@ -425,13 +567,63 @@ int analyzeResults(aggregate_results * results)
     printf("%s\n",tableString.c_str());
   }
 
+  printf("\n\n********** Pre-emption overhead analysis ***************\n\n");
+
+  header = {"Test id",
+            "N1 - Pri",
+            "N1 - Delay",
+            "N2 - Pri",
+            "N2 - Delay",
+            "Pre-emption %% overhead"
+          };
+  columnAlignment = {ALIGN_LEFT,ALIGN_LEFT,ALIGN_LEFT,ALIGN_LEFT,ALIGN_LEFT,ALIGN_RIGHT};
+  data = {};
+  for(int i = 0; i < num_tests; i++)
+  {
+    std::vector<std::string> test_results;
+    int test_status = STATUS_PASS;
+    test_results.push_back(std::to_string(i + 1));
+    /* Functional testing */
+    int num_threads = gPriorityMapping[i].size();
+
+    test_results.push_back(std::to_string(results[i].priority[0][0]));
+    if(results[i].max_pre_empt_delay[0][0] == FLT_MAX)
+    {
+      test_results.push_back("FLT_MAX");
+    }
+    else
+    {
+      test_results.push_back(std::to_string(results[i].max_pre_empt_delay[0][0]));
+    }
+    test_results.push_back(std::to_string(results[i].priority[1][0]));
+    if(results[i].max_pre_empt_delay[1][0] == FLT_MAX)
+    {
+      test_results.push_back("FLT_MAX");
+    }
+    else
+    {
+      test_results.push_back(std::to_string(results[i].max_pre_empt_delay[1][0]));
+    }
+    test_results.push_back(std::to_string(percentage_overhead[i]));
+
+    data.push_back(test_results);
+  }
+
+  if(!data.empty())
+  {
+    std::stringstream tableStreamOverhead;
+    TIDL_createTable(tableStreamOverhead, header, data, 1, columnAlignment, false);
+    tableString = tableStreamOverhead.str();
+    printf("%s\n",tableString.c_str());
+  }
+
   if(overall_status == 1)
   {
-    printf("Final test status - PASS \n");
+    printf("\n\nFinal test status - PASS \n\n");
   }
   else
   {
-    printf("Final test status - FAIL \n");
+    printf("\n\nFinal test status - FAIL \n\n");
   }
 
   return overall_status;
@@ -447,6 +639,11 @@ int runInference(Priority_settings * s)
   int final_status = 1;
 
   system("mkdir -p examples/tidlrt_cpp/advanced_examples/outputs");
+  if (doesDirectoryExist("examples/tidlrt_cpp/advanced_examples/outputs"))
+  {
+    /* Command deletes the outputs, add check if directory exists to avoid any untoward rm -f happening */
+    system("cd examples/tidlrt_cpp/advanced_examples/outputs; rm -f *; cd - > /dev/null");
+  }
 
   aggregate_results results[num_tests];
   
@@ -494,13 +691,15 @@ int runInference(Priority_settings * s)
     }
     pthread_attr_t tattr;
     ret = pthread_attr_init(&tattr);
+    pthread_barrierattr_t barr_attr;
+    ret = pthread_barrier_init(&barrier, &barr_attr, num_threads);
     if (ret != 0)
     {
         LOG_ERROR("pthread_attr_init failed \n");
     }
 
     pthread_t ptid[MAX_THREADS];
-    LOG_INFO("************* Creating threads *************** \n");
+    LOG_INFO("************* Creating threads -- Test %d *************** \n", i+1);
     for (size_t i = 0; i < num_threads; i++)
     {
         /* Creating a new thread*/
@@ -512,25 +711,31 @@ int runInference(Priority_settings * s)
         pthread_join(ptid[i], NULL);
     }
 
+    pthread_barrierattr_destroy(&barr_attr);
     pthread_mutex_destroy(&priority_lock);
 
     /* Save test run data for further analysis */
-    for (size_t j = 0; j < num_threads; j++)
+    if(s->disable_result_analysis != 1)
     {
-      for(int k = 0; k < thread_args[j].num_models_in_thread; k++)
+      for (size_t j = 0; j < num_threads; j++)
       {
-        results[i].num_iterations[j][k] = thread_args[j].model_info[k]->num_iterations_run;
-        results[i].output_ref_filename[j][k] = "examples/tidlrt_cpp/advanced_examples/outputs/output_reference_" + thread_args[j].model_info[k]->model_name + "_" + std::to_string(thread_args[j].model_info[k]->test_id) 
-                    + "_" + std::to_string(thread_args[j].model_info[k]->thread_id) + "_" + std::to_string(thread_args[j].model_info[k]->thread_id) + ".bin";
-        results[i].output_test_filename[j][k] = "examples/tidlrt_cpp/advanced_examples/outputs/output_test_" + thread_args[j].model_info[k]->model_name + "_" + std::to_string(thread_args[j].model_info[k]->test_id) 
-                    + "_" + std::to_string(thread_args[j].model_info[k]->thread_id) + "_" + std::to_string(thread_args[j].model_info[k]->thread_id) + ".bin"; 
+        for(int k = 0; k < thread_args[j].num_models_in_thread; k++)
+        {
+          results[i].num_iterations[j][k] = thread_args[j].model_info[k]->num_iterations_run;
+          results[i].avg_time[j][k] = thread_args[j].model_info[k]->avg_time;
+          results[i].baseline_time_without_preemption[j][k] = thread_args[j].model_info[k]->baseline_time_without_preemption;
+          results[i].output_ref_filename[j][k] = "examples/tidlrt_cpp/advanced_examples/outputs/output_reference_" + thread_args[j].model_info[k]->model_name + "_" + std::to_string(thread_args[j].model_info[k]->test_id) 
+                      + "_" + std::to_string(thread_args[j].model_info[k]->thread_id) + "_" + std::to_string(thread_args[j].model_info[k]->thread_id) + ".bin";
+          results[i].output_test_filename[j][k] = "examples/tidlrt_cpp/advanced_examples/outputs/output_test_" + thread_args[j].model_info[k]->model_name + "_" + std::to_string(thread_args[j].model_info[k]->test_id) 
+                      + "_" + std::to_string(thread_args[j].model_info[k]->thread_id) + "_" + std::to_string(thread_args[j].model_info[k]->thread_id) + ".bin"; 
+        }
       }
     }
   }
   
   if(s->disable_result_analysis != 1)
   {
-    final_status = analyzeResults(&results[0]);
+    final_status = analyzeResults(&results[0], s->test_duration);
   }
   
   return final_status;

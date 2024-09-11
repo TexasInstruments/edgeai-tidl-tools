@@ -1,6 +1,6 @@
 /*
 *
-* Copyright (c) {2020 - 2021} Texas Instruments Incorporated
+* Copyright (c) {2020 - 2024} Texas Instruments Incorporated
 *
 * All rights reserved not granted herein.
 *
@@ -71,6 +71,7 @@
 #include <sys/types.h>
 #include <sys/uio.h>  
 #include <unistd.h>  
+#include <sys/stat.h>
 
 #include <cstdarg>
 #include <cstdio>
@@ -105,11 +106,17 @@
 #include "../../osrt_cpp/utils/include/ti_logger.h"
 #include "../../osrt_cpp/utils/include/utility_functs.h"
 
-struct Priority_settings {
+typedef enum {
+  STATUS_FAIL = 0,
+  STATUS_PASS
+} status;
+
+typedef struct 
+{
   int test_duration = 1;
   int disable_result_analysis = 0;
-  int loop_count = 10; /* Number of iterations to get reference inference runtime */
-};
+  int loop_count = 100; /* Number of iterations to get reference inference runtime */
+} Priority_settings;
 
 typedef enum {
     ALIGN_LEFT = 0,
@@ -129,6 +136,8 @@ void getModelNameromArtifactsDir(char* path, char * net_name, char *io_name);
 int32_t TIDLReadBinFromFile(const char *fileName, void *addr, int32_t size);
 
 std::string removeAnsi(std::string str);
+
+int32_t doesDirectoryExist(const char *path);
 
 
 #endif   //TIDLRT_PREEMPTION_EXAMPLE
