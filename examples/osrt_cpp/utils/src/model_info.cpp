@@ -416,7 +416,9 @@ namespace tidl
         {
             YAML::Node yaml;
             int32_t status = 0;
-            m_modelPath = m_modelPath.erase(m_modelPath.size()-10);
+            // m_modelPath points to artifacts folder, but param.yaml is present outside of artifacts folder 
+            const std::string path_to_artifacts = "/artifacts";
+            m_modelPath = m_modelPath.erase(m_modelPath.size()-path_to_artifacts.size());
             const std::string &configFile = m_modelPath + "/param.yaml";
 
             /* Check if the specified configuration file exists */
