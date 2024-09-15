@@ -17,6 +17,8 @@
     ```
     mkdir build && cd build
     cmake ../examples/
+    #If building with backward compatibility please use the below cmake command: 
+    #cmake ../examples -DENABLE_SDK_9_2_COMPATIBILITY=1
     make
     cd  ../
     ```
