@@ -26,7 +26,7 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from edgeai_benchmark.utils import AttrDict
+from .attr_dict import AttrDict
 
 def create_model_config(
         source=AttrDict(),

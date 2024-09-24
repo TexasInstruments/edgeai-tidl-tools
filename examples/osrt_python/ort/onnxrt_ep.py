@@ -18,10 +18,8 @@ parent = os.path.dirname(current)
 sys.path.append(parent)
 from common_utils import *
 from model_configs import *
-import edgeai_benchmark
 
-settings = AttrDict(save_output=False, detection_threshold=0.05, detection_keep_top_k = 200)
-postprocess_transforms_creator = edgeai_benchmark.postprocess.PostProcessTransforms(settings)
+from benchmark_utils import formatter as formatter_transform
 
 model_optimizer_found = False
 if platform.machine() != 'aarch64':
@@ -259,13 +257,16 @@ def run_model(model, mIdx):
     config["session"]['input_details'] = input_details
     config["session"]['output_details'] = output_details
 
-    # postprocess : create posrprocess object
-    if config['task_type'] == 'detection' :
-        postprocess_object = postprocess_transforms_creator.get_transform_detection_base(**config['postprocess'])
-        config['postprocess'] = pretty_object(postprocess_object)['kwargs']
-    
-    if config['task_type'] == 'segmentation' :
-        postproc_segmentation_onnx = postprocess_transforms_creator.get_transform_segmentation_onnx()
+    # formatter
+    if 'formatter' in config['postprocess']:
+        formatter = config['postprocess']['formatter']
+        if isinstance(formatter, str):
+            formatter_name = formatter
+            formatter = getattr(formatter_transform, formatter_name)()
+        elif isinstance(formatter, dict) and 'type' in formatter:
+            formatter_name = formatter.pop('type')
+            formatter = getattr(formatter_transform, formatter_name)(**formatter)
+        config['postprocess']['formatter'] = formatter
 
     # run session
     for i in range(numFrames):
@@ -295,30 +296,14 @@ def run_model(model, mIdx):
                 print("\n", classes)
                 images.append(image)
         elif config['task_type'] == 'detection':
-             for j in range(batch):
-                source_img = imgs[j].convert("RGBA")
-                draw = ImageDraw.Draw(source_img)
-                info_dict = {}
-                info_dict['data_shape'] = (imgs[j].size[1], imgs[j].size[0], 3)
-                info_dict['resize_shape'] = (imgs[j].size[1], imgs[j].size[0], 3)
-                info_dict['resize_border'] = (0, 0, 0, 0)
-
-                output = postprocess_object(output,info_dict=info_dict)
+            for j in range(batch):
                 classes, image = det_box_overlay(output, imgs[j], config['extra_info']['od_type'], config['extra_info']['framework'])
                 images.append(image)
             
         elif config['task_type'] == 'segmentation':
-            
             for j in range(batch):
-                imgs[j] = imgs[j].resize((output[0][j].shape[-2], output[0][j].shape[-1]),PIL.Image.LANCZOS)
-                source_img = imgs[j].convert("RGBA")
-                draw = ImageDraw.Draw(source_img)
-                info_dict = {}
-                info_dict['data_shape'] = (imgs[j].size[1], imgs[j].size[0], 3)
-                info_dict['resize_shape'] = (imgs[j].size[1], imgs[j].size[0], 3)
-                info_dict['resize_border'] = (0, 0, 0, 0)
-                output = postproc_segmentation_onnx(output,info_dict=info_dict)
-                classes, image = seg_mask_overlay(output[j],imgs[j])
+                imgs[j] = imgs[j].resize((output[0][j].shape[-1], output[0][j].shape[-2]),PIL.Image.LANCZOS)
+                classes, image = seg_mask_overlay(output[0][j],imgs[j])
                 images.append(image)
         else:
             print("Not a valid model type")
@@ -336,7 +321,6 @@ def run_model(model, mIdx):
     if ncpus > 1:
         sem.release()
 
-models = ['cl-ort-resnet18-v1']
 
 #models = models_configs.keys()
 if len(args.models) > 0:

@@ -34,8 +34,8 @@ from PIL import Image, ImageFont, ImageDraw, ImageEnhance
 import yaml
 import shutil
 import json
-from params_base import *
-from config_utils import *
+from benchmark_utils.params_base import *
+from benchmark_utils.config_utils import *
 
 if platform.machine() == 'aarch64':
     numImages = 100
@@ -157,7 +157,7 @@ def gen_param_yaml(artifacts_folder_path, config, new_height, new_width):
     layout = 'NCHW'
     if config['session']['session_name'] == 'tflitert':
         layout = 'NHWC'
-    model_file_name = os.path.basename(config['task_type'])
+    model_file_name = os.path.basename(config['session']['model_path'])
 
     model_path = config['session']['model_path']
     model_name = model_path.split("/")[-1]
@@ -184,12 +184,12 @@ def gen_param_yaml(artifacts_folder_path, config, new_height, new_width):
     param_dict.pop('source')
     param_dict.pop('extra_info')
 
-    artifacts_model_path_yaml = artifacts_folder_path[:-9]
-    artifacts_model_path_yaml = os.path.join(artifacts_model_path_yaml, "param.yaml")
+    artifacts_model_path =  "/".join(artifacts_folder_path.split("/")[:-1])
+    artifacts_model_path_yaml = os.path.join(artifacts_model_path, "param.yaml")
     with open(artifacts_model_path_yaml, 'w') as file:
         documents = yaml.safe_dump(param_dict, file, sort_keys=False)
-    if (config['session']['session_name'] == 'tflitert') or (config['session']['session_name'] == 'onnxrt'):
-        shutil.copy(model_path, os.path.join(artifacts_folder_path,model_file_name))
+    # if (config['session']['session_name'] == 'tflitert') or (config['session']['session_name'] == 'onnxrt'):
+    #     shutil.copy(model_path, os.path.join(artifacts_model_path+'/model',model_file_name))
 
 headers = {
 'User-Agent': 'My User Agent 1.0',
@@ -320,6 +320,7 @@ def YUV2RGB( yuv ):
     rgb = np.clip(rgb, 0.0, 255.0)
 
     return rgb
+
 def seg_mask_overlay(output_data, org_image_rgb):
   classes = ''
   output_data = np.squeeze(output_data)
@@ -340,6 +341,77 @@ def seg_mask_overlay(output_data, org_image_rgb):
   return(classes, blend_image)
 
 def det_box_overlay(outputs, org_image_rgb, od_type, framework=None):
+    classes = ''
+    source_img = org_image_rgb.convert("RGBA")
+    draw = ImageDraw.Draw(source_img)
+    #mmdet
+    if(framework == "MMDetection"):
+        outputs = [np.squeeze(output_i) for output_i in outputs]
+        if(len(outputs[0].shape) == 2):
+            num_boxes = int(outputs[0].shape[0])        
+            for i in range(num_boxes):
+                if(outputs[0][i][4] > 0.3) :
+                    xmin = outputs[0][i][0]
+                    ymin = outputs[0][i][1]
+                    xmax = outputs[0][i][2]
+                    ymax = outputs[0][i][3]
+                    print(outputs[1][i])
+                    draw.rectangle(((int(xmin), int(ymin)), (int(xmax), int(ymax))), outline = colors_list[int(outputs[1][i])%len(colors_list)], width=2)
+        elif(len(outputs[0].shape) == 1):
+            num_boxes = 1    
+            for i in range(num_boxes):
+                if(outputs[i][4] > 0.3) :
+                    xmin = outputs[i][0]
+                    ymin = outputs[i][1]
+                    xmax = outputs[i][2]
+                    ymax = outputs[i][3]
+                    draw.rectangle(((int(xmin), int(ymin)), (int(xmax), int(ymax))), outline = colors_list[int(outputs[1])%len(colors_list)], width=2)
+    #SSD
+    elif(od_type == 'SSD'):
+        outputs = [np.squeeze(output_i) for output_i in outputs]
+        num_boxes = int(outputs[0].shape[0])
+        for i in range(num_boxes):
+            if(outputs[2][i] > 0.3) :
+                xmin = outputs[0][i][0]
+                ymin = outputs[0][i][1]
+                xmax = outputs[0][i][2]
+                ymax = outputs[0][i][3]
+                draw.rectangle(((int(xmin*source_img.width), int(ymin*source_img.height)), (int(xmax*source_img.width), int(ymax*source_img.height))), outline = colors_list[int(outputs[1][i])%len(colors_list)], width=2)
+    #yolov5
+    elif(od_type == "YoloV5"):
+        outputs = [np.squeeze(output_i) for output_i in outputs]
+        num_boxes = int(outputs[0].shape[0])
+        for i in range(num_boxes):
+            if(outputs[0][i][4] > 0.3) :
+                xmin = outputs[0][i][0]
+                ymin = outputs[0][i][1]
+                xmax = outputs[0][i][2]
+                ymax = outputs[0][i][3]
+                draw.rectangle(((int(xmin), int(ymin)), (int(xmax), int(ymax))), outline = colors_list[int(outputs[0][i][5])%len(colors_list)], width=2)
+    
+    elif(od_type == "HasDetectionPostProcLayer"):  # model has detection post processing layer
+        for i in range(int(outputs[3][0])):
+            if(outputs[2][0][i] > 0.1) :
+                ymin = outputs[0][0][i][0]
+                xmin = outputs[0][0][i][1]
+                ymax = outputs[0][0][i][2]
+                xmax = outputs[0][0][i][3]
+                draw.rectangle(((int(xmin*source_img.width), int(ymin*source_img.height)), (int(xmax*source_img.width), int(ymax*source_img.height))), outline = colors_list[int(outputs[1][0][i])%len(colors_list)], width=2)
+    elif(od_type == "EfficientDetLite"): # model does not have detection post processing layer 
+        for i in range(int(outputs[0].shape[1])):
+            if(outputs[0][0][i][5] > 0.3) :
+                ymin = outputs[0][0][i][1]
+                xmin = outputs[0][0][i][2]
+                ymax = outputs[0][0][i][3]
+                xmax = outputs[0][0][i][4]
+                print(outputs[0][0][i][6])
+                draw.rectangle(((int(xmin), int(ymin)), (int(xmax), int(ymax))), outline = colors_list[int(outputs[0][0][i][6])%len(colors_list)], width=2)
+
+
+    source_img = source_img.convert("RGB")
+    return(classes, source_img)
+
+def det_box_overlay_benchmark(outputs, org_image_rgb, od_type, framework=None):
     classes = ''
     source_img = org_image_rgb.convert("RGBA")
     draw = ImageDraw.Draw(source_img)
@@ -408,4 +480,5 @@ def det_box_overlay(outputs, org_image_rgb, od_type, framework=None):
 
     source_img = source_img.convert("RGB")
     return(classes, source_img)
+
 
