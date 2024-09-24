@@ -84,6 +84,7 @@ from .src.layernorm import tidl_expand_layernorm_to_component_ops
 from .src.slice import tidl_expand_slice_across_multiple_axis
 from .src.instancenorm import tidl_convert_instancenorm_to_layernorm
 from .src.unsqueeze import tidl_convert_unsqueeze_to_reshape
+from .src.qdq import tidl_add_bias_qdq, tidl_remove_quantize_initializer
 
 
 ### function dict to execute
@@ -109,6 +110,8 @@ opt_ops = {
         'expand_slice_across_multiple_axis'         : tidl_expand_slice_across_multiple_axis,
         'convert_instancenorm_to_layernorm'         : tidl_convert_instancenorm_to_layernorm,
         'convert_unsqueeze_to_reshape'              : tidl_convert_unsqueeze_to_reshape,
+        'add_bias_qdq'                              : tidl_add_bias_qdq,
+        'remove_quantize_initializer'               : tidl_remove_quantize_initializer,
 }
 
 
@@ -135,6 +138,8 @@ adj_list = {
         'expand_slice_across_multiple_axis'         : [],
         'convert_instancenorm_to_layernorm'         : ['expand_layernorm_to_component_ops'],
         'convert_unsqueeze_to_reshape'              : [],
+        'add_bias_qdq'                              : [],
+        'remove_quantize_initializer'               : [],
 }
 
 def get_optimizers():
@@ -164,6 +169,8 @@ def get_optimizers():
         'expand_slice_across_multiple_axis'         : True,
         'convert_instancenorm_to_layernorm'         : True,
         'convert_unsqueeze_to_reshape'              : True,
+        'add_bias_qdq'                              : True,
+        'remove_quantize_initializer'               : False, # some bug, use only for pt2e exported models
 
         # utilities specific
         'shape_inference_mode'      : 'all',
@@ -177,7 +184,8 @@ def test_optimizers():
     """
     return {
         # operation specific to be specified here
-        'convert_unsqueeze_to_reshape' : True,
+        'add_bias_qdq' : False,
+        'remove_quantize_initializer' : True,
 
         # utilities specific
         'shape_inference_mode'      : 'all',

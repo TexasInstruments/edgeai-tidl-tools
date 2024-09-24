@@ -98,7 +98,7 @@ def find_in_layer (curr_layer: gs.Node, idx: int) -> gs.Node|None:
 
 def find_out_layers (curr_layer: gs.Node) -> List[gs.Node]:
     """
-    Return all input nodes to a given node
+    Return all output nodes to a given node
     """
     out_layers = list()
     for outp in curr_layer.outputs:
