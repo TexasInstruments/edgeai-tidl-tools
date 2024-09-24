@@ -145,7 +145,7 @@ def tidl_remove_quantize_initializer(graph: gs.Graph, onnx_graph: onnx.GraphProt
                 input_zero_point = np.zeros_like(input_scale, dtype=np.uint8)
             dequant_node = find_out_layers(node)[0]
             zero_point_dtype = dequant_node.inputs[2].values.dtype if len(dequant_node.inputs)>2 else np.uint8
-            quant_weight = np.round(np.divide(input_weight, input_scale.reshape(target_shape)) + input_zero_point.reshape(target_shape)).astype(zero_point_dtype)
+            quant_weight = (np.round(np.divide(input_weight, input_scale.reshape(target_shape))) + input_zero_point.reshape(target_shape)).astype(zero_point_dtype)
             if quant_weight.shape[0]==1 and len(quant_weight.shape)==1:
                 dequant_node.inputs[0] = gs.Constant(name= node.name + "_quantized", values=np.array(quant_weight[0], dtype=zero_point_dtype))
             else:

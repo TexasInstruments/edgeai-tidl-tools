@@ -75,7 +75,7 @@ def tidl_convert_softmax_axis_channel_to_width(graph: gs.Graph, onnx_graph: onnx
 
     for idx, softmax in enumerate(softmaxes):
         # Dimension in which Softmax should occur
-        softmax_dimension = softmax.attrs["axis"]
+        softmax_dimension = softmax.attrs["axis"] if 'axis' in softmax.attrs else -1
 
         # Assumes tensor with channel axis, NxCxHxW or CxHxW order
         if len(softmax.inputs[0].shape) >= 3:
@@ -133,7 +133,7 @@ def tidl_convert_softmax_axis_height_to_width(graph: gs.Graph, onnx_graph: onnx.
 
     for idx, softmax in enumerate(softmaxes):
         # Dimension in which Softmax should occur
-        softmax_dimension = softmax.attrs["axis"]
+        softmax_dimension = softmax.attrs["axis"] if 'axis' in softmax.attrs else -1
 
         # Assumes tensor height axis, with NxCxHxW, CxHxW, HxW order
         if len(softmax.inputs[0].shape) >= 2:
@@ -197,7 +197,8 @@ def tidl_push_large_channel_dim_to_height_for_width_wise_softmax (graph: gs.Grap
     for node in softmax_nodes:
         # must be widthwise
         inp = node.inputs[0]
-        if node.attrs['axis'] == (len(inp.shape) - 1):
+        axis = node.attrs['axis'] if 'axis' in node.attrs else -1
+        if axis in ((len(inp.shape) - 1), -1):
             # must have large channel dim value
             if (len(inp.shape) > 2) and (inp.shape[-3] > TIDL_SOFTMAX_LARGE_DIM_THRESHOLD):
                 c, h, w = inp.shape[-3], inp.shape[-2], inp.shape[-1]
