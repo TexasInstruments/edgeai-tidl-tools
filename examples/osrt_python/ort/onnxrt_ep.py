@@ -38,6 +38,7 @@ parser.add_argument('-d','--disable_offload', action='store_true',  help='Disabl
 parser.add_argument('-z','--run_model_zoo', action='store_true',  help='Run model zoo models')
 parser.add_argument('-o','--graph_optimize', action='store_true',  help='Run ONNX model optimization thourgh onnx-graph-surgeon-tidl')
 parser.add_argument('-m','--models', action='append', default=[], help='Model name to be added to the list to run')
+parser.add_argument('-n','--ncpus', type=int, default=None, help='Number of threads to spawn')
 args = parser.parse_args()
 os.environ["TIDL_RT_PERFSTATS"] = "1"
 
@@ -58,9 +59,11 @@ sem = multiprocessing.Semaphore(0)
 if platform.machine() == 'aarch64':
     ncpus = 1
 else:
-    ncpus = os.cpu_count()
+    if args.ncpus and args.ncpus > 0 and args.ncpus < os.cpu_count():
+        ncpus = args.ncpus
+    else:
+        ncpus = os.cpu_count()
 
-#ncpus = 1
 idx = 0
 nthreads = 0
 run_count = 0
