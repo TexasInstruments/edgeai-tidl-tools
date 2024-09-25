@@ -28,8 +28,8 @@
 
 
 class AttrDict(dict):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def __getattr__(self, key):
         try:
