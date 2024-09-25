@@ -213,6 +213,7 @@ def float_or_none(v):
     #
     return float(v)
 
+
 def str_or_none(v):
     if v is None:
         return None
