@@ -19,7 +19,7 @@ sys.path.append(parent)
 from common_utils import *
 from model_configs import *
 
-from benchmark_utils import formatter as formatter_transform
+from common import postprocess_utils as formatter_transform
 
 model_optimizer_found = False
 if platform.machine() != 'aarch64':

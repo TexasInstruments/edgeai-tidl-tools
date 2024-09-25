@@ -16,7 +16,7 @@ parent = os.path.dirname(current)
 sys.path.append(parent)
 from common_utils import *
 from model_configs import *
-from benchmark_utils import formatter as formatter_transform
+from common import postprocess_utils as formatter_transform
 
 required_options = {
 "tidl_tools_path":tidl_tools_path,
