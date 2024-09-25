@@ -20,18 +20,25 @@ key="$1"
 case $key in    
     -o|--only_compile)
     run_model=0
-    ;;                 
+    ;;
+    -n=*|--ncpus=*)
+    ncpus="${key#*=}"
+    ncpus="--ncpus=${ncpus}"
+    ;;
     -h|--help)
     echo Usage: $0 [options]
     echo
     echo Options,
     echo --only_compile            use this flag to generate model artifacts
+    echo --ncpus=*                 use this to define number of threads. If not given, defaults to maximum cpu count.
     exit 0
     ;;
 esac
 shift # past argument
 done
 set -- "${POSITIONAL[@]}" # restore positional parameters
+echo $run_model
+echo $ncpus
 
 if [ -z "$SOC" ];then
     echo "SOC not defined. Run either of below commands"
@@ -46,19 +53,19 @@ fi
 if [[ $SOC == am68pa ]]; then
     cd $CURDIR/examples/osrt_python/tfl
     if [[ $arch == x86_64 ]]; then
-    python3 tflrt_delegate.py -c
+    python3 tflrt_delegate.py -c $ncpus
     fi
     if [ $run_model != 0 ];then
         echo "run python3 tflrt_delegate.py"
-        python3 tflrt_delegate.py
+        python3 tflrt_delegate.py $ncpus
     fi    
     cd $CURDIR/examples/osrt_python/ort
     if [[ $arch == x86_64 ]]; then
-    python3 onnxrt_ep.py -c
+    python3 onnxrt_ep.py -c $ncpus
     fi
     if [ $run_model != 0 ];then
         echo "run python3 onnxrt_ep.py"
-        python3 onnxrt_ep.py
+        python3 onnxrt_ep.py $ncpus
     fi    
     cd $CURDIR/examples/osrt_python/tvm_dlr
     if [[ $arch == x86_64 ]]; then
@@ -76,19 +83,19 @@ if [[ $SOC == am68pa ]]; then
 elif [[ $SOC == am68a ]]; then
     cd $CURDIR/examples/osrt_python/tfl
     if [[ $arch == x86_64 ]]; then
-    python3 tflrt_delegate.py -c
+    python3 tflrt_delegate.py -c $ncpus
     fi
     if [ $run_model != 0 ];then
         echo "run python3 tflrt_delegate.py"
-        python3 tflrt_delegate.py
+        python3 tflrt_delegate.py $ncpus
     fi
     cd $CURDIR/examples/osrt_python/ort
     if [[ $arch == x86_64 ]]; then
-    python3 onnxrt_ep.py -c
+    python3 onnxrt_ep.py -c $ncpus
     fi
     if [ $run_model != 0 ];then
         echo "run python3 onnxrt_ep.py"
-        python3 onnxrt_ep.py
+        python3 onnxrt_ep.py $ncpus
     fi        
     cd $CURDIR/examples/osrt_python/tvm_dlr
     if [[ $arch == x86_64 ]]; then
@@ -106,19 +113,19 @@ elif [[ $SOC == am68a ]]; then
 elif [[ $SOC == am69a ]]; then
     cd $CURDIR/examples/osrt_python/tfl
     if [[ $arch == x86_64 ]]; then
-    python3 tflrt_delegate.py -c
+    python3 tflrt_delegate.py -c $ncpus
     fi
     if [ $run_model != 0 ];then
         echo "run python3 tflrt_delegate.py"
-        python3 tflrt_delegate.py
+        python3 tflrt_delegate.py $ncpus
     fi    
     cd $CURDIR/examples/osrt_python/ort
     if [[ $arch == x86_64 ]]; then
-    python3 onnxrt_ep.py -c
+    python3 onnxrt_ep.py -c $ncpus
     fi
     if [ $run_model != 0 ];then
         echo "run python3 onnxrt_ep.py"
-        python3 onnxrt_ep.py
+        python3 onnxrt_ep.py $ncpus
     fi 
     cd $CURDIR/examples/osrt_python/tvm_dlr
     if [[ $arch == x86_64 ]]; then
@@ -137,30 +144,30 @@ elif [[ $SOC == am62 ]]; then
     cd $CURDIR/examples/osrt_python/tfl
     if [ $run_model != 0 ];then
         echo "run python3 tflrt_delegate.py"
-        python3 tflrt_delegate.py
+        python3 tflrt_delegate.py $ncpus
     fi 
     cd $CURDIR/examples/osrt_python/ort
     if [ $run_model != 0 ];then
         echo "run python3 onnxrt_ep.py"
-        python3 onnxrt_ep.py
+        python3 onnxrt_ep.py $ncpus
     fi 
     cd $CURDIR
 elif [[ $SOC == am62a ]]; then
     cd $CURDIR/examples/osrt_python/tfl
     if [[ $arch == x86_64 ]]; then
-    python3 tflrt_delegate.py -c
+    python3 tflrt_delegate.py -c $ncpus
     fi
     if [ $run_model != 0 ];then
         echo "run python3 tflrt_delegate.py"
-        python3 tflrt_delegate.py
+        python3 tflrt_delegate.py $ncpus
     fi 
     cd $CURDIR/examples/osrt_python/ort
     if [[ $arch == x86_64 ]]; then
-    python3 onnxrt_ep.py -c
+    python3 onnxrt_ep.py -c $ncpus
     fi
     if [ $run_model != 0 ];then
         echo "run python3 onnxrt_ep.py"
-        python3 onnxrt_ep.py
+        python3 onnxrt_ep.py $ncpus
     fi 
     cd $CURDIR/examples/osrt_python/tvm_dlr
     if [[ $arch == x86_64 ]]; then
@@ -178,19 +185,19 @@ elif [[ $SOC == am62a ]]; then
 elif [[ $SOC == am67a ]]; then
     cd $CURDIR/examples/osrt_python/tfl
     if [[ $arch == x86_64 ]]; then
-    python3 tflrt_delegate.py -c
+    python3 tflrt_delegate.py -c $ncpus
     fi
     if [ $run_model != 0 ];then
         echo "run python3 tflrt_delegate.py"
-        python3 tflrt_delegate.py
+        python3 tflrt_delegate.py $ncpus
     fi 
     cd $CURDIR/examples/osrt_python/ort
     if [[ $arch == x86_64 ]]; then
-    python3 onnxrt_ep.py -c
+    python3 onnxrt_ep.py -c $ncpus
     fi
     if [ $run_model != 0 ];then
         echo "run python3 onnxrt_ep.py"
-        python3 onnxrt_ep.py
+        python3 onnxrt_ep.py $ncpus
     fi 
     cd $CURDIR 
 fi
