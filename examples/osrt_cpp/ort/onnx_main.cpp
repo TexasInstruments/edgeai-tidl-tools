@@ -424,7 +424,6 @@ namespace onnx
             run_options.SetRunLogSeverityLevel(3);
             auto output_tensors_warm_up = session.Run(run_options, input_node_names.data(), input_tensors.data(), 1, output_node_names.data(), num_output_nodes); 
  
-            void *outData = allocTensorMem(output_tensor_size * sizeof(float), (s->accel && s->device_mem));
             Ort::IoBinding binding(session);
             binding.BindInput(input_node_names[0], input_tensors[0]);
 
