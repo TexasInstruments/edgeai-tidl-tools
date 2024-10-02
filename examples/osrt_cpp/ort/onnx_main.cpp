@@ -156,8 +156,9 @@ namespace onnx
             /* if indata and out data is diff resize the image check
             whether img need to be resized based on out data asssuming
             out put format [1,1,,width,height]*/
-            int wanted_height = (*output_tensors).front().GetTensorTypeAndShapeInfo().GetShape()[2];
-            int wanted_width = (*output_tensors).front().GetTensorTypeAndShapeInfo().GetShape()[3];
+            auto node_dims = (*output_tensors).front().GetTensorTypeAndShapeInfo().GetShape();
+            int wanted_height = node_dims[node_dims.size() - 2];
+            int wanted_width = node_dims[node_dims.size() - 1];
             cv::resize((*img), (*img), cv::Size(wanted_width, wanted_height), 0, 0, cv::INTER_AREA);
             if (op_tensor_type == ONNX_TENSOR_ELEMENT_DATA_TYPE_INT64)
             {
