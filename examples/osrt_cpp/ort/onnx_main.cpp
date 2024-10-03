@@ -361,11 +361,11 @@ namespace onnx
             }
             if (wanted_height != modelInfo->m_preProcCfg.outDataHeight)
             {
-                LOG_INFO("missmatch in YAML parsed wanted height:%d and model:%d\n", wanted_height, input_node_dims[2]);
+                LOG_INFO("missmatch in YAML parsed wanted height:%d and model:%d\n", wanted_height, modelInfo->m_preProcCfg.outDataHeight);
             }
             if (wanted_width != modelInfo->m_preProcCfg.outDataWidth)
             {
-                LOG_INFO("missmatch in YAML parsed wanted width:%d and model:%d\n", wanted_width, input_node_dims[3]);
+                LOG_INFO("missmatch in YAML parsed wanted width:%d and model:%d\n", wanted_width, modelInfo->m_preProcCfg.outDataWidth);
             }
 
             /* output information */
