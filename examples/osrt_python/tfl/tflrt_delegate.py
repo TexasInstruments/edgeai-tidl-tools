@@ -234,7 +234,7 @@ def run_model(model, mIdx):
         #for batch > 1 input images will be more than one in single input tensor
         for j in range(batch):
             input_images.append(input_image[(start_index+j)%len(input_image)])
-        imgs, output, proc_time, sub_graph_time, ddr_write, ddr_read, new_height, new_width  = infer_image(interpreter, input_images, config)
+        imgs, output, proc_time, sub_graph_time, ddr_write, ddr_read, new_height, new_width  = infer_image(interpreter, input_images, config)  # extract output from here
         total_proc_time = total_proc_time + proc_time if ('total_proc_time' in locals()) else proc_time
         sub_graphs_time = sub_graphs_time + sub_graph_time if ('sub_graphs_time' in locals()) else sub_graph_time
         total_ddr_write = total_ddr_write + ddr_write if ('total_ddr_write' in locals()) else ddr_write
@@ -246,30 +246,36 @@ def run_model(model, mIdx):
     # output post processing
     if(args.compile == False):  # post processing enabled only for inference
         images = []
+        output_tensors = []
         if config['task_type'] == 'classification':
             for j in range(batch):         
                 classes, image = get_class_labels(output[0][j],imgs[j])
                 images.append(image)
+                output_np = np.array(output[0][j])
+                output_tensors.append(output_np)
                 print("\n", classes)
         elif config['task_type'] == 'detection':
             for j in range(batch):
                 classes, image = det_box_overlay(output, imgs[j], config['extra_info']['od_type'])
                 images.append(image)
-
+                output_np = np.array(output[0][j])
+                output_tensors.append(output_np)
         elif config['task_type'] == 'segmentation':
              for j in range(batch):
                 classes, image = seg_mask_overlay(output[0][j], imgs[j])
                 images.append(image)
-
+                output_np = np.array(output[0][j])
+                output_tensors.append(output_np)
         else:
             print("Not a valid model type")
 
         for j in range(batch):
             output_file_name = "py_out_"+model+'_'+os.path.basename(input_images[j])
-            print("\nSaving image to ", output_images_folder)
+            print("\nSaving image and output tensor to ", output_images_folder)
             if not os.path.exists(output_images_folder):
                 os.makedirs(output_images_folder)
             images[j].save(output_images_folder + output_file_name, "JPEG")
+            output_tensors[j].tofile(output_binary_folder + output_file_name + ".bin")
     
     if (args.compile or args.disable_offload):
         gen_param_yaml(delegate_options['artifacts_folder'], config, int(new_height), int(new_width))

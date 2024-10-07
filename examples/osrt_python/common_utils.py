@@ -66,6 +66,7 @@ else :
 
 artifacts_folder = '../../../model-artifacts/'
 output_images_folder = '../../../output_images/'
+output_binary_folder = '../../../output_binaries/'
 
 tensor_bits = 8
 debug_level = 0

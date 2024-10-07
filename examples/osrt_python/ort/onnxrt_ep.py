@@ -279,7 +279,7 @@ def run_model(model, mIdx):
         # for batch processing diff image needed for a single  input 
         for j in range(batch):
             input_images.append(input_image[(start_index+j)%len(input_image)])
-        imgs, output, proc_time, sub_graph_time, height, width  = infer_image(sess, input_images, config)
+        imgs, output, proc_time, sub_graph_time, height, width  = infer_image(sess, input_images, config) # extract output from here
         total_proc_time = total_proc_time + proc_time if ('total_proc_time' in locals()) else proc_time
         sub_graphs_time = sub_graphs_time + sub_graph_time if ('sub_graphs_time' in locals()) else sub_graph_time
 
@@ -290,6 +290,7 @@ def run_model(model, mIdx):
     output_file_name = "py_out_"+model+'_'+os.path.basename(input_image[i%len(input_image)])
     if(args.compile == False):  # post processing enabled only for inference
         images = []
+        output_tensors = []
         if config['task_type'] == 'classification':
             for j in range(batch):
                 classes, image = get_class_labels(output[0][j],imgs[j])
@@ -299,20 +300,24 @@ def run_model(model, mIdx):
             for j in range(batch):
                 classes, image = det_box_overlay(output, imgs[j], config['extra_info']['od_type'], config['extra_info']['framework'])
                 images.append(image)
-            
+                output_np = np.array(output[0][j])
+                output_tensors.append(output_np)
         elif config['task_type'] == 'segmentation':
             for j in range(batch):
                 imgs[j] = imgs[j].resize((output[0][j].shape[-1], output[0][j].shape[-2]),PIL.Image.LANCZOS)
                 classes, image = seg_mask_overlay(output[0][j],imgs[j])
                 images.append(image)
+                output_np = np.array(output[0][j])
+                output_tensors.append(output_np)
         else:
             print("Not a valid model type")
         for j in range(batch):
             output_file_name = "py_out_"+model+'_'+os.path.basename(input_images[j])
-            print("\nSaving image to ", output_images_folder)
+            print("\nSaving image and tensor output to ", output_images_folder)
             if not os.path.exists(output_images_folder):
                 os.makedirs(output_images_folder)
             images[j].save(output_images_folder + output_file_name, "JPEG")
+            output_tensors[j].tofile(output_binary_folder + output_file_name + ".bin")
 
     if args.compile or args.disable_offload :
         gen_param_yaml(delegate_options['artifacts_folder'], config, int(height), int(width))

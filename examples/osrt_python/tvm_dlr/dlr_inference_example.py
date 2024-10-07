@@ -170,6 +170,7 @@ def model_create_and_run(model_dir,
     print(f'\n Processing time in ms : {proc_time/numImages:10.1f}\n')
 
     res = postprocess_func(res)
+    res_np = np.array(res)
 
     model = model_dir.split("/")[-2]
     output_file_name = "py_out_"+model+'_'+os.path.basename(img_path)
@@ -182,6 +183,7 @@ def model_create_and_run(model_dir,
     if not os.path.exists(output_images_folder):
         os.makedirs(output_images_folder)
     image.save(output_images_folder + output_file_name, "JPEG") 
+    res_np.tofile(output_binary_folder + output_file_name + ".bin")
     
     log = f'\n \nCompleted_Model : {mIdx+1:5d}, Name : {model:50s}, Total time : {proc_time/numImages:10.2f}, Offload Time : {proc_time/numImages:10.2f} , DDR RW MBs : 0, Output File : {output_file_name}\n \n ' #{classes} \n \n'
     print(log) 
