@@ -139,7 +139,7 @@ namespace dlr
          *  \param  num_outputs
          * @returns int status
          */
-        int prepClassificationResult(cv::Mat *img, Settings *s, DLRModelHandle model, int num_outputs)
+        int prepClassificationResult(cv::Mat *img, Settings *s, DLRModelHandle model, int num_outputs, string output_binary)
         {
             LOG_INFO("preparing classification result \n");
             cv::resize((*img), (*img), cv::Size(512, 512), 0, 0, cv::INTER_AREA);
@@ -157,6 +157,13 @@ namespace dlr
                 getTopN<float>(outputs[0].data(),
                                1000, s->number_of_results, threshold,
                                &top_results, true);
+
+                // Writing tensor data to binary file
+                int output_size = outputs[0].size();
+                ofstream fout(output_binary, ios::binary);
+                fout.write(reinterpret_cast<char*>(tensor_op_array), output_size * sizeof(float));
+                fout.close();
+
                 std::vector<std::string> labels;
                 size_t label_count;
 
@@ -167,7 +174,6 @@ namespace dlr
                 }
 
                 int outputoffset;
-                int output_size = outputs[0].size();
                 if (output_size == 1001)
                     outputoffset = 0;
                 else
@@ -201,7 +207,7 @@ namespace dlr
          * @returns int status
          */
         int prepSegResult(cv::Mat *img, DLRModelHandle model, int num_outputs,
-                          ModelInfo *modelInfo, int wanted_width, int wanted_height)
+                          ModelInfo *modelInfo, int wanted_width, int wanted_height, string output_binary)
         {
             LOG_INFO("preparing segmentation result \n");
             float alpha = modelInfo->m_postProcCfg.alpha;
@@ -229,18 +235,27 @@ namespace dlr
                 std::vector<std::vector<int64_t>> outputs;
                 fetchOutputTensors<int64_t>(outputs, num_outputs, model);
                 (*img).data = blendSegMask<int64_t>((*img).data, outputs[0].data(), (*img).cols, (*img).rows, wanted_width, wanted_height, alpha);
+                ofstream fout(output_binary, ios::binary);
+                fout.write(reinterpret_cast<char*>(outputs[0].data()), outputs[0].size() * sizeof(int64_t));
+                fout.close();
             }
             else if (!strcmp(output_type, "float32"))
             {
                 std::vector<std::vector<float>> outputs;
                 fetchOutputTensors<float>(outputs, num_outputs, model);
                 (*img).data = blendSegMask<float>((*img).data, outputs[0].data(), (*img).cols, (*img).rows, wanted_width, wanted_height, alpha);
+                ofstream fout(output_binary, ios::binary);
+                fout.write(reinterpret_cast<char*>(outputs[0].data()), outputs[0].size() * sizeof(float));
+                fout.close();
             }
             else if (!strcmp(output_type, "uint8"))
             {
                 std::vector<std::vector<uint8_t>> outputs;
                 fetchOutputTensors<uint8_t>(outputs, num_outputs, model);
                 (*img).data = blendSegMask<uint8_t>((*img).data, outputs[0].data(), (*img).cols, (*img).rows, wanted_width, wanted_height, alpha);
+                ofstream fout(output_binary, ios::binary);
+                fout.write(reinterpret_cast<char*>(outputs[0].data()), outputs[0].size() * sizeof(uint8_t));
+                fout.close();
             }
             else
             {
@@ -430,9 +445,35 @@ namespace dlr
 
             /*output vector infering*/
             GetDLRNumOutputs(&model, &num_outputs);
+
+            /* Create folder to dump tensors */
+            string bin_filename, bin_foldername;
+            bin_foldername = bin_foldername +  "output_binaries/";
+            struct stat binary_folder_buffer;
+            if (stat(bin_foldername.c_str(), &binary_folder_buffer) != 0)
+            {
+                if (mkdir(bin_foldername.c_str(), 0777) == -1)
+                {
+                    LOG_ERROR("failed to create folder %s:%s\n", bin_foldername, strerror(errno));
+                    return RETURN_FAIL;
+                }
+            }
+            if (stat(bin_foldername.c_str(), &binary_folder_buffer) != 0)
+            {
+                if (mkdir(bin_foldername.c_str(), 0777) == -1)
+                {
+                    LOG_ERROR("failed to create folder %s:%s\n", bin_foldername, strerror(errno));
+                    return RETURN_FAIL;
+                }
+            }
+            bin_filename = "cpp_out_";
+            bin_filename = bin_filename + modelInfo->m_preProcCfg.modelName.c_str();
+            bin_filename = bin_filename + ".bin";
+            bin_foldername = bin_foldername + bin_filename;
+
             if (modelInfo->m_preProcCfg.taskType == "classification")
             {
-                if (RETURN_FAIL == prepClassificationResult(&img, s, model, num_outputs))
+                if (RETURN_FAIL == prepClassificationResult(&img, s, model, num_outputs, bin_foldername))
                     return RETURN_FAIL;
             }
             else if (modelInfo->m_preProcCfg.taskType == "detection")
@@ -540,14 +581,26 @@ namespace dlr
                 modelInfo->m_postProcCfg.formatter = {2, 3, 4, 5, 0, 1};
                 modelInfo->m_postProcCfg.formatterName = "DetectionBoxSL2BoxLS";
 
+                ofstream fout(bin_foldername, ios::binary);
+                for (int i = 0; i < f_tensor_unformatted.size(); i++)
+                {
+                    for (int j = 0; j < f_tensor_unformatted[i].size(); j++)
+                    {
+                       fout.write(reinterpret_cast<char*>(&f_tensor_unformatted[i][j]), sizeof(float));
+                    }
+                }
+                fout.close();
+
                 if (RETURN_FAIL == prepDetectionResult(&img, &f_tensor_unformatted, tensor_shapes_vec, modelInfo, num_outputs, nboxes))
                     return RETURN_FAIL;
             }
             else if (modelInfo->m_preProcCfg.taskType == "segmentation")
             {
-                if (RETURN_FAIL == prepSegResult(&img, model, num_outputs, modelInfo, wanted_width, wanted_height))
+                if (RETURN_FAIL == prepSegResult(&img, model, num_outputs, modelInfo, wanted_width, wanted_height, bin_foldername))
                     return RETURN_FAIL;
             }
+
+            /* Writing post processed image */
             cv::cvtColor(img, img, cv::COLOR_RGB2BGR);
             string filename, foldername;
             foldername = foldername +  "output_images/";
