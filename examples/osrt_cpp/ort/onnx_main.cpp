@@ -85,10 +85,11 @@ namespace onnx
          *  \param  output_tensors pointer of tflite
          *  \param  s settings struct pointer
          *  \param  output_node_dims
+         *  \param  output_binary output to dump tensor to
          * @returns int status
          */
         int prepClassificationResult(cv::Mat *img, vector<Ort::Value> *output_tensors, Settings *s,
-                                     vector<int64_t> output_node_dims)
+                                     vector<int64_t> output_node_dims, string output_binary)
         {
             LOG_INFO("preparing classification result \n");
             cv::resize((*img), (*img), cv::Size(512, 512), 0, 0, cv::INTER_AREA);
@@ -109,6 +110,10 @@ namespace onnx
                 getTopN<int64_t>(int64arr,
                                  output_size, s->number_of_results, threshold,
                                  &top_results, true);
+                ofstream fout(output_binary, ios::binary);
+                fout.write((char*)int64arr, output_size * sizeof(int64_t));
+                fout.close();
+
             }
             else if (op_tensor_type == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT)
             {
@@ -116,6 +121,9 @@ namespace onnx
                 getTopN<float>(floatarr,
                                output_size, s->number_of_results, threshold,
                                &top_results, true);
+                ofstream fout(output_binary, ios::binary);
+                fout.write((char*)floatarr, output_size * sizeof(float));
+                fout.close();
             }
             else
             {
@@ -147,12 +155,20 @@ namespace onnx
          *  \param  output_tensors pointer of tflite
          *  \param  s settings struct pointer
          *  \param  alpha for img masking
+         *  \param  output_node_dims
+         *  \param  output_binary output to dump tensor to
          * @returns int status
          */
-        int prepSegResult(cv::Mat *img, vector<Ort::Value> *output_tensors, Settings *s, float alpha)
+        int prepSegResult(cv::Mat *img, vector<Ort::Value> *output_tensors, Settings *s, float alpha,
+                          vector<int64_t> output_node_dims, string output_binary)
         {
             LOG_INFO("preparing segmentation result \n");
             ONNXTensorElementDataType op_tensor_type = getTensorType(0, output_tensors);
+            int output_size = 1;
+            for (auto &s : output_node_dims)
+            {
+                output_size = output_size * s;
+            }
             /* if indata and out data is diff resize the image check
             whether img need to be resized based on out data asssuming
             out put format [1,1,,width,height]*/
@@ -163,11 +179,17 @@ namespace onnx
             {
                 int64_t *tensor_op_array = (*output_tensors).front().GetTensorMutableData<int64_t>();
                 (*img).data = blendSegMask<int64_t>((*img).data, tensor_op_array, (*img).cols, (*img).rows, wanted_width, wanted_height, alpha);
+                ofstream fout(output_binary, ios::binary);
+                fout.write((char*)tensor_op_array, output_size * sizeof(int64_t));
+                fout.close();
             }
             else if (op_tensor_type == ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT8)
             {
                 uint8_t *tensor_op_array = (*output_tensors).front().GetTensorMutableData<uint8_t>();
                 (*img).data = blendSegMask<uint8_t>((*img).data, tensor_op_array, (*img).cols, (*img).rows, wanted_width, wanted_height, alpha);
+                ofstream fout(output_binary, ios::binary);
+                fout.write((char*)tensor_op_array, output_size * sizeof(uint8_t));
+                fout.close();
             }
             else if (op_tensor_type == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT)
             {
@@ -191,6 +213,9 @@ namespace onnx
                     argMax<float>(arr, tensor_op_array, nwidth, nheight, nclasses);
                     (*img).data = blendSegMask<float>((*img).data, arr, (*img).cols, (*img).rows, wanted_width, wanted_height, alpha);
                 }
+                ofstream fout(output_binary, ios::binary);
+                fout.write((char*)tensor_op_array, output_size * sizeof(float));
+                fout.close();
             }
             else
             {
@@ -474,9 +499,34 @@ namespace onnx
             LOG_INFO("invoked\n");
             LOG_INFO("average time: %lf ms \n",avg_time);
 
+            /* Create folder to dump tensors */
+            string bin_filename, bin_foldername;
+            bin_foldername = bin_foldername +  "output_binaries/";
+            struct stat binary_folder_buffer;
+            if (stat(bin_foldername.c_str(), &binary_folder_buffer) != 0)
+            {
+                if (mkdir(bin_foldername.c_str(), 0777) == -1)
+                {
+                    LOG_ERROR("failed to create folder %s:%s\n", bin_foldername, strerror(errno));
+                    return RETURN_FAIL;
+                }
+            }
+            if (stat(bin_foldername.c_str(), &binary_folder_buffer) != 0)
+            {
+                if (mkdir(bin_foldername.c_str(), 0777) == -1)
+                {
+                    LOG_ERROR("failed to create folder %s:%s\n", bin_foldername, strerror(errno));
+                    return RETURN_FAIL;
+                }
+            }
+            bin_filename = "cpp_out_";
+            bin_filename = bin_filename + modelInfo->m_preProcCfg.modelName.c_str();
+            bin_filename = bin_filename + ".bin";
+            bin_foldername = bin_foldername + bin_filename;
+
             if (modelInfo->m_preProcCfg.taskType == "classification")
             {
-                if (RETURN_FAIL == prepClassificationResult(&img, &output_tensors, s, output_node_dims))
+                if (RETURN_FAIL == prepClassificationResult(&img, &output_tensors, s, output_node_dims, bin_foldername))
                     return RETURN_FAIL;
             }
             else if (modelInfo->m_preProcCfg.taskType == "detection")
@@ -554,14 +604,26 @@ namespace onnx
                         f_tensor_unformatted.push_back(temp);
                     }
                 }
+
+                ofstream fout(bin_foldername, ios::binary);
+                for (int i = 0; i < f_tensor_unformatted.size(); i++)
+                {
+                    for (int j = 0; j < f_tensor_unformatted[i].size(); j++)
+                    {
+                       fout.write(reinterpret_cast<char*>(&f_tensor_unformatted[i][j]), sizeof(float));
+                    }
+                }
+                fout.close();
+
                 if (RETURN_FAIL == prepDetectionResult(&img, &f_tensor_unformatted, tensor_shapes_vec, modelInfo, num_output_nodes, nboxes))
                     return RETURN_FAIL;
             }
             else if (modelInfo->m_preProcCfg.taskType == "segmentation")
             {
-                if (RETURN_FAIL == prepSegResult(&img, &output_tensors, s, modelInfo->m_postProcCfg.alpha))
+                if (RETURN_FAIL == prepSegResult(&img, &output_tensors, s, modelInfo->m_postProcCfg.alpha, output_node_dims, bin_foldername))
                     return RETURN_FAIL;
             }
+
             /* freeing shared mem*/
             for (size_t i = 0; i < output_tensors.size(); i++)
             {
@@ -574,8 +636,9 @@ namespace onnx
                 freeTensorMem(ptr, (s->accel && s->device_mem));
             }
 
+            /* Writing post processed image */
+            string filename, foldername;
             cv::cvtColor(img, img, cv::COLOR_RGB2BGR);
-               string filename, foldername;
             foldername = foldername +  "output_images/";
             struct stat buffer;
             if (stat(foldername.c_str(), &buffer) != 0)
