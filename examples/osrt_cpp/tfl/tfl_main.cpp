@@ -78,32 +78,51 @@ namespace tflite
      *  \param  alpha
      *  \param  interpreter pointer of tflite
      *  \param  outputs pointer of output vector
+     *  \param  output_binary output to dump tensor to
      * @returns int status
      */
     int prepSegResult(cv::Mat *img, int wanted_width, int wanted_height, float alpha,
-                      std::unique_ptr<tflite::Interpreter> *interpreter, const std::vector<int> *outputs)
+                      std::unique_ptr<tflite::Interpreter> *interpreter, const std::vector<int> *outputs, string output_binary)
     {
       LOG_INFO("preparing segmentation result \n");
+      int output_index = (*outputs)[0];
       TfLiteType type = (*interpreter)->tensor((*outputs)[0])->type;
+      int output_size = 1;
+      for (int i = 0; i < (*interpreter)->tensor(output_index)->dims->size; i++) {
+            output_size *= (*interpreter)->tensor(output_index)->dims->data[i];
+      }
+
       if (type == TfLiteType::kTfLiteInt32)
       {
         int32_t *outputTensor = (*interpreter)->tensor((*outputs)[0])->data.i32;
         (*img).data = blendSegMask<int32_t>((*img).data, outputTensor, (*img).cols, (*img).rows, wanted_width, wanted_height, alpha);
+        ofstream fout(output_binary, ios::binary);
+        fout.write(reinterpret_cast<char*>(outputTensor), output_size * sizeof(int32_t));
+        fout.close();
       }
       else if (type == TfLiteType::kTfLiteUInt8)
       {
         uint8_t *outputTensor = (*interpreter)->tensor((*outputs)[0])->data.uint8;
         (*img).data = blendSegMask<uint8_t>((*img).data, outputTensor, (*img).cols, (*img).rows, wanted_width, wanted_height, alpha);
+        ofstream fout(output_binary, ios::binary);
+        fout.write(reinterpret_cast<char*>(outputTensor), output_size * sizeof(uint8_t));
+        fout.close();
       }
       else if (type == TfLiteType::kTfLiteInt64)
       {
         int64_t *outputTensor = (*interpreter)->tensor((*outputs)[0])->data.i64;
         (*img).data = blendSegMask<int64_t>((*img).data, outputTensor, (*img).cols, (*img).rows, wanted_width, wanted_height, alpha);
+        ofstream fout(output_binary, ios::binary);
+        fout.write(reinterpret_cast<char*>(outputTensor), output_size * sizeof(int64_t));
+        fout.close();
       }
       else if (type == TfLiteType::kTfLiteFloat32)
       {
         float *outputTensor = (*interpreter)->tensor((*outputs)[0])->data.f;
         (*img).data = blendSegMask<float>((*img).data, outputTensor, (*img).cols, (*img).rows, wanted_width, wanted_height, alpha);
+        ofstream fout(output_binary, ios::binary);
+        fout.write(reinterpret_cast<char*>(outputTensor), output_size * sizeof(float));
+        fout.close();
       }
       else
       {
@@ -119,10 +138,11 @@ namespace tflite
      *  \param  interpreter pointer of tflite
      *  \param  outputs pointer of output vector
      *  \param  s settings
+     *  \param  output_binary output to dump tensor to
      * @returns int status
      */
     int prepClassificationResult(cv::Mat *img, std::unique_ptr<tflite::Interpreter> *interpreter,
-                                 const std::vector<int> *outputs, Settings *s)
+                                 const std::vector<int> *outputs, Settings *s, string output_binary)
     {
       LOG_INFO("preparing clasification result \n");
       cv::resize((*img), (*img), cv::Size(512, 512), 0, 0, cv::INTER_AREA);
@@ -140,13 +160,25 @@ namespace tflite
       switch ((*interpreter)->tensor((*outputs)[0])->type)
       {
       case kTfLiteFloat32:
-        getTopN<float>((*interpreter)->typed_output_tensor<float>(0), output_size,
+        {
+          float* outputTensor = (*interpreter)->typed_output_tensor<float>(0);
+          getTopN<float>((*interpreter)->typed_output_tensor<float>(0), output_size,
                        s->number_of_results, threshold, &top_results, true);
+          ofstream fout(output_binary, ios::binary);
+          fout.write(reinterpret_cast<char*>(outputTensor), output_size * sizeof(float));
+          fout.close();
+        }
         break;
       case kTfLiteUInt8:
-        getTopN<uint8_t>((*interpreter)->typed_output_tensor<uint8_t>(0),
+        {
+          uint8_t* outputTensor = (*interpreter)->typed_output_tensor<uint8_t>(0);
+          getTopN<uint8_t>((*interpreter)->typed_output_tensor<uint8_t>(0),
                          output_size, s->number_of_results, threshold,
                          &top_results, false);
+          ofstream fout(output_binary, ios::binary);
+          fout.write(reinterpret_cast<char*>(outputTensor), output_size * sizeof(uint8_t));
+          fout.close();
+        }
         break;
       default:
         LOG_ERROR("cannot handle output type %d yet", (*interpreter)->tensor((*outputs)[0])->type);
@@ -403,9 +435,34 @@ namespace tflite
       float avg_time = (getUs(stop_time) - getUs(start_time)) / (s->loop_count * 1000);
       LOG_INFO("average time:%f ms\n", avg_time);
 
+      /* Create folder to dump tensors */
+      string bin_filename, bin_foldername;
+      bin_foldername = bin_foldername +  "output_binaries/";
+      struct stat binary_folder_buffer;
+      if (stat(bin_foldername.c_str(), &binary_folder_buffer) != 0)
+      {
+          if (mkdir(bin_foldername.c_str(), 0777) == -1)
+          {
+              LOG_ERROR("failed to create folder %s:%s\n", bin_foldername, strerror(errno));
+              return RETURN_FAIL;
+          }
+      }
+      if (stat(bin_foldername.c_str(), &binary_folder_buffer) != 0)
+      {
+          if (mkdir(bin_foldername.c_str(), 0777) == -1)
+          {
+              LOG_ERROR("failed to create folder %s:%s\n", bin_foldername, strerror(errno));
+              return RETURN_FAIL;
+          }
+      }
+      bin_filename = "cpp_out_";
+      bin_filename = bin_filename + modelInfo->m_preProcCfg.modelName.c_str();
+      bin_filename = bin_filename + ".bin";
+      bin_foldername = bin_foldername + bin_filename;
+
       if (modelInfo->m_preProcCfg.taskType == "classification")
       {
-        if (RETURN_FAIL == prepClassificationResult(&img, &interpreter, &outputs, s))
+        if (RETURN_FAIL == prepClassificationResult(&img, &interpreter, &outputs, s, bin_foldername))
           return RETURN_FAIL;
       }
       else if (modelInfo->m_preProcCfg.taskType == "detection")
@@ -477,6 +534,17 @@ namespace tflite
             f_tensor_unformatted.push_back(temp);
           }
         }
+
+        ofstream fout(bin_foldername, ios::binary);
+        for (int i = 0; i < f_tensor_unformatted.size(); i++)
+        {
+            for (int j = 0; j < f_tensor_unformatted[i].size(); j++)
+            {
+                fout.write(reinterpret_cast<char*>(&f_tensor_unformatted[i][j]), sizeof(float));
+            }
+        }
+        fout.close();
+
         if (RETURN_FAIL == prepDetectionResult(&img, &f_tensor_unformatted, tensor_shapes_vec, modelInfo, num_ops - 1, nboxes))
           return RETURN_FAIL;
       }
@@ -484,7 +552,7 @@ namespace tflite
       else if (modelInfo->m_preProcCfg.taskType == "segmentation")
       {
         float alpha = modelInfo->m_postProcCfg.alpha;
-        if (RETURN_FAIL == prepSegResult(&img, wanted_width, wanted_height, alpha, &interpreter, &outputs))
+        if (RETURN_FAIL == prepSegResult(&img, wanted_width, wanted_height, alpha, &interpreter, &outputs, bin_foldername))
           return RETURN_FAIL;
       }
 
