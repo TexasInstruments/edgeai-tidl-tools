@@ -251,35 +251,39 @@ def run_model(model, mIdx):
             for j in range(batch):         
                 classes, image = get_class_labels(output[0][j],imgs[j])
                 images.append(image)
-                output_np = np.array(output[0][j])
-                output_tensors.append(output_np)
+                output_tensors.append(np.array(output[0][j], dtype=np.float32).flatten())
                 print("\n", classes)
         elif config['task_type'] == 'detection':
             for j in range(batch):
                 classes, image = det_box_overlay(output, imgs[j], config['extra_info']['od_type'])
                 images.append(image)
-                output_np = np.array(output[0][j])
+                output_np = np.array([], dtype=np.float32)
+                for tensor in output:
+                    output_np = np.concatenate((output_np, np.array(tensor, dtype=np.float32).flatten()))
                 output_tensors.append(output_np)
         elif config['task_type'] == 'segmentation':
              for j in range(batch):
                 classes, image = seg_mask_overlay(output[0][j], imgs[j])
                 images.append(image)
-                output_np = np.array(output[0][j])
-                output_tensors.append(output_np)
+                output_tensors.append(np.array(output[0][j], dtype=np.float32).flatten())
         else:
             print("Not a valid model type")
 
         for j in range(batch):
-            output_file_name = "py_out_"+model+'_'+os.path.basename(input_images[j])
-            print("\nSaving image and output tensor to ", output_images_folder)
+            output_image_file_name = "py_out_"+model+'_'+os.path.basename(input_images[j])
+            print("\nSaving image to ", output_images_folder)
             if not os.path.exists(output_images_folder):
                 os.makedirs(output_images_folder)
-            images[j].save(output_images_folder + output_file_name, "JPEG")
-            output_tensors[j].tofile(output_binary_folder + output_file_name + ".bin")
+            images[j].save(output_images_folder + output_image_file_name, "JPEG")
+            print("\nSaving output tensor to ", output_binary_folder)
+            if not os.path.exists(output_binary_folder):
+                os.makedirs(output_binary_folder)
+            output_bin_file_name = output_image_file_name.replace(".jpg","") + ".bin"
+            output_tensors[j].tofile(output_binary_folder + output_bin_file_name)
     
     if (args.compile or args.disable_offload):
         gen_param_yaml(delegate_options['artifacts_folder'], config, int(new_height), int(new_width))
-    log = f'\n \nCompleted_Model : {mIdx+1:5d}, Name : {model:50s}, Total time : {total_proc_time/(i+1):10.2f}, Offload Time : {sub_graphs_time/(i+1):10.2f} , DDR RW MBs : {(total_ddr_write+total_ddr_read)/(i+1):10.2f}, Output File : {output_file_name}\n \n ' #{classes} \n \n'
+    log = f'\n \nCompleted_Model : {mIdx+1:5d}, Name : {model:50s}, Total time : {total_proc_time/(i+1):10.2f}, Offload Time : {sub_graphs_time/(i+1):10.2f} , DDR RW MBs : {(total_ddr_write+total_ddr_read)/(i+1):10.2f}, Output Image File : {output_image_file_name}, Output Bin File : {output_bin_file_name}\n \n ' #{classes} \n \n'
     print(log) 
     if ncpus > 1:
         sem.release()
