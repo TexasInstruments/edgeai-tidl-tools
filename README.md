@@ -175,15 +175,20 @@ python3 ./scripts/gen_test_report.py
 ```
 
 - You can find the models used and their corresponding inference parameters at ```./examples/osrt_python/model_configs.py```
-- The execution of above step will generate compiled-model artifacts and output images at ```./edgeai-tidl-tools/output_images```. These outputs images can be compared against the expected outputs in ```/edgeai-tidl-tools/test_data/refs-pc-{soc}```, this confirms successful installation / setup on PC
+- The execution of above step will generate compiled-model artifacts at ```./edgeai-tidl-tools/model-artifacts```, output images at ```./edgeai-tidl-tools/output_images``` and output binary at ```./edgeai-tidl-tools/output_binaries```. 
+- The outputs binaries is compared against the expected output binary in ```/edgeai-tidl-tools/test_data/refs-pc-{soc}/bin/```. A list of which output binaries to compare can be found in ```/edgeai-tidl-tools/test_data/refs-pc-{soc}/golden_ref_pc_{soc}.csv```
+
+This confirms successful installation / setup on PC
 
 ```
 model-artifacts/
 models/
 output_images/
+output_binaries/
 test_report_pc_${soc}.csv
 ```
--  An output image can be found for each model in the'output_images' folder, similar to what's shown below
+-  An output binary can be found for each model in the 'output_binaries' folder
+-  An output image can be found for each model in the 'output_images' folder, similar to what's shown below
 
 | Image Classification  | Object detection| Semantic Segmentation |
 |:-------:|:-----------:|:---:|
@@ -210,7 +215,10 @@ mkdir build && cd build
 cmake ../examples && make -j && cd ..
 python3 ./scripts/gen_test_report.py
 ```
-- The execution of above step will generate output images at ```./edgeai-tidl-tools/output_images```. These outputs images can be compared against the expected outputs in ```/edgeai-tidl-tools/test_data/refs-{soc}```. This confirms successful installation / setup on board.
+- The execution of above step will generate output images at ```./edgeai-tidl-tools/output_images``` and output binary at ```./edgeai-tidl-tools/output_binaries```
+- The outputs binaries is compared against the expected output binary in ```/edgeai-tidl-tools/test_data/refs-{soc}/bin/```. A list of which output binaries to compare can be found in ```/edgeai-tidl-tools/test_data/refs-{soc}/golden_ref_{soc}.csv```
+
+This confirms successful integration on SOC
 
 ## Compile and Benchmark Custom Model
 

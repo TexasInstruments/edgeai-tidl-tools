@@ -667,8 +667,8 @@ namespace onnx
                 return RETURN_FAIL;
             }
 
-            LOG_INFO("\nCompleted_Model : 0, Name : %s, Total time : %f, Offload Time : 0 , DDR RW MBs : 0, Output File : %s \n \n",
-                     modelInfo->m_postProcCfg.modelName.c_str(), avg_time, filename.c_str());
+            LOG_INFO("\nCompleted_Model : 0, Name : %s, Total time : %f, Offload Time : 0 , DDR RW MBs : 0, Output Image File : %s, Output Bin File : %s\n \n",
+                     modelInfo->m_postProcCfg.modelName.c_str(), avg_time, filename.c_str(), bin_filename.c_str());
             return RETURN_SUCCESS;
         }
     }

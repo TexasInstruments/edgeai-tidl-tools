@@ -168,6 +168,11 @@ def run_cmd(cmd, dir):
     except Exception as e:
         raise e
 
+num_func_pass = 0
+num_func_fail = 0
+num_perf_pass = 0
+num_perf_fail = 0
+
 for test_config in test_configs:
     script_name = test_config['script_name']
     rt_type = test_config['rt_type']
@@ -182,13 +187,12 @@ for test_config in test_configs:
         cmd = ('python3 '+ script_name)
 
     if device != 'pc':
-        curr_ref_outputs_base_dir = ref_outputs_base_dir+'/refs-'+device+'/'
+        curr_ref_base_dir = ref_outputs_base_dir+'/refs-'+device+'/'
     else:
-        curr_ref_outputs_base_dir = ref_outputs_base_dir+'/refs-'+device+'-'+SOC+'/'
-
-    #result = subprocess.run(cmd, cwd=curr_rt_base_dir, shell=True, stdout=subprocess.PIPE, check=True, universal_newlines=True)
-    #lines = result.stdout.splitlines()
+        curr_ref_base_dir = ref_outputs_base_dir+'/refs-'+device+'-'+SOC+'/'
     
+    curr_ref_output_base_dir = os.path.join(curr_ref_base_dir,"bin")
+
     lines = run_cmd(cmd=cmd, dir=curr_rt_base_dir)
 
     if enable_debug:
@@ -198,9 +202,9 @@ for test_config in test_configs:
     rt_report = []
     golden_ref_file= ""
     if device != 'pc':
-        golden_ref_file = ref_outputs_base_dir+'/golden_ref_'+device+'.csv'
+        golden_ref_file = curr_ref_base_dir+'/golden_ref_'+device+'.csv'
     else:
-        golden_ref_file = ref_outputs_base_dir+'/golden_ref_'+device+'_'+SOC+'.csv'
+        golden_ref_file = curr_ref_base_dir+'/golden_ref_'+device+'_'+SOC+'.csv'
     with open(golden_ref_file, 'r') as f:
         ref_report = [{k:v for k, v in row.items()} for row in csv.DictReader(f, skipinitialspace=True)]
     if enable_debug:
@@ -217,6 +221,7 @@ for test_config in test_configs:
             rt_report.append(tc_dict)
     if enable_debug:
         print(rt_report)
+
     for r in ref_report:
         curr = [item for item in rt_report if ((item["Name"] == r['Name']) and (rt_type == r['rt type']) )]
         if enable_debug:
@@ -224,21 +229,34 @@ for test_config in test_configs:
         if (len(curr) == 0 and rt_type == r['rt type']):
             r['Offload Time'] = '0'
             r['Functional'] = 'FAIL'
-            r['info'] = 'Output not detected'
+            r['info'] = 'Output Not Detected'
             final_report.append(r)
             final_report[-1]['Completed_Model'] = currIdx
             final_report[-1]['rt type'] = rt_type
             currIdx+= 1
+            num_func_fail += 1
         elif(len(curr) != 0 and rt_type == r['rt type']):
             final_report.append(curr[0])
-            out_file_name = os.path.join('./output_images',final_report[-1]['Output File'])
-            ref_file_name = os.path.join(curr_ref_outputs_base_dir,final_report[-1]['Output File'])
-            if filecmp.cmp(out_file_name, ref_file_name) == True:
-                final_report[-1]['Functional'] = 'PASS'
-                final_report[-1]['info'] = ''
+            out_file_name = os.path.join('./output_binaries',final_report[-1]['Output Bin File'])
+            ref_file_name = os.path.join(curr_ref_output_base_dir, final_report[-1]['Output Bin File'])
+            if not os.path.exists(out_file_name) or not os.path.exists(ref_file_name):
+                if not os.path.exists(out_file_name):
+                    final_report[-1]['Functional'] = 'FAIL'
+                    final_report[-1]['info'] = 'Output Bin File Not Found'
+                elif not os.path.exists(ref_file_name):
+                    final_report[-1]['Functional'] = 'FAIL'
+                    final_report[-1]['info'] = 'Output Ref File Not Found'
+                num_func_fail += 1
             else:
-                final_report[-1]['Functional'] = 'FAIL'
-                final_report[-1]['info'] = 'Output file mismatch'
+                if filecmp.cmp(out_file_name, ref_file_name) == True:
+                    final_report[-1]['Functional'] = 'PASS'
+                    final_report[-1]['info'] = ''
+                    num_func_pass += 1
+                else:
+                    final_report[-1]['Functional'] = 'FAIL'
+                    final_report[-1]['info'] = 'Output Bin File Mismatch'
+                    num_func_fail += 1
+
             if platform.machine() == 'aarch64':
                 final_report[-1]['Ref Total Time']   =  r['Total time']
                 final_report[-1]['Ref Offload Time'] =  r['Offload Time']
@@ -248,13 +266,18 @@ for test_config in test_configs:
                 if(diff_in_total_time > 2.0):
                     final_report[-1]['Performance Status']  = "FAIL"
                     final_report[-1]['info'] ="Diff in total time > 2"
+                    num_perf_fail += 1
                 else :
                     final_report[-1]['Performance Status']  = "PASS"
+                    num_perf_pass += 1
             final_report[-1]['Completed_Model'] = currIdx
             final_report[-1]['rt type'] = rt_type
             currIdx+= 1
 
 print(final_report)
+print("\nFunc Pass: {}\nFunc Fail: {}".format(num_func_pass, num_func_fail))
+if platform.machine() == 'aarch64':
+    print("\nPerf Pass: {}\nPerf Fail: {}".format(num_perf_pass, num_perf_fail))
 
 if(len(final_report) > 0):
     keys =final_report[0].keys()
@@ -263,8 +286,8 @@ if(len(final_report) > 0):
             final_report[i].pop('Total time',None)
             final_report[i].pop('Offload Time',None)
             final_report[i].pop('DDR RW MBs',None)
-    if 'Output File' not in final_report[0]:
-        final_report[0]['Output File'] = ''
+    if 'Output Bin File' not in final_report[0]:
+        final_report[0]['Output Bin File'] = ''
 
     if device != 'pc':
         report_file = 'test_report_'+device+'.csv'
@@ -277,5 +300,5 @@ if(len(final_report) > 0):
 else:
     print("No test_report is generated.")
 
-print("\nPlease refer to the output_images directory for generated post-processed outputs")
+print("\nPlease refer to the output_images and output_binaries directory for generated outputs")
 print("TEST DONE!")

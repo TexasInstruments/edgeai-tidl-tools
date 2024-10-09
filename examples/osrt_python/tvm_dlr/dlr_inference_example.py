@@ -174,6 +174,7 @@ def model_create_and_run(model_dir,
 
     model = model_dir.split("/")[-2]
     output_image_file_name = "py_out_"+model+'_'+os.path.basename(img_path)
+    output_bin_file_name = output_image_file_name.replace(".jpg","") + ".bin"
 
     image_pil = Image.open(img_path).convert('RGB')
     classes, image = get_class_labels(res,image_pil)
@@ -182,11 +183,11 @@ def model_create_and_run(model_dir,
     print("\nSaving image to ", output_images_folder)
     if not os.path.exists(output_images_folder):
         os.makedirs(output_images_folder)
-    image.save(output_images_folder + output_image_file_name, "JPEG") 
+    image.save(output_images_folder + output_image_file_name, "JPEG")
+ 
     print("\nSaving output tensor to ", output_binary_folder)
     if not os.path.exists(output_binary_folder):
         os.makedirs(output_binary_folder)
-    output_bin_file_name = output_image_file_name.replace(".jpg","") + ".bin"
     res_np.tofile(output_binary_folder + output_bin_file_name)
     
     log = f'\n \nCompleted_Model : {mIdx+1:5d}, Name : {model:50s}, Total time : {proc_time/numImages:10.2f}, Offload Time : {proc_time/numImages:10.2f} , DDR RW MBs : 0, Output Image File : {output_image_file_name}, Output Bin File : {output_bin_file_name}\n \n ' #{classes} \n \n'

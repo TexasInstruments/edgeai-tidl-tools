@@ -287,7 +287,8 @@ def run_model(model, mIdx):
     sub_graphs_time = sub_graphs_time/1000000
 
     # output post processing
-    output_file_name = "py_out_"+model+'_'+os.path.basename(input_image[i%len(input_image)])
+    output_image_file_name = "py_out_"+model+'_'+os.path.basename(input_image[i%len(input_image)])
+    output_bin_file_name = output_image_file_name.replace(".jpg","") + ".bin"
     if(args.compile == False):  # post processing enabled only for inference
         images = []
         output_tensors = []

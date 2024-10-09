@@ -241,8 +241,8 @@ def run_model(model, mIdx):
         total_ddr_read  = total_ddr_read + ddr_read if ('total_ddr_read' in locals()) else ddr_read
     total_proc_time = total_proc_time/1000000
     sub_graphs_time = sub_graphs_time/1000000
-    output_file_name = "py_out_"+model+'_'+os.path.basename(input_image[i%len(input_image)])
-
+    output_image_file_name = "py_out_"+model+'_'+os.path.basename(input_image[i%len(input_image)])
+    output_bin_file_name = output_image_file_name.replace(".jpg","") + ".bin"
     # output post processing
     if(args.compile == False):  # post processing enabled only for inference
         images = []
