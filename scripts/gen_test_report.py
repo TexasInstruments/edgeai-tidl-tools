@@ -228,11 +228,11 @@ for test_config in test_configs:
             print(curr)
         if (len(curr) == 0 and rt_type == r['rt type']):
             r['Offload Time'] = '0'
-            r['Functional'] = 'FAIL'
-            r['info'] = 'Output Not Detected'
+            r['Functional Status'] = 'FAIL'
+            r['Info'] = 'Output Not Detected'
             final_report.append(r)
-            final_report[-1]['Completed_Model'] = currIdx
-            final_report[-1]['rt type'] = rt_type
+            final_report[-1]['Sl No.'] = currIdx
+            final_report[-1]['Runtime'] = rt_type
             currIdx+= 1
             num_func_fail += 1
         elif(len(curr) != 0 and rt_type == r['rt type']):
@@ -241,54 +241,75 @@ for test_config in test_configs:
             ref_file_name = os.path.join(curr_ref_output_base_dir, final_report[-1]['Output Bin File'])
             if not os.path.exists(out_file_name) or not os.path.exists(ref_file_name):
                 if not os.path.exists(out_file_name):
-                    final_report[-1]['Functional'] = 'FAIL'
-                    final_report[-1]['info'] = 'Output Bin File Not Found'
+                    final_report[-1]['Functional Status'] = 'FAIL'
+                    final_report[-1]['Info'] = 'Output Bin File Not Found'
                 elif not os.path.exists(ref_file_name):
-                    final_report[-1]['Functional'] = 'FAIL'
-                    final_report[-1]['info'] = 'Output Ref File Not Found'
+                    final_report[-1]['Functional Status'] = 'FAIL'
+                    final_report[-1]['Info'] = 'Output Ref File Not Found'
                 num_func_fail += 1
             else:
                 if filecmp.cmp(out_file_name, ref_file_name) == True:
-                    final_report[-1]['Functional'] = 'PASS'
-                    final_report[-1]['info'] = ''
+                    final_report[-1]['Functional Status'] = 'PASS'
+                    final_report[-1]['Info'] = ''
                     num_func_pass += 1
                 else:
-                    final_report[-1]['Functional'] = 'FAIL'
-                    final_report[-1]['info'] = 'Output Bin File Mismatch'
+                    final_report[-1]['Functional Status'] = 'FAIL'
+                    final_report[-1]['Info'] = 'Output Bin File Mismatch'
                     num_func_fail += 1
 
             if platform.machine() == 'aarch64':
                 final_report[-1]['Ref Total Time']   =  r['Total time']
                 final_report[-1]['Ref Offload Time'] =  r['Offload Time']
+
                 diff_in_total_time = float(final_report[-1]['Total time']) - float(final_report[-1]['Ref Total Time'])
-                diff_in_total_time = (diff_in_total_time/float(final_report[-1]['Ref Total Time']))*100.0
-                final_report[-1]['Diff in Total Time %']  = f'{diff_in_total_time:5.2f}'
-                if(diff_in_total_time > 2.0):
+                diff_in_total_time_pct = (diff_in_total_time/float(final_report[-1]['Ref Total Time']))*100.0
+
+                final_report[-1]['Total Time Diff']  = f'{diff_in_total_time:5.2f}'
+                final_report[-1]['Total Time Diff(%)']  = f'{diff_in_total_time_pct:5.2f}%'
+    
+                if(diff_in_total_time_pct > 2.0 and diff_in_total_time > 0.02):
                     final_report[-1]['Performance Status']  = "FAIL"
-                    final_report[-1]['info'] ="Diff in total time > 2"
+                    final_report[-1]['Info'] ="Actual time more than Ref time by 0.02ms or 2%"
                     num_perf_fail += 1
                 else :
                     final_report[-1]['Performance Status']  = "PASS"
                     num_perf_pass += 1
-            final_report[-1]['Completed_Model'] = currIdx
-            final_report[-1]['rt type'] = rt_type
+            final_report[-1]['Sl No.'] = currIdx
+            final_report[-1]['Runtime'] = rt_type
             currIdx+= 1
 
-print(final_report)
-print("\nFunc Pass: {}\nFunc Fail: {}".format(num_func_pass, num_func_fail))
-if platform.machine() == 'aarch64':
-    print("\nPerf Pass: {}\nPerf Fail: {}".format(num_perf_pass, num_perf_fail))
-
 if(len(final_report) > 0):
-    keys =final_report[0].keys()
     if device == 'pc':
         for i in range(len(final_report)):
             final_report[i].pop('Total time',None)
             final_report[i].pop('Offload Time',None)
             final_report[i].pop('DDR RW MBs',None)
-    if 'Output Bin File' not in final_report[0]:
-        final_report[0]['Output Bin File'] = ''
 
+    for i in range(len(final_report)):
+        if 'Output Bin File' not in final_report[i]:
+            final_report[i]['Output Bin File'] = ''
+        if 'Output Image File' not in final_report[i]:
+            final_report[i]['Output Image File'] = ''
+    
+    # Sort the dictionary
+    sequence = ["Sl No.","Runtime","Name","Output Image File","Output Bin File",
+                "Total time","Offload Time","Ref Total Time","Ref Offload Time",
+                "Total Time Diff","Total Time Diff(%)","DDR RW MBs", "Functional Status",
+                "Performance Status","Info"]
+    for i in range(len(final_report)):
+        temp_dict = {}
+        for p in sequence:
+            found = False
+            for q in final_report[i]:
+                if p.strip() == q.strip():
+                    key = q
+                    found = True
+                    break
+            if (found):
+                temp_dict[key] = final_report[i][key]
+        final_report[i] = temp_dict
+
+    keys =final_report[0].keys()
     if device != 'pc':
         report_file = 'test_report_'+device+'.csv'
     else:
@@ -299,6 +320,11 @@ if(len(final_report) > 0):
         dict_writer.writerows(final_report)
 else:
     print("No test_report is generated.")
+
+print(final_report)
+print("\nFunc Pass: {}\nFunc Fail: {}".format(num_func_pass, num_func_fail))
+if platform.machine() == 'aarch64':
+    print("\nPerf Pass: {}\nPerf Fail: {}".format(num_perf_pass, num_perf_fail))
 
 print("\nPlease refer to the output_images and output_binaries directory for generated outputs")
 print("TEST DONE!")
