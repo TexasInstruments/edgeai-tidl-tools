@@ -4,11 +4,11 @@ ss-tfl-deeplabv3_mnv2_ade20k_float,11.74,11.72,0,tfl-py
 od-tfl-ssd_mobilenet_v2_300_float,6.91,6.89,0,tfl-py
 cl-ort-resnet18-v1,2.58,0,0,ort-py
 ss-ort-deeplabv3lite_mobilenetv2,9.5,0,0,ort-py
-od-ort-ssd-lite_mobilenetv2_fpn,6.12,0,0,ort-py
+od-ort-ssd-lite_mobilenetv2_fpn,10.4,0,0,ort-py
 cl-dlr-onnx_mobilenetv2_device,3,3,0,dlr-py
 cl-dlr-tflite_inceptionnetv3_device,10.27,10.27,0,dlr-py
 ss-tfl-deeplabv3_mnv2_ade20k_float,10.2,0,0,tfl-cpp
 cl-tfl-mobilenet_v1_1.0_224,1.5,0,0,tfl-cpp
 cl-ort-resnet18-v1,2.31,0,0,ort-cpp
-od-ort-ssd-lite_mobilenetv2_fpn,5.9,0,0,ort-cpp
+od-ort-ssd-lite_mobilenetv2_fpn,10.4,0,0,ort-cpp
 cl-dlr-tflite_inceptionnetv3_device,9.15,0,0,dlr-cpp
