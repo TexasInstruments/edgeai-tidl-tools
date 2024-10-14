@@ -17,9 +17,34 @@ This optimization is included by default in the Model compilation script in this
 
 ## RGB to YUV model converter
 
-Sometimes a model which is trained over RGB data need to be run with YUV data. During these scenarios we propose to update model offline to change its input from RGB to YUV. we provide scripts to do this. Script to convert TFlite model can be found [here](osrt_model_tools/tflite_tools/RGB_YUV_model_converter.py) and for onnx model can be found [here](osrt_model_tools/onnx_tools/RGB_YUV_model_converter.py) Below figure shows the example of such original model with RGB converted to a model which takes YUV input. The operators inside the box are additional operators added to perform this task. 
+Sometimes a model which is trained over RGB data need to be run with YUV data. During these scenarios we propose to update model offline to change its input from RGB to YUV. we provide scripts to do this. Script to convert TFlite model can be found [here](osrt_model_tools/tflite_tools/RGB_YUV_model_converter.py) and for onnx model can be found [here](osrt_model_tools/onnx_tools/tidl_onnx_model_utils/RGB_YUV_model_converter.py) Below figure shows the example of such original model with RGB converted to a model which takes YUV input. The operators inside the box are additional operators added to perform this task. 
 
- One can use [examples](../examples/osrt_cpp/advanced_examples) as a reference to convert a RGB model to YUV model.
+We support two input data layouts: YUV420SP, YUV420P
+* YUV420SP (SP - Semi Planar) - Where the U, V channels are interleaved.
 
-![RGB_YUV_model_converter](../docs/images/converted_mobilenet.png) 
-![RGB_YUV_model_converter](../docs/images/converted_resnet.png)
+![RGB_YUV_model_converter](../docs/images/Resnet_YUV420P.png) 
+
+* YUV420P (P - Planar) - Where the U, V channels are seperated.
+
+![RGB_YUV_model_converter](../docs/images/Resnet_YUV420SP.png)
+
+One can use [examples](../examples/osrt_cpp/advanced_examples) as a reference to convert a RGB model to YUV model.
+
+### Usage
+
+To add the YUV input functionality:
+
+```bash
+python3 RGB_YUV_model_converter.py -m YUV420SP -i resnet.onnx -o resnet_yuv.onnx -w 224 -l 224
+```
+
+To generate the YUV input
+```bash
+python3 RGB_YUV_model_converter.py -g -i image.jpg -w 224 -l 224
+```
+
+Sometimes the model may have multiple inputs coming from different sources. With this flag you can define specific inputs to convert into YUV
+
+```bash
+python3 RGB_YUV_model_converter.py -m YUV420SP -i multiple_input_model.onnx -o resnet_yuv.onnx --input_names input.1 input.5 
+```
