@@ -153,8 +153,26 @@ def addYUVConv(in_model_path, out_model_path, args):
          outputs=[graph.input[inp_idx].name]
       )
       new_nodes.append(conv)
+
+      normalize_factor = onnx.helper.make_tensor(
+         name=f"Conv_YUV_RGB_output_normalize_factor_{inp_idx}",
+         data_type=TensorProto.FLOAT,
+         dims=[1],
+         vals=np.array([255.0], dtype=np.float32)
+      )
+      div = onnx.helper.make_node(
+         "Div",
+         name=f"Conv_YUV_RGB_normalize_{inp_idx}",
+         inputs=[
+            f"Conv_YUV_RGB_output_{inp_idx}",
+            f"Conv_YUV_RGB_output_normalize_factor_{inp_idx}"
+         ],
+         outputs=[graph.input[inp_idx].name]
+      )
+      new_nodes.append(div)
+
       gNodes = new_nodes + gNodes
-      gInitList = [dummy_uv, resize_uv_scales, weight_init, bias_init] + gInitList
+      gInitList = [dummy_uv, resize_uv_scales, weight_init, bias_init, normalize_factor] + gInitList
 
    yuv_graph = helper.make_graph(
       gNodes + [node for node in graph.node],
