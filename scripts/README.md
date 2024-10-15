@@ -48,3 +48,15 @@ Sometimes the model may have multiple inputs coming from different sources. With
 ```bash
 python3 RGB_YUV_model_converter.py -m YUV420SP -i multiple_input_model.onnx -o resnet_yuv.onnx --input_names input.1 input.5 
 ```
+
+The output of the conversion will be in the range of (0, 255) you can change this range with the help of **--normalize** flag
+
+```bash
+python3 RGB_YUV_model_converter.py -m YUV420SP -i multiple_input_model.onnx -o resnet_yuv.onnx --input_names input.1 input.5 --normalize 255.0
+```
+
+Mean and Std deviation of the input can also included into the model as per the [Model Optimization](#model-optimization), with the **--mean** and **--std** flags
+
+```bash
+python3 RGB_YUV_model_converter.py -m YUV420SP -i multiple_input_model.onnx -o resnet_yuv.onnx --normalize 255.0 --mean 0.485 0.456 0.406 --std 0.229 0.224 0.225
+```

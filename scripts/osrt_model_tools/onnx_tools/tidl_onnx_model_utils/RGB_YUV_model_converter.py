@@ -80,17 +80,13 @@ def addYUVConv(in_model_path, out_model_path, args):
    graph = model.graph
 
    inDims = []
-   for inp_idx in range(len(graph.input)):
-      if args.input_names is not None and len(args.input_names) > 0 and graph.input[inp_idx].name not in args.input_names:
-         continue
-      inDims.append(tuple([x.dim_value for x in graph.input[inp_idx].type.tensor_type.shape.dim]))
-   
    gNodes = [] # container to hold the newly added nodes in topologically sorted order
    gInitList = []
 
    for inp_idx in range(len(graph.input)):
       if args.input_names is not None and len(args.input_names) > 0 and graph.input[inp_idx].name not in args.input_names:
          continue
+      inDims.append(tuple([x.dim_value for x in graph.input[inp_idx].type.tensor_type.shape.dim]))
       B, _, H, W = inDims[inp_idx]
       UV_shape = [B, 2, H//2, W//2] if mode == "YUV420P" else [B, H//2, W//2, 2]
       inTensors = [
@@ -153,13 +149,18 @@ def addYUVConv(in_model_path, out_model_path, args):
          outputs=[f"Conv_YUV_RGB_output_{inp_idx}"]
       )
       new_nodes.append(conv)
+      initList = [dummy_uv, resize_uv_scales, weight_init, bias_init]
 
       normalize_factor = onnx.helper.make_tensor(
          name=f"Conv_YUV_RGB_output_normalize_factor_{inp_idx}",
          data_type=TensorProto.FLOAT,
          dims=[1],
-         vals=np.array([255.0], dtype=np.float32)
+         vals=np.array([args.normalize], dtype=np.float32)
       )
+      div_output_name = f"Conv_YUV_RGB_normalize_output_{inp_idx}"
+      if args.mean is None and args.std is None:
+         div_output_name = graph.input[inp_idx].name
+      
       div = onnx.helper.make_node(
          "Div",
          name=f"Conv_YUV_RGB_normalize_{inp_idx}",
@@ -167,12 +168,51 @@ def addYUVConv(in_model_path, out_model_path, args):
             f"Conv_YUV_RGB_output_{inp_idx}",
             f"Conv_YUV_RGB_output_normalize_factor_{inp_idx}"
          ],
-         outputs=[graph.input[inp_idx].name]
+         outputs=[div_output_name]
       )
       new_nodes.append(div)
+      initList.append(normalize_factor)
+
+      if args.mean is not None and args.std is not None:
+         assert len(args.mean) == inDims[-1][1], "Length of mean should be equal to number of channels"
+         assert len(args.std) == inDims[-1][1], "Length of std should be equal to number of channels"
+
+         mean = onnx.helper.make_tensor(
+            name=f'Input_RGB_normalize_mean_{inp_idx}',
+            data_type=TensorProto.FLOAT,
+            dims=[1,inDims[-1][1],1,1],
+            vals=np.array([-1*x for x in args.mean], dtype=np.float32))
+
+         std = onnx.helper.make_tensor(
+            name=f'Input_RGB_normalize_std_{inp_idx}',
+            data_type=TensorProto.FLOAT,
+            dims=[1,inDims[-1][1],1,1],
+            vals=np.array([1/x for x in args.std], dtype=np.float32))
+
+         add = onnx.helper.make_node(
+            "Add", 
+            name=f"Input_RGB_normalize_add_{inp_idx}", 
+            inputs=[
+               div_output_name,
+               f"Input_RGB_normalize_mean_{inp_idx}"
+            ],
+            outputs=[f"Input_RGB_normalize_add_output_{inp_idx}"]
+         )
+
+         mul = onnx.helper.make_node(
+            "Mul",
+            name=f"Input_RGB_normalize_mul_{inp_idx}",
+            inputs=[
+               f"Input_RGB_normalize_add_output_{inp_idx}",
+               f"Input_RGB_normalize_std_{inp_idx}",
+            ],
+            outputs=[graph.input[inp_idx].name]
+         )
+         new_nodes.extend([add, mul])
+         initList.extend([mean, std])
 
       gNodes = new_nodes + gNodes
-      gInitList = [dummy_uv, resize_uv_scales, weight_init, bias_init, normalize_factor] + gInitList
+      gInitList = initList + gInitList
 
    yuv_graph = helper.make_graph(
       gNodes + [node for node in graph.node],
@@ -226,6 +266,9 @@ def parse():
    parser.add_argument("-m", "--mode", choices=SUPPORTED_MODES, help="Layout of the Input Data", default="YUV420SP")
    parser.add_argument("--input_names", type=str, nargs="+", help="Names of the input to convert. Sometimes the model may have multiple inputs coming from different sources. With this flag you can define specific inputs to convert into YUV")
 
+   parser.add_argument("--normalize", type=float, default=255.0, help="Normalize input by diving by this value")
+   parser.add_argument("--mean", type=float, nargs="+", help="Mean for normalizing the input")
+   parser.add_argument("--std", type=float, nargs="+", help="Variance for normalizing the input")
    return parser.parse_args()
 
 def main():
