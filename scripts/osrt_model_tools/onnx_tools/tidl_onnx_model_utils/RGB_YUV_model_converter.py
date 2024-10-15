@@ -109,20 +109,20 @@ def addYUVConv(in_model_path, out_model_path, args):
       curr_output_layer = inTensors[-1].name
       new_nodes = []
       if mode == "YUV420SP":
-         transpose = onnx.helper.make_node("Transpose", name=f"Transpose_UV", inputs=[graph.input[inp_idx].name + "_UV_IN"], perm=[0, 3, 1, 2], outputs=[f"Transpose_UV_output_{inp_idx}"])
+         transpose = onnx.helper.make_node("Transpose", name=f"Transpose_UV_{inp_idx}", inputs=[graph.input[inp_idx].name + "_UV_IN"], perm=[0, 3, 1, 2], outputs=[f"Transpose_UV_output_{inp_idx}"])
          new_nodes.append(transpose)
          curr_output_layer = f"Transpose_UV_output_{inp_idx}"
 
       scales = np.array([1, 1, 2, 2], dtype=np.int64)
-      resize_uv_scales = onnx.helper.make_tensor(name="Resize_uv_scales", data_type=TensorProto.FLOAT, dims=[4], vals=scales)
+      resize_uv_scales = onnx.helper.make_tensor(name=f"Resize_uv_scales_{inp_idx}", data_type=TensorProto.FLOAT, dims=[4], vals=scales)
       dummy_uv = onnx.helper.make_tensor(
                name='roi_uv',
                data_type=TensorProto.FLOAT,
                dims=(0,),
                vals=[])
-      roi_uv_node = helper.make_node("Constant", [], [f"roi_uv_output_{inp_idx}"], value=dummy_uv, name="roi_uv")
-      resize_uv = onnx.helper.make_node("Resize", name="Resize_uv", inputs=[curr_output_layer, f"roi_uv_output_{inp_idx}", "Resize_uv_scales"], mode="nearest", outputs=[f"Resized_uv_output_{inp_idx}"])
-      concat = onnx.helper.make_node("Concat", name="Concat_YUV", inputs=[graph.input[inp_idx].name + "_Y_IN", f"Resized_uv_output_{inp_idx}"], axis=1, outputs=[f"Concat_YUV_output_{inp_idx}"])
+      roi_uv_node = helper.make_node("Constant", [], [f"roi_uv_output_{inp_idx}"], value=dummy_uv, name=f"roi_uv_{inp_idx}")
+      resize_uv = onnx.helper.make_node("Resize", name=f"Resize_uv_{inp_idx}", inputs=[curr_output_layer, f"roi_uv_output_{inp_idx}", f"Resize_uv_scales_{inp_idx}"], mode="nearest", outputs=[f"Resized_uv_output_{inp_idx}"])
+      concat = onnx.helper.make_node("Concat", name=f"Concat_YUV_{inp_idx}", inputs=[graph.input[inp_idx].name + "_Y_IN", f"Resized_uv_output_{inp_idx}"], axis=1, outputs=[f"Concat_YUV_output_{inp_idx}"])
       new_nodes.extend([roi_uv_node, resize_uv, concat])
 
       # adding conv to convert YUV to RGB
@@ -144,13 +144,13 @@ def addYUVConv(in_model_path, out_model_path, args):
 
       conv = onnx.helper.make_node(
          'Conv',
-         name="Conv_YUV_RGB",
+         name=f"Conv_YUV_RGB_{inp_idx}",
          inputs=[
                f"Concat_YUV_output_{inp_idx}",
                f"TIDL_preProc_YUV_RGB_weights_{inp_idx}",
                f"TIDL_preProc_YUV_RGB_bias_{inp_idx}"
          ],
-         outputs=[graph.input[inp_idx].name]
+         outputs=[f"Conv_YUV_RGB_output_{inp_idx}"]
       )
       new_nodes.append(conv)
 
@@ -222,7 +222,7 @@ def parse():
    parser.add_argument("-o", "--output", type=str, help="Path to save the output model") 
    parser.add_argument("-g", "--gen_yuv_data", action="store_true", help="Generate YUV input")
    parser.add_argument("-w", "--width", type=int, default=224, help="Width of the input data")
-   parser.add_argument("-h", "--height", type=int, default=224, help="Height of the input data")
+   parser.add_argument("-l", "--height", type=int, default=224, help="Height of the input data")
    parser.add_argument("-m", "--mode", choices=SUPPORTED_MODES, help="Layout of the Input Data", default="YUV420SP")
    parser.add_argument("--input_names", type=str, nargs="+", help="Names of the input to convert. Sometimes the model may have multiple inputs coming from different sources. With this flag you can define specific inputs to convert into YUV")
 
