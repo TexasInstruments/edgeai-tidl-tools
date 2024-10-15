@@ -4,6 +4,7 @@
 
 The intention of this advanced example folder is to describe the steps on how to convert a RGB trained model to accept YUV data as input. 
 
+You can refer to [Colorspace Conversion Section](../../../../scripts/README.md#colorspace-conversion) for more information on handling different color spaces
 
 ## Usage
 

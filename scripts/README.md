@@ -1,5 +1,6 @@
 - [Scripts for Model Optimization and Validation](#scripts-for-model-optimization-and-validation)
   - [Model Optimization](#model-optimization)
+- [Colorspace Conversion](#colorspace-conversion)
 - [Scripts for RGB to YUV Model conversion](#scripts-for-rgb-to-yuv-model-conversion)
   - [RGB_YUV_model_converter](#rgb-to-yuv-model-converter) 
 
@@ -12,6 +13,30 @@ During vision-based DL model training the input image is normalized and resultan
 This optimization is included by default in the Model compilation script in this repository. This is done during model download step.
 
 ![Image Normalization Optimization](../docs/images/tidl_model_opt.png)
+
+# Colorspace conversion
+
+In realworld scenarios, even though most of the model training happens on RGB colorspace, the hardware devices used for inferences reads inputs and processes them and output in different colorspaces. This script provides guide to handle different colorspace conversions.
+
+Here the conversion we provide from YUV to RGB, assumes that hardware is reading the input in YUV420SP format, where Y is planar and U, V planes are interleaved.
+
+Instead of doing the color space conversion algorithmically we shift the computation to the model input layers, which can be optimized during model compilation. 
+
+The conv with name **Conv_YUV_RGB_\*** handles the computation of converting the YUV to RGB. 
+
+Similarly if your device provides input in different format, you can change the weights of the conv layer in 
+
+edgeai-tidl-tools/scripts/osrt_model_tools/onnx_tools/tidl_onnx_model_utils/RGB_YUV_model_converter.py
+```python
+def addYUVConv(in_model_path, out_model_path, args):
+    ...
+    # adding conv to convert YUV to RGB
+    weights = [1.164, 0.0, 1.596,
+                1.164, -0.391, -0.813,
+                1.164, 2.018, 0.0 ]
+    bias= [-222.912, 135.488, -276.928]
+    ...
+```
 
 # Scripts for RGB to YUV Model conversion
 
