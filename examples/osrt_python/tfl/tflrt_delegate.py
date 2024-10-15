@@ -321,8 +321,8 @@ def run_model(model, mIdx):
     shape = [int(batch), int(num_class)]
     output_details = {"name": input_name, "shape": shape, "type": type}
 
-    config["session"]["input_details"] = input_details
-    config["session"]["output_details"] = output_details
+    config["session"]["input_details"] = [input_details]
+    config["session"]["output_details"] = [output_details]
 
     # Set the formatter for post-processing
     if "formatter" in config["postprocess"]:
@@ -453,7 +453,7 @@ else:
         # Model to demonstrate multi core parallel batch processing
         models.append("cl-tfl-mobilenetv2_4batch")
 
-        # models.append("ss-tfl-deeplabv3_mnv2_ade20k_float_low_latency")
+        models.append("ss-tfl-deeplabv3_mnv2_ade20k_float_low_latency")
 
 if args.run_model_zoo:
     models = [

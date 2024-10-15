@@ -172,6 +172,7 @@ def gen_param_yaml(artifacts_folder_path, config, new_height, new_width):
     layout = config["preprocess"]["data_layout"]
     if config["session"]["session_name"] == "tflitert":
         layout = "NHWC"
+        config["preprocess"]["data_layout"] = layout
     model_file_name = os.path.basename(config["session"]["model_path"])
 
     model_path = config["session"]["model_path"]

@@ -357,8 +357,8 @@ def run_model(model, mIdx):
     shape = [batch, num_class]
     output_details = {"name": input_name, "shape": shape, "type": type}
 
-    config["session"]["input_details"] = input_details
-    config["session"]["output_details"] = output_details
+    config["session"]["input_details"] = [input_details]
+    config["session"]["output_details"] = [output_details]
 
     # Set the formatter for post-processing
     if "formatter" in config["postprocess"]:
@@ -473,7 +473,7 @@ else:
         # Model to demonstrate multi core parallel batch processing
         models.append("cl-ort-resnet18-v1_4batch")
         # Model to demonstrate multi core low latency inference
-        # models.append("cl-ort-resnet18_1MP_low_latency")
+        models.append("cl-ort-resnet18_1MP_low_latency")
     if SOC not in ("am62a", "am67a"):
         models.append("ss-ort-deeplabv3lite_mobilenetv2")
 
