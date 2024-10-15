@@ -159,7 +159,7 @@ def gen_param_yaml(artifacts_folder_path, config, new_height, new_width):
         model_type = "segmentation"
     model_file = config["task_type"].split("/")[0]
     dict_file = dict()
-    layout = "NCHW"
+    layout = config["preprocess"]["data_layout"]
     if config["session"]["session_name"] == "tflitert":
         layout = "NHWC"
     model_file_name = os.path.basename(config["session"]["model_path"])
