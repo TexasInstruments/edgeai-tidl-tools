@@ -32,3 +32,4 @@ from .attr_dict import *
 from .params_base import *
 from .postprocess_utils import *
 from .dataset_utils import *
+from .image_utils import *

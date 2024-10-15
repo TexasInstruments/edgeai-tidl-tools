@@ -866,6 +866,10 @@ models_configs = {
         ),
         task_type="classification",
         extra_info=AttrDict(num_images=numImages, num_classes=1000),
+        optional_options={
+            'advanced_options:inference_mode' : 1,  # inference mode to run high throughput (parallel batch processing) inference
+            'advanced_options:num_cores' : 4,
+        }
     ),
     "cl-tfl-mobilenetv2_4batch": create_model_config(
         source=AttrDict(
@@ -887,6 +891,10 @@ models_configs = {
         ),
         task_type="classification",
         extra_info=AttrDict(num_images=numImages, num_classes=1001),
+        optional_options={
+            'advanced_options:inference_mode' : 1,  # inference mode to run high throughput (parallel batch processing) inference
+            'advanced_options:num_cores' : 4,
+        }
     ),
     "cl-dlr-tflite_inceptionnetv3": create_model_config(
         source=AttrDict(
@@ -950,6 +958,66 @@ models_configs = {
         ),
         task_type="classification",
         extra_info=AttrDict(num_images=numImages, num_classes=1000),
+    ),
+    'ss-tfl-deeplabv3_mnv2_ade20k_float_low_latency': create_model_config(
+        source=AttrDict(
+            model_url='http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models/vision/segmentation/ade20k32/mlperf/deeplabv3_mnv2_ade20k32_float.tflite',  
+        ),
+        preprocess=AttrDict(
+            resize=512,
+            crop=512,
+            data_layout='NCHW',
+            pad_color=0,
+            resize_with_pad=False,
+            reverse_channels=False,
+        ),
+        session=AttrDict(
+            session_name='tflitert' ,
+            model_path=os.path.join(models_base_path, 'deeplabv3_mnv2_ade20k_float.tflite'),
+            input_mean=[127.5, 127.5, 127.5],
+            input_scale= [1/127.5, 1/127.5, 1/127.5],
+            input_optimization=True,
+        ),
+            task_type = 'segmentation',
+        extra_info=AttrDict(
+            num_images = numImages ,
+            num_classes = 32
+        ),
+        optional_options= {
+            'advanced_options:inference_mode' : 2,  # inference mode to run low latency inference
+            'advanced_options:num_cores' : 4, 
+        }
+    ),
+    'cl-ort-resnet18_1MP_low_latency' : create_model_config(
+        source=AttrDict(
+            model_url='http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models/vision/high_resolution/imagenet1k/torchvision/resnet18_1024x1024.onnx',  
+            infer_shape=True,
+        ),
+        preprocess=AttrDict(
+            resize=256,
+            crop=224,
+            data_layout='NCHW',
+            resize_with_pad=False,
+            reverse_channels=False,
+        ),
+        session=AttrDict(
+            session_name='onnxrt' ,
+            model_path=os.path.join(models_base_path, 'resnet18_1024x1024.onnx'),
+            input_mean=[123.675, 116.28, 103.53],
+            input_scale=[0.017125, 0.017507, 0.017429],
+            input_optimization=True,
+        ),
+            task_type = 'classification',
+        extra_info=AttrDict(
+            num_images = numImages ,
+            num_classes = 1000
+        ),
+        optional_options = {
+            'advanced_options:inference_mode' : 2,  # inference mode to run low latency inference
+            'advanced_options:num_cores' : 4,
+            'advanced_options:calibration_frames' : 1, 
+            'advanced_options:calibration_iterations' : 1
+        }
     ),
 }
 

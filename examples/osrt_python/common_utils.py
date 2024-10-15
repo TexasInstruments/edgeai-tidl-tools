@@ -37,6 +37,8 @@ import json
 from common.misc_utils import *
 from common.config_utils import *
 from common.dataset_utils import *
+from common.image_utils import *
+
 
 if platform.machine() == "aarch64":
     numImages = 100
@@ -143,6 +145,14 @@ models_base_path = "../../../models/public/"
 model_artifacts_base_path = "../../../model-artifacts/"
 
 
+def get_dataset_info(task_type, num_classes):
+        categories = [dict(id=catagory_id+1, supercategory=task_type, name=f"category_{catagory_id+1}") for catagory_id in range(num_classes)]
+        dataset_info = dict(info=dict(description=f'{task_type} dataset'),
+                            categories=categories,
+                            color_map=get_color_palette(num_classes))
+        return dataset_info
+
+    
 def gen_param_yaml(artifacts_folder_path, config, new_height, new_width):
 
     resize = []
@@ -196,12 +206,15 @@ def gen_param_yaml(artifacts_folder_path, config, new_height, new_width):
     param_dict = pretty_object(config)
     param_dict.pop("source")
     param_dict.pop("extra_info")
+    dataset_info = get_dataset_info(config["task_type"], config["extra_info"]["num_classes"])
 
     artifacts_model_path = "/".join(artifacts_folder_path.split("/")[:-1])
     artifacts_model_path_yaml = os.path.join(artifacts_model_path, "param.yaml")
     with open(artifacts_model_path_yaml, "w") as file:
-        documents = yaml.safe_dump(param_dict, file, sort_keys=False)
-
+        yaml.safe_dump(param_dict, file, sort_keys=False)
+    dataset_path_yaml = os.path.join(artifacts_model_path, "dataset.yaml")
+    with open(dataset_path_yaml, "w") as dataset_fp:
+        yaml.safe_dump(dataset_info, dataset_fp, sort_keys=False)
 
 headers = {
     "User-Agent": "My User Agent 1.0",

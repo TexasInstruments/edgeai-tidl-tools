@@ -30,10 +30,11 @@ from .attr_dict import AttrDict
 
 def create_model_config(
         source=AttrDict(),
+        extra_info=AttrDict(),        
         preprocess=AttrDict(),
         session=AttrDict(),
         postprocess=AttrDict(),
-        extra_info=AttrDict(),
+        optional_options=AttrDict(),
         task_type = None
         ):
     pipeline_config = AttrDict(
@@ -43,6 +44,7 @@ def create_model_config(
         postprocess=postprocess,
         task_type = task_type,
         metric=AttrDict(),
+        optional_options=optional_options,
         extra_info = extra_info
         )
     return pipeline_config

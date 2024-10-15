@@ -453,7 +453,7 @@ else:
         # Model to demonstrate multi core parallel batch processing
         models.append("cl-tfl-mobilenetv2_4batch")
 
-        models.append("ss-tfl-deeplabv3_mnv2_ade20k_float_low_latency")
+        # models.append("ss-tfl-deeplabv3_mnv2_ade20k_float_low_latency")
 
 if args.run_model_zoo:
     models = [
