@@ -54,6 +54,8 @@ To generate the YUV input
 python3 RGB_YUV_model_converter.py -g -i image.jpg -w 224 -l 224
 ```
 
+> The following options are currently supported only for onnx models
+
 Sometimes the model may have multiple inputs coming from different sources. With this flag you can define specific inputs to convert into YUV
 
 ```bash

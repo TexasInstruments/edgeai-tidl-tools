@@ -60,7 +60,7 @@ import os.path
 import flatbuffers
 import copy
 import struct
-import getopt
+import argparse
 
 # add local path temporarily for the import of tflite_model to work
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -72,6 +72,8 @@ import tflite_model.TensorType
 import numpy as np
 sys.path.pop(0)
 
+
+SUPPORTED_MODES = ("YUV420SP",)
 
 def addNewOperator(modelT, operatorBuiltinCode):
     new_op_code                       = copy.deepcopy(modelT.operatorCodes[0])
@@ -263,26 +265,48 @@ def addYUVConv(in_model_path, out_model_path):
     newFile.write(modelBuf)
  
 
-def main(argv):
-   inputfile = ''
-   outputfile = ''
-   opts, args = getopt.getopt(argv,"hi:o:",["ifile=","ofile="])
-   for opt, arg in opts:
-      if opt == '-h':
-         print ('test.py -i <inputfile> -o <outputfile>')
-         sys.exit()
-      elif opt in ("-i", "--ifile"):
-         inputfile = arg
-      elif opt in ("-o", "--ofile"):
-         outputfile = arg
-   if(inputfile == ''):
-        print ('test.py -i <inputfile> -o <outputfile>')
-        sys.exit()
-   if(outputfile == ''):
-        temp = inputfile
-        outputfile = temp.replace('.tflite', '_yuv.tflite')
-   print("inputfile: "+ inputfile)
-   print("outputfile: "+ outputfile)
-   addYUVConv(inputfile, outputfile)
+###########Function description#############
+# This Function helps to seperate Y and UV data from a NV12 format image
+# ne can convert a jpg image to NV12 image by mentioning the required size 
+# ffmpeg -y -colorspace bt470bg -i airshow.jpg -s 224x224 -pix_fmt nv12 airshow.yuv 
+# output generated for 224x224 NV12 format is as follows
+# creates 224x224 Y data in uint8 format
+# creates 112x224 UV interleaved data in uint8 format
+###########Function description#############
+def createInputYUVData(input_file, width, height):
+    yuv_file = input_file.replace(".jpg",".yuv")
+    cmd = "ffmpeg -y -colorspace bt470bg -i "+ input_file+ " -s "+str(height)+"x"+ str(width)+" -pix_fmt nv12 "+ yuv_file
+    os.system(cmd)
+    input_data = np.fromfile(yuv_file,dtype=np.uint8,count=width*height,offset=0)
+    input_file = yuv_file.replace('.yuv', '')
+    input_data.tofile(input_file + "_Y_uint8.bin")
+    input_data = np.fromfile(yuv_file,dtype=np.uint8,count=width*int(height/2),offset=width*height)
+    input_data.tofile(input_file + "_UV_uint8.bin")
+
+
+def parse():
+   parser = argparse.ArgumentParser()
+   parser.add_argument("-i", "--input", type=str, help="Path to model or image (if you want to generate yuv input)") 
+   parser.add_argument("-o", "--output", type=str, help="Path to save the output model") 
+   parser.add_argument("-g", "--gen_yuv_data", action="store_true", help="Generate YUV input")
+   parser.add_argument("-w", "--width", type=int, default=224, help="Width of the input data")
+   parser.add_argument("-l", "--height", type=int, default=224, help="Height of the input data")
+   parser.add_argument("-m", "--mode", choices=SUPPORTED_MODES, default="YUV420SP", help="Layout of the Input Data")
+   return parser.parse_args()
+
+
+def main():
+   args = parse()
+
+   if args.gen_yuv_data:
+      print("Generating YUV input data")
+      createInputYUVData(input_file=args.input, width=args.width, height=args.height)
+   else:
+      if args.output == "":
+         args.output = args.input.replace(".tflite", "_yuv.tflite")
+      print("Adding YUV input data convert layer")
+      addYUVConv(args.input, args.output)
+
+
 if __name__ == "__main__":
-   main(sys.argv[1:])
+    main()

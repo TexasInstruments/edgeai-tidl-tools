@@ -258,7 +258,7 @@ def createInputYUVData(input_file, width, height):
 
 def parse():
    parser = argparse.ArgumentParser()
-   parser.add_argument("-i", "--input", type=str, help="Path to model or input (if you want to generate yuv input)") 
+   parser.add_argument("-i", "--input", type=str, help="Path to model or image (if you want to generate yuv input)") 
    parser.add_argument("-o", "--output", type=str, help="Path to save the output model") 
    parser.add_argument("-g", "--gen_yuv_data", action="store_true", help="Generate YUV input")
    parser.add_argument("-w", "--width", type=int, default=224, help="Width of the input data")
