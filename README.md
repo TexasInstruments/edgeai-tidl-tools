@@ -176,9 +176,6 @@ python3 ./scripts/gen_test_report.py
 
 - You can find the models used and their corresponding inference parameters at ```./examples/osrt_python/model_configs.py```
 - The execution of above step will generate compiled-model artifacts at ```./edgeai-tidl-tools/model-artifacts```, output images at ```./edgeai-tidl-tools/output_images``` and output binary at ```./edgeai-tidl-tools/output_binaries```. 
-- The outputs binaries is compared against the expected output binary in ```/edgeai-tidl-tools/test_data/refs-pc-{soc}/bin/```. A list of which output binaries to compare can be found in ```/edgeai-tidl-tools/test_data/refs-pc-{soc}/golden_ref_pc_{soc}.csv```
-
-This confirms successful installation / setup on PC
 
 ```
 model-artifacts/
@@ -216,9 +213,6 @@ cmake ../examples && make -j && cd ..
 python3 ./scripts/gen_test_report.py
 ```
 - The execution of above step will generate output images at ```./edgeai-tidl-tools/output_images``` and output binary at ```./edgeai-tidl-tools/output_binaries```
-- The outputs binaries is compared against the expected output binary in ```/edgeai-tidl-tools/test_data/refs-{soc}/bin/```. A list of which output binaries to compare can be found in ```/edgeai-tidl-tools/test_data/refs-{soc}/golden_ref_{soc}.csv```
-
-This confirms successful integration on SOC
 
 ## Compile and Benchmark Custom Model
 
