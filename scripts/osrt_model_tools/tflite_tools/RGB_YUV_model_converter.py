@@ -125,7 +125,8 @@ def getWightsAndBiasData():
 # input1 = 224x224 Y data in uint8 format
 # input2 = 112x224 UV interleaved data in uint8 format
 ###########Function description#############
-def addYUVConv(in_model_path, out_model_path):
+def addYUVConv(in_model_path, out_model_path, args):
+    assert args.mode in SUPPORTED_MODES, f"Only {','.join(SUPPORTED_MODES)} are supported"
     modelBin = open(in_model_path, 'rb').read()
     if modelBin is None:
         print(f'Error: Could not open file {in_model_path}')
@@ -292,20 +293,27 @@ def parse():
    parser.add_argument("-w", "--width", type=int, default=224, help="Width of the input data")
    parser.add_argument("-l", "--height", type=int, default=224, help="Height of the input data")
    parser.add_argument("-m", "--mode", choices=SUPPORTED_MODES, default="YUV420SP", help="Layout of the Input Data")
+   parser.add_argument("--mean", type=float, nargs="+", help="Mean for normalizing the input")
+   parser.add_argument("--std", type=float, nargs="+", help="Variance for normalizing the input")
    return parser.parse_args()
 
 
 def main():
-   args = parse()
+    args = parse()
+    if args.output == "":
+        args.output = args.input.replace(".tflite", "_yuv.tflite")
 
-   if args.gen_yuv_data:
-      print("Generating YUV input data")
-      createInputYUVData(input_file=args.input, width=args.width, height=args.height)
-   else:
-      if args.output == "":
-         args.output = args.input.replace(".tflite", "_yuv.tflite")
-      print("Adding YUV input data convert layer")
-      addYUVConv(args.input, args.output)
+    if args.mean is not None and args.std is not None:
+        from tflite_model_opt import tidlTfliteModelOptimize
+        tidlTfliteModelOptimize(args.input, args.output, scaleList=[1/x for x in args.std], meanList=args.mean)
+        args.input = args.output
+
+    if args.gen_yuv_data:
+        print("Generating YUV input data")
+        createInputYUVData(input_file=args.input, width=args.width, height=args.height)
+    else:
+        print("Adding YUV input data convert layer")
+        addYUVConv(args.input, args.output, args)
 
 
 if __name__ == "__main__":

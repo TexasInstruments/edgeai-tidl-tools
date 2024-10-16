@@ -55,17 +55,7 @@ eg:
 python3 RGB_YUV_model_converter.py -m YUV420SP -i multiple_input_model.onnx -o resnet_yuv.onnx --input_names input.1 input.5 
 ```
 
-6. The output of the conversion will be in the range of (0, 255) you can change this range with the help of **--normalize** flag
-
-```bash
-python3 RGB_YUV_model_converter.py -m <mode> -i <input model path> -o <output model path> --normalize <normalize scale>
-```
-eg:
-```bash
-python3 RGB_YUV_model_converter.py -m YUV420SP -i multiple_input_model.onnx -o resnet_yuv.onnx --input_names input.1 input.5 --normalize 255.0
-```
-
-7. Mean and Std deviation of the input can also included into the model as per the [Model Optimization](../../../../scripts/README.md#model-optimization), with the **--mean** and **--std** flags
+6. Mean and Std deviation of the input can also included into the model as per the [Model Optimization](../../../../scripts/README.md#model-optimization), with the **--mean** and **--std** flags
 
 ```bash
 python3 RGB_YUV_model_converter.py -m <mode> -i <input model path> -o <output model path> --normalize <normalize scale> --mean <space seperaed mean values> --std <space seperated std values>
