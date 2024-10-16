@@ -4,7 +4,7 @@
 
 The intention of this advanced example folder is to describe the steps on how to convert a RGB trained model to accept YUV data as input. 
 
-You can refer to [Colorspace Conversion Section](../../../../scripts/README.md#colorspace-conversion) for more information on handling different color spaces
+You can refer to [Extending support for other colorspaces section](../../../../scripts/README.md#extending-support-for-other-colorspaces) for more information on handling different color spaces
 
 ## Usage
 
@@ -29,19 +29,9 @@ cd edgeai-tidl-tools/scripts/osrt_model_tools/tflite_tools #for tflite models
 cd edgeai-tidl-tools/scripts/osrt_model_tools/onnx_tools #for onnx models
 python3 RGB_YUV_model_converter.py -m <input datalayout> -i <input_model_path> -o <output_model_path>
 ```
-We currently support two YUV layouts:
-* **YUV420SP** (Semi Planar) - U, V planes are interleaved
-
 eg:
 ```bash
 python3 RGB_YUV_model_converter.py -m YUV420SP -i edgeai-tidl-tools/models/public/mobilenet_v1_1.0_224.onnx -o edgeai-tidl-tools/models/public/mobilenet_v1_1.0_224_yuv.onnx
-```
-
-* **YUV420P** (Planar) - U, V planes exist as seperate planes
-
-eg:
-```bash
-python3 RGB_YUV_model_converter.py -m YUV420P -i edgeai-tidl-tools/models/public/mobilenet_v1_1.0_224.onnx -o edgeai-tidl-tools/models/public/mobilenet_v1_1.0_224_yuv.onnx
 ```
 
 4. Run the python example with YUV input

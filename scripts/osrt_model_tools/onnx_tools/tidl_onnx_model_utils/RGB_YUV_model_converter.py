@@ -62,7 +62,7 @@ from onnx import helper
 from onnx import TensorProto,shape_inference 
 import numpy as np
 
-SUPPORTED_MODES = ("YUV420SP", "YUV420P")
+SUPPORTED_MODES = ("YUV420SP",)
 
 ###########Function description#############
 # This Function takes a RGB trained model and update the inputs to the model to accept 
@@ -88,7 +88,7 @@ def addYUVConv(in_model_path, out_model_path, args):
          continue
       inDims.append(tuple([x.dim_value for x in graph.input[inp_idx].type.tensor_type.shape.dim]))
       B, _, H, W = inDims[inp_idx]
-      UV_shape = [B, 2, H//2, W//2] if mode == "YUV420P" else [B, H//2, W//2, 2]
+      UV_shape = [B, H//2, W//2, 2]
       inTensors = [
          helper.make_tensor_value_info(
                graph.input[inp_idx].name + "_Y_IN",
@@ -104,10 +104,10 @@ def addYUVConv(in_model_path, out_model_path, args):
 
       curr_output_layer = inTensors[-1].name
       new_nodes = []
-      if mode == "YUV420SP":
-         transpose = onnx.helper.make_node("Transpose", name=f"Transpose_UV_{inp_idx}", inputs=[graph.input[inp_idx].name + "_UV_IN"], perm=[0, 3, 1, 2], outputs=[f"Transpose_UV_output_{inp_idx}"])
-         new_nodes.append(transpose)
-         curr_output_layer = f"Transpose_UV_output_{inp_idx}"
+
+      transpose = onnx.helper.make_node("Transpose", name=f"Transpose_UV_{inp_idx}", inputs=[graph.input[inp_idx].name + "_UV_IN"], perm=[0, 3, 1, 2], outputs=[f"Transpose_UV_output_{inp_idx}"])
+      new_nodes.append(transpose)
+      curr_output_layer = f"Transpose_UV_output_{inp_idx}"
 
       scales = np.array([1, 1, 2, 2], dtype=np.int64)
       resize_uv_scales = onnx.helper.make_tensor(name=f"Resize_uv_scales_{inp_idx}", data_type=TensorProto.FLOAT, dims=[4], vals=scales)
@@ -263,7 +263,7 @@ def parse():
    parser.add_argument("-g", "--gen_yuv_data", action="store_true", help="Generate YUV input")
    parser.add_argument("-w", "--width", type=int, default=224, help="Width of the input data")
    parser.add_argument("-l", "--height", type=int, default=224, help="Height of the input data")
-   parser.add_argument("-m", "--mode", choices=SUPPORTED_MODES, help="Layout of the Input Data", default="YUV420SP")
+   parser.add_argument("-m", "--mode", choices=SUPPORTED_MODES, default="YUV420SP", help="Layout of the Input Data")
    parser.add_argument("--input_names", type=str, nargs="+", help="Names of the input to convert. Sometimes the model may have multiple inputs coming from different sources. With this flag you can define specific inputs to convert into YUV")
 
    parser.add_argument("--normalize", type=float, default=255.0, help="Normalize input by diving by this value")

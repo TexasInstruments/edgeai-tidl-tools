@@ -1,7 +1,7 @@
 - [Scripts for Model Optimization and Validation](#scripts-for-model-optimization-and-validation)
   - [Model Optimization](#model-optimization)
-- [Colorspace Conversion](#colorspace-conversion)
 - [Scripts for RGB to YUV Model conversion](#scripts-for-rgb-to-yuv-model-conversion)
+  - [Extending Support for other Colorspaces](#extending-support-for-other-colorspaces)
   - [RGB_YUV_model_converter](#rgb-to-yuv-model-converter) 
 
 # Scripts for Model Optimization and Validation
@@ -14,19 +14,22 @@ This optimization is included by default in the Model compilation script in this
 
 ![Image Normalization Optimization](../docs/images/tidl_model_opt.png)
 
-# Colorspace conversion
+# Scripts for RGB to YUV Model conversion
 
-In realworld scenarios, even though most of the model training happens on RGB colorspace, the hardware devices used for inferences reads inputs and processes them and output in different colorspaces. This script provides guide to handle different colorspace conversions.
+## RGB to YUV model converter
 
-Here the conversion we provide from YUV to RGB, assumes that hardware is reading the input in YUV420SP format, where Y is planar and U, V planes are interleaved.
+Sometimes a model which is trained over RGB data need to be run with YUV data. During these scenarios we propose to update model offline to change its input from RGB to YUV. we provide scripts to do this. Script to convert TFlite model can be found [here](osrt_model_tools/tflite_tools/RGB_YUV_model_converter.py) and for onnx model can be found [here](osrt_model_tools/onnx_tools/tidl_onnx_model_utils/RGB_YUV_model_converter.py) Below figure shows the example of such original model with RGB converted to a model which takes YUV input. The operators inside the box are additional operators added to perform this task. 
 
-Instead of doing the color space conversion algorithmically we shift the computation to the model input layers, which can be optimized during model compilation. 
+![RGB_YUV_model_converter](../docs/images/Resnet_YUV420SP.png) 
 
-The conv with name **Conv_YUV_RGB_\*** handles the computation of converting the YUV to RGB. 
+One can use [examples](../examples/osrt_cpp/advanced_examples) as a reference to convert a RGB model to YUV model.
 
-Similarly if your device provides input in different format, you can change the weights of the conv layer in 
+### Extending support for other colorspaces
 
-edgeai-tidl-tools/scripts/osrt_model_tools/onnx_tools/tidl_onnx_model_utils/RGB_YUV_model_converter.py
+The conv with name **Conv_YUV_RGB_\*** handles the computation of converting the YUV to RGB.  Similarly if your input is in different format, you can change the weights of the conv layer in 
+
+> edgeai-tidl-tools/scripts/osrt_model_tools/onnx_tools/tidl_onnx_model_utils/RGB_YUV_model_converter.py
+
 ```python
 def addYUVConv(in_model_path, out_model_path, args):
     ...
@@ -37,23 +40,6 @@ def addYUVConv(in_model_path, out_model_path, args):
     bias= [-222.912, 135.488, -276.928]
     ...
 ```
-
-# Scripts for RGB to YUV Model conversion
-
-## RGB to YUV model converter
-
-Sometimes a model which is trained over RGB data need to be run with YUV data. During these scenarios we propose to update model offline to change its input from RGB to YUV. we provide scripts to do this. Script to convert TFlite model can be found [here](osrt_model_tools/tflite_tools/RGB_YUV_model_converter.py) and for onnx model can be found [here](osrt_model_tools/onnx_tools/tidl_onnx_model_utils/RGB_YUV_model_converter.py) Below figure shows the example of such original model with RGB converted to a model which takes YUV input. The operators inside the box are additional operators added to perform this task. 
-
-We support two input data layouts: YUV420SP, YUV420P
-* YUV420SP (SP - Semi Planar) - Where the U, V channels are interleaved.
-
-![RGB_YUV_model_converter](../docs/images/Resnet_YUV420P.png) 
-
-* YUV420P (P - Planar) - Where the U, V channels are seperated.
-
-![RGB_YUV_model_converter](../docs/images/Resnet_YUV420SP.png)
-
-One can use [examples](../examples/osrt_cpp/advanced_examples) as a reference to convert a RGB model to YUV model.
 
 ### Usage
 
