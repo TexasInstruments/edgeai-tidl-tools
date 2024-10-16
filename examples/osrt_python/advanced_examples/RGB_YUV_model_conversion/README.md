@@ -2,15 +2,13 @@
 
 ## Introduction 
 
-The intention of this advanced example folder is to describe the steps on how to convert a RGB trained model to accept YUV data as input. 
+The intention of this example is to describe the steps on how to convert a RGB trained model to accept YUV data as input. 
 
 You can refer to [Extending support for other colorspaces section](../../../../scripts/README.md#extending-support-for-other-colorspaces) for more information on handling different color spaces
 
 ## Usage
 
-The usage are specified for tfite runtime, follow corresponding steps for ONNX runtime
-
-1. Perform the setup steps as required for setting up the python examples
+1. Perform the setup steps as required (if not done already) for setting up the python examples by following these [steps](../../../../README.md#setup)
 
 2. Follow the steps to generate YUV data from input jpg image
 
@@ -44,7 +42,9 @@ python3 tflrt_delegate.py -c
 python3 tflrt_delegate.py 
 ```
 
-5. Sometimes the model may have multiple inputs coming from different sources. With this flag you can define specific inputs to convert into YUV
+5. Sometimes the model may have multiple inputs coming from different sources. With this flag you can define specific inputs to convert into YUV 
+
+> Note: This feature is currently supported for onnx models 
 
 ```bash
 python3 RGB_YUV_model_converter.py -m <mode> -i <input model path> -o <output model path> --input_names <input node names> 

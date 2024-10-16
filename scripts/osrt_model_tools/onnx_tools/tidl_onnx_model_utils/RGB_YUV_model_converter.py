@@ -163,7 +163,7 @@ def addYUVConv(in_model_path, out_model_path, args):
 
    #Construct Model:
    op = onnx.OperatorSetIdProto()
-   op.version = 18
+   op.version = 11
    model_def_noShape = helper.make_model(yuv_graph, producer_name='onnx-TIDL', opset_imports=[op])
    model_def = shape_inference.infer_shapes(model_def_noShape)    
 
@@ -217,7 +217,7 @@ def main():
 
    if args.mean is not None and args.std is not None:
       from onnx_model_opt import tidlOnnxModelOptimize 
-      tidlOnnxModelOptimize(args.input, args.output, scaleList=[1/x for x in args.std], meanList=args.mean)
+      tidlOnnxModelOptimize(args.input, args.output, scaleList=args.std, meanList=args.mean)
       args.input = args.output
    
    if args.gen_yuv_data:
