@@ -9,5 +9,5 @@ cl-dlr-tflite_inceptionnetv3_device,24.82,24.82,0,dlr-py
 ss-tfl-deeplabv3_mnv2_ade20k_float,33.5,0,0,tfl-cpp
 cl-tfl-mobilenet_v1_1.0_224,3.8,0,0,tfl-cpp
 cl-ort-resnet18-v1,9.2,0,0,ort-cpp
-od-ort-ssd-lite_mobilenetv2_fpn,30,0,0,ort-cpp
+od-ort-ssd-lite_mobilenetv2_fpn,31,0,0,ort-cpp
 cl-dlr-tflite_inceptionnetv3_device,22.9,0,0,dlr-cpp
