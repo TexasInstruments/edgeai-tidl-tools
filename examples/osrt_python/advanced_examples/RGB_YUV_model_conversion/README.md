@@ -24,7 +24,7 @@ python3 RGB_YUV_model_converter.py -g -i edgeai-tidl-tools/test_data/ADE_val_000
 3. Follow the steps to generate YUV model from a RGB trained model
 ```bash
 cd edgeai-tidl-tools/scripts/osrt_model_tools/tflite_tools #for tflite models
-cd edgeai-tidl-tools/scripts/osrt_model_tools/onnx_tools #for onnx models
+cd edgeai-tidl-tools/scripts/osrt_model_tools/onnx_tools/tidl_onnx_model_utils #for onnx models
 python3 RGB_YUV_model_converter.py -m <input datalayout> -i <input_model_path> -o <output_model_path>
 ```
 eg:
@@ -58,9 +58,9 @@ python3 RGB_YUV_model_converter.py -m YUV420SP -i multiple_input_model.onnx -o r
 6. Mean and Std deviation of the input can also included into the model as per the [Model Optimization](../../../../scripts/README.md#model-optimization), with the **--mean** and **--std** flags
 
 ```bash
-python3 RGB_YUV_model_converter.py -m <mode> -i <input model path> -o <output model path> --normalize <normalize scale> --mean <space seperaed mean values> --std <space seperated std values>
+python3 RGB_YUV_model_converter.py -m <mode> -i <input model path> -o <output model path> --mean <space seperaed mean values> --std <space seperated std values>
 ```
 eg:
 ```bash
-python3 RGB_YUV_model_converter.py -m YUV420SP -i multiple_input_model.onnx -o resnet_yuv.onnx --normalize 255.0 --mean 0.485 0.456 0.406 --std 0.229 0.224 0.225
+python3 RGB_YUV_model_converter.py -m YUV420SP -i multiple_input_model.onnx -o resnet_yuv.onnx --mean 0.485 0.456 0.406 --std 0.229 0.224 0.225
 ```
