@@ -27,7 +27,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-class AttrDict(dict):
+class BaseAttrDict(dict):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -42,8 +42,27 @@ class AttrDict(dict):
 
     def __getstate__(self):
         # pickling used by multiprocessing did not work without defining __getstate__
-        self.__dict__.copy()
+        return self.__dict__.copy()
 
     def __setstate__(self, state):
         # for multiprocessing
         self.__dict__.update(state)
+
+
+class AttrDict(BaseAttrDict):
+    def __init__(self, *args, _recursive_attrdict=True, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._recursive_attrdict = _recursive_attrdict
+
+    def update(self,  *args, **kwargs):
+        new_args = list()
+        for arg in args:
+            arg = AttrDict(arg) if self._recursive_attrdict and (type(arg) is dict) else arg
+            new_args.append(arg)
+
+        new_kwargs = dict()
+        for k, v in kwargs:
+            v = AttrDict(v) if self._recursive_attrdict and (type(v) is dict) else v
+            new_kwargs[k] = v
+
+        super().update(*new_args, **new_kwargs)
