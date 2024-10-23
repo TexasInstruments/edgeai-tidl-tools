@@ -172,8 +172,9 @@ namespace onnx
             /* if indata and out data is diff resize the image check
             whether img need to be resized based on out data asssuming
             out put format [1,1,,width,height]*/
-            int wanted_height = (*output_tensors).front().GetTensorTypeAndShapeInfo().GetShape()[2];
-            int wanted_width = (*output_tensors).front().GetTensorTypeAndShapeInfo().GetShape()[3];
+            auto node_dims = (*output_tensors).front().GetTensorTypeAndShapeInfo().GetShape();
+            int wanted_height = node_dims[node_dims.size() - 2];
+            int wanted_width = node_dims[node_dims.size() - 1];
             cv::resize((*img), (*img), cv::Size(wanted_width, wanted_height), 0, 0, cv::INTER_AREA);
             if (op_tensor_type == ONNX_TENSOR_ELEMENT_DATA_TYPE_INT64)
             {
@@ -385,11 +386,11 @@ namespace onnx
             }
             if (wanted_height != modelInfo->m_preProcCfg.outDataHeight)
             {
-                LOG_INFO("missmatch in YAML parsed wanted height:%d and model:%d\n", wanted_height, input_node_dims[2]);
+                LOG_INFO("missmatch in YAML parsed wanted height:%d and model:%d\n", wanted_height, modelInfo->m_preProcCfg.outDataHeight);
             }
             if (wanted_width != modelInfo->m_preProcCfg.outDataWidth)
             {
-                LOG_INFO("missmatch in YAML parsed wanted width:%d and model:%d\n", wanted_width, input_node_dims[3]);
+                LOG_INFO("missmatch in YAML parsed wanted width:%d and model:%d\n", wanted_width, modelInfo->m_preProcCfg.outDataWidth);
             }
 
             /* output information */
@@ -449,7 +450,6 @@ namespace onnx
             run_options.SetRunLogSeverityLevel(3);
             auto output_tensors_warm_up = session.Run(run_options, input_node_names.data(), input_tensors.data(), 1, output_node_names.data(), num_output_nodes); 
  
-            void *outData = allocTensorMem(output_tensor_size * sizeof(float), (s->accel && s->device_mem));
             Ort::IoBinding binding(session);
             binding.BindInput(input_node_names[0], input_tensors[0]);
 
