@@ -33,12 +33,13 @@ import warnings
 _EXPECTED_MODEL_CONFIG_KEYS = ('task_type', 'source', 'preprocess', 'session', 'runtime_options', 'postprocess',
                  'metric', 'extra_info', 'model_info')
 
-def create_model_config(**kwargs):
-    unexpected_keys = []
-    for key in kwargs:
-        if key not in _EXPECTED_MODEL_CONFIG_KEYS:
-            unexpected_keys.append(key)
-    if unexpected_keys:
-        warnings.warn(f'Unexpected keys found in the model config: {kwargs}. \nThe unexpected keys are: {unexpected_keys}')
+def create_model_config(check_model_config=False, **kwargs):
+    if check_model_config:
+        unexpected_keys = []
+        for key in kwargs:
+            if key not in _EXPECTED_MODEL_CONFIG_KEYS:
+                unexpected_keys.append(key)
+        if unexpected_keys:
+            warnings.warn(f'Unexpected keys found in the model config: {kwargs}. \nThe unexpected keys are: {unexpected_keys}')
 
     return kwargs

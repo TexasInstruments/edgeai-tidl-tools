@@ -989,6 +989,7 @@ models_configs = {
         }
     ),
     'cl-ort-resnet18-v1_low_latency' : create_model_config(
+        task_type="classification",
         source=dict(
             model_url="https://git.ti.com/cgit/jacinto-ai/jacinto-ai-modelzoo/plain/models/vision/classification/imagenet1k/torchvision/resnet18_opset9.onnx",
             infer_shape=True,
@@ -1007,7 +1008,6 @@ models_configs = {
             input_scale=[0.017125, 0.017507, 0.017429],
             input_optimization=True,
         ),
-        task_type="classification",
         extra_info=dict(
             num_images = numImages ,
             num_classes = 1000
