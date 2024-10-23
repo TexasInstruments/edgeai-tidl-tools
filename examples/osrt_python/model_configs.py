@@ -42,6 +42,7 @@ else :
 models_configs = {
     ############ onnx models ##########
     "cl-ort-resnet18-v1": create_model_config(
+        task_type="classification",
         source=dict(
             model_url="https://git.ti.com/cgit/jacinto-ai/jacinto-ai-modelzoo/plain/models/vision/classification/imagenet1k/torchvision/resnet18_opset9.onnx",
             infer_shape=True,
@@ -60,10 +61,10 @@ models_configs = {
             input_scale=[0.017125, 0.017507, 0.017429],
             input_optimization=True,
         ),
-        task_type="classification",
         extra_info=dict(num_images=numImages, num_classes=1000),
     ),
     "cl-6360_onnxrt_imagenet1k_fbr-pycls_regnetx-200mf_onnx": create_model_config(
+        task_type="classification",
         source=dict(
             model_url="http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models//vision/classification/imagenet1k/fbr-pycls/regnetx-200mf.onnx",
             infer_shape=True,
@@ -82,10 +83,10 @@ models_configs = {
             input_scale=[0.017125, 0.017507, 0.017429],
             input_optimization=True,
         ),
-        task_type="classification",
         extra_info=dict(num_images=numImages, num_classes=1000),
     ),
     "od-ort-ssd-lite_mobilenetv2_fpn": create_model_config(
+        task_type="detection",
         source=dict(
             model_url="https://git.ti.com/cgit/jacinto-ai/jacinto-ai-modelzoo/plain/models/vision/detection/coco/edgeai-mmdet/ssd-lite_mobilenetv2_fpn_512x512_20201110_model.onnx",
             meta_arch_url="https://git.ti.com/cgit/jacinto-ai/jacinto-ai-modelzoo/plain/models/vision/detection/coco/edgeai-mmdet/ssd-lite_mobilenetv2_fpn_512x512_20201110_model.prototxt",
@@ -121,7 +122,6 @@ models_configs = {
             reshape_list=[(-1, 5), (-1, 1)],
             ignore_index=None,
         ),
-        task_type="detection",
         extra_info=dict(
             od_type="SSD",
             framework="MMDetection",
@@ -132,6 +132,7 @@ models_configs = {
         ),
     ),
     "od-8420_onnxrt_widerface_edgeai-mmdet_yolox_s_lite_640x640_20220307_model_onnx": create_model_config(  # didnt work
+        task_type="detection",
         source=dict(
             model_url="http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models//vision/detection/widerface/edgeai-mmdet/yolox_s_lite_640x640_20220307_model.onnx",
             meta_arch_url="http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models//vision/detection/widerface/edgeai-mmdet/yolox_s_lite_640x640_20220307_model.prototxt",
@@ -169,7 +170,6 @@ models_configs = {
             reshape_list=[(-1, 5), (-1, 1)],
             ignore_index=None,
         ),
-        task_type="detection",
         extra_info=dict(
             od_type="SSD",
             framework="MMDetection",
@@ -180,6 +180,7 @@ models_configs = {
         ),
     ),
     "od-8020_onnxrt_coco_edgeai-mmdet_ssd_mobilenetv2_lite_512x512_20201214_model_onnx": create_model_config(
+        task_type="detection",
         source=dict(
             model_url="http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models//vision/detection/coco/edgeai-mmdet/ssd_mobilenetv2_lite_512x512_20201214_model.onnx",
             meta_arch_url="http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models///vision/detection/coco/edgeai-mmdet/ssd_mobilenetv2_lite_512x512_20201214_model.prototxt",
@@ -217,7 +218,6 @@ models_configs = {
             reshape_list=[(-1, 5), (-1, 1)],
             ignore_index=None,
         ),
-        task_type="detection",
         extra_info=dict(
             od_type="SSD",
             framework="MMDetection",
@@ -228,6 +228,7 @@ models_configs = {
         ),
     ),
     "ss-ort-deeplabv3lite_mobilenetv2": create_model_config(
+        task_type="segmentation",
         source=dict(
             model_url="https://git.ti.com/cgit/jacinto-ai/jacinto-ai-modelzoo/plain/models/vision/segmentation/ade20k32/jai-pytorch/deeplabv3lite_mobilenetv2_512x512_ade20k32_20210308.onnx",
             infer_shape=True,
@@ -249,11 +250,11 @@ models_configs = {
             input_optimization=True,
         ),
         postprocess=dict(with_argmax=True),
-        task_type="segmentation",
         extra_info=dict(num_images=numImages, num_classes=19),
     ),
     ############### tflite models #############
     "cl-tfl-mobilenet_v1_1.0_224": create_model_config(
+        task_type="classification",
         source=dict(
             model_url="http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models/vision/classification/imagenet1k/tf1-models/mobilenet_v1_1.0_224.tflite",
         ),
@@ -271,10 +272,10 @@ models_configs = {
             input_scale=[1 / 127.5, 1 / 127.5, 1 / 127.5],
             input_optimization=True,
         ),
-        task_type="classification",
         extra_info=dict(num_images=numImages, num_classes=1001),
     ),
     "od-tfl-ssd_mobilenet_v2_300_float": create_model_config(
+        task_type="detection",
         source=dict(
             model_url="http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models/vision/detection/coco/mlperf/ssd_mobilenet_v2_300_float.tflite",
         ),
@@ -306,7 +307,6 @@ models_configs = {
             reshape_list=None,
             ignore_index=None,
         ),
-        task_type="detection",
         extra_info=dict(
             od_type="HasDetectionPostProcLayer",
             num_images=numImages,
@@ -316,6 +316,7 @@ models_configs = {
         ),
     ),
     "od-tfl-ssdlite_mobiledet_dsp_320x320_coco": create_model_config(
+        task_type="detection",
         source=dict(
             model_url="http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models/vision/detection/coco/tf1-models/ssdlite_mobiledet_dsp_320x320_coco_20200519.tflite",
             meta_arch_url="http://software-dl.ti.com/jacinto7/esd/modelzoo/08_06_00_01/models/vision/detection/coco/tf1-models/ssdlite_mobiledet_dsp_320x320_coco_20200519.prototxt",
@@ -352,7 +353,6 @@ models_configs = {
             reshape_list=None,
             ignore_index=None,
         ),
-        task_type="detection",
         extra_info=dict(
             od_type="HasDetectionPostProcLayer",
             num_images=numImages,
@@ -362,6 +362,7 @@ models_configs = {
         ),
     ),
     "od-2020_tflitert_coco_tf1-models_ssdlite_mobiledet_dsp_320x320_coco_20200519_tflite": create_model_config(
+        task_type="detection",
         source=dict(
             model_url="http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models/vision/detection/coco/tf1-models/ssdlite_mobiledet_dsp_320x320_coco_20200519.tflite",
             meta_arch_url="http://software-dl.ti.com/jacinto7/esd/modelzoo/08_06_00_01/models/vision/detection/coco/tf1-models/ssdlite_mobiledet_dsp_320x320_coco_20200519.prototxt",
@@ -398,7 +399,6 @@ models_configs = {
             reshape_list=None,
             ignore_index=None,
         ),
-        task_type="detection",
         extra_info=dict(
             od_type="HasDetectionPostProcLayer",
             num_images=numImages,
@@ -409,6 +409,7 @@ models_configs = {
     ),
     # benchmark models - For release testing
     "cl-0000_tflitert_imagenet1k_mlperf_mobilenet_v1_1.0_224_tflite": create_model_config(
+        task_type="classification",
         source=dict(
             model_url="http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models/vision/classification/imagenet1k/mlperf/mobilenet_v1_1.0_224.tflite",
         ),
@@ -426,10 +427,10 @@ models_configs = {
             input_scale=[1 / 127.5, 1 / 127.5, 1 / 127.5],
             input_optimization=True,
         ),
-        task_type="classification",
         extra_info=dict(num_images=numImages, num_classes=1001),
     ),
     "ss-8610_onnxrt_ade20k32_edgeai-tv_deeplabv3plus_mobilenetv2_edgeailite_512x512_20210308_outby4_onnx": create_model_config(
+        task_type="segmentation",
         source=dict(
             model_url="http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models//vision/segmentation/ade20k32/edgeai-tv/deeplabv3plus_mobilenetv2_edgeailite_512x512_20210308_outby4.onnx",
             infer_shape=True,
@@ -454,10 +455,10 @@ models_configs = {
             input_optimization=False,
         ),
         postprocess=dict(with_argmax=True),
-        task_type="segmentation",
         extra_info=dict(num_images=numImages, num_classes=19),
     ),
     "ss-2580_tflitert_ade20k32_mlperf_deeplabv3_mnv2_ade20k32_float_tflite": create_model_config(
+        task_type="segmentation",
         source=dict(
             model_url="http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models//vision/segmentation/ade20k32/edgeai-tv/deeplabv3plus_mobilenetv2_edgeailite_512x512_20210308_outby4.onnx",
         ),
@@ -479,10 +480,10 @@ models_configs = {
             input_optimization=True,
         ),
         postprocess=dict(with_argmax=False),
-        task_type="segmentation",
         extra_info=dict(num_images=numImages, num_classes=32),
     ),
     "ss-tfl-deeplabv3_mnv2_ade20k_float": create_model_config(
+        task_type="segmentation",
         source=dict(
             model_url="http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models/vision/segmentation/ade20k32/mlperf/deeplabv3_mnv2_ade20k32_float.tflite",
         ),
@@ -504,11 +505,11 @@ models_configs = {
             input_optimization=True,
         ),
         postprocess=dict(with_argmax=False),
-        task_type="segmentation",
         extra_info=dict(num_images=numImages, num_classes=32),
     ),
     # Caffe Model - Would be converted ot ONNX
     "cl-ort-caffe_mobilenet_v1": create_model_config(
+        task_type="classification",
         source=dict(
             model_url="https://github.com/kumardesappan/ai-model-zoo/raw/main/models/vision/classification/imagenet1k/caffe/mobilenet/mobilenet_v1_prototext.link",
             caffe_model_url="https://github.com/kumardesappan/ai-model-zoo/raw/main/models/vision/classification/imagenet1k/caffe/mobilenet/mobilenet_v1_caffemodel.link",
@@ -530,12 +531,12 @@ models_configs = {
             input_scale=[0.017125, 0.017507, 0.017429],
             input_optimization=True,
         ),
-        task_type="classification",
         extra_info=dict(
             original_model_type="caffe", num_images=numImages, num_classes=1000
         ),
     ),
     "cl-ort-caffe_mobilenet_v2": create_model_config(
+        task_type="classification",
         source=dict(
             model_url="https://github.com/kumardesappan/ai-model-zoo/raw/main/models/vision/classification/imagenet1k/caffe/mobilenet/mobilenet_v2_prototext.link",
             caffe_model_url="https://github.com/kumardesappan/ai-model-zoo/raw/main/models/vision/classification/imagenet1k/caffe/mobilenet/mobilenet_v2_caffemodel.link",
@@ -557,12 +558,12 @@ models_configs = {
             input_scale=[0.017125, 0.017507, 0.017429],
             input_optimization=True,
         ),
-        task_type="classification",
         extra_info=dict(
             original_model_type="caffe", num_images=numImages, num_classes=1000
         ),
     ),
     "cl-ort-caffe_squeezenet_v1_1": create_model_config(
+        task_type="classification",
         source=dict(
             model_url="https://github.com/kumardesappan/ai-model-zoo/raw/main/models/vision/classification/imagenet1k/caffe/squeezenet/squeezenet_v1_1.prototext",
             caffe_model_url="https://github.com/kumardesappan/ai-model-zoo/raw/main/models/vision/classification/imagenet1k/caffe/squeezenet/squeezenet_v1_1_caffemodel.link",
@@ -586,12 +587,12 @@ models_configs = {
             input_scale=[1, 1, 1],
             input_optimization=True,
         ),
-        task_type="classification",
         extra_info=dict(
             original_model_type="caffe", num_images=numImages, num_classes=1000
         ),
     ),
     "cl-ort-caffe_resnet10": create_model_config(
+        task_type="classification",
         source=dict(
             model_url="https://github.com/kumardesappan/ai-model-zoo/raw/main/models/vision/classification/imagenet1k/caffe/resnet10/deploy.prototxt",
             caffe_model_url="https://github.com/kumardesappan/ai-model-zoo/raw/main/models/vision/classification/imagenet1k/caffe/resnet10/resnet10_cvgj_iter_320000.caffemodel",
@@ -613,12 +614,12 @@ models_configs = {
             input_scale=[1, 1, 1],
             input_optimization=True,
         ),
-        task_type="classification",
         extra_info=dict(
             original_model_type="caffe", num_images=numImages, num_classes=1000
         ),
     ),
     "cl-ort-caffe_mobilenetv1_ssd": create_model_config(
+        task_type="detection",
         source=dict(
             model_url="https://github.com/kumardesappan/ai-model-zoo/raw/main/models/vision/detection/voc2012/caffe/mobilenet_ssd/mobilenet_v1_ssd_prototext.link",
             caffe_model_url="https://github.com/kumardesappan/ai-model-zoo/raw/main/models/vision/detection/voc2012/caffe/mobilenet_ssd/mobilenet_v1_ssd_caffemodel.link",
@@ -658,7 +659,6 @@ models_configs = {
             reshape_list=None,
             ignore_index=None,
         ),
-        task_type="detection",
         extra_info=dict(
             original_model_type="caffe",
             framework="MMDetection",
@@ -670,6 +670,7 @@ models_configs = {
         ),
     ),
     "cl-ort-caffe_pelee_ssd": create_model_config(
+        task_type="detection",
         source=dict(
             model_url="https://github.com/kumardesappan/ai-model-zoo/raw/main/models/vision/detection/voc2012/caffe/pelee/pelee_ssd.prototxt",
             caffe_model_url="https://github.com/kumardesappan/ai-model-zoo/raw/main/models/vision/detection/voc2012/caffe/pelee/pelee_ssd.caffemodel",
@@ -707,7 +708,6 @@ models_configs = {
             reshape_list=None,
             ignore_index=None,
         ),
-        task_type="detection",
         extra_info=dict(
             original_model_type="caffe",
             framework="MMDetection",
@@ -719,6 +719,7 @@ models_configs = {
         ),
     ),
     "cl-ort-caffe_erfnet": create_model_config(
+        task_type="segmentation",
         source=dict(
             model_url="https://github.com/kumardesappan/ai-model-zoo/raw/main/models/vision/segmentation/cityscapes/caffe/erfnet/erfnet.prototxt",
             caffe_model_url="https://github.com/kumardesappan/ai-model-zoo/raw/main/models/vision/segmentation/cityscapes/caffe/erfnet/erfnet_caffemodel.link",
@@ -744,12 +745,12 @@ models_configs = {
             input_optimization=True,
         ),
         postprocess=dict(with_argmax=True),
-        task_type="segmentation",
         extra_info=dict(
             num_images=numImages, num_classes=19, original_model_type="caffe"
         ),
     ),
     "od-8200_onnxrt_coco_edgeai-mmdet_yolox_nano_lite_416x416_20220214_model_onnx": create_model_config(
+        task_type="detection",
         source=dict(
             model_url="http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models/vision/detection/coco/edgeai-mmdet/yolox_nano_lite_416x416_20220214_model.onnx",
             meta_arch_url="http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models/vision/detection/coco/edgeai-mmdet/yolox_nano_lite_416x416_20220214_model.prototxt",
@@ -787,7 +788,6 @@ models_configs = {
             reshape_list=[(-1, 5), (-1, 1)],
             ignore_index=None,
         ),
-        task_type="detection",
         extra_info=dict(
             od_type="SSD",
             framework="MMDetection",
@@ -798,6 +798,7 @@ models_configs = {
         ),
     ),
     "od-8220_onnxrt_coco_edgeai-mmdet_yolox_s_lite_640x640_20220221_model_onnx": create_model_config(
+        task_type="detection",
         source=dict(
             model_url="http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models//vision/detection/coco/edgeai-mmdet/yolox_s_lite_640x640_20220221_model.onnx",
             meta_arch_url="http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models//vision/detection/coco/edgeai-mmdet/yolox_s_lite_640x640_20220221_model.prototxt",
@@ -835,7 +836,6 @@ models_configs = {
             reshape_list=[(-1, 5), (-1, 1)],
             ignore_index=None,
         ),
-        task_type="detection",
         extra_info=dict(
             od_type="SSD",
             framework="MMDetection",
@@ -846,6 +846,7 @@ models_configs = {
         ),
     ),
     "cl-ort-resnet18-v1_4batch": create_model_config(
+        task_type="classification",
         source=dict(
             model_url="http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models/vision/classification/imagenet1k/torchvision/resnet18_opset9_4batch.onnx",
             infer_shape=True,
@@ -864,14 +865,14 @@ models_configs = {
             input_scale=[0.017125, 0.017507, 0.017429],
             input_optimization=True,
         ),
-        task_type="classification",
         extra_info=dict(num_images=numImages, num_classes=1000),
-        optional_options={
+        runtime_options={
             'advanced_options:inference_mode' : 1,  # inference mode to run high throughput (parallel batch processing) inference
             'advanced_options:num_cores' : 4,
         }
     ),
     "cl-tfl-mobilenetv2_4batch": create_model_config(
+        task_type="classification",
         source=dict(
             model_url="http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models/vision/classification/imagenet1k/tf1-models/mobilenetv2_4batch.tflite",
         ),
@@ -889,14 +890,14 @@ models_configs = {
             input_scale=[1 / 127.5, 1 / 127.5, 1 / 127.5],
             input_optimization=True,
         ),
-        task_type="classification",
         extra_info=dict(num_images=numImages, num_classes=1001),
-        optional_options={
+        runtime_options={
             'advanced_options:inference_mode' : 1,  # inference mode to run high throughput (parallel batch processing) inference
             'advanced_options:num_cores' : 4,
         }
     ),
     "cl-dlr-tflite_inceptionnetv3": create_model_config(
+        task_type="classification",
         source=dict(
             model_url="https://git.ti.com/cgit/jacinto-ai/jacinto-ai-modelzoo/plain/models/vision/classification/imagenet1k/tf1-models/inception_v3.tflite",
             infer_shape=False,
@@ -915,10 +916,10 @@ models_configs = {
             input_scale= [1,1,1],
             input_optimization=True,
         ),
-        task_type="classification",
         extra_info=dict(num_images=numImages, num_classes=1001),
     ),
     "cl-dlr-onnx_mobilenetv2": create_model_config(
+        task_type="classification",
         source=dict(
             model_url="https://git.ti.com/cgit/jacinto-ai/jacinto-ai-modelzoo/plain/models/vision/classification/imagenet1k/torchvision/mobilenet_v2_tv_opset9.onnx",
             infer_shape=False,
@@ -937,7 +938,6 @@ models_configs = {
             input_scale= [1,1,1],
             input_optimization=True,
         ),
-        task_type="classification",
         extra_info=dict(num_images=numImages, num_classes=1000),
     ),
     "cl-dlr-timm_mobilenetv3_large_100": create_model_config(
@@ -960,6 +960,7 @@ models_configs = {
         extra_info=dict(num_images=numImages, num_classes=1000),
     ),
     'ss-tfl-deeplabv3_mnv2_ade20k_float_low_latency': create_model_config(
+        task_type='segmentation',
         source=dict(
             model_url='http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models/vision/segmentation/ade20k32/mlperf/deeplabv3_mnv2_ade20k32_float.tflite',  
         ),
@@ -978,18 +979,17 @@ models_configs = {
             input_scale= [1/127.5, 1/127.5, 1/127.5],
             input_optimization=True,
         ),
-            task_type = 'segmentation',
         extra_info=dict(
             num_images = numImages ,
             num_classes = 32
         ),
-        optional_options= {
+        runtime_options= {
             'advanced_options:inference_mode' : 2,  # inference mode to run low latency inference
             'advanced_options:num_cores' : 4, 
         }
     ),
     'cl-ort-resnet18-v1_low_latency' : create_model_config(
-        source=AttrDict(
+        source=dict(
             model_url="https://git.ti.com/cgit/jacinto-ai/jacinto-ai-modelzoo/plain/models/vision/classification/imagenet1k/torchvision/resnet18_opset9.onnx",
             infer_shape=True,
         ),
@@ -1012,7 +1012,7 @@ models_configs = {
             num_images = numImages ,
             num_classes = 1000
         ),
-        optional_options = {
+        runtime_options = {
             'advanced_options:inference_mode' : 2,  # inference mode to run low latency inference
             'advanced_options:num_cores' : 4,
             'advanced_options:calibration_frames' : 1, 

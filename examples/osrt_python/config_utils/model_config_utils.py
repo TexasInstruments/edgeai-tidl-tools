@@ -30,8 +30,8 @@
 import warnings
 
 
-_EXPECTED_MODEL_CONFIG_KEYS = ('task_type', 'source', 'preprocess', 'session', 'postprocess',
-                 'metric', 'optional_options', 'extra_info')
+_EXPECTED_MODEL_CONFIG_KEYS = ('task_type', 'source', 'preprocess', 'session', 'runtime_options', 'postprocess',
+                 'metric', 'extra_info', 'model_info')
 
 def create_model_config(**kwargs):
     unexpected_keys = []

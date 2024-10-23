@@ -27,7 +27,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-from .model_config import *
+from .model_config_utils import *
 from .misc_utils import *
 from .params_base import *
 from .postprocess_utils import *
