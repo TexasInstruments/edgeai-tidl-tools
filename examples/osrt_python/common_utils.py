@@ -34,10 +34,7 @@ from PIL import Image, ImageFont, ImageDraw, ImageEnhance
 import yaml
 import shutil
 import json
-from common.misc_utils import *
-from common.config_utils import *
-from common.dataset_utils import *
-from common.image_utils import *
+from config_utils import *
 
 
 if platform.machine() == "aarch64":

@@ -1,4 +1,4 @@
-# Copyright (c) 2018-2024, Texas Instruments
+# Copyright (c) 2018-2021, Texas Instruments
 # All Rights Reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,25 +26,10 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from .attr_dict import AttrDict
 
-def create_model_config(
-        source=AttrDict(),
-        extra_info=AttrDict(),        
-        preprocess=AttrDict(),
-        session=AttrDict(),
-        postprocess=AttrDict(),
-        optional_options=AttrDict(),
-        task_type = None
-        ):
-    pipeline_config = AttrDict(
-        source = source,
-        preprocess=preprocess,
-        session=session,
-        postprocess=postprocess,
-        task_type = task_type,
-        metric=AttrDict(),
-        optional_options=optional_options,
-        extra_info = extra_info
-        )
-    return pipeline_config
+from .model_config import *
+from .misc_utils import *
+from .params_base import *
+from .postprocess_utils import *
+from .dataset_utils import *
+from .image_utils import *

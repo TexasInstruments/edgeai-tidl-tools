@@ -28,7 +28,7 @@
 
 import os
 import platform
-from common.config_utils import AttrDict, create_model_config
+from config_utils import create_model_config
 
 
 models_base_path = '../../../models/public/'

@@ -18,7 +18,7 @@ sys.path.append(parent)
 from common_utils import *
 from model_configs import *
 
-from common import postprocess_utils as formatter_transform
+from config_utils import postprocess_utils as formatter_transform
 
 mutex_lock = multiprocessing.Lock()
 
@@ -369,7 +369,7 @@ def run_model(model, mIdx):
     config["session"]["output_details"] = [output_details]
 
     # Set the formatter for post-processing
-    if "formatter" in config["postprocess"]:
+    if "postprocess" in config and "formatter" in config["postprocess"]:
         formatter = config["postprocess"]["formatter"]
         if isinstance(formatter, str):
             formatter_name = formatter

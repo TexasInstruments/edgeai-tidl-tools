@@ -1,4 +1,4 @@
-# Copyright (c) 2018-2021, Texas Instruments
+# Copyright (c) 2018-2024, Texas Instruments
 # All Rights Reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,42 +27,18 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-class BaseAttrDict(dict):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-    def __getattr__(self, key):
-        try:
-            return self[key]
-        except KeyError:
-            raise AttributeError(key)
-
-    def __setattr__(self, key, value):
-        self[key] = value
-
-    def __getstate__(self):
-        # pickling used by multiprocessing did not work without defining __getstate__
-        return self.__dict__.copy()
-
-    def __setstate__(self, state):
-        # for multiprocessing
-        self.__dict__.update(state)
+import warnings
 
 
-class AttrDict(BaseAttrDict):
-    def __init__(self, *args, _recursive_attrdict=True, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._recursive_attrdict = _recursive_attrdict
+_EXPECTED_MODEL_CONFIG_KEYS = ('task_type', 'source', 'preprocess', 'session', 'postprocess',
+                 'metric', 'optional_options', 'extra_info')
 
-    def update(self,  *args, **kwargs):
-        new_args = list()
-        for arg in args:
-            arg = AttrDict(arg) if self._recursive_attrdict and (type(arg) is dict) else arg
-            new_args.append(arg)
+def create_model_config(**kwargs):
+    unexpected_keys = []
+    for key in kwargs:
+        if key not in _EXPECTED_MODEL_CONFIG_KEYS:
+            unexpected_keys.append(key)
+    if unexpected_keys:
+        warnings.warn(f'Unexpected keys found in the model config: {kwargs}. \nThe unexpected keys are: {unexpected_keys}')
 
-        new_kwargs = dict()
-        for k, v in kwargs:
-            v = AttrDict(v) if self._recursive_attrdict and (type(v) is dict) else v
-            new_kwargs[k] = v
-
-        super().update(*new_args, **new_kwargs)
+    return kwargs
