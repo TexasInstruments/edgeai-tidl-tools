@@ -76,7 +76,8 @@ The below table covers the supported operations with this repository on X86_PC a
 
 ### What IS NOT Supported
 - Camera , Display and DL runtime based end-to-end pipeline development or benchmarking. 
-  - Please refer [Processor SDK Linux for Edge AI](https://software-dl.ti.com/jacinto7/esd/processor-sdk-linux-am68a/latest/exports/edgeai-docs/common/sdk_overview.html) for such applications. This is for AM68A and similar inofmration can be found for other devices
+  - Please refer [edgeai-gst-apps](https://github.com/TexasInstruments/edgeai-gst-apps) for end-to-end application flows through gstreamer. This is included in the Processor SDK Linux for Edge AI under /opt on the target device's filesystem
+  - Please refer [Processor SDK Linux for Edge AI](https://software-dl.ti.com/jacinto7/esd/processor-sdk-linux-am68a/latest/exports/edgeai-docs/common/sdk_overview.html) for general end-to-end application development information. This is for AM68A and similar information can be found for other devices
 -  Benchmarking accuracy of models using TIDL acceleration with standard datasets, for e.g. - accuracy benchmarking using MS COCO dataset for object detection models. 
    - Please refer  [edgeai-benchmark](https://github.com/TexasInstruments/edgeai-tensorlab/tree/main/edgeai-benchmark) for the same.
 

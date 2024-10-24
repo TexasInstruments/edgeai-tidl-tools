@@ -21,6 +21,8 @@
 - Refer to the documentation available [here](../examples/osrt_python/README.md) to familiarize with the steps to compile the out-of-box models and all the available compilation options for TIDL offload
 - [Models Dictionary](../examples/osrt_python/model_configs.py) in the python examples directory lists all the validated models with this repository
 - Define an entry for your custom model in this dictionary and add the new key in the model list of the python script based on your model format and runtime, for example - to evaluate a Tflite model update below entry [here](../examples/osrt_python/tfl/tflrt_delegate.py)
+  - Preprocessing parameters, i.e. ```mean``` and ```scale``` must match what was used during training to achieve accurate results. Values in the below config are typical for [models started with an imagenet-trained backbone](https://github.com/pytorch/examples/blob/cdef4d43fb1a2c6c4349daa5080e4e8731c34569/imagenet/main.py#L236) (scaled for uint8 inputs instead of [0,1]). These values do not originate from TIDL or related TI tools
+
 
  ```
 #models = ['cl-tfl-mobilenet_v1_1.0_224', 'ss-tfl-deeplabv3_mnv2_ade20k_float', 'od-tfl-ssd_mobilenet_v2_300_float']
@@ -39,10 +41,15 @@ models = ['cl-tfl-custom-model']
         'num_images' : numImages,
         'num_classes': 1000,
         'session_name' : 'onnxrt' ,
-        'model_type': 'classification'
+        'model_type': 'classification',
+        'optional_options': {
+          #include any additional configurations for this model only, e.g.:
+          'debug_level': 1,
+        }.
     },
 
 ```
+- Append ```-m model_name``` to your python command to easily select your model with the osrt_python scripts
 - As a first step, run the model with default OSRT runtime options (without TIDL acceleration) by passing ```-d``` argument as described [here](../examples/osrt_python/README.md). A right functional result from this step confirms your model configuration dictionary is right and model is working fine with the out of box example code.
 - Now model compilation and inference steps can be executed.
 
@@ -79,8 +86,8 @@ models = ['cl-tfl-custom-model']
 | Session Name | API and Options to Create Session |
 |-------------|----------------------------------|
 | **Default RT Session** | ``` tflite.Interpreter(model_path=config['model_path']) ``` |
-| **RT Session Model Compilation**        | ``` options['artifacts_folder'] = './model-artifacts-dir/' ``` <br /> ``` options['tidl_tools_path'] = './path-to-tidl_tools/' ``` <br /> <br /> ```tflite.Interpreter(model_path=config['model_path'], experimental_delegates=[tflite.load_delegate('tidl_model_import_tflite.so', options)]) ```|
-| **RT Session with TIDL accelartion** |``` options['artifacts_folder'] = './model-artifacts-dir/' ``` <br /> ``` options['tidl_tools_path'] = './path-to-tidl_tools/' ``` <br /> <br />  ```tflite.Interpreter(model_path=config['model_path'], experimental_delegates=[tflite.load_delegate('libtidl_tfl_delegate.so', options)]) ``` |
+| **RT Session Model Compilation**        | ``` options['artifacts_folder'] = './model-artifacts-dir/' ``` <br /> ``` options['tidl_tools_path'] = './path-to-tidl_tools/' ``` <br /> ```# include additional ```**[compilation options](../examples/osrt_python/README.md#optional-options)**```like tensor_bits, deny_list, etc.```<br /> <br /> ```tflite.Interpreter(model_path=config['model_path'], experimental_delegates=[tflite.load_delegate('tidl_model_import_tflite.so', options)]) ```|
+| **RT Session with TIDL acceleration** |``` options['artifacts_folder'] = './model-artifacts-dir/' ``` <br /> ``` options['tidl_tools_path'] = './path-to-tidl_tools/' #only needed for emulation on x86 host PC``` <br /> <br />  ```tflite.Interpreter(model_path=config['model_path'], experimental_delegates=[tflite.load_delegate('libtidl_tfl_delegate.so', options)]) ``` |
 
 </div>
 
@@ -95,8 +102,8 @@ models = ['cl-tfl-custom-model']
 | Session Name | API and Options to Create Session |
 |-------------|----------------------------------|
 | **Default RT Session** | ```so = rt.SessionOptions()``` <br /> ```ep_list = ['CPUExecutionProvider']``` <br /> ``` sess = rt.InferenceSession(config['model_path'] , providers=ep_list,sess_options=so)```|
-| **RT Session Model Compilation**        |   ``` options['artifacts_folder'] = './model-artifacts-dir/' ``` <br /> ``` options['tidl_tools_path'] = './path-to-tidl_tools/' ``` <br /> <br /> ```so = rt.SessionOptions()``` <br /> ```ep_list = ['TIDLCompilationProvider','CPUExecutionProvider']``` <br /> ``` sess = rt.InferenceSession(config['model_path'] ,providers=EP_list, provider_options=[options, {}], sess_options=so)```|
-| **RT Session with TIDL accelartion** |``` options['artifacts_folder'] = './model-artifacts-dir/' ``` <br /> ``` options['tidl_tools_path'] = './path-to-tidl_tools/' ``` <br /> <br /> ```so = rt.SessionOptions()``` <br /> ```ep_list = ['TIDLExecutionProvider','CPUExecutionProvider']``` <br /> ``` sess = rt.InferenceSession(config['model_path'] ,providers=EP_list, provider_options=[options, {}], sess_options=so)``` |
+| **RT Session Model Compilation**        |   ``` options['artifacts_folder'] = './model-artifacts-dir/' ``` <br /> ``` options['tidl_tools_path'] = './path-to-tidl_tools/' ```  <br /> ```# include additional ```**[compilation options](../examples/osrt_python/README.md#optional-options)**```like tensor_bits, deny_list, etc.```<br /> <br /> ```so = rt.SessionOptions()``` <br /> ```ep_list = ['TIDLCompilationProvider','CPUExecutionProvider']``` <br /> ``` sess = rt.InferenceSession(config['model_path'] ,providers=EP_list, provider_options=[options, {}], sess_options=so)```|
+| **RT Session with TIDL acceleration** |``` options['artifacts_folder'] = './model-artifacts-dir/' ``` <br /> ``` options['tidl_tools_path'] = './path-to-tidl_tools/' #only needed for emulation on x86 host PC ``` <br /> <br /> ```so = rt.SessionOptions()``` <br /> ```ep_list = ['TIDLExecutionProvider','CPUExecutionProvider']``` <br /> ``` sess = rt.InferenceSession(config['model_path'] ,providers=EP_list, provider_options=[options, {}], sess_options=so)``` |
 
 </div>
 
@@ -127,3 +134,4 @@ models = ['cl-tfl-custom-model']
     - A representation model (ONNX or Tflite file) – Need not to be exact model, trainable parameters can be random as well
     - Representative input data samples for model compilation/calibration
     - Complete console log of both model compilation and inference with ``` debug_level=1``` and ``` debug_level=3```
+    - Please indicate where the issue is encountered (compilation or inference; host emulation or target) and what type of problem (model accuracy, model performance, associated scripts, etc.)

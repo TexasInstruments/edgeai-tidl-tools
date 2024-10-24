@@ -34,9 +34,11 @@ This document lists troubleshooting steps for debugging accuracy and performance
 ```
 
 - In the above figure "Network cycles" tells the total cycles consumed to execute a given network on C7x-MMA. This can be translated to time in ms by division of c7x frequency in M cycles. For example c7x-dsp running @ 1GHz time in ms can be calculated by dividing the "Network cycles" by 10^6.
-- The logs in above figure gives detailed information about various profile points but from end user point of view, data  under column "Layer Cycles" shall be used to get layer cycles consumed by a particular layer. Rest all the columns are meant to be used by TI's internal team to debug performance issue. Number under "Layer Cycles" can be used to identify any hot-spot and user can look for alternative for that layer to improve the performance
+- The logs in above figure gives detailed information about various profile points but from end user point of view, data  under column "Layer Cycles" shall be used to get layer cycles consumed by a particular layer. Rest of the columns are meant to be used by TI's internal team to debug performance issue. 
+    - Number under "Layer Cycles" can be used to identify any hot-spot and user can look for alternative for that layer to improve the performance
 - These traces are printed in the same order as layers gets executed on EVM, user can refer [here](#steps-to-debug-error-scenarios-for-targetevmdevice-execution) to find the mapping of layerId to dataId
 - **Per layer execution traces are only applicable for target/EVM execution and are not applicable for host emulation mode of the inference execution**
+
 # Model compilation issues
 Following are some of the options for troubleshooting model compilation related issues.
 * Before trying any option user should make sure that their inference script is functional with ARM only mode. For out of box examples user can enable ARM only mode ( i.e. without c7x offload) by passing “-d” as an argument to the default model compilation script 
@@ -48,32 +50,51 @@ As an example for ONNX out of box example script user can run in ARM only mode a
 * User can set debug_level = 1 or 2 to enable verbose debug log during model compilation and during model inference
 * If model inference works fine in ARM only mode but model compilation fails with C7x-MMA offload, then try dispatching some of the layers (less commonly used layer type) to ARM by using “deny_list” option.
 * Additionally, it is recommended to disable default onnx graph optimizations (i.e. set session option for graph_optimization_level to onnxruntime.GraphOptimizationLevel.ORT_DISABLE_ALL)
+* If layers are being denied to / run on ARM for ONNX-RT but the ONNX-RT is complaining about model dimensions or tensor rank, try setting environment variable TIDL_RT_ONNX_VARDIM to 1 to tell TIDL to squeeze unneeded dimensions: 
+	```export TIDL_RT_ONNX_VARDIM=1``` 
    
 # Steps to Debug Error Scenarios for target(EVM/device) execution 
 
 - It is recommended to first test the inference of a given network in host/pc (x86_pc) emulation mode to make sure output is as per expectation.
 - If execution on target(EVM) is not completing then user can enable more verbose logs by setting debug_level = 2, which is an optional parameter for both model compilation and inference. This option enables more detailed traces which will help in identifying the layer whose execution is not completing.
+	- Some messages from C7xMMA will be printed through TI OpenVX ring buffer -- it is recommended to run the logging application in the background: ```source /opt/vision_apps/vision_apps_init.sh``` //RG_COMMENT: some messages do not print without this. I do not see this called out in any docs, but it is critical for some layer-wise debugging info
 - If target (device/EVM) execution output for a given network is not matching with the corresponding host/pc emulation output, then user should follow below steps to identify the first layer having mismatch:
   - Check if input to the network itself is mismatching then this indicates mismatch during pre-processing. Typically this can happen if pre-processing is involving floating point operations as floating point operation may differ slightly on x86 and on EVM, for example resize operation may not give bit exact output on EVM compared to x86. Final results shouldn't get impacted with this difference but layer level traces bit match cannot be done. In such scenario it is recommended to directly provide a raw binary input to the network and then compare rest of the layers.
-  - Enable layer level fixed point traces in both host emulation and EVM execution. This can be done by setting debug_level = 3 parameter during inference. Layer level traces will be generated inside /tmp folder ( trace names will be like tidl_traceAAAA_BBBBB_CCCCC_DDDDDxEEEEE.y, AAAA is dataId, BBBBB is batch number, CCCCC is channel number, DDDDD is width and EEEEE is height). For example a trace name tidl_trace0072_00001_00256_00010x00014.y indicates the traces of layer with dataId = 72, batch = 1, channels = 256, height = 14 and width = 10. DataId is a unique number associated with each layer's output buffer to uniquely identify it. User can find the mapping of DataId to the layerId which is the order in which a particular layer is executed inside the artifacts directory under tempDir with file name ending with *.layer_info.txt. This file also contains the mapping of layerId/dataId to the name of the layer in original model. The first column in this file is the layerId and second is dataId and third is the name in original model.
+  - Enable layer level fixed point traces in both host emulation and EVM execution. This can be done by setting debug_level = 3 parameter during inference. Layer level traces will be generated inside /tmp folder 
+  	- Trace names will be like tidl_traceAAAA_BBBBB_CCCCC_DDDDDxEEEEE.y, 
+		- AAAA is dataId, BBBBB is batch number, CCCCC is channel number, DDDDD is width and EEEEE is height. 
+		- For example a trace name tidl_trace0072_00001_00256_00010x00014.y indicates the traces of layer with dataId = 72, batch = 1, channels = 256, height = 14 and width = 10. 
+		- DataId is a unique number associated with each layer's output buffer to uniquely identify it. 
+			- User can find the mapping of DataId to the layerId (the order in which a particular layer is executed) inside the artifacts directory under tempDir with file name ending with *.layer_info.txt. 
+			  - This file also contains the mapping of layerId/dataId to the name of the layer in original model. The first column in this file is the layerId and second is dataId and third is the name in original model.
   - Run the network on x86 using Host/PC emulation mode (on x86 PC this is already default behavior) with debug_level=3. All the traces will be generated in /tmp folder(if this folder is missing, please create the same). Copy all the layer level traces from /tmp to a folder lets call it traces_ref
   - Repeat the above step on target(EVM) execution. Copy the traces from /tmp folder to a folder, lets call it traces_target
   - Use any binary comparison tool (e.g. beyond compare, diff, cmp etc) to compare the traces_ref and traces_target folder
   - The outputs are expected to bit match and if any particular layer output is not matching in these two modes then the first layer where mismatch is observed is the layer which needs to be reported.
 
-# Steps to Debug Functional Mismatch in Host emulation
+# Steps to Debug Functional Mismatch and Accuracy in Host emulation
 
-- The following steps are suggested, when user finds functional issue or lower accuracy while running inference using TIDL with c7x offload but able to achieve desired accuracy of same model without c7x offload. All these steps needs to be performed in host emulation mode rather than on target(EVM) for easier debugging. Once user achieves the acceptable accuracy with host emulation then host emulation and target execution on device can be bit-matched as described in [here](#steps-to-debug-error-scenarios-for-targetevmdevice-execution)
-  - First step is to run the model in TIDL floating point mode and see if accuracy is same as what you get from Open Source Runtimes without c7x offload. To run the model with TIDL in floating point mode user will have to set tensor_bits = 32 during model compilation. (**Note that this flow is not optimized for our SOC's and is supported only in host emulation mode and it’s meant only for debug purpose**). 
-  - If this accuracy matches then this indicates that model compilation was successful and without any quantization results are as per expectation.
-  - Next step will be to check the accuracy with 8-bit quantization using default quantization options. If the accuracy is not as per expectation then this indicates that either 8-bit quantization is not enough or some layers are not behaving as per expectation with 8-bit quantization. We recommend to try 16-bit quantization for your network (Note that this option will results into more compute time for inference).
-  - If 16 bit results are as per expectation then user can try mixed precision to manually/automatically increase the precision of activations/parameters of certain specific layers. The details of this option can be found in [here](./tidl_fsg_quantization.md##a31-manual-mixed-precision-), refer section on Mixed Precision. To choose which layers user will have to analyze the activation/parameters statistics. User can refer [here](#feature-map-comparison-with-reference) to view sample script given to generate such statistics or if required they can extend it to generate more statistics. User can also try automatic selection of mixed precision as described [here](./tidl_fsg_quantization.md#a32-automated-mixed-precision---automatic-selection-of-layers-), refer section on Automated Mixed Precision.
+The following steps are suggested when user finds functional issue or lower accuracy while running inference using TIDL with c7x offload, and the model achieves desired accuracy of without c7x offload. 
+
+All these steps needs to be performed in host emulation mode rather than on target(EVM) for easier debugging. Once user achieves the acceptable accuracy with host emulation then host emulation and target execution on device can be bit-matched as described in [here](#steps-to-debug-error-scenarios-for-targetevmdevice-execution)
+  - First step is to run the model in TIDL floating point mode and see if accuracy is same as what you get from Open Source Runtimes without c7x offload. To run the model with TIDL in floating point mode user will have to set tensor_bits = 32 during model compilation. (**Note that this flow is not optimized for our SOC's and is supported only in host emulation mode. Tt is meant only for debug purpose**). 
+  	- If this accuracy matches then this indicates that model compilation was successful and meet accuracy expectations without any quantization effects.
+  - Next step will be to check the accuracy with 8-bit quantization using default quantization options. 
+    - If the accuracy is not as per expectation then this indicates that either 8-bit quantization is not enough or some layers are not behaving as per expectation with 8-bit quantization. We recommend to try 16-bit quantization for your network (Note that this option will results into more compute time for inference).
+  - Next step is to recompile with tensor_bits=16 and run in host emulation mode
+    - If 16 bit results are as per expectation then user can try mixed precision to manually/automatically increase the precision of activations/parameters of certain specific layers. 
+	  - The details of this option can be found in [here](./tidl_fsg_quantization.md##a31-manual-mixed-precision-), refer section on Mixed Precision. To choose which layers user will have to analyze the activation/parameters statistics. 
+	  - User can refer [here](#feature-map-comparison-with-reference) to view sample script given to generate such statistics or if required they can extend it to generate more statistics. 
+	  - User can also try automatic selection of mixed precision as described [here](./tidl_fsg_quantization.md#a32-automated-mixed-precision---automatic-selection-of-layers-), refer section on Automated Mixed Precision.
 
 
 # Feature Map Comparison with Reference
 
-- This section provides some steps to compare layer level feature maps generated from TIDL inference with the same being generated from OSRT without TIDL/c7x offload.
-- Set debug_level = 4, this will result into generation of both fixed and floating point traces for each dataId. Note that data Id can be different from layer Id, there are two ways to find this mapping, first way is to read the mapping from the *layer_info.txt file (already described [here](#steps-to-debug-functional-mismatch-in-host-emulation)) . Second way is to read the output of model visualization tool (*.svg file, which also gets generated inside model artifacts folder under tempDir), this information can be read from each layer's box inside the square brackets as [layerIdx, dataIdx].
+This section provides steps to compare layer level feature maps generated from TIDL inference with the same being generated from OSRT without TIDL/c7x offload.
+- Set debug_level = 4, this will result into generation of both fixed and floating point traces for each dataId. 
+  - Note that data Id can be different from layer Id, there are two ways to find this mapping: 1
+    1. Read the mapping from the \*layer_info.txt file (already described [here](#steps-to-debug-functional-mismatch-in-host-emulation)) . 
+	2. Read the output of model visualization tool (\*.svg file, which also gets generated inside model artifacts folder under tempDir), this information can be read from each layer's box inside the square brackets as [layerIdx, dataIdx].
 - Below figure shows a sample of both fixed point (*.y) and floating point (_float.bin) traces generated from TIDL :
 
 ![ Feature Map Trace files](./images/fm_trace_files.png)
@@ -139,11 +160,11 @@ As an example for ONNX out of box example script user can run in ARM only mode a
 
 
 # Trace dump utility for multi-core inference
-*TIDL provides trace dump utility that dumps the binary output of each layer which can be used to compare and debug. When running for low latency mode with multiple cores, each core dumps its own trace with the prefix "C7X_{Core Number}_". 
+* TIDL provides trace dump utility that dumps the binary output of each layer which can be used to compare and debug. When running for low latency mode with multiple cores, each core dumps its own trace with the prefix "C7X_{Core Number}_". 
 
-*TIDL also provides an example script to stitch the traces for multiple cores which is equivalent to complete output for the layer. 
+* TIDL also provides an example script to stitch the traces for multiple cores which is equivalent to complete output for the layer. 
 
-Stitched taces are generated in the /tmp/stitch_traces directory by default.
+Stitched traces are generated in the /tmp/stitch_traces directory by default.
 
 Parameters to the trace stitching script : 
 
@@ -153,10 +174,10 @@ Parameters to the trace stitching script :
 | n | number of cores |  4|
 | s | start core Idx |  0|
 
-More details on above parameters (which are also compilation options) can be found here [here](../examples/osrt_python/README.md#options-for-devices-with-multiple-dsp-cores)
+More details on above parameters (which are also compilation options) can be found [here](../examples/osrt_python/README.md#options-for-devices-with-multiple-dsp-cores)
 
-To compare traces across different platfroms (e.g. PC vs target), direct one to one comparison is feasible. 
-However, in cases where traces generated for inference mode = 2 (low latency mode across N cores) need to be compared with those gernerated for inference mode = 0 (single core inference), direct one-one mapping is not feasible due to some additional layers introduced as part of model compilation for multi-core inference.
+To compare traces across different platforms (e.g. PC vs target), direct one to one comparison is feasible. 
+However, in cases where traces generated for inference mode = 2 (low latency mode across N cores) need to be compared with those generated for inference mode = 0 (single core inference), direct one-to-one mapping is not feasible due to some additional layers introduced as part of model compilation for multi-core inference.
 Following additional parameters can be set in this case to get one-one mapping of layers in both the scenarios.
 
 
@@ -175,7 +196,7 @@ The id of a layer in the stitched traces will be with respect to single core exe
  * Compile the model for inference mode = 2 with desired number of cores and infer the model with debug_level = 3 option to generate multi-core traces
  * Run the python stitching script stitch_multicore_traces.py as follows (as an example, for 2 cores) :  
 
-python3 scripts/tidl_debug_scripts/stitch_multicore_traces.py --n 2  --m model-artifacts/{model_name}/tempDir/**.layer_info.txt --m_golden model-artifacts/{model_name}/tempDir_singlecore/**.layer_info_singleCore.txt 
+python3 scripts/tidl_debug_scripts/stitch_multicore_traces.py --n 2  --m model-artifacts/{model_name}/tempDir/\*\*.layer_info.txt --m_golden model-artifacts/{model_name}/tempDir_singlecore/\*\*.layer_info_singleCore.txt 
 
 *in the above example the layer_info.txt has been moved to tempDir_singlecore to create backup*
 
