@@ -644,11 +644,11 @@ def task_type_to_dataset_list(task_type):
     return ['imagenet']
 
 """
-class loggerWritter():
+class loggerWriter():
     # Redirect c- stdout and stderr to a couple of files.
 """
 
-class loggerWritter():
+class loggerWriter():
     def __init__(self, logname):
         self.logname = logname
         sys.stdout.flush()
