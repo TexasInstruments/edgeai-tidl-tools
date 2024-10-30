@@ -62,6 +62,7 @@ import logging
 import onnx_graphsurgeon as gs
 import onnx
 import numpy as np
+import copy
 
 
 def tidl_convert_conv_large_pad_to_smaller_kernel (graph: gs.Graph, onnx_graph: onnx.GraphProto):
@@ -148,3 +149,35 @@ def tidl_convert_conv_large_pad_to_smaller_kernel (graph: gs.Graph, onnx_graph: 
             conv.inputs[1] = gs.Constant(name= f"{weights.name}_reduced",
                                          values=reduced_weight_tensor)
             # bias need not change
+
+
+def tidl_convert_conv_7x7_stride4_to_stride2(graph: gs.Graph, onnx_graph: onnx.GraphProto):
+
+    for node in graph.nodes:
+        if node.op == 'Conv':
+            if node.attrs['kernel_shape'] == [7, 7] and node.attrs['strides'] == [4, 4]:
+                node.attrs['strides'] = [1, 1]
+                conv_out_shape = copy.deepcopy(node.inputs[0].shape)
+                conv_out_shape[1] = node.outputs[0].shape[1]
+                node.outputs[0].shape = conv_out_shape
+
+                next_nodes = node.outputs[0].outputs
+
+                maxpool_output1 = gs.Variable(node.name.replace('Conv','MaxPool_out1'), dtype=np.float32)
+                maxpool_output2 = gs.Variable(node.name.replace('Conv','MaxPool_out2'), dtype=np.float32)
+
+                new_maxpool1 = gs.Node(op="MaxPool", name=node.name.replace('Conv', 'MaxPool1'),
+                                                inputs=node.outputs,
+                                            outputs=[maxpool_output1])
+                new_maxpool1.attrs = dict(kernel_shape=[1, 1], strides=[2, 2])
+                graph.nodes.append(new_maxpool1)
+
+                new_maxpool2 = gs.Node(op="MaxPool", name=node.name.replace('Conv', 'MaxPool2'),
+                                                inputs=[maxpool_output1],
+                                            outputs=[maxpool_output2])
+                new_maxpool2.attrs = dict(kernel_shape=[1, 1], strides=[2, 2])
+                graph.nodes.append(new_maxpool2)
+
+                for next_node in next_nodes:
+                    index = next_node.inputs.index(node.outputs[0])
+                    next_node.inputs[index] = maxpool_output2
