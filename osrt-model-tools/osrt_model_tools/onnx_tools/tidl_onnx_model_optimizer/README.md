@@ -60,11 +60,11 @@ The different optimizations performed are summarized here along with their defau
 | 16 | expand_layernorm_to_component_ops | The LayerNormalization-17 layer from ONNX is not supported by TIDL. We can expand this layer to it's fundamental operators to make it supported in TIDL | True |
 | 17 | push_matmul_channel_in_height | Matmul layers with one input broadcasted across channel and other input with small plane size can have the channel and height axis merged to get optimized performance | False |
 | 18 | expand_slice_across_multiple_axis | Slice along a single axis is currently supported for TIDL import. This will split the slice into multiple slices each acting on a single axis. | True |
-| 19 | convert_instancenorm_to_layernorm | InstanceNormalisation is not supported in TIDL, converting it to LayerNorm with the same functionality. | True |
-| 20 | convert_unsqueeze_to_reshape | Converts the Unsqueeze layer to reshape layer for support. | True |
-| 21 | add_bias_qdq | Adds the bias quantization to conv layers if not already there (Weight_params * Act_params) | True |
-| 22 | remove_quantize_initializer | Removes the Quantization node in initialisers (reduces the model size as input becomes 8-bit) - Use only for PT2E exported models (quantization=3) | False |
-| 23 | remove_duplicate_quantize_dequantize | Removes the duplicate sequential Q-DQ layers (keeps the first quant params) | True |
+| 19 | convert_instancenorm_to_layernorm | InstanceNormalisation is not supported in TIDL, converting it to LayerNorm with the same functionality. | False |
+| 20 | convert_unsqueeze_to_reshape | Converts the Unsqueeze layer to reshape layer for support. | False |
+| 21 | add_bias_qdq | Adds the bias quantization to conv layers if not already there (Weight_params * Act_params) | False |
+| 22 | remove_quantize_initializer | Removes the Quantization node in initialisers (reduces the model size as input becomes 8-bit) - Use only for PT2E exported models (quantization=3) | True |
+| 23 | remove_duplicate_quantize_dequantize | Removes the duplicate sequential Q-DQ layers (keeps the first quant params) | False |
 | 24 | convert_neg_to_mul | Converts the Neg layer (from RoPE) to mul by -1 | True |
 | 25 | convert_expand_to_reshape_and_concat | Converts the expand layer to reshape and concat | True |
 | 26 | convert_single_concat_to_consecutive_concats | Convert a concat which works as expanding a dimension of a tensor (1x1x10 -> 1x5x10) to multiple consecutive concats which only takes 2 inputs at once, thus in the example, we would have 4 different concats.  | True |
@@ -73,6 +73,12 @@ The different optimizations performed are summarized here along with their defau
 | 29 | Change_argmax_keepdims_to_1 | Changes the keepdims parameter from 0 to 1 and adds a reshape node to accomodate for the shape | False |
 | 30 | Hf_attention_block_optimization | Attention block optimization function, identifies attention blocks and performs TIDL specific optimizations on the attention blocks as a whole | True |
 | 31 | convert_reducesum_to_matmul | The ReduceSum layer is replaced with the cascaded multiple layers, e.g., "Reshape + MatMul + Reshape". The attribute, "axes" of ReduceSum should be W and H dimension. ReduceSum in channel dimension is not supported | True |
+| 32 | convert_resize_params_size_to_scale_dynamic_batch | Finds Resize nodes that use a sequence of nodes that dynamically determine output sizes, which are added during export. The rule determines the static 'scales', and removes the dynamic nodes such that the Reize node is supported | False 
+| 33 | replace_mean_with_eltwise | Replaced Mean of 2 tensors with Add + Multiply by 0.5 (since Div is also not supported). >2 inputs is not supported, but could be implemented without much difficulty | False
+| 34 | replace_sub_with_neg_add | Replace Sub node with a negation (Mul by -1) -> Add. May be impacted by asymmetric quantization | False
+| 35 | convert_conv_even_filter_to_odd | Replaces even-sized convolutions with the next-size-up Odd filer as a workaround for unimplemented even-sized kernels. This is supported up to 6x6 (replace w/ 7x7). This rule will insert an additional (asymmetric) Pad before, and TIDL import will likely add a corresponding Crop layer during parsing. | False
+| 36 | remove_duplicates | Removes duplicate nodes, i.e. those that take the same inputs and have the same parameters. These should produce identical results and can be skipped. | False
+| 37 | remove_unity_resize | Remove "Resize" notes with unity scaling factor (scales=1) | False
 
 
 ### NOTE

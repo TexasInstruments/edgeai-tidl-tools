@@ -66,7 +66,7 @@ from typing import List, Dict
 
 # importing all opt functions
 from .src.argmax import tidl_change_argmax_keepdims_to_1
-from .src.resize import tidl_convert_resize_params_size_to_scale
+from .src.resize import tidl_convert_resize_params_size_to_scale, tidl_convert_resize_params_size_to_scale_dynamic_batch, tidl_remove_unity_resize
 from .src.attention import tidl_optimize_attention
 from .src.attention_hf import tidl_optimize_hf_attention
 from .src.attention_hf_detr import tidl_detr_optimize_attention
@@ -81,8 +81,7 @@ from .src.gather import tidl_convert_gather_with_single_index_to_slice
 from .src.batchnorm import tidl_convert_batchnorm_input_to_4D
 from .src.softmax import tidl_convert_softmax_axis_channel_to_width, tidl_convert_softmax_axis_height_to_width
 from .src.softmax import tidl_push_large_channel_dim_to_height_for_width_wise_softmax
-from .src.conv import tidl_convert_conv_large_pad_to_smaller_kernel
-from .src.conv import tidl_convert_conv_7x7_stride4_to_stride1
+from .src.conv import tidl_convert_conv_large_pad_to_smaller_kernel, tidl_convert_conv_7x7_stride4_to_stride1, tidl_convert_conv_even_filter_to_odd
 from .src.layernorm import tidl_expand_layernorm_to_component_ops
 from .src.slice import tidl_expand_slice_across_multiple_axis, tidl_convert_2_dimension_slice_to_maxpool
 from .src.instancenorm import tidl_convert_instancenorm_to_layernorm
@@ -91,6 +90,9 @@ from .src.qdq import tidl_add_bias_qdq, tidl_remove_quantize_initializer, tidl_r
 from .src.neg import tidl_convert_neg_to_mul
 from .src.expand import tidl_convert_expand_to_reshape_and_concat
 from .src.reducesum import tidl_convert_reducesum_to_matmul
+from .src.eltwise import tidl_replace_mean_with_eltwise, tidl_replace_sub_with_neg_add
+from .src.common import tidl_remove_duplicates
+
 
 ### function dict to execute
 opt_ops = {
@@ -125,7 +127,13 @@ opt_ops = {
         "convert_single_concat_to_consecutive_concats" : tidl_convert_single_concat_to_consecutive_concats, 
         "change_argmax_keepdims_to_1"               : tidl_change_argmax_keepdims_to_1,
         "convert_2_dimension_slice_to_maxpool"      : tidl_convert_2_dimension_slice_to_maxpool,
-        "convert_reducesum_to_matmul"               : tidl_convert_reducesum_to_matmul
+        "convert_reducesum_to_matmul"               : tidl_convert_reducesum_to_matmul,
+        'convert_resize_params_size_to_scale_dynamic_batch' : tidl_convert_resize_params_size_to_scale_dynamic_batch
+        'replace_mean_with_eltwise'                 : tidl_replace_mean_with_eltwise,
+        'replace_sub_with_neg_add'                  : tidl_replace_sub_with_neg_add,
+        'convert_conv_even_filter_to_odd'           : tidl_convert_conv_even_filter_to_odd,
+        'remove_duplicates'                         : tidl_remove_duplicates,
+        'remove_unity_resize'                       : tidl_remove_unity_resize,
 }
 
 qdq_supported_ops = ['add_bias_qdq', 'remove_quantize_initializer', 'remove_duplicate_quantize_dequantize']
@@ -163,7 +171,13 @@ adj_list = {
         "convert_single_concat_to_consecutive_concats" : [],
         "change_argmax_keepdims_to_1"               : [],
         "convert_2_dimension_slice_to_maxpool"      : ['expand_slice_across_multiple_axis', 'convert_maxpool_to_cascaded_maxpool'],
-        "convert_reducesum_to_matmul"               : []
+        "convert_reducesum_to_matmul"               : [],
+        'convert_resize_params_size_to_scale_dynamic_batch' : ['convert_resize_params_size_to_scale']
+        'replace_mean_with_eltwise'                 : [],
+        'replace_sub_with_neg_add'                  : [],
+        'convert_conv_even_filter_to_odd'           : [],
+        'remove_duplicates'                         : [],
+        'remove_unity_resize'                       : ['convert_resize_params_size_to_scale'],
 }
 
 def get_optimizers():
@@ -204,6 +218,12 @@ def get_optimizers():
         "change_argmax_keepdims_to_1"               : False,
         "convert_2_dimension_slice_to_maxpool"      : False,  # theoritically better than splitting in 2 axis
         "convert_reducesum_to_matmul"               : True,
+        'convert_resize_params_size_to_scale_dynamic_batch' : False, 
+        'replace_mean_with_eltwise'                 : False, 
+        'replace_sub_with_neg_add'                  : False, 
+        'convert_conv_even_filter_to_odd'           : False, 
+        'remove_duplicates'                         : False, 
+        'remove_unity_resize'                       : False, 
 
         # utilities specific
         'shape_inference_mode'      : 'all',

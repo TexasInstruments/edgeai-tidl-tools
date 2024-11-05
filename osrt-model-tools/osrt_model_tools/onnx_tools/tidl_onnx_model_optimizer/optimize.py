@@ -109,7 +109,11 @@ def tidl_modify (model_path: str, out_model_path: str, args: dict):
             if not(is_quantized_model) or (is_quantized_model and key in qdq_supported_ops):  
                 logging.info(f"[{curr_op}/{NUM_OPS}] {key.capitalize()} optimization : Enabled")
                 func = opt_ops[key]
-                func(graph, onnx_graph)
+                ret = func(graph, onnx_graph)
+                if (type(ret) == gs.Graph):
+                    #return an updated graph
+                    logging.warning("Graph was updated within optimization function") #fixme
+                    graph = ret
                 # cleanup
                 graph.cleanup().toposort()
 

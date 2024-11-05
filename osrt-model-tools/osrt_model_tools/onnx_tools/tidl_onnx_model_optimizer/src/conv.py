@@ -59,6 +59,7 @@
 Module containing Conv layer specific functions and optimizations
 """
 import logging
+import numpy as np
 import onnx_graphsurgeon as gs
 import onnx
 import numpy as np
@@ -199,3 +200,77 @@ def tidl_convert_conv_7x7_stride4_to_stride1(graph: gs.Graph, onnx_graph: onnx.G
                 for next_node in next_nodes:
                     index = next_node.inputs.index(node.outputs[0])
                     next_node.inputs[index] = maxpool_output2
+
+                    
+def tidl_convert_conv_even_filter_to_odd(graph: gs.Graph, onnx_graph: onnx.GraphProto, zero_points={'Conv_Name_Fake_Example': -0.001}):
+    '''
+    Even-sized convolution kernels are not supported in TIDL
+    Replace even-sized kernels with next-size up odd kernels, with padding handled appropriately. Additional filter weights are the zero_points
+    Only square convolutions are supported here, but should be trivial to extend to length/height wise (Nx1 or 1xN) filters 
+
+    :param zero_points: On a per-layer basis, the zero-point for asymmetric quantization. This is a dictionary where key is the layer name, and value is the zero-point for that layer (assumed same for all layers, i.e. no grouping)
+    
+    Some tricks are required here due to Conv layer implementation in TIDL being 'SAME' only. 
+    This requires padding be handled outside the layer itself (due to asymmetric pads). 
+    Asymmetric quantization is not well supported for these layers, since the zero-point is unknown until calibration. The zero-point param fills the additional convolution weights. This feature is untested
+    '''
+
+    conv_nodes = [node for node in graph.nodes if node.op == "Conv"]
+
+    for conv in conv_nodes:
+        kernel_shape = conv.attrs['kernel_shape']
+        pads = conv.attrs['pads']
+        weight_tensor = conv.inputs[1]
+
+        conv_input = conv.inputs[0]
+
+        MAX_SUPPORTED_CONV_KERNEL = 7 #7x7 is largest validated layer size
+        if kernel_shape[0] % 2 == 0 and kernel_shape[0] < MAX_SUPPORTED_CONV_KERNEL and kernel_shape[1] == kernel_shape[0]:
+            logging.debug('Promoting conv node (%s) size (%d x %d) to next size up' % (conv.name, kernel_shape[0], kernel_shape[1]))
+
+            new_size = kernel_shape[0] + 1
+            new_shape = [new_size, new_size]
+
+            zero_p = zero_points.get(conv.name, 0)
+            
+            new_weights_shape = [*weight_tensor.shape[:2], *new_shape]
+
+            # is it correct to put the zero point here or only in the layer padding
+            new_weights = np.full(new_weights_shape, zero_p, dtype=np.float32)
+            # We will pad left and top side of the filter weights with the fill_value / zero-point as we increase the spatial dimensions by 1
+            new_weights[:,:,1:,1:] = weight_tensor.values
+
+            new_weights_tensor = gs.Constant(weight_tensor.name, new_weights)
+            conv.inputs[1] = new_weights_tensor
+
+
+            conv.attrs['kernel_shape'] = new_shape
+            logging.debug('  New conv kernel shape: ')
+
+
+            pad_name = 'Pad/' + conv.name
+
+            pads = copy.copy(pads)
+            pads[0] += 1 # x1 (height) +1  to account for larger filter
+            pads[1] += 1 # x2 (width) +1 to account for larger filter
+            all_pads = np.asarray([0,0, pads[0], pads[1], 0, 0, pads[2], pads[3] ]) #incorporate all dimensions: depending on opset, may not support axis specification 
+            pads_tensor = gs.Constant(pad_name + '_pads', np.asarray(all_pads, np.int64))
+            fill_value_tensor = gs.Constant(pad_name + '_fill', np.asanyarray([zero_p], dtype=np.float32))
+
+
+            conv.attrs['pads'] = [0,0,0,0]
+
+            pad_attrs = {
+                'mode' : 'constant'
+            }
+            pad_inputs = [conv_input, pads_tensor, fill_value_tensor]
+            pad_outputs = [gs.Variable(pad_name+'_output', dtype=conv_input.dtype)]
+
+            logging.debug('  Adding Pad layer with dimensions (%d,%d,%d,%d) and resetting conv pads to 0\'s' % (pads[0], pads[1], pads[2], pads[3]))
+
+            pad_node = gs.Node('Pad', pad_name, pad_attrs, pad_inputs, pad_outputs)
+
+            conv.inputs[0] = pad_outputs[0]
+            graph.nodes.append(pad_node)
+            #topographical sort should be run after this function completes to reorder the new Pad nodes
+
