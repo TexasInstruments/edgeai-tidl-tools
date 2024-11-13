@@ -84,10 +84,10 @@ def tidl_convert_batchnorm_input_to_4D (graph: gs.Graph, onnx_graph: onnx.GraphP
                 num_ones = 4 - len(dim)
                 new_shape = np.array(dim + [1]*num_ones, dtype= np.int64)
 
-                reshp_shape = gs.Constant(name= f"{inp.name}_Reshape_4D_shape",
+                reshp_shape = gs.Constant(name= f"{node.name}_Reshape_4D_shape",
                               values= new_shape)
-                reshp_out = gs.Variable(name= f"{inp.name}_Reshape_4D_out", dtype= np.float32)
-                reshp = gs.Node(name= f"{inp.name}_Reshape_4D", op= "Reshape",
+                reshp_out = gs.Variable(name= f"{node.name}_Reshape_4D_out_1", dtype= np.float32)
+                reshp = gs.Node(name= f"{node.name}_Reshape_4D", op= "Reshape",
                                 inputs= [inp, reshp_shape], outputs= [reshp_out])
 
                 logging.debug(f"Adding Reshape node {reshp.name} to convert input to shape {tuple(new_shape)}")
@@ -97,14 +97,14 @@ def tidl_convert_batchnorm_input_to_4D (graph: gs.Graph, onnx_graph: onnx.GraphP
                 node.inputs[0] = reshp_out
 
                 # redirected output
-                bn_out = gs.Variable(name= f"{node.name}_Reshape_4D_out", dtype= np.float32)
+                bn_out = gs.Variable(name= f"{node.name}_Reshape_4D_out_2", dtype= np.float32)
 
                 # add reshape to convert back to original
                 original_shape = np.array(dim, dtype= np.int64)
                 reshp_shape = gs.Constant(name= f"{node.name}_Reshape_Original_shape",
                               values= original_shape)
                 reshp_out = gs.Variable(name= f"{node.name}_Reshape_Original_out", dtype= np.float32)
-                reshp = gs.Node(name= f"{inp.name}_Reshape_Original", op= "Reshape",
+                reshp = gs.Node(name= f"{node.name}_Reshape_Original", op= "Reshape",
                                 inputs= [bn_out, reshp_shape], outputs= node.outputs)
 
                 logging.debug(f"Adding Reshape node {reshp.name} to convert input to shape {tuple(original_shape)}")
