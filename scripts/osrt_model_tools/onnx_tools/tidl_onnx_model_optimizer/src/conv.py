@@ -151,7 +151,7 @@ def tidl_convert_conv_large_pad_to_smaller_kernel (graph: gs.Graph, onnx_graph: 
             # bias need not change
 
 
-def tidl_convert_conv_7x7_stride4_to_stride2(graph: gs.Graph, onnx_graph: onnx.GraphProto):
+def tidl_convert_conv_7x7_stride4_to_stride1(graph: gs.Graph, onnx_graph: onnx.GraphProto):
 
     for node in graph.nodes:
         if node.op == 'Conv':

@@ -83,14 +83,14 @@ models_configs = {
         'model_path' : os.path.join(models_base_path, 'add_const.tflite'),
         'source' : {'model_url': 'dummy', 'opt': True}, # URL irrelavant if model present in specified path
         'num_images' : numImages,
-        'model_type': 'classification'
+        'task_type': 'classification'
     },
     ##onnx
     'add_eltwise' : {  
         'model_path' : os.path.join(models_base_path, 'add_eltwise.onnx'),
         'source' : {'model_url': 'dummy', 'opt': True}, # URL irrelavant if model present in specified path
         'num_images' : numImages,
-        'model_type': 'classification'
+        'task_type': 'classification'
     },
 }
 
