@@ -196,7 +196,7 @@ cp_osrt_lib()
 
 
 SCRIPTDIR=`pwd`
-REL=10_00_08_00
+REL=10_01_00_02
 skip_cpp_deps=0
 skip_arm_gcc_download=0
 skip_x86_python_install=0
@@ -311,13 +311,13 @@ if [[ $arch == x86_64 ]]; then
         echo 'Installing python osrt packages from local...'
         pip_install_local dlr-1.13.0-py3-none-any.whl
         pip_install_local tvm-0.12.0-cp310-cp310-linux_x86_64.whl
-        pip_install_local onnxruntime_tidl-1.14.0+10000005-cp310-cp310-linux_x86_64.whl
+        pip_install_local onnxruntime_tidl-1.15.0-cp310-cp310-linux_x86_64.whl
         pip_install_local tflite_runtime-2.12.0-cp310-cp310-linux_x86_64.whl
     else
         echo 'Installing python osrt packages...'
         pip3 install --quiet https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/dlr-1.13.0-py3-none-any.whl
         pip3 install --quiet https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/tvm-0.12.0-cp310-cp310-linux_x86_64.whl
-        pip3 install --quiet https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/onnxruntime_tidl-1.14.0+10000005-cp310-cp310-linux_x86_64.whl
+        pip3 install --quiet https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/onnxruntime_tidl-1.15.0-cp310-cp310-linux_x86_64.whl
         pip3 install --quiet https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/tflite_runtime-2.12.0-cp310-cp310-linux_x86_64.whl
     fi
 fi
@@ -469,24 +469,24 @@ if [ $skip_cpp_deps -eq 0 ]; then
         # onnx
         if [ ! -d onnx_1.7.0_x86_u22 ];then
             echo "Installing:onnxruntime"
-            if [ -f onnx_1.14.0_x86_u22.tar.gz ];then
-                rm onnx_1.14.0_x86_u22.tar.gz
+            if [ -f onnx_1.15.0_x86_u22.tar.gz ];then
+                rm onnx_1.15.0_x86_u22.tar.gz
             fi
             if [[ $use_local == 1 ]];then
-                cp_osrt_lib onnx_1.14.0_x86_u22.tar.gz
+                cp_osrt_lib onnx_1.15.0_x86_u22.tar.gz
             else
-                wget --quiet   https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/onnx_1.14.0_x86_u22.tar.gz
+                wget --quiet   https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/onnx_1.15.0_x86_u22.tar.gz
             fi
-            tar -xf onnx_1.14.0_x86_u22.tar.gz
-            cd onnx_1.14.0_x86_u22
+            tar -xf onnx_1.15.0_x86_u22.tar.gz
+            cd onnx_1.15.0_x86_u22
             if [ ! -f libonnxruntime.so ];then
-                ln -s libonnxruntime.so.1.14.0+10000005 libonnxruntime.so
+                ln -s libonnxruntime.so.1.15.0 libonnxruntime.so
             fi
-            if [ ! -f libonnxruntime.so.1.14.0+10000005 ];then
-                ln -s libonnxruntime.so libonnxruntime.so.1.14.0+10000005
+            if [ ! -f libonnxruntime.so.1.15.0 ];then
+                ln -s libonnxruntime.so libonnxruntime.so.1.15.0
             fi
             cd ../
-            rm onnx_1.14.0_x86_u22.tar.gz
+            rm onnx_1.15.0_x86_u22.tar.gz
         else
             echo "skipping onnxruntime setup: found $TIDL_TOOLS_PATH/osrt_deps/onnxruntime"
             echo "To redo the setup delete:$TIDL_TOOLS_PATH/osrt_deps/onnxruntime and run this script again"

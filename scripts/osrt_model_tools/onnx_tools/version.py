@@ -32,7 +32,7 @@ Versioning
 
 import argparse
 
-__version__ = '9.2.0'
+__version__ = '10.1.0'
 
 
 def print_version():

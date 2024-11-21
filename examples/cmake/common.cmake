@@ -35,8 +35,8 @@ else()
 endif()
 
 
-if (EXISTS $ENV{TIDL_TOOLS_PATH}/osrt_deps/onnx_1.14.0_x86_u22/)
-  set(ONNXRT_INSTALL_DIR $ENV{TIDL_TOOLS_PATH}/osrt_deps/onnx_1.14.0_x86_u22/)# check for PC
+if (EXISTS $ENV{TIDL_TOOLS_PATH}/osrt_deps/onnx_1.15.0_x86_u22/)
+  set(ONNXRT_INSTALL_DIR $ENV{TIDL_TOOLS_PATH}/osrt_deps/onnx_1.15.0_x86_u22/)# check for PC
 else()
   # avoid warning in case of  hw accelerated device which have this in filesystem
   if( NOT ((NOT ${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" AND ${HOST_CPU} STREQUAL  "arm"))  )
