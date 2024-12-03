@@ -62,6 +62,9 @@ The different optimizations performed are summarized here along with their defau
 | 18 | expand_slice_across_multiple_axis | Slice along a single axis is currently supported for TIDL import. This will split the slice into multiple slices each acting on a single axis. | True |
 | 19 | convert_instancenorm_to_layernorm | InstanceNormalisation is not supported in TIDL, converting it to LayerNorm with the same functionality. | True |
 | 20 | convert_unsqueeze_to_reshape | Converts the Unsqueeze layer to reshape layer for support. | True |
+| 21 | add_bias_qdq | Adds the bias quantization to conv layers if not already there (Weight_params * Act_params) | True |
+| 22 | remove_quantize_initializer | Removes the Quantization node in initialisers (reduces the model size as input becomes 8-bit) - Use only for PT2E exported models (quantization=3) | False |
+| 23 | remove_duplicate_quantize_dequantize | Removes the duplicate sequential Q-DQ layers (keeps the first quant params) | True |
 
 
 ### NOTE

@@ -152,3 +152,38 @@ def tidl_remove_quantize_initializer(graph: gs.Graph, onnx_graph: onnx.GraphProt
                 dequant_node.inputs[0] = gs.Constant(name= node.name + "_quantized", values=quant_weight)
             node.outputs.clear()
             logging.debug(f"Changing input of node {dequant_node.name}")
+
+
+
+def tidl_remove_duplicate_quantize_dequantize(graph: gs.Graph, onnx_graph: onnx.GraphProto):
+    """
+    Remove the duplicate Q-DQ layers that occur in the quantized model, will just keep the first Q-DQ in the bunch of layers
+    """
+    nodes = graph.nodes
+    
+    for node in nodes:
+        if (node.op == "QuantizeLinear") and isinstance(node.inputs[0], gs.Constant): #found the needed weight
+            pass
+            # input_weight = node.inputs[0].values
+            # weight_shape = input_weight.shape
+            # if len(weight_shape)==0:
+            #     target_shape = (-1)
+            #     continue
+            # else:
+            #     target_shape = np.ones_like(weight_shape)
+            #     target_shape[0] = -1
+            # input_scale =  node.inputs[1].values
+            # if len(node.inputs)>2:
+            #     input_zero_point = node.inputs[2].values
+            # else:
+            #     input_zero_point = np.zeros_like(input_scale, dtype=np.uint8)
+            # dequant_node = find_out_layers(node)[0]
+            # zero_point_dtype = dequant_node.inputs[2].values.dtype if len(dequant_node.inputs)>2 else np.uint8
+            # quant_weight = np.round(np.divide(input_weight, input_scale.reshape(target_shape)) + input_zero_point.reshape(target_shape)).astype(zero_point_dtype)
+            # if quant_weight.shape[0]==1 and len(quant_weight.shape)==1:
+            #     dequant_node.inputs[0] = gs.Constant(name= node.name + "_quantized", values=np.array(quant_weight[0], dtype=zero_point_dtype))
+            # else:
+            #     dequant_node.inputs[0] = gs.Constant(name= node.name + "_quantized", values=quant_weight)
+            # node.outputs.clear()
+            # logging.debug(f"Changing input of node {dequant_node.name}")
+

@@ -84,7 +84,7 @@ from .src.layernorm import tidl_expand_layernorm_to_component_ops
 from .src.slice import tidl_expand_slice_across_multiple_axis
 from .src.instancenorm import tidl_convert_instancenorm_to_layernorm
 from .src.unsqueeze import tidl_convert_unsqueeze_to_reshape
-from .src.qdq import tidl_add_bias_qdq, tidl_remove_quantize_initializer
+from .src.qdq import tidl_add_bias_qdq, tidl_remove_quantize_initializer, tidl_remove_duplicate_quantize_dequantize
 
 
 ### function dict to execute
@@ -112,6 +112,7 @@ opt_ops = {
         'convert_unsqueeze_to_reshape'              : tidl_convert_unsqueeze_to_reshape,
         'add_bias_qdq'                              : tidl_add_bias_qdq,
         'remove_quantize_initializer'               : tidl_remove_quantize_initializer,
+        'remove_duplicate_quantize_dequantize'      : tidl_remove_duplicate_quantize_dequantize
 }
 
 
@@ -140,6 +141,7 @@ adj_list = {
         'convert_unsqueeze_to_reshape'              : [],
         'add_bias_qdq'                              : [],
         'remove_quantize_initializer'               : [],
+        'remove_duplicate_quantize_dequantize'      : []
 }
 
 def get_optimizers():
@@ -171,6 +173,7 @@ def get_optimizers():
         'convert_unsqueeze_to_reshape'              : True,
         'add_bias_qdq'                              : True,
         'remove_quantize_initializer'               : False, # some bug, use only for pt2e exported models
+        'remove_duplicate_quantize_dequantize'      : True,
 
         # utilities specific
         'shape_inference_mode'      : 'all',
@@ -184,8 +187,7 @@ def test_optimizers():
     """
     return {
         # operation specific to be specified here
-        'add_bias_qdq' : False,
-        'remove_quantize_initializer' : True,
+        'remove_duplicate_quantize_dequantize' : True,
 
         # utilities specific
         'shape_inference_mode'      : 'all',

@@ -3,7 +3,7 @@ from tidl_onnx_model_optimizer.ops import test_optimizers
 import numpy as np
 import onnxruntime
 
-model_name = "" # add the path to your onnx file here
+model_name = "/home/a0491009/quantization/edgeai-transformers/outputs/deit-tiny-patch16-224_quantized.onnx" # add the path to your onnx file here
 
 optimizers = test_optimizers() # need to modify this to debug your transformation
 # optimizers = None # checks the default setting
