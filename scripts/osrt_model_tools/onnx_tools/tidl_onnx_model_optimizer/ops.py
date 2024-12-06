@@ -79,7 +79,7 @@ from .src.batchnorm import tidl_convert_batchnorm_input_to_4D
 from .src.softmax import tidl_convert_softmax_axis_channel_to_width, tidl_convert_softmax_axis_height_to_width
 from .src.softmax import tidl_push_large_channel_dim_to_height_for_width_wise_softmax
 from .src.conv import tidl_convert_conv_large_pad_to_smaller_kernel
-from .src.conv import tidl_convert_conv_7x7_stride4_to_stride2
+from .src.conv import tidl_convert_conv_7x7_stride4_to_stride1
 from .src.layernorm import tidl_expand_layernorm_to_component_ops
 from .src.slice import tidl_expand_slice_across_multiple_axis
 from .src.instancenorm import tidl_convert_instancenorm_to_layernorm
@@ -103,7 +103,7 @@ opt_ops = {
         'convert_softmax_axis_height_to_width'      : tidl_convert_softmax_axis_height_to_width,
         'push_large_channel_dim_to_height_for_width_wise_softmax': tidl_push_large_channel_dim_to_height_for_width_wise_softmax,
         'convert_conv_large_pad_to_smaller_kernel'  : tidl_convert_conv_large_pad_to_smaller_kernel,
-        'convert_conv_7x7_stride4_to_stride2'       : tidl_convert_conv_7x7_stride4_to_stride2,
+        'convert_conv_7x7_stride4_to_stride1'       : tidl_convert_conv_7x7_stride4_to_stride1,
         'expand_layernorm_to_component_ops'         : tidl_expand_layernorm_to_component_ops,
         'push_matmul_channel_in_height'             : tidl_push_matmul_channel_in_height,
         'expand_slice_across_multiple_axis'         : tidl_expand_slice_across_multiple_axis,
@@ -129,7 +129,7 @@ adj_list = {
         'convert_softmax_axis_height_to_width'      : [],
         'push_large_channel_dim_to_height_for_width_wise_softmax': [],
         'convert_conv_large_pad_to_smaller_kernel'  : [],
-        'convert_conv_7x7_stride4_to_stride2'       : [],
+        'convert_conv_7x7_stride4_to_stride1'       : [],
         'expand_layernorm_to_component_ops'         : ['attention_block_optimization'],
         'push_matmul_channel_in_height'             : [],
         'expand_slice_across_multiple_axis'         : [],
@@ -147,7 +147,7 @@ def get_optimizers():
         'convert_concat_axis_width_to_channel'      : False,
         'attention_block_optimization'              : False,
         'split_batch_dim_to_parallel_input_branches': False,
-        'convert_maxpool_to_cascaded_maxpool'       : False,
+        'convert_maxpool_to_cascaded_maxpool'       : True,
         'convert_reducemean_to_matmul'              : False,
         'convert_gemm_to_matmul_and_add'            : True,
         'convert_matmul_to_conv_1x1s1'              : False,
@@ -158,7 +158,7 @@ def get_optimizers():
         'convert_softmax_axis_height_to_width'      : True,
         'push_large_channel_dim_to_height_for_width_wise_softmax': True,
         'convert_conv_large_pad_to_smaller_kernel'  : False,
-        'convert_conv_7x7_stride4_to_stride2'       : True,
+        'convert_conv_7x7_stride4_to_stride1'       : True,
         'expand_layernorm_to_component_ops'         : True,
         'push_matmul_channel_in_height'             : False,
         'expand_slice_across_multiple_axis'         : True,
