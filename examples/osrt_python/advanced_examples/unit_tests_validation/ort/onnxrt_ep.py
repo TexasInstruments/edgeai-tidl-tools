@@ -17,6 +17,15 @@ parent = os.path.dirname(current)
 sys.path.append(parent)
 from common_utils import *
 
+model_optimizer_found = False
+if platform.machine() != "aarch64":
+    try:
+        from osrt_model_tools.onnx_tools.tidl_onnx_model_optimizer import optimize
+
+        model_optimizer_found = True
+    except ModuleNotFoundError as e:
+        print("Skipping import of model optimizer")
+
 required_options = {
 "tidl_tools_path":tidl_tools_path,
 "artifacts_folder":artifacts_folder
@@ -27,6 +36,12 @@ parser.add_argument('-c','--compile', action='store_true', help='Run in Model co
 parser.add_argument('-d','--disable_offload', action='store_true',  help='Disable offload to TIDL')
 parser.add_argument('-u','--unit_test', action='store_true', help='Run unit test case')
 parser.add_argument('-n','--ncpus', type=int, default=None, help='Number of threads to spawn')
+parser.add_argument(
+    "-o",
+    "--graph_optimize",
+    action="store_true",
+    help="Run ONNX model optimization thourgh onnx-graph-surgeon-tidl",
+)
 
 args = parser.parse_args()
 os.environ["TIDL_RT_PERFSTATS"] = "1"
@@ -119,6 +134,40 @@ def infer_image(sess):
 def run_model(model, mIdx):
     print("\nRunning_Model : ", model, " \n")
     config = models_configs[model]
+
+    # Run graph optimization
+    if args.graph_optimize:
+        if model_optimizer_found:
+            if (args.compile or args.disable_offload) and (
+                platform.machine() != "aarch64"
+            ):
+                copy_path = config["model_path"][:-5] + "_org.onnx"
+                # Check if copy path exists and prompt for permission to overwrite
+                if os.path.isfile(copy_path):
+                    overwrite_permission = input(
+                        f"\033[96mThe file {copy_path} exists, do you want to overwrite? [Y/n] \033[00m"
+                    )
+                    if overwrite_permission != "Y":
+                        print("Aborting run...")
+                        sys.exit(-1)
+                    else:
+                        print(
+                            f"\033[93m[WARNING] File {copy_path} will be overwritten\033[00m"
+                        )
+
+                shutil.copy2(config["model_path"], copy_path)
+                print(
+                    f"\033[93mOptimization Enabled: Moving {config['model_path']} to {copy_path} before overwriting by optimization\033[00m"
+                )
+                optimize(
+                    model=config["model_path"], out_model=config["model_path"]
+                )
+            else:
+                print(
+                    "Model optimization is only supported in compilation or disabled offload mode on x86 machines"
+                )
+        else:
+            print("Model optimizer not found, -o flag has no effect")
 
     delegate_options = {}
     delegate_options.update(required_options)
