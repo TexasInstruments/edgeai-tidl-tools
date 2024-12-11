@@ -85,6 +85,8 @@ from .src.slice import tidl_expand_slice_across_multiple_axis
 from .src.instancenorm import tidl_convert_instancenorm_to_layernorm
 from .src.unsqueeze import tidl_convert_unsqueeze_to_reshape
 from .src.qdq import tidl_add_bias_qdq, tidl_remove_quantize_initializer, tidl_remove_duplicate_quantize_dequantize
+from .src.neg import tidl_convert_neg_to_mul
+from .src.expand import tidl_convert_expand_to_reshape_and_concat
 
 
 ### function dict to execute
@@ -112,7 +114,10 @@ opt_ops = {
         'convert_unsqueeze_to_reshape'              : tidl_convert_unsqueeze_to_reshape,
         'add_bias_qdq'                              : tidl_add_bias_qdq,
         'remove_quantize_initializer'               : tidl_remove_quantize_initializer,
-        'remove_duplicate_quantize_dequantize'      : tidl_remove_duplicate_quantize_dequantize
+        'remove_duplicate_quantize_dequantize'      : tidl_remove_duplicate_quantize_dequantize,
+        "convert_neg_to_mul"                        : tidl_convert_neg_to_mul,
+        "convert_expand_to_reshape_and_concat"      : tidl_convert_expand_to_reshape_and_concat
+
 }
 
 
@@ -141,7 +146,9 @@ adj_list = {
         'convert_unsqueeze_to_reshape'              : [],
         'add_bias_qdq'                              : [],
         'remove_quantize_initializer'               : [],
-        'remove_duplicate_quantize_dequantize'      : []
+        'remove_duplicate_quantize_dequantize'      : [],
+        "convert_neg_to_mul"                        : [],
+        "convert_expand_to_reshape_and_concat"      : []
 }
 
 def get_optimizers():
@@ -166,7 +173,7 @@ def get_optimizers():
         'push_large_channel_dim_to_height_for_width_wise_softmax': True,
         'convert_conv_large_pad_to_smaller_kernel'  : False,
         'convert_conv_7x7_stride4_to_stride1'       : True,
-        'expand_layernorm_to_component_ops'         : True,
+        'expand_layernorm_to_component_ops'         : False, # Added support in import, no longer needed
         'push_matmul_channel_in_height'             : False,
         'expand_slice_across_multiple_axis'         : True,
         'convert_instancenorm_to_layernorm'         : True,
@@ -174,6 +181,8 @@ def get_optimizers():
         'add_bias_qdq'                              : True,
         'remove_quantize_initializer'               : False, # some bug, use only for pt2e exported models
         'remove_duplicate_quantize_dequantize'      : True,
+        "convert_neg_to_mul"                        : True,
+        "convert_expand_to_reshape_and_concat"      : True,
 
         # utilities specific
         'shape_inference_mode'      : 'all',

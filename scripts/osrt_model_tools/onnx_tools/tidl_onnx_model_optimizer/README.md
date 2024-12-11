@@ -65,6 +65,8 @@ The different optimizations performed are summarized here along with their defau
 | 21 | add_bias_qdq | Adds the bias quantization to conv layers if not already there (Weight_params * Act_params) | True |
 | 22 | remove_quantize_initializer | Removes the Quantization node in initialisers (reduces the model size as input becomes 8-bit) - Use only for PT2E exported models (quantization=3) | False |
 | 23 | remove_duplicate_quantize_dequantize | Removes the duplicate sequential Q-DQ layers (keeps the first quant params) | True |
+| 23 | convert_neg_to_mul | Converts the Neg layer (from RoPE) to mul by -1 | True |
+| 23 | convert_expand_to_reshape_and_concat | Converts the expand layer to reshape and concat | True |
 
 
 ### NOTE

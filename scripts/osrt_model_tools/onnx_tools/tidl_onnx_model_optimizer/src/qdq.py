@@ -163,6 +163,7 @@ def tidl_remove_duplicate_quantize_dequantize(graph: gs.Graph, onnx_graph: onnx.
     
     for node in nodes:
         if (node.op == "QuantizeLinear") and isinstance(node.inputs[0], gs.Constant): #found the needed weight
+            logging.info(f"remove_duplicate_quantize_dequantize is not yet implemented \n")
             pass
             # input_weight = node.inputs[0].values
             # weight_shape = input_weight.shape
