@@ -75,7 +75,7 @@ pthread_barrier_t barrier;
 /* This struct specifies the arguments expected to be provided by user as part of the gPriorityMapping */
 typedef struct
 {
-    std::string model_artifacts_path;
+    std::string model_dir_path;
     int priority;
     float max_pre_empt_delay;
     int in_width;
@@ -218,7 +218,7 @@ void * infer(void * argument) {
     model_generic_info * model_info = arg->model_info[i];
     model_input_info * model_input_args = arg->model_input_args[i];
 
-    std::string artifacts_path = model_input_args->model_artifacts_path;
+    std::string artifacts_path = model_input_args->model_dir_path + "/artifacts/";
     
     char net_name[512];
     char io_name[512];
@@ -667,7 +667,7 @@ int runInference(Priority_settings * s)
         modelInfo[j][k].thread_id = j;
         modelInfo[j][k].model_id = k;
         /* Populate model name */
-        std::string modelName = model_inputs.model_artifacts_path;
+        std::string modelName = model_inputs.model_dir_path;
         size_t sep = modelName.find_last_of("\\/");
         if (sep != std::string::npos)
             modelName = modelName.substr(sep + 1, modelName.size() - sep - 1);
