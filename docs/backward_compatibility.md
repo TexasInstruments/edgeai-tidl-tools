@@ -1,6 +1,6 @@
 # Enabling backward compatibility
 
-This section describes how to use an updated tools version (Say from SDK 10.x) with a lower SDK version (e.g. SDK 9.2). The tools version will clearly call out that if this is possible in the [Version Compatibility Table](../docs/version_compatibility_table.md). 
+This section describes how to use an updated tools version (Say from SDK 10.1) with a lower SDK version (e.g. SDK 10.0). The tools version will clearly call out that if this is possible in the [Version Compatibility Table](../docs/version_compatibility_table.md). 
 
 > **_NOTE:_**
 > This is an experimental feature which has gone through limited validation
@@ -46,7 +46,7 @@ export UPDATE_FIRMWARE_AND_LIB=1
 ```
 mkdir build
 cd build
-cmake ../examples -DENABLE_SDK_9_2_COMPATIBILITY=1
+cmake ../examples
 make -j
 cd ../
 ```
