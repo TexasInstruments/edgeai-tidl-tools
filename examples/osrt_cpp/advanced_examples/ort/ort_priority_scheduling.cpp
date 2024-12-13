@@ -376,7 +376,7 @@ namespace onnx
             if (s->accel)
             {
                 c_api_tidl_options *options = (c_api_tidl_options *)malloc(sizeof(c_api_tidl_options));
-                OrtSessionsOptionsSetDefault_Tidl(options);
+                OrtStatus *def_status = OrtSessionsOptionsSetDefault_Tidl(options);
                 if (options == NULL)
                 {
                     LOG_ERROR("failed to allocate c_api_tidl_options \n");
@@ -992,10 +992,11 @@ namespace onnx
             OrtEnv *environment;
             int ret;
             OrtThreadingOptions *envOpts = nullptr;
-            Ort::GetApi().CreateThreadingOptions(&envOpts);
-            Ort::GetApi().SetGlobalInterOpNumThreads(envOpts, 0);
-            Ort::GetApi().SetGlobalSpinControl(envOpts, false);
-            Ort::GetApi().CreateEnvWithGlobalThreadPools(ORT_LOGGING_LEVEL_WARNING, "test", envOpts, &environment);
+            OrtStatus *status;
+            status = Ort::GetApi().CreateThreadingOptions(&envOpts);
+            status = Ort::GetApi().SetGlobalInterOpNumThreads(envOpts, 0);
+            status = Ort::GetApi().SetGlobalSpinControl(envOpts, false);
+            status = Ort::GetApi().CreateEnvWithGlobalThreadPools(ORT_LOGGING_LEVEL_WARNING, "test", envOpts, &environment);
             Ort::Env env = Ort::Env(environment);
             struct Inference_info *inference_infos = (struct Inference_info *)malloc(sizeof(struct Inference_info) * s->number_of_threads * 4);
             for (size_t i = 0; i < NUM_PARLLEL_MODELS; i++)

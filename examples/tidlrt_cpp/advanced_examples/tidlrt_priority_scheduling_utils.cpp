@@ -88,7 +88,7 @@ void TIDL_createTable(std::ostream &stream,
   {
     if(d.size() != numColumn)
     {
-      printf("No of headers columns - %d does not match number of data column - %d\n", numColumn, d.size());
+      printf("No of headers columns - %d does not match number of data column - %ld\n", numColumn, d.size());
       return;
     }
   }
@@ -217,13 +217,14 @@ void TIDL_createTable(std::ostream &stream,
 void getModelNameromArtifactsDir(char* path, char * net_name, char *io_name)
 {
   char sys_cmd[500];
+  int status = 0;
   sprintf(sys_cmd, "ls %s/*net.bin | head -1", path);
   FILE * fp = popen(sys_cmd,  "r");
   if (fp == NULL)
   {
     printf("Error while runing command : %s", sys_cmd);
   }
-  fscanf(fp, "%s", net_name);
+  status = fscanf(fp, "%s", net_name);
   fclose(fp);
 
   sprintf(sys_cmd, "ls %s/*io_1.bin | head -1", path);
@@ -232,7 +233,7 @@ void getModelNameromArtifactsDir(char* path, char * net_name, char *io_name)
   {
     printf("Error while runing command : %s", sys_cmd);
   }
-  fscanf(fp, "%s", io_name);
+  status = fscanf(fp, "%s", io_name);
   fclose(fp);
   return;
 }
@@ -243,7 +244,8 @@ int32_t TIDLReadBinFromFile(const char *fileName, void *addr, int32_t size)
     fptr = fopen((const char *)fileName, "rb");
     if (fptr)
     {
-      fread(addr, size, 1, fptr);
+      size_t fsize;
+      fsize = fread(addr, size, 1, fptr);
       fclose(fptr);
       return 0;
     }

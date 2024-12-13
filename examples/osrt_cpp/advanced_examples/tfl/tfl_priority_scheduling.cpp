@@ -247,9 +247,9 @@ namespace tflite
                 tflite_plugin_create_delegate tflite_plugin_dlg_create;
                 char prior_char[2], pre_empt_char[64];
                 std::sprintf(prior_char, "%d", 0);
-                std::sprintf(pre_empt_char, "%d", FLT_MAX);
-                char *keys[] = {"artifacts_folder", "num_tidl_subgraphs", "debug_level", "priority", "max_pre_empt_delay"};
-                char *values[] = {(char *)arg->modelInfo->m_infConfig.artifactsPath.c_str(), "16", "0", (char *)prior_char, (char *)pre_empt_char};
+                std::sprintf(pre_empt_char, "%f", FLT_MAX);
+                char *keys[] = {(char *)"artifacts_folder", (char *)"num_tidl_subgraphs", (char *)"debug_level", (char *)"priority", (char *)"max_pre_empt_delay"};
+                char *values[] = {(char *)arg->modelInfo->m_infConfig.artifactsPath.c_str(), (char *)"16", (char *)"0", (char *)prior_char, (char *)pre_empt_char};
                 void *lib = dlopen("libtidl_tfl_delegate.so", RTLD_NOW);
                 assert(lib);
                 tflite_plugin_dlg_create = (tflite_plugin_create_delegate)dlsym(lib, "tflite_plugin_create_delegate");
@@ -436,8 +436,8 @@ namespace tflite
                 if (arg->s->max_pre_empts[arg->model_id] == -1)
                     arg->s->max_pre_empts[arg->model_id] = FLT_MAX;
                 std::sprintf(pre_empt_char, "%f", arg->s->max_pre_empts[arg->model_id]);
-                char *keys[] = {"artifacts_folder", "num_tidl_subgraphs", "debug_level", "priority", "max_pre_empt_delay"};
-                char *values[] = {(char *)arg->modelInfo->m_infConfig.artifactsPath.c_str(), "16", "0", (char *)prior_char, (char *)pre_empt_char};
+                char *keys[] = {(char *)"artifacts_folder", (char *)"num_tidl_subgraphs", (char *)"debug_level", (char *)"priority", (char *)"max_pre_empt_delay"};
+                char *values[] = {(char *)arg->modelInfo->m_infConfig.artifactsPath.c_str(), (char *)"16", (char *)"0", (char *)prior_char, (char *)pre_empt_char};
                 void *lib = dlopen("libtidl_tfl_delegate.so", RTLD_NOW);
                 assert(lib);
                 tflite_plugin_dlg_create = (tflite_plugin_create_delegate)dlsym(lib, "tflite_plugin_create_delegate");

@@ -638,11 +638,15 @@ int runInference(Priority_settings * s)
   LOG_INFO("Num tests = %d \n", num_tests);
   int final_status = 1;
 
-  system("mkdir -p examples/tidlrt_cpp/advanced_examples/outputs");
+  ret = system("mkdir -p examples/tidlrt_cpp/advanced_examples/outputs");
+  if (ret != 0)
+  {
+    LOG_ERROR("\n Cannot create directory examples/tidlrt_cpp/advanced_examples/outputs\n");
+  }
   if (doesDirectoryExist("examples/tidlrt_cpp/advanced_examples/outputs"))
   {
     /* Command deletes the outputs, add check if directory exists to avoid any untoward rm -f happening */
-    system("cd examples/tidlrt_cpp/advanced_examples/outputs; rm -f *; cd - > /dev/null");
+    ret = system("cd examples/tidlrt_cpp/advanced_examples/outputs; rm -f *; cd - > /dev/null");
   }
 
   aggregate_results results[num_tests];

@@ -284,8 +284,8 @@ namespace tflite
         LOG_INFO("TIDL delegate mode\n");
         typedef TfLiteDelegate *(*tflite_plugin_create_delegate)(char **, char **, size_t, void (*report_error)(const char *));
         tflite_plugin_create_delegate tflite_plugin_dlg_create;
-        char *keys[] = {"artifacts_folder", "num_tidl_subgraphs", "debug_level"};
-        char *values[] = {(char *)modelInfo->m_infConfig.artifactsPath.c_str(), "16", "0"};
+        char *keys[] = {(char *)"artifacts_folder", (char *)"num_tidl_subgraphs", (char *)"debug_level"};
+        char *values[] = {(char *)modelInfo->m_infConfig.artifactsPath.c_str(), (char *)"16", (char *)"0"};
         void *lib = dlopen("libtidl_tfl_delegate.so", RTLD_NOW);
         assert(lib);
         tflite_plugin_dlg_create = (tflite_plugin_create_delegate)dlsym(lib, "tflite_plugin_create_delegate");
