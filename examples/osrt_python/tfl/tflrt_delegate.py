@@ -9,6 +9,7 @@ import argparse
 import re
 import multiprocessing
 import platform
+from threading import Lock
 
 current = os.path.dirname(os.path.realpath(__file__))
 parent = os.path.dirname(current)
@@ -17,6 +18,8 @@ sys.path.append(parent)
 from common_utils import *
 from model_configs import *
 from common import postprocess_utils as formatter_transform
+
+thread_mutex_lock = Lock()
 
 required_options = {
     "tidl_tools_path": tidl_tools_path,
@@ -229,7 +232,9 @@ def run_model(model, mIdx):
     '''
     print("\nRunning_Model : ", model)
     if platform.machine() != "aarch64":
+        thread_mutex_lock.acquire()
         download_model(models_configs, model)
+        thread_mutex_lock.release()
 
     config = models_configs[model]
 
@@ -454,6 +459,7 @@ else:
         models.append("cl-tfl-mobilenetv2_4batch")
 
         models.append("ss-tfl-deeplabv3_mnv2_ade20k_float_low_latency")
+    
 
 if args.run_model_zoo:
     models = [

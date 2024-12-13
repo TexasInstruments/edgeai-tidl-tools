@@ -10,6 +10,7 @@ import re
 import multiprocessing
 import platform
 import shutil
+from threading import Lock
 
 current = os.path.dirname(os.path.realpath(__file__))
 parent = os.path.dirname(current)
@@ -19,6 +20,8 @@ from common_utils import *
 from model_configs import *
 
 from common import postprocess_utils as formatter_transform
+
+thread_mutex_lock = Lock()
 
 model_optimizer_found = False
 if platform.machine() != "aarch64":
@@ -218,7 +221,9 @@ def run_model(model, mIdx):
     '''
     print("\nRunning_Model : ", model, " \n")
     if platform.machine() != "aarch64":
+        thread_mutex_lock.acquire()
         download_model(models_configs, model)
+        thread_mutex_lock.release()
 
     config = models_configs[model]
 
