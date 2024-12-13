@@ -988,30 +988,27 @@ models_configs = {
             'advanced_options:num_cores' : 4, 
         }
     ),
-    'cl-ort-resnet18_1MP_low_latency' : create_model_config(
+    'cl-ort-resnet18-v1_low_latency' : create_model_config(
         source=AttrDict(
-            model_url='http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models/vision/high_resolution/imagenet1k/torchvision/resnet18_1024x1024.onnx',  
+            model_url="https://git.ti.com/cgit/jacinto-ai/jacinto-ai-modelzoo/plain/models/vision/classification/imagenet1k/torchvision/resnet18_opset9.onnx",
             infer_shape=True,
         ),
         preprocess=AttrDict(
             resize=256,
             crop=224,
-            data_layout='NCHW',
+            data_layout="NCHW",
             resize_with_pad=False,
             reverse_channels=False,
         ),
         session=AttrDict(
-            session_name='onnxrt' ,
-            model_path=os.path.join(models_base_path, 'resnet18_1024x1024.onnx'),
+            session_name="onnxrt",
+            model_path=os.path.join(models_base_path, "resnet18_opset9.onnx"),
             input_mean=[123.675, 116.28, 103.53],
             input_scale=[0.017125, 0.017507, 0.017429],
             input_optimization=True,
         ),
-            task_type = 'classification',
-        extra_info=AttrDict(
-            num_images = numImages ,
-            num_classes = 1000
-        ),
+        task_type="classification",
+        extra_info=AttrDict(num_images=numImages, num_classes=1000),
         optional_options = {
             'advanced_options:inference_mode' : 2,  # inference mode to run low latency inference
             'advanced_options:num_cores' : 4,

@@ -473,10 +473,9 @@ else:
         # Model to demonstrate multi core parallel batch processing
         models.append("cl-ort-resnet18-v1_4batch")
         # Model to demonstrate multi core low latency inference
-        models.append("cl-ort-resnet18_1MP_low_latency")
+        models.append("cl-ort-resnet18-v1_low_latency")
     if SOC not in ("am62a", "am67a"):
         models.append("ss-ort-deeplabv3lite_mobilenetv2")
-
 if args.run_model_zoo:
     models = [
         "od-8020_onnxrt_coco_edgeai-mmdet_ssd_mobilenetv2_lite_512x512_20201214_model_onnx",
