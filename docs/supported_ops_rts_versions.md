@@ -11,18 +11,18 @@ TIDL-RT supports acceleration of the operators listed below and any unsupported 
 |:------:|:--------------|:-----------|:------|
 | 1 | LeakyRelu | TIDL_LeakyReluLayer | <ul> <li> Number of non-singleton variable input dimensions must be less than <= 6 </li></ul> | 
 | 2 | Cast | TIDL_CastLayer | <ul> <li> Only supported at the terminal nodes (Input/Output) of the network </li></ul> | 
-| 3 | Clip | TIDL_ClipLayer | <ul> <li> Number of non-singleton variable input dimensions must be less than <= 6 </li></ul> | 
-| 4 | Add/Mul/Sub/Div/Sum | TIDL_EltWiseLayer | <ul> <li> Constant tensor in Add/Mul/Sub/Div requires input dimensions of that layer to be present as part of the network, please run shape inference on your model </li><li> Only 2 inputs are supported </li><li> Number of non-singleton variable input dimensions in Add/Mul/Sub/Div must be less than <= 6 </li><li> The variable inputs in Add/Mul/Sub/Div layer must of be same dimensions or broadcast-able </li><li> Both inputs as variable are not supported in Sub/Div </li><li> Eltwise operator(Add/Mul layer) is supported only with operands of similar dimensions or broadcast supported patterns of both inputs </li><li> Constant tensor in Sub/Div layer must be a number or vector, only one dimension can be > 1 </li><li> 1D vector dimension should match with channel or width dimension </li></ul> | 
+| 3 | Clip | TIDL_ClipLayer | <ul> <li> Number of non-singleton variable input dimensions must be less than <= 6 </li><li> Only min <= 0 and max > 0 is supported </li></ul> | 
+| 4 | Add/Mul/Sub/Div/Sum/Max | TIDL_EltWiseLayer | <ul> <li> Constant tensor in Add/Mul/Sub/Div requires input dimensions of that layer to be present as part of the network, please run shape inference on your model </li><li> Only 2 inputs are supported in Add/Mul/Sub/Div layers </li><li> Number of non-singleton variable input dimensions in Add/Mul/Sub/Div must be less than <= 6 </li><li> The variable inputs in Add/Mul/Max layer must of be same dimensions or broadcast-able </li><li> Both inputs as variable are not supported in Sub/Div </li><li> Eltwise operator(Add/Mul/Max layer) is supported only with operands of similar dimensions or broadcast supported patterns of both inputs </li><li> Constant tensor in Sub/Div layer must be a number or 1D vector, only one dimension can be > 1 </li><li> 1D vector dimension should match with channel or width dimension </li></ul> | 
 | 5 | HardSigmoid | TIDL_HardSigmoidLayer | <ul> <li> Number of non-singleton variable input dimensions must be less than <= 6 </li></ul> | 
 | 6 | Concat | TIDL_ConcatLayer | <ul> <li> Only supported for axis values of -3, -2 & -1 </li><li> Not supported along the batch dimension </li><li> Number of non-singleton variable input dimensions must be less than <= 6 </li></ul> | 
 | 7 | LayerNormalization | TIDL_LayerNormLayer | <ul> <li> Number of non-singleton variable input dimensions must be less than <= 6 </li></ul> | 
 | 8 | Logistic | TIDL_SigmoidLayer | <ul> <li> Number of non-singleton variable input dimensions must be less than <= 6 </li></ul> | 
 | 9 | Sigmoid | TIDL_SigmoidLayer | <ul> <li> Number of non-singleton variable input dimensions must be less than <= 6 </li></ul> | 
-| 10 | MatMul/Gemm | TIDL_InnerProductLayer | <ul> <li> Number of non-singleton variable input dimensions must be less than <= 4 </li><li> Filter tensor input should have atleast 2 dimensions </li><li> Bias tensor input should be a vector (1, N) and N should match output dimension </li><li> Dimension of bias vector can either be [1, N] or [N] </li><li> Only supported Gemm params are transA = 0, alpha = 1.0 and beta = 1.0 </li><li> Gemm layer is not supported in TIDL when bias size != output size, please use [tidl-onnx-model-optimizer](../scripts/osrt_model_tools/onnx_tools/tidl_onnx_model_optimizer/README.md) to convert Gemm to (MatMul + Add) combination </li><li> MatMul with both signed inputs & unsigned output is not supported  </li></ul> | 
+| 10 | MatMul/Gemm | TIDL_InnerProductLayer | <ul> <li> Number of non-singleton variable input dimensions must be less than <= 4 </li><li> Filter tensor input should have atleast 2 dimensions </li><li> Bias tensor input should be a vector (1, N) and N should match output dimension </li><li> Dimension of bias vector can either be [1, N] or [N] </li><li> Only supported Gemm params are transA = 0, alpha = 1.0 and beta = 1.0. The same will processed as inner product or fully connected layer in TIDL </li><li> Gemm layer is not supported in TIDL when bias size != output size, please use [tidl-onnx-model-optimizer](../scripts/osrt_model_tools/onnx_tools/tidl_onnx_model_optimizer/README.md) to convert Gemm to (MatMul + Add) combination </li><li> MatMul with signed inputs & unsigned output is not supported  </li><li> MatMul with signed & unsigned input combination is not supported in TDA4VM & is only supported in firmware version >= 10_00_07_00 </li></ul> | 
 | 11 | Tanh | TIDL_TanhLayer | <ul> <li> Number of non-singleton variable input dimensions must be less than <= 6 </li></ul> | 
 | 12 | Softmax | TIDL_SoftMaxLayer | <ul> <li> Number of non-singleton variable input dimensions must be less than <= 6 </li><li> Only softmax along width axis is supported </li></ul> | 
 | 13 | Slice/Split | TIDL_SliceLayer | <ul> <li> Must have 4 inputs into the operator, where one is the variable (Must be <=4 dimensions) input while the other 3 are constant/initializers & 1D </li><li> Only batch size = 1 is supported </li><li> Non-one stride is not supported individually (Only supported in [Patch Merging](./tidl_fsg_vtfr.md)) </li></ul> | 
-| 14 | Gather | TIDL_GatherLayer | <ul> <li> Input dimensions must be greater than 1D </li><li> Number of non-singleton variable input dimensions must be less than <= 2 </li><li> Channel & higher dimensions for input should be 1 </li><li> Only line gather is supported </li></ul> | 
+| 14 | Gather | TIDL_GatherLayer | <ul> <li> Input dimensions must be greater than 1D </li><li> Number of non-singleton variable input dimensions must be less than <= 2 </li><li> Channel & higher dimensions for input should be 1 </li><li> Only line gather is supported </li><li> Data cannot be a constant. Only indices can be constant. </li></ul> | 
 | 15 | Relu | TIDL_ReLULayer | <ul> <li> Number of non-singleton variable input dimensions must be less than <= 6 </li></ul> | 
 | 16 | DepthToSpace | TIDL_DepthToSpaceLayer | <ul> <li> Number of non-singleton variable input dimensions must be less than <= 4 </li><li> Only blocksize values of 2, 4 and 8 are supported </li><li> Standalone DepthToSpace  is not optimal unless it is next to a 1x1 convolution layer </li><li>  AM62A & AM67A currently do not support DepthToSpace  </li></ul> | 
 | 17 | PRelu | TIDL_PReLULayer | <ul> <li> Number of non-singleton variable input dimensions must be less than <= 6 </li><li> PRelu does not support variable slope </li></ul> | 
@@ -46,6 +46,18 @@ TIDL-RT supports acceleration of the operators listed below and any unsupported 
 | 35 | ScatterND | TIDL_ScatterElementsLayer | <ul> <li> Number of non-singleton variable input dimensions must be less than <= 4 </li><li> Only 'none' reduction is supported </li><li> Updates tensor should not have more than 1 channel </li><li> Only width direction scatter is supported </li></ul> | 
 | 36 | Transpose | TIDL_TransposeLayer | <ul> <li> Number of non-singleton variable input dimensions must be less than <= 6 </li><li> Only permutes are supported when number of dimensions > 4 </li><li> Transpose over batch dimension is not supported </li></ul> | 
 | 37 | Flatten | TIDL_FlattenLayer | <ul> <li> Number of non-singleton variable input dimensions must be less than <= 4 </li></ul> | 
+| 38 | TopK | TIDL_TopKLayer | <ul> <li> TopK is not supported with 'sorted' attribute is set to 0 </li><li> Input K for TopK operator is only supported when given as an initializer in the model </li><li> TopK axis other than height is not supported </li></ul> | 
+| 39 | Sqrt | TIDL_SqrtLayer | <ul> </ul> |
+| 40 | Sin | TIDL_SinLayer | <ul> </ul> | 
+| 41 | Pow | TIDL_PowLayer | <ul> </ul> | 
+| 42 | Mish | TIDL_MishLayer | <ul> </ul> | 
+| 43 | Log | TIDL_LogLayer | <ul> </ul> | 
+| 44 | HardSwish | TIDL_HardSwishLayer | <ul> </ul> | 
+| 45 | Floor | TIDL_FloorLayer | <ul> </ul> | 
+| 46 | Exp | TIDL_ExpLayer | <ul> </ul> | 
+| 47 | Asinh | TIDL_AsinhLayer | <ul> </ul> | 
+| 48 | Asin | TIDL_AsinLayer | <ul> </ul> | 
+| 49 | Abs | TIDL_AbsLayer | <ul> </ul> | 
 </center>
 
 
@@ -58,10 +70,8 @@ TIDL-RT supports acceleration of the operators listed below and any unsupported 
 
 | S. No. | ONNX Operator | Fused TIDL Layer | Notes |
 |:------:|:--------------|:-----------|:------|
-| 1 | Pow | TIDL_LayerNormLayer | <ul> <li> Only supported as part of the fused combination of [Layernorm](./tidl_fsg_vtfr.md) with the second operand set to a value of 2 </li></ul> | 
-| 2 | ReduceMean | TIDL_LayerNormLayer | <ul> <li> Supported as part of the fused combination of [Layernorm](./tidl_fsg_vtfr.md). It can be individually supported by using [tidl-onnx-model-optimizer](../scripts/osrt_model_tools/onnx_tools/tidl_onnx_model_optimizer/README.md) - however it should not be converted to MatMul if it is part of Layernorm's representation  </li></ul> | 
-| 3 | Erf | TIDL_GELULayer | <ul> <li> Supported as part of the fused combination of [GELU](./tidl_fsg_vtfr.md) </li></ul> | 
-| 4 | Sqrt | TIDL_LayerNormLayer | <ul> <li> Only supported as part of the fused combination of [Layernorm](./tidl_fsg_vtfr.md) </li></ul> | 
+| 1 | ReduceMean | TIDL_LayerNormLayer | <ul> <li> Supported as part of the fused combination of [Layernorm](./tidl_fsg_vtfr.md). It can be individually supported by using [tidl-onnx-model-optimizer](../scripts/osrt_model_tools/onnx_tools/tidl_onnx_model_optimizer/README.md) - however it should not be converted to MatMul if it is part of Layernorm's representation  </li></ul> | 
+| 2 | Erf | TIDL_GELULayer | <ul> <li> Supported as part of the fused combination of [GELU](./tidl_fsg_vtfr.md) </li></ul> | 
 
 </center>
 
@@ -82,13 +92,13 @@ TIDL-RT supports acceleration of the operators listed below and any unsupported 
 | 6 | Mean | TIDL_PoolingLayer | <ul> <li> Input should be variable </li><li> Number of non-singleton variable input dimensions must be less than <= 4 </li><li> Pooling has been validated for the following kernel sizes: 3x3,2x2s,1x1 with stride 1 and stride 2 (both horizontal and vertical dimensions) </li></ul> | 
 | 7 | Softmax | TIDL_SoftMaxLayer | <ul> <li> Number of non-singleton variable input dimensions must be less than <= 6 </li></ul> | 
 | 8 | Prelu | TIDL_ReLULayer | <ul> <li> Number of non-singleton variable input dimensions must be less than <= 6 </li></ul> | 
-| 9 | Mul/Sub/Add/Div | TIDL_EltWiseLayer | <ul> <li> Constant tensor in Add/Mul/Sub/Div requires input dimensions of that layer to be present as part of the network </li><li> Only 2 inputs are supported in Add/Mul/Sub layers </li><li> Number of non-singleton variable input dimensions in Add/Mul/Sub/Div must be less than <= 6 </li><li> The variable inputs in Add/Mul/Sub/Div layer must of be same dimensions or broadcast-able </li><li> Both inputs as variable are not supported in Sub/Div </li><li> Eltwise operator(Add/Mul layer) is supported only with operands of similar dimensions or broadcast supported patterns of both inputs </li><li> Constant tensor in Sub/Div layer must be a number or vector, only one dimension can be > 1 </li><li> 1D vector dimension should match with channel or width dimension </li></ul> | 
+| 9 | Add/Mul/Sub/Div | TIDL_EltWiseLayer | <ul> <li> Constant tensor in Add/Mul/Sub/Div requires input dimensions of that layer to be present as part of the network </li><li> Only 2 inputs are supported in Add/Mul/Sub/Div layers </li><li> Number of non-singleton variable input dimensions in Add/Mul/Sub/Div must be less than <= 6 </li><li> The variable inputs in Add/Mul layer must of be same dimensions or broadcast-able </li><li> Both inputs as variable are not supported in Sub/Div </li><li> Eltwise operator(Add/Mul layer) is supported only with operands of similar dimensions or broadcast supported patterns of both inputs </li><li> Constant tensor in Sub/Div layer must be a number or 1D vector, only one dimension can be > 1 </li><li> 1D vector dimension should match with channel or width dimension </li></ul> | 
 | 10 | Tanh | TIDL_TanhLayer | <ul> <li> Number of non-singleton variable input dimensions must be less than <= 6 </li></ul> | 
 | 11 | Pad | TIDL_PadLayer | <ul> <li> Maximum number of input dimension supported is 6 </li><li> Padding is only supported for width/height axes </li><li> Pad layer is expected to provide 8 pad values </li></ul> | 
-| 12 | FullyConnected | TIDL_InnerProductLayer | <ul> <li> Number of non-singleton variable input dimensions must be less than <= 4 </li><li> Filter tensor input should have atleast 2 dimensions </li><li> Filter dimension and input dimension should match </li><li> Filter and input dimension must match </li><li> Bias tensor input should be a vector (1, N) and N should match output dimension </li><li> Bias tensor input should be a vector (1, N) and N should match output dimension </li><li> Dimension of bias vector can either be [1, N] or [N] </li><li> Only supported Gemm params are transA = 0, alpha = 1.0 and beta = 1.0 </li></ul> | 
+| 12 | FullyConnected | TIDL_InnerProductLayer | <ul> <li> Number of non-singleton variable input dimensions must be less than <= 4 </li><li> Filter tensor input should have atleast 2 dimensions </li><li> Filter and input must of be of same dimensions or broadcast-able </li><li> Bias tensor input should be a vector (1, N) and N should match output dimension </li><li> Dimension of bias vector can either be [1, N] or [N] </li></ul> | 
 | 13 | Squeeze | TIDL_SqueezeLayer | <ul> </ul> | 
 | 14 | Logistic | TIDL_SigmoidLayer | <ul> <li> Number of non-singleton variable input dimensions must be less than <= 6 </li></ul> | 
-| 15 | MaxPool2d | TIDL_PoolingLayer | <ul> <li> Input should be variable </li><li> Number of non-singleton variable input dimensions must be less than <= 4 </li><li> Pooling has been validated for the following kernel sizes: 3x3,2x2s,1x1 with stride 1 and stride 2 (both horizontal and vertical dimensions) </li></ul> |  
+| 15 | MaxPool2d | TIDL_PoolingLayer | <ul> <li> Input should be variable </li><li> Number of non-singleton variable input dimensions must be less than <= 4 </li><li> Pooling has been validated for the following kernel sizes: 3x3,2x2s,1x1 with stride 1 and stride 2 (both horizontal and vertical dimensions) </li></ul> | 
 | 16 | Relu | TIDL_ReLULayer | <ul> <li> Number of non-singleton variable input dimensions must be less than <= 6 </li></ul> | 
 | 17 | Conv2d/DepthwiseConv2d | TIDL_ConvolutionLayer | <ul> <li> Only one variable input is allowed </li><li> Number of non-singleton variable input dimensions must be less than <= 4 </li><li> Weight tensor dimension must match the kernel_shape </li><li> Stride must be the same along both horizontal and vertical dimensions </li><li> Kernel size 3x3 with stride 3 is not supported in AM62A </li><li> Kernel size greater than 7 with stride 2 is not supported </li><li> Depthwise (Fully Grouped) convolution is only supported for 3x3s1, 3x3s2, 5x5s2, 5x5s2, 7x7s1 & 7x7s2 filters </li><li> Stride 4 is only supported with Kernel size 11x11 </li><li> Input width less than MAX(PadL, PadR) is not supported </li></ul> | 
 | 18 | Elu | TIDL_ELULayer | <ul> <li> Number of non-singleton variable input dimensions must be less than <= 6 </li></ul> | 
@@ -112,8 +122,8 @@ TIDL-RT supports acceleration of the operators listed below and any unsupported 
 
 # Supported model formats & operator versions
 Proto files from the versions below are used for validating pre-trained models. In most cases, models from new versions should also work since the core operators tend to remain the same
-  - ONNX - 1.13.0 
-  - ONNX Runtime - 1.14.0 (OPSET-18)
+  - ONNX - 1.14.0 
+  - ONNX Runtime - 1.15.0 (OPSET-18)
   - TFLite - Tensorflow 2.12.0
 
 <br>
