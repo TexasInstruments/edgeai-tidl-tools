@@ -175,14 +175,14 @@ def get_optimizers():
         'convert_conv_7x7_stride4_to_stride1'       : True,
         'expand_layernorm_to_component_ops'         : False, # Added support in import, no longer needed
         'push_matmul_channel_in_height'             : False,
-        'expand_slice_across_multiple_axis'         : True,
-        'convert_instancenorm_to_layernorm'         : True,
-        'convert_unsqueeze_to_reshape'              : True,
-        'add_bias_qdq'                              : True,
+        'expand_slice_across_multiple_axis'         : False,
+        'convert_instancenorm_to_layernorm'         : False,
+        'convert_unsqueeze_to_reshape'              : False,
+        'add_bias_qdq'                              : False,
         'remove_quantize_initializer'               : False, # some bug, use only for pt2e exported models
-        'remove_duplicate_quantize_dequantize'      : True,
-        "convert_neg_to_mul"                        : True,
-        "convert_expand_to_reshape_and_concat"      : True,
+        'remove_duplicate_quantize_dequantize'      : False,
+        "convert_neg_to_mul"                        : False,
+        "convert_expand_to_reshape_and_concat"      : False,
 
         # utilities specific
         'shape_inference_mode'      : 'all',
