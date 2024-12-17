@@ -130,17 +130,7 @@ def tidl_convert_large_global_avg_pooling_to_matmul (graph: gs.Graph, onnx_graph
                 reshp_shape = gs.Constant(name= f"{node.name}_matmul_out_Reshape_shape", values= new_shape)
                 reshp = gs.Node(name= f"{node.name}_matmul_out_Reshape", op= "Reshape",
                                 inputs= [matmul.outputs[0], reshp_shape], outputs= node.outputs)
-            if len(dim) > 3: 
-                # convert matmul output from D2xCx1 to D2xCx1x1 to match output
-                new_shape = np.array(node.outputs[0].shape, dtype= np.int64)
-                # add reshape
-                reshp_out = gs.Variable(name= f"{node.name}_matmul_out_Reshape_out", dtype= np.float32)
-                reshp_shape = gs.Constant(name= f"{node.name}_matmul_out_Reshape_shape", values= new_shape)
-                reshp = gs.Node(name= f"{node.name}_matmul_out_Reshape", op= "Reshape",
-                                inputs= [matmul.outputs[0], reshp_shape], outputs= node.outputs)
 
-                logging.debug(f"Adding Reshape node {reshp.name} to convert input to shape {tuple(new_shape)}")
-                graph.nodes.append(reshp)
                 logging.debug(f"Adding Reshape node {reshp.name} to convert input to shape {tuple(new_shape)}")
                 graph.nodes.append(reshp)
 
