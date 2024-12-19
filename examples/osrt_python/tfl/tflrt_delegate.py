@@ -19,7 +19,7 @@ from common_utils import *
 from model_configs import *
 from common import postprocess_utils as formatter_transform
 
-thread_mutex_lock = Lock()
+mutex_lock = multiprocessing.Lock()
 
 required_options = {
     "tidl_tools_path": tidl_tools_path,
@@ -232,9 +232,9 @@ def run_model(model, mIdx):
     '''
     print("\nRunning_Model : ", model)
     if platform.machine() != "aarch64":
-        thread_mutex_lock.acquire()
+        mutex_lock.acquire()
         download_model(models_configs, model)
-        thread_mutex_lock.release()
+        mutex_lock.release()
 
     config = models_configs[model]
 
