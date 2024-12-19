@@ -46,7 +46,7 @@ TIDL-RT supports acceleration of the operators listed below and any unsupported 
 | 35 | ScatterND | TIDL_ScatterElementsLayer | <ul> <li> Number of non-singleton variable input dimensions must be less than <= 4 </li><li> Only 'none' reduction is supported </li><li> Updates tensor should not have more than 1 channel </li><li> Only width direction scatter is supported </li></ul> | 
 | 36 | Transpose | TIDL_TransposeLayer | <ul> <li> Number of non-singleton variable input dimensions must be less than <= 6 </li><li> Only permutes are supported when number of dimensions > 4 </li><li> Transpose over batch dimension is not supported </li></ul> | 
 | 37 | Flatten | TIDL_FlattenLayer | <ul> <li> Number of non-singleton variable input dimensions must be less than <= 4 </li></ul> | 
-| 38 | TopK | TIDL_TopKLayer | <ul> <li> TopK is not supported with 'sorted' attribute is set to 0 </li><li> Input K for TopK operator is only supported when given as an initializer in the model </li><li> TopK axis other than height is not supported </li></ul> | 
+| 38 | TopK | TIDL_TopKLayer | <ul> <li> TopK is not supported with 'sorted' attribute is set to 0 </li><li> Input K for TopK operator is only supported when given as an initializer in the model </li><li> TopK axis other than height is not supported </li><li> Order of topK for same values may be different between emulation and device </li></ul> | 
 | 39 | Sqrt | TIDL_SqrtLayer | <ul> </ul> |
 | 40 | Sin | TIDL_SinLayer | <ul> </ul> | 
 | 41 | Pow | TIDL_PowLayer | <ul> </ul> | 
@@ -123,7 +123,7 @@ TIDL-RT supports acceleration of the operators listed below and any unsupported 
 # Supported model formats & operator versions
 Proto files from the versions below are used for validating pre-trained models. In most cases, models from new versions should also work since the core operators tend to remain the same
   - ONNX - 1.14.0 
-  - ONNX Runtime - 1.15.0 (OPSET-18)
+  - ONNX Runtime - 1.15.0 (OPSET-19)
   - TFLite - Tensorflow 2.12.0
 
 <br>
