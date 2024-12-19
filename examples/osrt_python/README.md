@@ -206,6 +206,7 @@ Please refer [Quantization](../../docs/tidl_fsg_quantization.md) for more detail
 | model_type                   | This option is meant to communicate to TIDL import library that specified model is object detection model | "OD" |  ""    | Model compilation | This option is required to be set to "OD" only if model is object detection, and compilation throws warning asking to explicitly specify this option as "OD", else this option can be ignored |
 | c7x_codegen        | This option is used to enable running TIDL-unsupported layers on DSP using TVM auto code generation feature | 0 - Run TIDL-unsupported layers on ARM, <br> 1 - Run TIDL-unsupported layers on DSP | 0 | Model compilation | This is a TVM specific feature, has undergone limited validation [^3]|
 | ti_internal_nc_flag   | internal use only     | -   | - | - | -|
+| advanced_options:packetize_mode   | This option allows the user to enable packetization for sparse weights in the model | 0 - disable, 1 - enable | 0 | Model compilation | - |
 
 
 - [1]: Specifying layer_type as part of deny_list option :   
