@@ -4,7 +4,6 @@ cl-dlr-tflite_inceptionnetv3,dlr-py
 cl-dlr-onnx_mobilenetv2,dlr-cpp
 cl-dlr-tflite_inceptionnetv3,dlr-cpp
 cl-tfl-mobilenet_v1_1.0_224,tfl-py
-cl-tfl-mobilenetv2_4batch,tfl-py
 od-tfl-ssd_mobilenet_v2_300_float,tfl-py
 od-tfl-ssdlite_mobiledet_dsp_320x320_coco,tfl-py
 ss-tfl-deeplabv3_mnv2_ade20k_float,tfl-py

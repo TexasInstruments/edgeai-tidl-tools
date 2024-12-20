@@ -455,9 +455,7 @@ else:
         "od-tfl-ssdlite_mobiledet_dsp_320x320_coco",
     ]
     if SOC == "am69a":
-        # Model to demonstrate multi core parallel batch processing
-        models.append("cl-tfl-mobilenetv2_4batch")
-
+        # Model to demonstrate low latency inference (across cores):
         models.append("ss-tfl-deeplabv3_mnv2_ade20k_float_low_latency")
     
 
