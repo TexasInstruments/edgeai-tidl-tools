@@ -65,6 +65,7 @@ from typing import List, Dict
 
 
 # importing all opt functions
+from .src.argmax import tidl_change_argmax_keepdims_to_1
 from .src.resize import tidl_convert_resize_params_size_to_scale
 from .src.attention import tidl_optimize_attention
 from .src.batch import tidl_modify_batch_dim
@@ -116,7 +117,8 @@ opt_ops = {
         'remove_quantize_initializer'               : tidl_remove_quantize_initializer,
         'remove_duplicate_quantize_dequantize'      : tidl_remove_duplicate_quantize_dequantize,
         "convert_neg_to_mul"                        : tidl_convert_neg_to_mul,
-        "convert_expand_to_reshape_and_concat"      : tidl_convert_expand_to_reshape_and_concat
+        "convert_expand_to_reshape_and_concat"      : tidl_convert_expand_to_reshape_and_concat,
+        "change_argmax_keepdims_to_1" : tidl_change_argmax_keepdims_to_1
 
 }
 
@@ -148,7 +150,8 @@ adj_list = {
         'remove_quantize_initializer'               : [],
         'remove_duplicate_quantize_dequantize'      : [],
         "convert_neg_to_mul"                        : [],
-        "convert_expand_to_reshape_and_concat"      : []
+        "convert_expand_to_reshape_and_concat"      : [],
+        "change_argmax_keepdims_to_1"               : []
 }
 
 def get_optimizers():
@@ -183,6 +186,7 @@ def get_optimizers():
         'remove_duplicate_quantize_dequantize'      : False,
         "convert_neg_to_mul"                        : False,
         "convert_expand_to_reshape_and_concat"      : False,
+        "change_argmax_keepdims_to_1"               : False,
 
         # utilities specific
         'shape_inference_mode'      : 'all',
