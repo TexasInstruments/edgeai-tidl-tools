@@ -68,6 +68,7 @@ from typing import List, Dict
 from .src.argmax import tidl_change_argmax_keepdims_to_1
 from .src.resize import tidl_convert_resize_params_size_to_scale
 from .src.attention import tidl_optimize_attention
+from .src.attention_hf import tidl_optimize_hf_attention
 from .src.batch import tidl_modify_batch_dim
 from .src.concat import tidl_convert_concat_axis_width_to_channel
 from .src.maxpool import tidl_convert_maxpool_to_cascaded_maxpool
@@ -94,6 +95,7 @@ from .src.expand import tidl_convert_expand_to_reshape_and_concat
 opt_ops = {
         'convert_resize_params_size_to_scale'       : tidl_convert_resize_params_size_to_scale,
         'attention_block_optimization'              : tidl_optimize_attention,
+        'hf_attention_block_optimization'           : tidl_optimize_hf_attention,
         'convert_concat_axis_width_to_channel'      : tidl_convert_concat_axis_width_to_channel,
         'split_batch_dim_to_parallel_input_branches': tidl_modify_batch_dim,
         'convert_maxpool_to_cascaded_maxpool'       : tidl_convert_maxpool_to_cascaded_maxpool,
@@ -127,6 +129,7 @@ opt_ops = {
 adj_list = {
         'convert_resize_params_size_to_scale'       : [],
         'attention_block_optimization'              : [],
+        'hf_attention_block_optimization'           : [],
         'convert_concat_axis_width_to_channel'      : [],
         'split_batch_dim_to_parallel_input_branches': [],
         'convert_maxpool_to_cascaded_maxpool'       : [],
@@ -163,6 +166,7 @@ def get_optimizers():
         'convert_resize_params_size_to_scale'       : True,
         'convert_concat_axis_width_to_channel'      : False,
         'attention_block_optimization'              : False,
+        'hf_attention_block_optimization'           : False,
         'split_batch_dim_to_parallel_input_branches': False,
         'convert_maxpool_to_cascaded_maxpool'       : True,
         'convert_reducemean_to_matmul'              : False,
