@@ -197,9 +197,9 @@ def tidl_merge_adds_between_matmul_and_softmax(graph:gs.Graph, onnx_graph:onnx.G
             if new__shape_const1[axis] == const2.shape[axis]:
                 continue
             if new__shape_const1[axis] == 1:
-                const1.values = np.concat([const1.values for _ in range((const2.shape[axis]))], axis=axis)
+                const1.values = np.concatenate([const1.values for _ in range((const2.shape[axis]))], axis=axis)
             if const2.shape[axis] == 1:
-                const2.values = np.concat([const2.values for _ in range((new__shape_const1[axis]))], axis=axis)
+                const2.values = np.concatenate([const2.values for _ in range((new__shape_const1[axis]))], axis=axis)
         const1.values = const1.values + const2.values
         const1.values = np.reshape(const1.values, const1.shape[-len(old_shape):])
         add1.inputs[index] = const1
