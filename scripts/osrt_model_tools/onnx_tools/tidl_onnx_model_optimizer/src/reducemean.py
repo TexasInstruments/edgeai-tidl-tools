@@ -155,9 +155,15 @@ def tidl_convert_reducemean_to_matmul (graph: gs.Graph, onnx_graph: onnx.GraphPr
                                          outputs=reduce_mean.outputs)
                     graph.nodes.append(transpose2)
                 else:
-                    squeeze = gs.Node(op="Squeeze", name=f"rm_squeeze.{idx}",
-                                      attrs={"axes": [-1]}, inputs=var_outmatmul,
-                                      outputs=reduce_mean.outputs)
+                    if graph.opset < 13:
+                        squeeze = gs.Node(op="Squeeze", name=f"rm_squeeze.{idx}",
+                                        attrs={"axes": [-1]}, inputs=var_outmatmul,
+                                        outputs=reduce_mean.outputs)
+                    else:
+                        axes = gs.Constant(f'rm_squeeze.{idx}_axes', values= np.array([-1], dtype=np.int64))
+                        squeeze = gs.Node(op="Squeeze", name=f"rm_squeeze.{idx}",
+                                        inputs=var_outmatmul + [axes],
+                                        outputs=reduce_mean.outputs)
                     graph.nodes.append(squeeze)
 
             elif (numdims == 4 and axes[0] == 3) or \
@@ -188,9 +194,15 @@ def tidl_convert_reducemean_to_matmul (graph: gs.Graph, onnx_graph: onnx.GraphPr
 
                 # 2. Reshape
                 if keepdims == 0:
-                    squeeze = gs.Node(op="Squeeze", name=f"rm_squeeze.{idx}",
-                                      attrs={"axes": [-1]}, inputs=var_outmatmul,
-                                      outputs=reduce_mean.outputs)
+                    if graph.opset < 13:
+                        squeeze = gs.Node(op="Squeeze", name=f"rm_squeeze.{idx}",
+                                        attrs={"axes": [-1]}, inputs=var_outmatmul,
+                                        outputs=reduce_mean.outputs)
+                    else:
+                        axes = gs.Constant(f'rm_squeeze.{idx}_axes', values= np.array([-1], dtype=np.int64))
+                        squeeze = gs.Node(op="Squeeze", name=f"rm_squeeze.{idx}",
+                                        inputs=var_outmatmul + [axes],
+                                        outputs=reduce_mean.outputs)
                     graph.nodes.append(squeeze)
 
         elif len(axes) == 2:
