@@ -60,6 +60,8 @@
 *
 */
 
+/* #define DSP_MONITORING */
+
 #include "tidlrt_priority_scheduling_utils.h"
 
 using namespace std::chrono;
@@ -72,22 +74,24 @@ pthread_barrier_t barrier;
 #define MAX_THREADS 8
 #define MAX_MODELS_PER_THREAD 8
 
+typedef struct
+{
+  int width;
+  int height;
+  int numCh;
+  int element_size_in_bytes;
+  int element_type;
+} bufferInfo;
+
+
 /* This struct specifies the arguments expected to be provided by user as part of the gPriorityMapping */
 typedef struct
 {
     std::string model_dir_path;
     int priority;
     float max_pre_empt_delay;
-    int in_width;
-    int in_height;
-    int in_numCh;
-    int in_element_size_in_bytes;
-    int in_element_type;
-    int out_width;
-    int out_height;
-    int out_numCh;
-    int out_element_size_in_bytes;
-    int out_element_type;
+    std::vector<bufferInfo> model_inputs;
+    std::vector<bufferInfo> model_outputs;
 } model_input_info;
 
 /* Information specific to each individual model being run as part of tests */
@@ -110,6 +114,8 @@ typedef struct
   Priority_settings * s;               /* common argument across threads - pass pointer */
   int is_reference_run;      /* Reference run is used to get reference output and inference runtimes */
   model_generic_info * model_info[MAX_MODELS_PER_THREAD];
+  void * dsp_monitoring_ptr; /* Buffer ptr to use for DSP monitoring */ 
+  std::atomic<bool> * run_flag; /* Flag to indicate if invoke runs are to be stopped - useful for debugging */
 } thread_arguments;
 
 
@@ -134,10 +140,10 @@ std::vector<std::vector<std::vector<model_input_info>>> gPriorityMapping =
     /* Threads*/
     {
       /* Models in each thread */
-      {"model-artifacts/ss-ort-deeplabv3lite_mobilenetv2", 0, FLT_MAX, 512, 512, 3, 1, TIDLRT_Uint8, 512, 512, 1, 1, TIDLRT_Uint8}
+      {"model-artifacts/ss-ort-deeplabv3lite_mobilenetv2", 0, FLT_MAX, {{512, 512, 3, 1, TIDLRT_Uint8}}, {{512, 512, 1, 1, TIDLRT_Uint8}}}
     },
     {
-      {"model-artifacts/cl-ort-resnet18-v1", 0, FLT_MAX, 224, 224, 3, 1, TIDLRT_Uint8, 1000, 1, 1, 4, TIDLRT_Float32}
+      {"model-artifacts/cl-ort-resnet18-v1", 0, FLT_MAX, {{224, 224, 3, 1, TIDLRT_Uint8}}, {{1000, 1, 1, 4, TIDLRT_Float32}}}
     }
   },
   /* Test 2 */
@@ -145,10 +151,10 @@ std::vector<std::vector<std::vector<model_input_info>>> gPriorityMapping =
     /* Threads*/
     {
       /* Models in each thread */
-      {"model-artifacts/ss-ort-deeplabv3lite_mobilenetv2", 1, FLT_MAX, 512, 512, 3, 1, TIDLRT_Uint8, 512, 512, 1, 1, TIDLRT_Uint8}
+      {"model-artifacts/ss-ort-deeplabv3lite_mobilenetv2", 1, FLT_MAX, {{512, 512, 3, 1, TIDLRT_Uint8}}, {{512, 512, 1, 1, TIDLRT_Uint8}}}
     },
     {
-      {"model-artifacts/cl-ort-resnet18-v1", 0, FLT_MAX, 224, 224, 3, 1, TIDLRT_Uint8, 1000, 1, 1, 4, TIDLRT_Float32}
+      {"model-artifacts/cl-ort-resnet18-v1", 0, FLT_MAX, {{224, 224, 3, 1, TIDLRT_Uint8}}, {{1000, 1, 1, 4, TIDLRT_Float32}}}
     }
   },
   /* Test 3 */
@@ -156,10 +162,10 @@ std::vector<std::vector<std::vector<model_input_info>>> gPriorityMapping =
     /* Threads*/
     {
       /* Models in each thread */
-      {"model-artifacts/ss-ort-deeplabv3lite_mobilenetv2", 1, 7, 512, 512, 3, 1, TIDLRT_Uint8, 512, 512, 1, 1, TIDLRT_Uint8}
+      {"model-artifacts/ss-ort-deeplabv3lite_mobilenetv2", 1, 7, {{512, 512, 3, 1, TIDLRT_Uint8}}, {{512, 512, 1, 1, TIDLRT_Uint8}}}
     },
     {
-      {"model-artifacts/cl-ort-resnet18-v1", 0, FLT_MAX, 224, 224, 3, 1, TIDLRT_Uint8, 1000, 1, 1, 4, TIDLRT_Float32}
+      {"model-artifacts/cl-ort-resnet18-v1", 0, FLT_MAX, {{224, 224, 3, 1, TIDLRT_Uint8}}, {{1000, 1, 1, 4, TIDLRT_Float32}}}
     }
   },
   /* Test 4 */
@@ -167,10 +173,10 @@ std::vector<std::vector<std::vector<model_input_info>>> gPriorityMapping =
     /* Threads*/
     {
       /* Models in each thread */
-      {"model-artifacts/ss-ort-deeplabv3lite_mobilenetv2", 1, 3, 512, 512, 3, 1, TIDLRT_Uint8, 512, 512, 1, 1, TIDLRT_Uint8}
+      {"model-artifacts/ss-ort-deeplabv3lite_mobilenetv2", 1, 3, {{512, 512, 3, 1, TIDLRT_Uint8}}, {{512, 512, 1, 1, TIDLRT_Uint8}}}
     },
     {
-      {"model-artifacts/cl-ort-resnet18-v1", 0, FLT_MAX, 224, 224, 3, 1, TIDLRT_Uint8, 1000, 1, 1, 4, TIDLRT_Float32}
+      {"model-artifacts/cl-ort-resnet18-v1", 0, FLT_MAX, {{224, 224, 3, 1, TIDLRT_Uint8}}, {{1000, 1, 1, 4, TIDLRT_Float32}}}
     }
   },
   /* Test 5 */
@@ -178,10 +184,10 @@ std::vector<std::vector<std::vector<model_input_info>>> gPriorityMapping =
     /* Threads*/
     {
       /* Models in each thread */
-      {"model-artifacts/ss-ort-deeplabv3lite_mobilenetv2", 1, 0.3, 512, 512, 3, 1, TIDLRT_Uint8, 512, 512, 1, 1, TIDLRT_Uint8}
+      {"model-artifacts/ss-ort-deeplabv3lite_mobilenetv2", 1, 0.3, {{512, 512, 3, 1, TIDLRT_Uint8}}, {{512, 512, 1, 1, TIDLRT_Uint8}}}
     },
     {
-      {"model-artifacts/cl-ort-resnet18-v1", 0, FLT_MAX, 224, 224, 3, 1, TIDLRT_Uint8, 1000, 1, 1, 4, TIDLRT_Float32}
+      {"model-artifacts/cl-ort-resnet18-v1", 0, FLT_MAX, {{224, 224, 3, 1, TIDLRT_Uint8}}, {{1000, 1, 1, 4, TIDLRT_Float32}}}
     }
   },
   /* Test 6 */
@@ -189,15 +195,19 @@ std::vector<std::vector<std::vector<model_input_info>>> gPriorityMapping =
     /* Threads*/
     {
       /* Models in each thread */
-      {"model-artifacts/ss-ort-deeplabv3lite_mobilenetv2", 1, 0, 512, 512, 3, 1, TIDLRT_Uint8, 512, 512, 1, 1, TIDLRT_Uint8}
+      {"model-artifacts/ss-ort-deeplabv3lite_mobilenetv2", 1, 0, {{512, 512, 3, 1, TIDLRT_Uint8}}, {{512, 512, 1, 1, TIDLRT_Uint8}}}
     },
     {
-      {"model-artifacts/cl-ort-resnet18-v1", 0, FLT_MAX, 224, 224, 3, 1, TIDLRT_Uint8, 1000, 1, 1, 4, TIDLRT_Float32}
+      {"model-artifacts/cl-ort-resnet18-v1", 0, FLT_MAX, {{224, 224, 3, 1, TIDLRT_Uint8}}, {{1000, 1, 1, 4, TIDLRT_Float32}}}
     }
   }
 
 };
 
+int getBufferSize(const bufferInfo * buf)
+{
+  return buf->width * buf->height * buf->numCh * buf->element_size_in_bytes;
+}
 
 /* Core inference function which does TIDLRT_Create followed by TIDLRT_invoke */
 void * infer(void * argument) {
@@ -207,11 +217,14 @@ void * infer(void * argument) {
   int num_models = arg->num_models_in_thread;
 
   void * handles[MAX_MODELS_PER_THREAD];
-  sTIDLRT_Tensor_t *in[MAX_MODELS_PER_THREAD][16];
-  sTIDLRT_Tensor_t *out[MAX_MODELS_PER_THREAD][16];
-  int out_tensor_sizes[MAX_MODELS_PER_THREAD][16];
-
+  std::vector<std::vector<int>> out_tensor_sizes; /* Vector of outputs per model, for all models */
   int32_t status;
+
+  std::vector<std::vector<std::shared_ptr<sTIDLRT_Tensor_t>>> m_in_tensors;  /* sTIDLRT_Tensor_t object per input tensor per model */
+  std::vector<std::vector<std::shared_ptr<sTIDLRT_Tensor_t>>> m_out_tensors; /* sTIDLRT_Tensor_t object per output tensor per model */
+
+
+  /* ######################################### TIDLRT_Create and input/output tensors setup ###################################### */
 
   for(int i = 0; i < num_models; i++) /* Loop for creation of all models */
   {
@@ -263,52 +276,89 @@ void * infer(void * argument) {
     prms.targetPriority = model_input_args->priority;
     prms.maxPreEmptDelay = model_input_args->max_pre_empt_delay;
     prms.coreNum = 1;
+#ifdef DSP_MONITORING
+    prms.dspMonitoringPtr = arg->dsp_monitoring_ptr;
+#endif
 
     pthread_mutex_lock(&priority_lock);
     status = TIDLRT_create(&prms, &handle);
     handles[i] = handle;
     pthread_mutex_unlock(&priority_lock);
 
-    sTIDLRT_Tensor_t in_tensor;
-    sTIDLRT_Tensor_t out_tensor;
+    std::vector<std::shared_ptr<sTIDLRT_Tensor_t>> in_tensors;
+    std::vector<std::shared_ptr<sTIDLRT_Tensor_t>> out_tensors;
 
-    int32_t j = 0; /* Currently implemented only for models with 1 input and 1 output */
-    in[i][j] = &in_tensor;
-    status = TIDLRT_setTensorDefault(in[i][j]);
-    in[i][j]->layout = TIDLRT_LT_NCHW;
-    in[i][j]->elementType = TIDLRT_Uint8;
-    int32_t in_tensor_size = model_input_args->in_width * model_input_args->in_height * model_input_args->in_numCh * model_input_args->in_element_size_in_bytes;
-
-    in[i][j]->ptr =  TIDLRT_allocSharedMem(64, in_tensor_size);
-    in[i][j]->memType = TIDLRT_MEM_SHARED;
-
-    out[i][j] = &out_tensor;
-    status = TIDLRT_setTensorDefault(out[i][j]);
-    out[i][j]->layout = TIDLRT_LT_NCHW;
-    out[i][j]->elementType = model_input_args->out_element_type;
-
-    int32_t out_tensor_size = model_input_args->out_width * model_input_args->out_height * model_input_args->out_numCh * model_input_args->out_element_size_in_bytes;
-    out_tensor_sizes[i][0] = out_tensor_size;
-    out[i][j]->ptr =  TIDLRT_allocSharedMem(64, out_tensor_size);
-    out[i][j]->memType = TIDLRT_MEM_SHARED;
-    
-    /* Use random number generator with a seed to create input */
-    unsigned int seed = model_info->model_id;
-    int min = 0;
-    int max = 255;
-    char * inPtr = (char *)(in[i][j]->ptr);
-    for(int m = 0; m < in_tensor_size; m++)
+    for (auto const& buf : model_input_args->model_inputs)
     {
-      inPtr[m] = rand_r(&seed) % (max - min + 1) + min;
+      in_tensors.emplace_back(std::make_shared<sTIDLRT_Tensor_t>());
+      auto& currTensor = in_tensors.back();
+      status = TIDLRT_setTensorDefault(currTensor.get());
+      currTensor->layout = TIDLRT_LT_NCHW;
+      currTensor->elementType = buf.element_type;
+      int32_t in_tensor_size =  getBufferSize(&buf);
+
+      currTensor->ptr =  TIDLRT_allocSharedMem(64, in_tensor_size);
+      currTensor->memType = TIDLRT_MEM_SHARED;
+
+
+      /* Use random number generator with a seed to create input */
+      unsigned int seed = model_info->model_id;
+      int min = 0;
+      int max = 255;
+      char * inPtr = (char *)(currTensor->ptr);
+      for(int m = 0; m < in_tensor_size; m++)
+      {
+        inPtr[m] = rand_r(&seed) % (max - min + 1) + min;
+      }
     }
+    m_in_tensors.emplace_back(in_tensors);
+
+    std::vector<int> outSizes;
+    for (auto const& buf : model_input_args->model_outputs)
+    {
+      out_tensors.emplace_back(std::make_shared<sTIDLRT_Tensor_t>());
+      auto& currTensor = out_tensors.back();
+      status = TIDLRT_setTensorDefault(currTensor.get());
+      currTensor->layout = TIDLRT_LT_NCHW;
+      currTensor->elementType = buf.element_type;
+
+      int32_t out_tensor_size = getBufferSize(&buf);
+      outSizes.emplace_back(out_tensor_size);
+      currTensor->ptr =  TIDLRT_allocSharedMem(64, out_tensor_size);
+      currTensor->memType = TIDLRT_MEM_SHARED;
+    }
+    out_tensor_sizes.emplace_back(outSizes);
+    m_out_tensors.emplace_back(out_tensors);
+
   }
+
+  /* ##################################### Initialization/ Setup complete #########################################*/
 
   struct timeval start_time, stop_time;
   struct timeval start_invoke, end_invoke;
   double infer_time = 0;
-  std::string output_filename;
+  std::vector<std::string> output_filename; /* output file name for each model in a thread */
 
-  if(arg->is_reference_run == 1)
+  /* TIDLRT_invoke requires array of raw pointers to sTIDLRT_Tensor_t - derive the same here */
+  std::vector<std::vector<sTIDLRT_Tensor_t *>> m_in_tensor_ptrs(num_models);
+  std::vector<std::vector<sTIDLRT_Tensor_t *>> m_out_tensor_ptrs(num_models);
+
+  for(int i = 0; i < num_models; i++)
+  {
+    /* Save raw ptrs -- done here instead of directly in TIDLRT_invoke call - 
+      to prevent any additional computations after threads' sync with pthread_barrier_wait below*/
+    for (auto& tensor : m_in_tensors[i])
+    {
+      m_in_tensor_ptrs[i].emplace_back(tensor.get());
+    }
+    for (auto& tensor : m_out_tensors[i])
+    {
+      m_out_tensor_ptrs[i].emplace_back(tensor.get());
+    }
+  }
+  /************************************************************************************** */
+
+  if(arg->is_reference_run == 1) /* Save outputs of reference run without preemption */
   {
     for(int i = 0; i < num_models; i++)
     {
@@ -316,7 +366,7 @@ void * infer(void * argument) {
       for(int j = 0; j < s->loop_count; j++)
       {
         gettimeofday(&start_time, nullptr);
-        TIDLRT_invoke(handles[i], in[i], out[i]);
+        TIDLRT_invoke(handles[i], m_in_tensor_ptrs[i].data(), m_out_tensor_ptrs[i].data());
         gettimeofday(&stop_time, nullptr);
         baseline_time_without_preemption += get_us(stop_time) - get_us(start_time);
       }
@@ -324,16 +374,16 @@ void * infer(void * argument) {
 
       LOG_INFO("Model %s :: Actual time  = %f ms \n", arg->model_info[i]->model_name.c_str(), arg->model_info[i]->baseline_time_without_preemption);
 
-      output_filename = "examples/tidlrt_cpp/advanced_examples/outputs/output_reference_" + arg->model_info[i]->model_name + "_" + std::to_string(arg->model_info[i]->test_id) + "_" + std::to_string(arg->model_info[i]->thread_id) + "_" + std::to_string(arg->model_info[i]->thread_id) + ".bin";
+      output_filename.emplace_back("examples/tidlrt_cpp/advanced_examples/outputs/output_reference_" + arg->model_info[i]->model_name + "_" + std::to_string(arg->model_info[i]->test_id) + "_" + std::to_string(arg->model_info[i]->thread_id) + "_" + std::to_string(arg->model_info[i]->thread_id) + ".bin");
     }
   }
-  else if (arg->is_reference_run == 0)
+  else if (arg->is_reference_run == 0) /* Actual preemption testing */
   {
     for(int i = 0; i < num_models; i++)
     {
       arg->model_info[i]->num_iterations_run = 0;
       arg->model_info[i]->avg_time = 0;
-      output_filename = "examples/tidlrt_cpp/advanced_examples/outputs/output_test_" + arg->model_info[i]->model_name + "_" + std::to_string(arg->model_info[i]->test_id) + "_" + std::to_string(arg->model_info[i]->thread_id) + "_" + std::to_string(arg->model_info[i]->thread_id) + ".bin";
+      output_filename.emplace_back("examples/tidlrt_cpp/advanced_examples/outputs/output_test_" + arg->model_info[i]->model_name + "_" + std::to_string(arg->model_info[i]->test_id) + "_" + std::to_string(arg->model_info[i]->thread_id) + "_" + std::to_string(arg->model_info[i]->thread_id) + ".bin");
     }
 
     /* Wait for all threads to synchronize before Invoke runs start across threads */
@@ -346,12 +396,17 @@ void * infer(void * argument) {
       for(int i = 0; i < num_models; i++)
       {
         gettimeofday(&start_invoke, nullptr);
-        TIDLRT_invoke(handles[i], in[i], out[i]);
+        TIDLRT_invoke(handles[i], m_in_tensor_ptrs[i].data(), m_out_tensor_ptrs[i].data());
         gettimeofday(&end_invoke, nullptr);
         arg->model_info[i]->num_iterations_run++;
         arg->model_info[i]->avg_time += get_us(end_invoke) - get_us(start_invoke);
       }
-    } while (system_clock::now() < finish);
+    } 
+#ifndef DSP_MONITORING
+    while (system_clock::now() < finish);   /* For fixed duration */
+#else
+    while ((*(arg->run_flag)).load());   /* Till user hits Enter */
+#endif
     gettimeofday(&stop_time, nullptr);
 
     for(int i = 0; i < num_models; i++) /* Average over number of iterations */
@@ -363,13 +418,15 @@ void * infer(void * argument) {
     LOG_INFO("Model %s :: Total number of iterations run = %d \n", arg->model_info[0]->model_name.c_str(), arg->model_info[0]->num_iterations_run);
   }
 
-  int j = 0;
   for(int i = 0; i < num_models; i++)
   {
-    char * outPtr = (char *)out[i][j]->ptr;
-    std::ofstream fs(output_filename, std::ios::out | std::ios::binary | std::ios::out);
-    fs.write(outPtr, out_tensor_sizes[i][0]);
-    fs.close();
+    for(int j = 0; j < m_out_tensors[i].size(); j++) /* Currently last output is validated for testing purpose */
+    {
+      char * outPtr = (char *)m_out_tensors[i][j]->ptr;
+      std::ofstream fs(output_filename[i], std::ios::out | std::ios::binary | std::ios::out);
+      fs.write(outPtr, out_tensor_sizes[i][j]);
+      fs.close();
+    }
 
     status = TIDLRT_deactivate(handles[i]);
     status = TIDLRT_delete(handles[i]);
@@ -629,6 +686,32 @@ int analyzeResults(aggregate_results * results, int test_duration)
   return overall_status;
 }
 
+/* This function is used to poll status (any information to be shared across DSP and ARM). Data written by DSP
+ to a pointer allocated and shared from ARM is read here and printed out in a separate thread */
+void * polling_dsp_status(void * argument)
+{
+  thread_arguments *arg = (thread_arguments *)argument; 
+  volatile int start = 0;
+  int num_entries = 1; /* Change based on actual number of items to be read from the shared buffer */
+
+  uint64_t * logPtr = (uint64_t *) arg->dsp_monitoring_ptr;
+  while ((*(arg->run_flag)).load())
+  {
+    if(start == 0)
+    {
+        while(logPtr[0] != 0xDEADBEEF) {} /* All entries of shared buffer are initialized to 0xDEADBEEF by DSP as part of handle activation, wait till activatation prints occur */
+        start = 1;
+    }
+    for(int j = 0; j < num_entries; j++)
+    {
+        printf("[%ld]", logPtr[j]);
+    }
+    printf("\n");
+  }
+
+  void * retPtr;
+  return retPtr;
+}
 
 /* Base inference function which parses tests and creates threads to run the tests */
 int runInference(Priority_settings * s)
@@ -637,6 +720,10 @@ int runInference(Priority_settings * s)
   int num_tests = gPriorityMapping.size();
   LOG_INFO("Num tests = %d \n", num_tests);
   int final_status = 1;
+
+  std::atomic<bool> run_flag(true);
+
+  /************************************ Directory setup **********************************************************************/
 
   ret = system("mkdir -p examples/tidlrt_cpp/advanced_examples/outputs");
   if (ret != 0)
@@ -648,8 +735,24 @@ int runInference(Priority_settings * s)
     /* Command deletes the outputs, add check if directory exists to avoid any untoward rm -f happening */
     ret = system("cd examples/tidlrt_cpp/advanced_examples/outputs; rm -f *; cd - > /dev/null");
   }
+  /*************************************************************************************************************** */
+
+#ifdef DSP_MONITORING
+  /* Allocating in DDR shared memory region requires rt ovx init to be done - it is done as part of TIDLRT_create however logPtr needs to be 
+  passed to TIDLRT_create. Hence calling  tidl_rt_ovx_Init from application followed by setting SKIP_TIOVX_INIT env variable 
+  to prevent duplicate call from TIDL library */
+  
+  tidl_rt_ovx_Init();
+  setenv("SKIP_TIOVX_INIT", "1", 1);
+
+  /* Allocate 512 bytes of data ~ 512 / 8 (uint64 per item) = 64 items -- Can be changed based on debug requirements */
+  void * dsp_monitoring_ptr = TIDLRT_allocSharedMem(64, 512); 
+#endif
+
 
   aggregate_results results[num_tests];
+
+  /************************************* Setting up thread arguments *******************************************/
   
   for(int i = 0; i < num_tests; i++) /* for each test */
   {
@@ -676,19 +779,26 @@ int runInference(Priority_settings * s)
 
         thread_args[j].model_input_args[k] = &model_inputs;
         thread_args[j].model_info[k] = &modelInfo[j][0];
-
         results[i].priority[j][k] = model_inputs.priority;
         results[i].max_pre_empt_delay[j][k] = model_inputs.max_pre_empt_delay;
       }
       thread_args[j].num_models_in_thread = thread_info.size();
       thread_args[j].s = s;
+#ifdef DSP_MONITORING
+      thread_args[j].dsp_monitoring_ptr = dsp_monitoring_ptr;
+      thread_args[j].run_flag = &run_flag;
+#endif
       /* Run to get reference run results - base output and base inference time */
+#ifndef DSP_MONITORING
       thread_args[j].is_reference_run = 1;
       infer(&thread_args[j]);
+#endif
       thread_args[j].is_reference_run = 0;
     }
 
-    /* thread spawning and running inference in parallel */
+    /************************************************************************************************** */
+
+    /******************** Thread setup ****************************8*/
     if (pthread_mutex_init(&priority_lock, NULL) != 0)
     {
         LOG_ERROR("\n mutex init has failed\n");
@@ -709,6 +819,23 @@ int runInference(Priority_settings * s)
         /* Creating a new thread*/
         pthread_create(&ptid[i], &tattr, &infer, &thread_args[i]);
     }
+
+#ifdef DSP_MONITORING
+    pthread_create(&ptid[i], &tattr, &polling_dsp_status, &thread_args[0]);
+
+    std::cout << "Press Enter to stop inference..." << std::endl;
+    std::cin.get();
+
+    /* Concept of run_flag is to enable debugging using user controlled duration of run / till some exception is hit (unlike
+      the default pre-emption tests which are run for fixed duration)
+      TIDLRT_invoke keeps getting called in individual threads till "Enter" is hit by user resulting in run_flag atomic
+      variable being set to false */
+    run_flag.store(false);
+
+    /* DSP_MONITORING is used for debug and so disable result analysis part of preemption testing */
+    s->disable_result_analysis = 1;
+#endif
+
     for (size_t i = 0; i < num_threads; i++)
     {
         // Waiting for the created thread to terminate
@@ -718,7 +845,7 @@ int runInference(Priority_settings * s)
     pthread_barrierattr_destroy(&barr_attr);
     pthread_mutex_destroy(&priority_lock);
 
-    /* Save test run data for further analysis */
+    /**************************************** Save test run data for further analysis *******************************/
     if(s->disable_result_analysis != 1)
     {
       for (size_t j = 0; j < num_threads; j++)

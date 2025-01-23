@@ -89,6 +89,7 @@
 #include <ostream>
 #include <regex>
 #include <iterator>
+#include <atomic>
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
