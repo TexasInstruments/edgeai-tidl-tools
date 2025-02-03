@@ -30,7 +30,7 @@
 
 ######################################################################
 
-#Check if CPU or GPU tools
+# Check if CPU or GPU tools
 if [ -z "$TIDL_TOOLS_TYPE" ];then
     echo "TIDL_TOOLS_TYPE unset, defaulting to CPU tools"
     tidl_gpu_tools=0
@@ -43,7 +43,7 @@ else
 fi
 
 if [ $tidl_gpu_tools -eq 1 ];then
-    sudo docker run --gpus all -it --shm-size=4096m --mount source=$(pwd),target=/home/root,type=bind x86_ubuntu_22
+    sudo docker run -w /home/root --gpus all -it --shm-size=4096m --mount source=$(pwd),target=/home/root,type=bind edgeai_tidl_tools_x86_ubuntu_22_gpu
 else
-    sudo docker run -it --shm-size=4096m --mount source=$(pwd),target=/home/root,type=bind x86_ubuntu_22
+    sudo docker run -w /home/root  -it --shm-size=4096m --mount source=$(pwd),target=/home/root,type=bind edgeai_tidl_tools_x86_ubuntu_22
 fi

@@ -17,7 +17,8 @@ The following environment variables must be exported to configure the docker bas
 |:--:|:---------------------|:--------|:------------------|:------|
 | 1  | SOC | Unset | am62a, am67a, am68a, am69a, am68pa | Must be set to the appropriate device|
 | 2  | TIDL_TOOLS_TYPE | Unset | Unset, GPU| Setting TIDL_TOOLS_TYPE=GPU sets up the docker image for tidl tools built with OpenACC based acceleration<br /> GPU tools require a NVIDIA GPU with CUDA Support [^1]|
-| 3  | USE_PROXY | Unset | Unset, ti | Should only be set if within TI network|
+| 3  | REPO_LOCATION | Unset | ANY | Repo location for pulling docker image|
+| 4  | PROXY | Unset | ANY | PROXY to be used|
 </div>
 
 
@@ -25,30 +26,30 @@ Steps to build and run the docker image:
 
 1. Clone Github repo
 
-          git clone https://github.com/TexasInstruments/edgeai-tidl-tools.git
-          cd edgeai-tidl-tools
-          git checkout <TAG Compatible with your SDK version>
+        user@pc:~$ git clone https://github.com/TexasInstruments/edgeai-tidl-tools.git
+        user@pc:~/edgeai-tidl-tools$ cd edgeai-tidl-tools
+        user@pc:~/edgeai-tidl-tools$ git checkout <TAG Compatible with your SDK version>
 2. One time setup for Docker:
 
-          source ./scripts/docker/setup_docker.sh
+        user@pc:~/edgeai-tidl-tools$ source ./scripts/docker/setup_docker.sh
 
 3. Build the docker image:
           
-          source ./scripts/docker/build_docker.sh
+        user@pc:~/edgeai-tidl-tools$ export REPO_LOCATION=artifactory.itg.ti.com/docker-public/library/  # Internal to TI
+        user@pc:~/edgeai-tidl-tools$ export PROXY=http://webproxy.ext.ti.com:80    # Internal to TI
+        user@pc:~/edgeai-tidl-tools$ source ./scripts/docker/build_docker.sh
 
 4. Run the docker image:
 
-          source ./scripts/docker/run_docker.sh
+          user@pc:~/edgeai-tidl-tools$ source ./scripts/docker/run_docker.sh
 
 5. After running the docker container, run the setup script:
 
-        cd /home/root/
-        # Supported SOC name strings am62, am62a, am67a, am68a, am68pa, am69a
-        # Note: am62 doesn't support hardware acceleration & GPU tools are not supported for it
-        export SOC=<Your SOC name>
-        #Set TIDL_TOOLS_TYPE to GPU if using GPU tools
-        export TIDL_TOOLS_TYPE=<Your Tools Type (GPU)>
-        source ./setup.sh
+        root@container:/home/root$ export SOC=<Your SOC name>
+        root@container:/home/root$ export TIDL_TOOLS_TYPE=<Your Tools Type (CPU|GPU)>
+        root@container:/home/root$ source ./setup.sh
+    
+    NOTE: The setup scripts need to be run everytime user re-runs the container
 
 
 ## Troubleshooting GPU Docker Setup Issues:

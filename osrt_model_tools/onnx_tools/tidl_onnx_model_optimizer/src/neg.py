@@ -1,5 +1,4 @@
-#!/bin/bash -e
-# Copyright (c) {2015 - 2021} Texas Instruments Incorporated
+# Copyright (c) {2024 - 2024} Texas Instruments Incorporated
 #
 # All rights reserved not granted herein.
 #
@@ -56,98 +55,27 @@
 # OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 # OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 # OF THE POSSIBILITY OF SUCH DAMAGE.
+"""
+Module containing Neg layer specific functions and optimizations
+"""
+import logging
+import onnx_graphsurgeon as gs
+import onnx
+import numpy as np
 
-use_local=0
-am62a=0
-am68a=0
-am67a=0
-am68pa=0
-am69a=0
-am62=0
 
-POSITIONAL=()
-while [[ $# -gt 0 ]]
-do
-key="$1"
-case $key in
-    --use_local)
-    use_local=1
-    ;;  
-    --am62a)
-    am62a=1
-    ;;    
-    --am62)
-    am62=1
-    ;; 
-    --am68a)
-    am68a=1
-    ;; 
-    --am67a)
-    am67a=1
-    ;;
-    --am69a)
-    am69a=1
-    ;; 
-    --am68pa)
-    am68pa=1
-    ;;                 
-    -h|--help)
-    echo Usage: $0 [device] [options]
-    echo
-    echo Options,
-    echo --use_local            use OSRT packages and tidl_tools from localPath if present
-    echo --am62a           test for am62a
-    exit 0
-    ;;
-esac
-shift # past argument
-done
-set -- "${POSITIONAL[@]}" # restore positional parameters
-
-if [[ $use_local == 1 ]];then
-    if [ -z "$LOCAL_PATH" ];then
-        echo "LOCAL_PATH not defined. set LOCAL_PATH to/your/path/08_XX_XX_XX/"        
-        return 0
-    else
-        echo "using OSRT from LOCAL_PATH:$LOCAL_PATH"
-    fi
+def tidl_convert_neg_to_mul(graph: gs.Graph, onnx_graph: onnx.GraphProto):
+    """
+    Convert the Neg layer in RoPE Embeddings to Mul by (-1) 
+    """
+    nodes = graph.nodes
     
-fi
-
-DOCKER_TAG=ubuntu18-test
-if [[ "$(docker images -q $DOCKER_TAG 2> /dev/null)" == "" ]]; then
-  echo "building docker image"
-   docker build --build-arg REPO_LOCATION=artifactory.itg.ti.com/docker-public/library/ --build-arg USE_PROXY=ti -t $DOCKER_TAG  -f Dockerfile .
-else
-    echo "Using existing docker image"
-fi
-run_test()
-{
-  DOCKER_TAG=ubuntu18-test
-  if [[ $use_local == 1 ]];then
-      echo "Running test for $1 with --use_local"
-       docker run --rm   -v $(pwd)/:/root/edgeai-tidl-tools -v /:/host --env SOC=$1 --env LOCAL_PATH=/host/$LOCAL_PATH --network host --name $DOCKER_TAG  --shm-size=6gb  $DOCKER_TAG  /bin/bash
-    else
-      echo "Running test for $1"
-       docker run --rm   -v $(pwd)/:/root/edgeai-tidl-tools -v /:/host --env SOC=$1  --network host --name $DOCKER_TAG  --shm-size=6gb  $DOCKER_TAG  /bin/bash
-    fi
-}
-if [ $am62a == 1 ];then    
-  run_test am62a
-fi
-if [ $am62 == 1 ];then
-  run_test am62
-fi
-if [ $am69a == 1 ];then
-  run_test am69a
-fi 
-if [ $am68a == 1 ];then
-  run_test am68a
-fi
-if [ $am67a == 1 ];then
-  run_test am67a
-fi
-if [ $am68pa == 1 ];then
-  run_test am68pa
-fi
-
+    for node in nodes:
+        if (node.op == "Neg"):
+            mul_node = gs.Node(name = node.name + "_mul", op = "Mul", 
+                               inputs = [node.inputs[0], gs.Constant(name= node.name + "_val", values= np.array([-1], dtype=np.float32))], 
+                               outputs = [node.outputs[0]])
+            logging.debug(f"Adding Node {mul_node.name}")
+            graph.nodes.append(mul_node)
+            node.outputs.clear()
+        

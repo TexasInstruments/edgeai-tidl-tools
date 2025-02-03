@@ -19,11 +19,11 @@ else :
     # setting path
     sys.path.append(parent+"/../../")
     try:
-        from scripts.osrt_model_tools.tflite_tools import tflite_model_opt as tflOpt
+        from osrt_model_tools.tflite_tools import tflite_model_opt as tflOpt
     except ImportError:
         pass
     try:
-        from scripts.osrt_model_tools.onnx_tools.tidl_onnx_model_utils   import onnx_model_opt as onnxOpt
+        from osrt_model_tools.onnx_tools.tidl_onnx_model_utils   import onnx_model_opt as onnxOpt
     except ImportError:
         pass
 

@@ -27,7 +27,7 @@ This section describes how to use an updated tools version (Say from SDK 10.1) w
 export SOC=*soc*                    // [am62a,am68a,am68pa,am69a,am67a]
 export TISDK_IMAGE=*adas or edgeai* // [adas for evm boards, edgeai for sk boards]
 export UPDATE_OSRT_COMPONENTS=1
-./setup_target_device.sh
+./update_firmware_and_lib.sh
 ```
 
 **Example usage for updating OSRT components and C7x firmwares**
@@ -36,7 +36,7 @@ export SOC=*soc*                    // [am62a,am68a,am68pa,am69a,am67a]
 export TISDK_IMAGE=*adas or edgeai* // [adas for evm boards, edgeai for sk boards]
 export UPDATE_OSRT_COMPONENTS=1
 export UPDATE_FIRMWARE_AND_LIB=1
-./setup_target_device.sh
+./update_firmware_and_lib.sh
 ```
 
 

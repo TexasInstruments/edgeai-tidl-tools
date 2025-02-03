@@ -1,10 +1,10 @@
 __pycache__
 *.egg-info
-gcc-arm*
 examples/jupyter_notebooks/.ipynb_checkpoints/
 
 build
+bin
+lib
 model-artifacts
 models
-ti-cgt-c7000_3.1.0.LTS
-tidl_tools
+tools

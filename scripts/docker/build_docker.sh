@@ -43,26 +43,27 @@ else
     fi
 fi
 
-#Check for TI Proxy:
-use_ti_proxy=0
-if [ -z "$USE_PROXY" ];then
-    echo "TIDL_TOOLS_TYPE unset, defaulting to CPU tools"
-    use_ti_proxy=0
+repo_location=''
+if [ -z "$REPO_LOCATION" ];then
+    echo "No REPO_LOCATION specified, using default"
+    repo_location=''
 else
-    if [ $USE_PROXY == ti ];then
-        echo "Using TI Proxy"
-        use_ti_proxy=1
-    else
-        use_ti_proxy=0
-    fi
+    echo "Using REPO_LOCATION: $REPO_LOCATION"
+    repo_location=''
+fi
+
+proxy=0
+if [ -z "$PROXY" ];then
+    echo "No PROXY specified"
+    proxy=0
+else
+    echo "Using PROXY: $PROXY"
+    proxy=1
 fi
 
 if [ $tidl_gpu_tools -eq 1 ];then
-    sudo docker build -f $script_dir/Dockerfile_GPU -t x86_ubuntu_22 .
+    sudo docker build --build-arg REPO_LOCATION=$REPO_LOCATION --build-arg PROXY=$PROXY  -f $script_dir/Dockerfile_GPU -t edgeai_tidl_tools_x86_ubuntu_22_gpu .
+
 else
-    if [ $use_ti_proxy -eq 1 ];then
-        sudo docker build --build-arg REPO_LOCATION=artifactory.itg.ti.com/docker-public/library/ --build-arg USE_PROXY=ti  -f $script_dir/Dockerfile -t x86_ubuntu_22 .
-    else
-        sudo docker build -f $script_dir/Dockerfile -t x86_ubuntu_22 .
-    fi
+    sudo docker build --build-arg REPO_LOCATION=$REPO_LOCATION --build-arg PROXY=$PROXY  -f $script_dir/Dockerfile -t edgeai_tidl_tools_x86_ubuntu_22 .
 fi

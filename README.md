@@ -140,19 +140,17 @@ The below table covers the supported operations with this repository on X86_PC a
  git clone https://github.com/TexasInstruments/edgeai-tidl-tools.git
  cd edgeai-tidl-tools
  git checkout <TAG Compatible with your SDK version>
- # Supported SOC name strings am62, am62a, am68a, am68pa, am69a, am67a
+ # Supported SOC name strings am62, am62a, (am68a or j721s2), (am68pa or j721e), (am69a or j784s4), (am67a or j722s)
  export SOC=<Your SOC name>
  source ./setup.sh
 ```
 
-- While opening new terminal in a system where above setup is already done once for a given SDK version, set below environment variables 
+- While opening new terminal in a system where above setup is already done once for a given SDK version, run the 
+scripts below to set environment variables 
 
  ```
  cd edgeai-tidl-tools
- export SOC=<Your SOC name>
- export TIDL_TOOLS_PATH=$(pwd)/tidl_tools
- export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$TIDL_TOOLS_PATH
- export ARM64_GCC_PATH=$(pwd)/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu
+ source ./setup_env.sh ${SOC}
 ```
 
 
@@ -199,7 +197,6 @@ test_report_pc_${soc}.csv
  cd edgeai-tidl-tools
  git checkout <TAG Compatible with your SDK version>
  export SOC=<Your SOC name>
- export TIDL_TOOLS_PATH=$(pwd)
  ```
 
 - Copy the compiled artifacts from X86_PC to Development boards file system at ./edgeai-tidl-tools/
@@ -213,6 +210,8 @@ cmake ../examples && make -j && cd ..
 python3 ./scripts/gen_test_report.py
 ```
 - The execution of above step will generate output images at ```./edgeai-tidl-tools/output_images``` and output binary at ```./edgeai-tidl-tools/output_binaries```
+
+> **_NOTE:_** Instead of SCP you can use any method to transfer the afromentioned files from PC to target. You can even use NFS mount to mount the entire edgeai-tidl-tools repository on the target board.
 
 ## Compile and Benchmark Custom Model
 
