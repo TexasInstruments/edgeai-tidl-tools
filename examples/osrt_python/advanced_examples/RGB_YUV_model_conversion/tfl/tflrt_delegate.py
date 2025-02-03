@@ -58,6 +58,10 @@ if(SOC == "am62"):
     args.disable_offload = True
     args.compile = False
 
+if args.compile == True and tidl_tools_path == None:
+    print("TIDL_TOOLS_PATH is not set" )
+    exit(-1)
+
 def write_all_tensors(interpreter, trace_dir):
   for node in interpreter.get_tensor_details():
     # print(node)

@@ -205,8 +205,12 @@ test_report_pc_${soc}.csv
 ```
 # scp -r <pc>/edgeai-tidl-tools/model-artifacts/  <dev board>/edgeai-tidl-tool/
 # scp -r <pc>/edgeai-tidl-tools/models/  <dev board>/edgeai-tidl-tool/
-mkdir build && cd build
-cmake ../examples && make -j && cd ..
+export SOC=<Your SOC name>
+rm -rf build bin lib
+mkdir build
+cd build
+cmake ../examples && make -j
+cd ..
 python3 ./scripts/gen_test_report.py
 ```
 - The execution of above step will generate output images at ```./edgeai-tidl-tools/output_images``` and output binary at ```./edgeai-tidl-tools/output_binaries```

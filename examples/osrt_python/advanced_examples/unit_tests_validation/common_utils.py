@@ -40,7 +40,7 @@ weight_clipping = 1
 bias_calibration = 1
 channel_wise_quantization = 0
 
-tidl_tools_path = os.environ["TIDL_TOOLS_PATH"]
+tidl_tools_path = os.environ.get("TIDL_TOOLS_PATH")
 
 optional_options = {
 # "priority":0,

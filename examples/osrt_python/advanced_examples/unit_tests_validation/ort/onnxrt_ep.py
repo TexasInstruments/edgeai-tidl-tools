@@ -78,6 +78,10 @@ if(SOC == "am62"):
     args.disable_offload = True
     args.compile = False
 
+if args.compile == True and tidl_tools_path == None:
+    print("TIDL_TOOLS_PATH is not set" )
+    exit(-1)
+
 def get_benchmark_output(interpreter):
     benchmark_dict = interpreter.get_TI_benchmark_data()
     proc_time = copy_time = 0
