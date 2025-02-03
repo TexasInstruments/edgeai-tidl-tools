@@ -276,11 +276,6 @@ namespace tidl
                 LOG_ERROR("Inference configuration parameters  missing.\n");
                 status = -1;
             }
-            else if (!postProc)
-            {
-                LOG_WARN("Postprocess configuration parameters missing.\n");
-                status = -1;
-            }
             else if (!taskType)
             {
                 LOG_WARN("Tasktype configuration parameters missing.\n");
@@ -293,18 +288,18 @@ namespace tidl
                 config.taskType = taskType.as<std::string>();
 
                 /* Read the data layout */
-                if (postProc["data_layout"])
+                if (postProc && postProc["data_layout"])
                 {
                     config.dataLayout = postProc["data_layout"].as<std::string>();
                 }
-                if (postProc["detection_thr"]){
+                if (postProc && postProc["detection_thr"]){
                     config.vizThreshold = postProc["detection_thr"].as<float>();
                 }
-                if (postProc["formatter"] && postProc["formatter"]["name"]){
+                if (postProc && postProc["formatter"] && postProc["formatter"]["name"]){
 
                     config.formatterName = postProc["formatter"]["name"].as<std::string>();
                 }
-                if (postProc["formatter"] && postProc["formatter"]["src_indices"])
+                if (postProc && postProc["formatter"] && postProc["formatter"]["src_indices"])
                 {
                     const YAML::Node &formatterNode = postProc["formatter"]["src_indices"];
 
@@ -343,12 +338,12 @@ namespace tidl
                     }
                 }
 
-                if (postProc["normalized_detections"])
+                if (postProc && postProc["normalized_detections"])
                 {
                     config.normDetect = postProc["normalized_detections"].as<bool>();
                 }
 
-                if (postProc["shuffle_indices"])
+                if (postProc && postProc["shuffle_indices"])
                 {
                     const YAML::Node indicesNode = postProc["shuffle_indices"];
 
