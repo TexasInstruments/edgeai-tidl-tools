@@ -81,7 +81,7 @@ namespace tidl
                 << "--device_type, -y: device_type for dlr models can be cpu,gpu\n"
                 << "--pre_empt_delay, -e: pre emmpt delay for models in order\n"
                 << "--labels, -l: labels for the model\n"
-                << "--model_dirs, -m: model directory for models in order\n"
+                << "--model_artifacts_dirs, -m: model artifacts directory for models in order\n"
                 << "--priors, -p: thread priority for models in order\n"
                 << "--threads, -t: number of threads to be running in parellel for each model\n"
                 << "\n";
@@ -111,7 +111,7 @@ namespace tidl
                     {"images", required_argument, nullptr, 'i'},
                     {"device_type", required_argument, nullptr, 'y'},
                     {"labels", required_argument, nullptr, 'l'},
-                    {"model_dirs", required_argument, nullptr, 'm'},
+                    {"model_artifacts_dirs", required_argument, nullptr, 'm'},
                     {"priorities", required_argument, nullptr, 'p'},
                     {"max_pre_empt_delays", required_argument, nullptr, 'e'},
                     {"threads", required_argument, nullptr, 't'},

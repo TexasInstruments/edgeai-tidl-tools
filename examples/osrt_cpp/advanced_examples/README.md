@@ -34,11 +34,11 @@
   ```
   - Run the CPP Advanced examples using the below commands
     ```
-    ./bin/Release/tfl_priority_scheduling -i test_data/ADE_val_00001801.jpg test_data/airshow.jpg -m  model-artifacts/ss-tfl-deeplabv3_mnv2_ade20k_float/ model-artifacts/cl-tfl-mobilenet_v1_1.0_224/ -p 1 0 -t 1  -a 1  -d 1 -e 3
+    ./bin/Release/tfl_priority_scheduling -i test_data/ADE_val_00001801.jpg test_data/airshow.jpg -m  model-artifacts/ss-tfl-deeplabv3_mnv2_ade20k_float/artifacts/ model-artifacts/cl-tfl-mobilenet_v1_1.0_224/artifacts/ -p 1 0 -t 1  -a 1  -d 1 -e 3
     ```
   - The above commands will run tfl and ort advance application.
   - Command line argument specifies:
-    - -m model1_path model2_path
+    - -m model1_artifacts_path model2_artifacts_path
     - -p 1 0 (model1 with priority 1 and model0 priority 0. 0 for higher priority and  7 for lowest).Ignore for default(priority 0) priority.
     - -t n (number of threads to spawn for each model)
     - -a 1 (offload to j7)

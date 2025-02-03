@@ -24,7 +24,7 @@
 ## Run 
   - Run the CPP examples using the below commands
     ```
-    ./bin/Release/tidlrt_clasification -l test_data/labels.txt -i test_data/airshow.jpg  -f model-artifacts/tfl/mobilenet_v1_1.0_224/ -d 1
+    ./bin/Release/tidlrt_clasification -l test_data/labels.txt -i test_data/airshow.jpg  -f model-artifacts/cl-tfl-mobilenet_v1_1.0_224/artifacts/ -d 1
     ```
 ## Validation on Target
 - Build and run steps remains same for PC emulation and target. Copy the below folders from PC to the EVM where this repo is cloned before running the examples
