@@ -86,6 +86,7 @@ def add_node(graph:gs.Graph, name:str,op:str, dtype, attrs, inputs, output_shape
     node_outs = [gs.Variable(f"{name}_out_{i}", dtype=dtype,shape=out) for i,out in enumerate(output_shapes)]
     node = gs.Node(op=op,name=name,attrs=attrs, inputs=inputs, outputs=node_outs)
     graph.nodes.append(node)
+    logging.debug(f"Adding Node {node.name}")
     return node
 
 
@@ -113,6 +114,7 @@ def _duplicate_nodes(graph:gs.Graph,nodes:list[gs.Node],count:int):
                     pass
 
         result.append(nnode)
+        logging.debug(f"Adding Node {nnode.name}")
 
     graph.nodes.extend(result)
     return result

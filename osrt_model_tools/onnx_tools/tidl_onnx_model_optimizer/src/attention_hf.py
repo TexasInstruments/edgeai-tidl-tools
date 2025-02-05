@@ -59,6 +59,7 @@
 import onnx_graphsurgeon as gs
 import numpy as np
 import onnx
+import logging
 
 
 def find_attentions(graph: gs.Graph):
@@ -78,7 +79,8 @@ def find_attentions(graph: gs.Graph):
                           \   /
                           matmul
                             |
-    this function assumes that q,k,v and process are straight chain of operations their is no dependencies on nodes outside of the block
+    this function assumes that q,k,v and process are straight chain of operations their is no dependencies on nodes outside of the block.
+    # TODO detr and segformer type structure is skipped currently. 
     '''
     
     attentions = []
@@ -129,12 +131,16 @@ def find_attentions(graph: gs.Graph):
                 continue
             curr_node = curr_branch[-1]
             var_inputs = [inp for inp in curr_node.inputs if isinstance(inp, gs.Variable)]
-            if len(var_inputs) != 1:
+            if len(var_inputs) != 1 or len(var_inputs[0].inputs)<1:
                 is_attention = False
                 break
             curr_branch.append(var_inputs[0].inputs[0])
             i = (i+1)%3
         
+        # dont optmize already optimized model
+        if all( branch[-2].op == 'Squeeze'  for branch in qkv_branches):
+            is_attention = False
+
         if not is_attention:
             continue
         
@@ -212,7 +218,7 @@ def tidl_optimize_hf_attention(graph:gs.Graph, onnx_graph:onnx.GraphProto):
     finds attention blocks and optimizes them
     '''
     attentions = find_attentions(graph)    
-    
+    cntr = 0
     tidl_merge_adds_between_matmul_and_softmax(graph, onnx_graph, attentions)
     
     for q_branch, k_branch, v_branch, matmul1, softmax, matmul2 in attentions:
@@ -232,7 +238,11 @@ def tidl_optimize_hf_attention(graph:gs.Graph, onnx_graph:onnx.GraphProto):
                         break
                 branches_upto_transposes.append(new_branch)
             q_branch, k_branch, v_branch = branches_upto_transposes
-            assert len(q_branch) == len(k_branch) == len(v_branch)
+
+            if (len(q_branch) != len(k_branch)) or (len(k_branch) != len(v_branch)):
+                logging.info(f"The len of q, k and v do not match for {cntr} q branch. Skipping.") 
+                continue
+
             new_input = split.inputs[0]
             change_split_axis = False
             
@@ -258,13 +268,14 @@ def tidl_optimize_hf_attention(graph:gs.Graph, onnx_graph:onnx.GraphProto):
                 reshape_node = reshape_nodes[0]
                 change_split_axis = (q_split==k_split==v_split)
                 output_shape = split.outputs[0].shape
-                reshape_node.inputs[0] =  new_input
                 if change_split_axis:
-                    split_dim = output_shape[-2]
-                    output_shape[-2] = 3*output_shape[-2]
+                    output_shape = output_shape[0:2] + [3] + output_shape[2:]
+                    split_dim = output_shape[-3]
                 else:
                     split_axis = split.attrs['axis']
                     output_shape[split_axis] = sum([out.shape[split_axis] for out in split.outputs])
+                reshape_node.inputs[0] =  new_input
+
                 reshape_node.inputs[1].values = np.array(output_shape, reshape_node.inputs[1].values.dtype)
                 reshape_out = gs.Variable(f'{reshape_node.name}_out',dtype=reshape_node.inputs[0].dtype, shape=output_shape)
                 reshape_node.outputs.append(reshape_out)
@@ -272,8 +283,8 @@ def tidl_optimize_hf_attention(graph:gs.Graph, onnx_graph:onnx.GraphProto):
                 for branch in (q_branch, k_branch, v_branch):
                     branch.pop(0)
                 if change_split_axis:
-                    split.attrs['axis'] = -2 
-                    split.inputs[1].values = np.array([split_dim,split_dim,split_dim], split.inputs[1].values.dtype)
+                    split.attrs['axis'] = -3
+                    split.inputs[1].values = np.array([int(split_dim/3),int(split_dim/3),int(split_dim/3)], split.inputs[1].values.dtype)
                 new_input = reshape_out
                 
             if all( branch[0].op == 'Transpose'  for branch in (q_branch, k_branch, v_branch)):
@@ -286,18 +297,41 @@ def tidl_optimize_hf_attention(graph:gs.Graph, onnx_graph:onnx.GraphProto):
                         perm[-2:] = perm[-2:][::-1]
                         transpose_nodes[i].attrs['perm'] = perm
                     else:
+                        # add unsqueeze here
                         transpose_nodes[i].outputs[0].inputs[0] = split
                 transpose_node = transpose_nodes[0]
+                if change_split_axis: # NOT levit
+                    transpose_node.attrs['perm'] = [2, 0, 3, 1, 4]
                 transpose_node.inputs[0] =  new_input
                 transpose_out = gs.Variable(f'{transpose_node.name}_out',dtype=transpose_node.inputs[0].dtype, shape=None)
                 transpose_node.outputs.append(transpose_out)
                 split.inputs[0] = transpose_out
                 for branch in (q_branch, k_branch, v_branch):
                     branch.pop(0)
-                if change_split_axis or split.attrs['axis'] in (-2, len(transpose_node.inputs[0].shape)-2):
+                if change_split_axis:
+                    split.attrs['axis'] = 0
+                elif split.attrs['axis'] in (-2, len(transpose_node.inputs[0].shape)-2):
                     split.attrs['axis'] = -3
                 elif split.attrs['axis'] in (-3, len(transpose_node.inputs[0].shape)-3):
                     split.attrs['axis'] = -2
-            for out in  split.outputs:
+
+            if change_split_axis:
+                split_outputs = list(split.outputs)
+                split.outputs.clear()
+
+                squeeze_nodes = []
+                for i, split_out in enumerate(split_outputs):
+                    squeeze_node = gs.Node(op='Squeeze', name=f'{cntr}_squeeze_{i}')
+                    squeeze_in = gs.Variable(f'{cntr}_{squeeze_node.name}_in', dtype=split_out.dtype, shape=None)
+                    squeeze_node.inputs.append(squeeze_in)
+                    squeeze_node.inputs.append(gs.Constant(name=f'{cntr}_squeeze_{i}_axes', values=np.array([0], dtype=np.int64)))
+                    squeeze_node.outputs.append(split_out)
+                    split.outputs.append(squeeze_in)
+                    graph.nodes.append(squeeze_node)
+                    split_out.shape = None
+
+            for out in split.outputs:
                 out.shape = None
+
+            cntr +=1
         

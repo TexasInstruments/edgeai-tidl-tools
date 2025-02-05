@@ -361,8 +361,8 @@ def find_matmul_bias (matmul: gs.Node, graph: gs.Graph) -> gs.Node|None:
     like, if MatMul has HxM * MxN then Add must have
     constant input N
     """
-    assert matmul.op == "MatMul", "Not MatMul node, cannot find bias for this node"
-
+    if (matmul.op != "MatMul"):
+        logging.info(f"{matmul.name} is not MatMul node, cannot find bias for this node, skipping.")
 
     if  len(matmul.inputs) == 2 and \
         isinstance(matmul.inputs[0], gs.Variable) and \

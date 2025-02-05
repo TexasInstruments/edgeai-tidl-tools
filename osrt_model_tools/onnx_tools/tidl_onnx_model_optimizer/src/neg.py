@@ -73,7 +73,7 @@ def tidl_convert_neg_to_mul(graph: gs.Graph, onnx_graph: onnx.GraphProto):
     for node in nodes:
         if (node.op == "Neg"):
             mul_node = gs.Node(name = node.name + "_mul", op = "Mul", 
-                               inputs = [node.inputs[0], gs.Constant(name= node.name + "_val", values= np.array([-1], dtype=np.float32))], 
+                               inputs = [node.inputs[0], gs.Constant(name= node.name + "_val", values= np.array([-1], dtype=node.inputs[0].dtype))], 
                                outputs = [node.outputs[0]])
             logging.debug(f"Adding Node {mul_node.name}")
             graph.nodes.append(mul_node)

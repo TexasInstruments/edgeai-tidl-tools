@@ -62,6 +62,9 @@ import onnx
 
 
 def tidl_change_argmax_keepdims_to_1(graph:gs.Graph,onnx_graph: onnx.GraphProto):
+    '''
+    Changes the keepdims parameter from 0 to 1 and adds a reshape node to accomodate for the shape.
+    '''
     nodes = [node for node in graph.nodes if node.op == 'ArgMax']
     for node in nodes:
         if node.attrs['keepdims'] != 0:
@@ -76,3 +79,4 @@ def tidl_change_argmax_keepdims_to_1(graph:gs.Graph,onnx_graph: onnx.GraphProto)
         reshape_node = gs.Node(op="Reshape", inputs=[argmax_out, final_shape], outputs=[node.outputs[0]])
         node.outputs[0] = argmax_out
         graph.nodes.append(reshape_node)
+        logging.debug(f"Adding Node {reshape_node.name}")

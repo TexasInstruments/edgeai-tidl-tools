@@ -86,6 +86,11 @@ def tidl_convert_conv_large_pad_to_smaller_kernel (graph: gs.Graph, onnx_graph: 
                           "cannot check for conversion")
             continue
 
+        if 'dilations' not in conv.attrs.keys():
+            dilation_h, dilation_w = 1, 1
+        else:
+            dilation_h, dilation_w = conv.attrs['dilations'][-2], conv.attrs['dilations'][-1]
+
         pad_t, pad_l, pad_b, pad_r = conv.attrs['pads'][0], conv.attrs['pads'][1], \
                                 conv.attrs['pads'][2], conv.attrs['pads'][3]
         stride_h, stride_w = conv.attrs['strides'][-2], conv.attrs['strides'][-1]
@@ -120,14 +125,23 @@ def tidl_convert_conv_large_pad_to_smaller_kernel (graph: gs.Graph, onnx_graph: 
             # the original data with pads
             w_padded = inp.shape[-1] + pad_l + pad_r
             h_padded = inp.shape[-2] + pad_t + pad_b
-            h_steps = w_padded - kernel_shape[1] + 1        # horizontal steps
-            v_steps = h_padded - kernel_shape[0] + 1        # vertical steps
-            # get relevant places in lernel
-            top_left_index = tuple([pad_t - v_steps + 1, pad_l - h_steps + 1])
-            bottom_right_index = tuple([pad_t + h - 1, pad_l + w - 1])
-            reduced_weight_tensor = weight_tensor[:, :,
-                                            top_left_index[0]: bottom_right_index[0] + 1,
-                                            top_left_index[1]: bottom_right_index[1] + 1]
+
+            # calculate effective kernel size based on dilation
+            eff_kernel_size_w = kernel_shape[1] + (kernel_shape[1]-1)*(dilation_w-1)
+            eff_kernel_size_h = kernel_shape[0] + (kernel_shape[0]-1)*(dilation_h-1)
+
+            h_steps = w_padded - eff_kernel_size_w + 1        # horizontal steps
+            v_steps = h_padded - eff_kernel_size_h + 1        # vertical steps
+            # get relevant places in kernel
+
+            top_left_index = tuple([int((eff_kernel_size_h - pad_t - 1)/dilation_h), int((eff_kernel_size_w - pad_l - 1)/dilation_w)])
+            bottom_right_index = tuple([int((eff_kernel_size_h - pad_b - 1)/dilation_h), int((eff_kernel_size_w - pad_r - 1)/dilation_w)])
+            
+            # top_left_index = tuple([pad_t - v_steps + 1, pad_l - h_steps + 1])
+            # bottom_right_index = tuple([pad_t + h - 1, pad_l + w - 1])
+            reduced_weight_tensor = weight_tensor[:, :, 
+                                                  top_left_index[0]: bottom_right_index[0] + 1, 
+                                                  top_left_index[1]: bottom_right_index[1] + 1]
             reduced_kernel_shape = [reduced_weight_tensor.shape[-2],
                                     reduced_weight_tensor.shape[-1]]
 
@@ -143,7 +157,7 @@ def tidl_convert_conv_large_pad_to_smaller_kernel (graph: gs.Graph, onnx_graph: 
             logging.debug(f"Reducing pads to {reduced_pads}")
 
             # change the conv
-            logging.debug(f"Chaging {conv.name} input weights and attributes")
+            logging.debug(f"Changing {conv.name} input weights and attributes")
             conv.attrs['pads'] = np.array(reduced_pads, dtype= np.int64)
             conv.attrs['kernel_shape'] = np.array(reduced_kernel_shape, dtype= np.int64)
             conv.inputs[1] = gs.Constant(name= f"{weights.name}_reduced",
@@ -152,6 +166,10 @@ def tidl_convert_conv_large_pad_to_smaller_kernel (graph: gs.Graph, onnx_graph: 
 
 
 def tidl_convert_conv_7x7_stride4_to_stride1(graph: gs.Graph, onnx_graph: onnx.GraphProto):
+    """
+    Segformer model has a convolution layer with 7x7 kernel and 4 stride, converting the layer to the one
+    with a stride of 1 using combination of maxpool and conv
+    """
 
     for node in graph.nodes:
         if node.op == 'Conv':

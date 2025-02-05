@@ -213,6 +213,8 @@ def bordered(text):
 
 def has_unk_axis(inp : gs.Variable):
     shp = inp.shape
+    if shp is None:
+        return True
     for iter in shp:
         if not isinstance(iter, int):
             return True

@@ -47,7 +47,8 @@ args = parser.parse_args()
 os.environ["TIDL_RT_PERFSTATS"] = "1"
 
 so = rt.SessionOptions()
-# so.graph_optimization_level = rt.GraphOptimizationLevel.ORT_DISABLE_ALL
+# would be needed for transformer and convnext models
+# so.graph_optimization_level = rt.GraphOptimizationLevel.ORT_DISABLE_ALL 
 so.log_severity_level=3
 
 print("Available execution providers : ", rt.get_available_providers())
@@ -77,10 +78,6 @@ SOC = os.environ["SOC"]
 if(SOC == "am62"):
     args.disable_offload = True
     args.compile = False
-
-if args.compile == True and tidl_tools_path == None:
-    print("TIDL_TOOLS_PATH is not set" )
-    exit(-1)
 
 def get_benchmark_output(interpreter):
     benchmark_dict = interpreter.get_TI_benchmark_data()
@@ -116,6 +113,8 @@ def infer_image(sess):
         input_data = np.random.randn(*input_details[i].shape).astype(np.int64)
     elif(input_details[i].type == 'tensor(uint8)'):
         input_data = np.random.randn(*input_details[i].shape).astype(np.uint8)
+    elif(input_details[i].type == 'tensor(int32)'):
+        input_data = np.random.randn(*input_details[i].shape).astype(np.int32)
     else:
         input_data = np.random.randn(*input_details[i].shape).astype(np.float32)
         
@@ -137,6 +136,9 @@ def infer_image(sess):
 
 def run_model(model, mIdx):
     print("\nRunning_Model : ", model, " \n")
+    if (so.graph_optimization_level != rt.GraphOptimizationLevel.ORT_DISABLE_ALL):
+        print("[WARNING] The run might fail for transformer/convnext networks, user will have to modify the strict to set \
+            graph_optimization_level to DISABLE_ALL in session.\n")
     config = models_configs[model]
 
     # Run graph optimization
@@ -147,31 +149,41 @@ def run_model(model, mIdx):
             ):
                 copy_path = config["model_path"][:-5] + "_org.onnx"
                 # Check if copy path exists and prompt for permission to overwrite
+                # if no permission, then anyway overwrites the file
                 if os.path.isfile(copy_path):
-                    overwrite_permission = input(
-                        f"\033[96mThe file {copy_path} exists, do you want to overwrite? [Y/n] \033[00m"
-                    )
-                    if overwrite_permission != "Y":
-                        print("Aborting run...")
-                        sys.exit(-1)
-                    else:
-                        print(
-                            f"\033[93m[WARNING] File {copy_path} will be overwritten\033[00m"
+                    if sys.stdin.isatty():  # Check if running in interactive mode
+                        overwrite_permission = input(
+                            f"\033[96mThe file {copy_path} exists, do you want to overwrite? [Y/n] \033[00m"
                         )
-
-                shutil.copy2(config["model_path"], copy_path)
-                print(
-                    f"\033[93mOptimization Enabled: Moving {config['model_path']} to {copy_path} before overwriting by optimization\033[00m"
-                )
-                optimize(
-                    model=config["model_path"], out_model=config["model_path"]
-                )
+                        if overwrite_permission != "Y":
+                            print("Aborting run...")
+                            sys.exit(-1)
+                        else:
+                            print(
+                                f"\033[93m[WARNING] File {copy_path} will be overwritten\033[00m"
+                            )
+                            shutil.copy2(config["model_path"], copy_path)
+                            print(
+                                f"\033[93mOptimization Enabled: Moving {config['model_path']} to {copy_path} before overwriting by optimization\033[00m"
+                            )
+                            optimize(
+                                model=config["model_path"], out_model=config["model_path"]
+                            )
+                        #
+                    #
+                    else:
+                        print(f"The original file and optimized file still exists, skipping the model optimization")
+                #
+            #
             else:
                 print(
                     "Model optimization is only supported in compilation or disabled offload mode on x86 machines"
                 )
+        #
         else:
             print("Model optimizer not found, -o flag has no effect")
+        #
+    #
 
     delegate_options = {}
     delegate_options.update(required_options)
@@ -269,3 +281,4 @@ if ncpus > 1:
 else :
     for mIdx, model in enumerate(models):
         run_model(model, mIdx)
+

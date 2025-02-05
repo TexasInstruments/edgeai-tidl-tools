@@ -89,9 +89,9 @@ def tidl_convert_gather_with_single_index_to_slice(graph: gs.Graph, onnx_graph: 
                 # add Slice
                 input_dtype = node.inputs[0].dtype
                 slice_out = gs.Variable(name= f"{node.name}_Slice_out", dtype= input_dtype) if axis!=0 else node.inputs[0]
-                # slicing will happen along the batch dimension if axis=0, the reshape will take of that, no need of slice
+                # slicing will happen along the batch dimension if axis=0, it is not supported #TODO
                 
-                if axis != 0: 
+                if axis != 0:
                     starts = np.reshape(gather_indices, (1,))
                     slice_starts = gs.Constant(name= f"{node.name}_Slice_starts",
                                             values= starts)
@@ -111,20 +111,19 @@ def tidl_convert_gather_with_single_index_to_slice(graph: gs.Graph, onnx_graph: 
                                 f"starts {slice_starts.values} and ends {slice_ends.values}")
                     graph.nodes.append(slc)
 
-                # add reshape to fix extra singular dim from slice
-                new_shape = list(inp.shape)
-                new_shape = np.array(new_shape[:axis] + new_shape[axis + 1: ],
-                                     dtype= np.int64)
-                reshp_shape = gs.Constant(name= f"{node.name}_Reshape_shape",
-                                          values= new_shape)
+                    # add reshape to fix extra singular dim from slice
+                    new_shape = list(inp.shape)
+                    new_shape = np.array(new_shape[:axis] + new_shape[axis + 1: ],
+                                        dtype= np.int64)
+                    reshp_shape = gs.Constant(name= f"{node.name}_Reshape_shape",
+                                            values= new_shape)
 
-                reshp = gs.Node(name= f"{node.name}_Reshape", op= "Reshape",
-                                inputs= [slice_out, reshp_shape], outputs= node.outputs)
+                    reshp = gs.Node(name= f"{node.name}_Reshape", op= "Reshape",
+                                    inputs= [slice_out, reshp_shape], outputs= node.outputs)
 
-                logging.debug(f"Adding Reshape {reshp.name} to reshape Sliced output to "
-                              f"{new_shape}")
-                graph.nodes.append(reshp)
+                    logging.debug(f"Adding Reshape {reshp.name} to reshape Sliced output to "
+                                f"{new_shape}")
+                    graph.nodes.append(reshp)
 
-
-                # clear out original node outputs and remove
-                node.outputs.clear()
+                    # clear out original node outputs and remove
+                    node.outputs.clear()

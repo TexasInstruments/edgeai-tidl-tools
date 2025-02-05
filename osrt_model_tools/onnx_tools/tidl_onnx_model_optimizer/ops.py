@@ -69,8 +69,9 @@ from .src.argmax import tidl_change_argmax_keepdims_to_1
 from .src.resize import tidl_convert_resize_params_size_to_scale
 from .src.attention import tidl_optimize_attention
 from .src.attention_hf import tidl_optimize_hf_attention
+from .src.attention_hf_detr import tidl_detr_optimize_attention
 from .src.batch import tidl_modify_batch_dim
-from .src.concat import tidl_convert_concat_axis_width_to_channel
+from .src.concat import tidl_convert_concat_axis_width_to_channel, tidl_convert_single_concat_to_consecutive_concats
 from .src.maxpool import tidl_convert_maxpool_to_cascaded_maxpool
 from .src.reducemean import tidl_convert_reducemean_to_matmul
 from .src.gemm import tidl_convert_gemm_to_matmul_and_add
@@ -83,23 +84,24 @@ from .src.softmax import tidl_push_large_channel_dim_to_height_for_width_wise_so
 from .src.conv import tidl_convert_conv_large_pad_to_smaller_kernel
 from .src.conv import tidl_convert_conv_7x7_stride4_to_stride1
 from .src.layernorm import tidl_expand_layernorm_to_component_ops
-from .src.slice import tidl_expand_slice_across_multiple_axis
+from .src.slice import tidl_expand_slice_across_multiple_axis, tidl_convert_2_dimension_slice_to_maxpool
 from .src.instancenorm import tidl_convert_instancenorm_to_layernorm
 from .src.unsqueeze import tidl_convert_unsqueeze_to_reshape
 from .src.qdq import tidl_add_bias_qdq, tidl_remove_quantize_initializer, tidl_remove_duplicate_quantize_dequantize
 from .src.neg import tidl_convert_neg_to_mul
 from .src.expand import tidl_convert_expand_to_reshape_and_concat
-
+from .src.reducesum import tidl_convert_reducesum_to_matmul
 
 ### function dict to execute
 opt_ops = {
         'convert_resize_params_size_to_scale'       : tidl_convert_resize_params_size_to_scale,
         'attention_block_optimization'              : tidl_optimize_attention,
         'hf_attention_block_optimization'           : tidl_optimize_hf_attention,
+        'hf_detr_attention_block_optimization'      : tidl_detr_optimize_attention,
         'convert_concat_axis_width_to_channel'      : tidl_convert_concat_axis_width_to_channel,
         'split_batch_dim_to_parallel_input_branches': tidl_modify_batch_dim,
         'convert_maxpool_to_cascaded_maxpool'       : tidl_convert_maxpool_to_cascaded_maxpool,
-        'convert_reducemean_to_matmul'				: tidl_convert_reducemean_to_matmul,
+        'convert_reducemean_to_matmul'              : tidl_convert_reducemean_to_matmul,
         'convert_gemm_to_matmul_and_add'            : tidl_convert_gemm_to_matmul_and_add,
         'convert_matmul_to_conv_1x1s1'              : tidl_convert_matmul_to_conv_1x1s1,
         'convert_large_global_avg_pooling_to_matmul': tidl_convert_large_global_avg_pooling_to_matmul,
@@ -120,20 +122,24 @@ opt_ops = {
         'remove_duplicate_quantize_dequantize'      : tidl_remove_duplicate_quantize_dequantize,
         "convert_neg_to_mul"                        : tidl_convert_neg_to_mul,
         "convert_expand_to_reshape_and_concat"      : tidl_convert_expand_to_reshape_and_concat,
-        "change_argmax_keepdims_to_1" : tidl_change_argmax_keepdims_to_1
-
+        "convert_single_concat_to_consecutive_concats" : tidl_convert_single_concat_to_consecutive_concats, 
+        "change_argmax_keepdims_to_1"               : tidl_change_argmax_keepdims_to_1,
+        "convert_2_dimension_slice_to_maxpool"      : tidl_convert_2_dimension_slice_to_maxpool,
+        "convert_reducesum_to_matmul"               : tidl_convert_reducesum_to_matmul
 }
 
+qdq_supported_ops = ['add_bias_qdq', 'remove_quantize_initializer', 'remove_duplicate_quantize_dequantize']
 
 # adjancency list
 adj_list = {
         'convert_resize_params_size_to_scale'       : [],
         'attention_block_optimization'              : [],
-        'hf_attention_block_optimization'           : [],
+        'hf_attention_block_optimization'           : ['hf_detr_attention_block_optimization'],
+        'hf_detr_attention_block_optimization'        : [],
         'convert_concat_axis_width_to_channel'      : [],
         'split_batch_dim_to_parallel_input_branches': [],
         'convert_maxpool_to_cascaded_maxpool'       : [],
-        'convert_reducemean_to_matmul'				: ['expand_layernorm_to_component_ops'],
+        'convert_reducemean_to_matmul'              : ['expand_layernorm_to_component_ops'],
         'convert_gemm_to_matmul_and_add'            : ['convert_large_global_avg_pooling_to_matmul'],
         'convert_matmul_to_conv_1x1s1'              : ['convert_gemm_to_matmul_and_add'],     # don't want the matmul from gemm to change                                          
         'convert_large_global_avg_pooling_to_matmul': ['push_matmul_channel_in_height'],
@@ -144,7 +150,7 @@ adj_list = {
         'push_large_channel_dim_to_height_for_width_wise_softmax': [],
         'convert_conv_large_pad_to_smaller_kernel'  : [],
         'convert_conv_7x7_stride4_to_stride1'       : [],
-        'expand_layernorm_to_component_ops'         : ['attention_block_optimization'],
+        'expand_layernorm_to_component_ops'         : ['attention_block_optimization', 'hf_attention_block_optimization'],
         'push_matmul_channel_in_height'             : [],
         'expand_slice_across_multiple_axis'         : [],
         'convert_instancenorm_to_layernorm'         : ['expand_layernorm_to_component_ops'],
@@ -153,8 +159,11 @@ adj_list = {
         'remove_quantize_initializer'               : [],
         'remove_duplicate_quantize_dequantize'      : [],
         "convert_neg_to_mul"                        : [],
-        "convert_expand_to_reshape_and_concat"      : [],
-        "change_argmax_keepdims_to_1"               : []
+        "convert_expand_to_reshape_and_concat"      : ['convert_single_concat_to_consecutive_concats'],
+        "convert_single_concat_to_consecutive_concats" : [],
+        "change_argmax_keepdims_to_1"               : [],
+        "convert_2_dimension_slice_to_maxpool"      : ['expand_slice_across_multiple_axis', 'convert_maxpool_to_cascaded_maxpool'],
+        "convert_reducesum_to_matmul"               : []
 }
 
 def get_optimizers():
@@ -163,14 +172,15 @@ def get_optimizers():
     """
     return {
         # operation specific
-        'convert_resize_params_size_to_scale'       : True,
+        'convert_resize_params_size_to_scale'       : False,
         'convert_concat_axis_width_to_channel'      : False,
         'attention_block_optimization'              : False,
-        'hf_attention_block_optimization'           : False,
+        'hf_attention_block_optimization'           : True,
+        'hf_detr_attention_block_optimization'      : False,
         'split_batch_dim_to_parallel_input_branches': False,
         'convert_maxpool_to_cascaded_maxpool'       : True,
-        'convert_reducemean_to_matmul'              : False,
-        'convert_gemm_to_matmul_and_add'            : True,
+        'convert_reducemean_to_matmul'              : True,
+        'convert_gemm_to_matmul_and_add'            : False,
         'convert_matmul_to_conv_1x1s1'              : False,
         'convert_large_global_avg_pooling_to_matmul': True,
         'convert_gather_with_single_index_to_slice' : True,
@@ -178,24 +188,27 @@ def get_optimizers():
         'convert_softmax_axis_channel_to_width'     : True,
         'convert_softmax_axis_height_to_width'      : True,
         'push_large_channel_dim_to_height_for_width_wise_softmax': True,
-        'convert_conv_large_pad_to_smaller_kernel'  : False,
+        'convert_conv_large_pad_to_smaller_kernel'  : True,
         'convert_conv_7x7_stride4_to_stride1'       : True,
         'expand_layernorm_to_component_ops'         : False, # Added support in import, no longer needed
         'push_matmul_channel_in_height'             : False,
-        'expand_slice_across_multiple_axis'         : False,
+        'expand_slice_across_multiple_axis'         : True,
         'convert_instancenorm_to_layernorm'         : False,
         'convert_unsqueeze_to_reshape'              : False,
         'add_bias_qdq'                              : False,
-        'remove_quantize_initializer'               : False, # some bug, use only for pt2e exported models
-        'remove_duplicate_quantize_dequantize'      : False,
-        "convert_neg_to_mul"                        : False,
-        "convert_expand_to_reshape_and_concat"      : False,
+        'remove_quantize_initializer'               : True, # some bug, use only for pt2e exported models
+        'remove_duplicate_quantize_dequantize'      : False, # not yet implemented 
+        "convert_neg_to_mul"                        : True,
+        "convert_expand_to_reshape_and_concat"      : True,
+        "convert_single_concat_to_consecutive_concats" : True,
         "change_argmax_keepdims_to_1"               : False,
+        "convert_2_dimension_slice_to_maxpool"      : True,
+        "convert_reducesum_to_matmul"               : True,
 
         # utilities specific
         'shape_inference_mode'      : 'all',
         'simplify_mode'             : None,
-        'simplify_kwargs'           : None
+        'simplify_kwargs'           : {'skipped_optimizers': ['fuse_consecutive_concats']},
     }
     
 def test_optimizers():
@@ -204,7 +217,7 @@ def test_optimizers():
     """
     return {
         # operation specific to be specified here
-        'remove_duplicate_quantize_dequantize' : True,
+        'hf_detr_attention_block_optimization' : True,
 
         # utilities specific
         'shape_inference_mode'      : 'all',

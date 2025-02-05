@@ -69,7 +69,7 @@ import onnx
 from onnx import shape_inference
 from onnxsim import simplify
 
-from .ops import opt_ops, get_optimizers, get_topological_sorted_key_order
+from .ops import opt_ops, get_optimizers, get_topological_sorted_key_order, qdq_supported_ops
 from .src.common import format_logger
 
 NUM_OPS = len(opt_ops)
@@ -97,22 +97,27 @@ def tidl_modify (model_path: str, out_model_path: str, args: dict):
     onnx_graph = model.graph
     graph = gs.import_onnx(model)
 
+    # check whether a quantized qdq model
+    is_quantized_model = any(node.op == "QuantizeLinear" for node in graph.nodes)
 
     curr_op = 1
     topo_sorted_keys = get_topological_sorted_key_order()
     # logging.debug(topo_sorted_keys)
     for key in topo_sorted_keys:
+        disabled_op = True
         if (key in args) and args[key]:
-            logging.info(f"[{curr_op}/{NUM_OPS}] {key.capitalize()} optimization : Enabled")
-            func = opt_ops[key]
-            func(graph, onnx_graph)
-            # cleanup
-            graph.cleanup().toposort()
+            if not(is_quantized_model) or (is_quantized_model and key in qdq_supported_ops):  
+                logging.info(f"[{curr_op}/{NUM_OPS}] {key.capitalize()} optimization : Enabled")
+                func = opt_ops[key]
+                func(graph, onnx_graph)
+                # cleanup
+                graph.cleanup().toposort()
 
-            temp_model = gs.export_onnx(graph)
-            temp_model = shape_inference.infer_shapes(temp_model, check_type= True, strict_mode= True)
-            graph = gs.import_onnx(temp_model)
-        else:
+                temp_model = gs.export_onnx(graph)
+                temp_model = shape_inference.infer_shapes(temp_model, check_type= True, strict_mode= True)
+                graph = gs.import_onnx(temp_model)
+                disabled_op = False
+        if disabled_op:
             logging.info(f"[{curr_op}/{NUM_OPS}] {key.capitalize()} optimization : Disabled")
         curr_op += 1
 

@@ -77,8 +77,17 @@ def tidl_convert_expand_to_reshape_and_concat(graph: gs.Graph, onnx_graph: onnx.
     
     for node in nodes:
         if (node.op == "Expand"):
-            target_shape = node.inputs[1].values
+            if hasattr(node.inputs[1], "values"):
+                target_shape = node.inputs[1].values
+            else:
+                logging.info(f"{node.name} expand layer has variable input of shape, disabling the onnx optimization.")
+                continue
+
             input_shape = node.inputs[0].shape
+            if (target_shape is None) or (input_shape is None):
+                logging.info(f"{node.name}'s shape inference might be incorrect, skipping the expand layer optimization")
+                continue
+
             final_output_node = node.outputs[0]
             reshp = None
             # add reshape over here
@@ -108,6 +117,7 @@ def tidl_convert_expand_to_reshape_and_concat(graph: gs.Graph, onnx_graph: onnx.
                 node.outputs.clear()
 
             # tensor repeat using concat considering that len(target shape) == len(input shape)
+            # TODO : Change the concat to slice and concat so that multiple inputs come to concat instead of single input
             if len(target_shape) == len(input_shape):
                 mismatched_shape = np.not_equal(input_shape, target_shape)
                 num_mismatched_axes = np.sum(mismatched_shape)
@@ -116,8 +126,10 @@ def tidl_convert_expand_to_reshape_and_concat(graph: gs.Graph, onnx_graph: onnx.
                 for i in range(len(target_shape)):
                     if mismatched_shape[i]:                            
                         if num_expanded_axis+1 == num_mismatched_axes:
+                            # output node is the final output node if all the axes are expanded
                             output_node = final_output_node
                         else:
+                            # multiple concats could be needed incase of multiple mismatched axes
                             output_node = gs.Variable(name= node.name + "_interim_{}".format(i), dtype=np.float32)
                         target_len = target_shape[i]
                         node_inputs = [input_node]*target_len

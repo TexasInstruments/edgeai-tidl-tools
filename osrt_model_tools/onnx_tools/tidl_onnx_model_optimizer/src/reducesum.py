@@ -56,7 +56,7 @@
 # OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 # OF THE POSSIBILITY OF SUCH DAMAGE.
 """
-Module containing ReduceMean layer specific functions and optimizations
+Module containing ReduceSum layer specific functions and optimizations
 """
 import logging
 import onnx_graphsurgeon as gs
@@ -65,72 +65,58 @@ import numpy as np
 
 
 
-def tidl_convert_reducemean_to_matmul (graph: gs.Graph, onnx_graph: onnx.GraphProto):
+def tidl_convert_reducesum_to_matmul (graph: gs.Graph, onnx_graph: onnx.GraphProto):
     """
-    The ReduceMean layer is replaced with the cascaded multiple layers, e.g.,
+    The ReduceSum layer is replaced with the cascaded multiple layers, e.g.,
     "Reshape + MatMul + Reshape". Assume that
-    1. The number of dimes of the input tensor to ReduceMean is 4 (B, C, H, W)
-    2. The attribute, "axes" of ReduceMean should be [2], [3] or [2, 3]
+    1. The number of dimes of the input tensor to ReduceSum is 4 (B, C, H, W)
+    2. The attribute, "axes" of ReduceSum should be [2], [3] or [2, 3]
     """
-    reduce_means = [node for node in graph.nodes if node.op == "ReduceMean"]
+    reduce_sums = [node for node in graph.nodes if node.op == "ReduceSum"]
 
-    for idx, reduce_mean in enumerate(reduce_means):
-        # Check if this ReduceMean is part of a LayerNorm structure
-        is_layernorm = False
-        for output in reduce_mean.outputs[0].outputs:
-            if output.op == "Sub" or output.op == "Add":  # LayerNorm has Sub after ReduceMean, or add incase of second one
-                for sub_output in output.outputs[0].outputs:
-                    if sub_output.op == "Pow" or sub_output.op == "Mul" or sub_output.op == "Sqrt":  # Followed by Pow or Mul
-                        is_layernorm = True
-                        break
-                if is_layernorm:
-                    break
-        
-        if is_layernorm:
-            logging.info(f"Skipping ReduceMean optimization as it appears to be part of LayerNorm")
-            continue
+    for idx, reduce_sum in enumerate(reduce_sums):
 
-        input_tensor = reduce_mean.inputs
+        input_tensor = reduce_sum.inputs
         input_shape  = input_tensor[0].shape
 
         # input tensor dim. Should be 3D or 4D
         numdims  = len(input_shape)
 
         # axes can either be input or attribute
-        if 'axes' in reduce_mean.attrs:
-            axes = reduce_mean.attrs['axes']
+        if 'axes' in reduce_sum.attrs:
+            axes = reduce_sum.attrs['axes']
         elif len(input_tensor) > 1:
             axes = input_tensor[1].values
         else:
             axes = np.arange(0, numdims, 1)
 
         try:
-            keepdims = reduce_mean.attrs['keepdims']
+            keepdims = reduce_sum.attrs['keepdims']
         except:
-            logging.debug(f"keepdims for {reduce_mean.name} node does not exist. Set keepdims to 1")
+            logging.debug(f"keepdims for {reduce_sum.name} node does not exist. Set keepdims to 1")
             keepdims = 1
 
         if len(input_shape) < 2:
-            logging.info(f"The input tensor to ReduceMean {reduce_mean.name} should be a 2D, 3D or 4D tensor, skipping") 
+            logging.info(f"The input tensor to ReduceSum {reduce_sum.name} should be a 2D, 3D or 4D tensor, skipping") 
             continue
 
         if len(axes) > 2:
-            logging.info(f"The length of Attribute axes of {reduce_mean.name} should be 1 or 2, skipping") 
+            logging.info(f"The length of Attribute axes of {reduce_sum.name} should be 1 or 2, skipping") 
             continue
 
         if numdims == 4:
             if not(axes[0] == 2 or axes[0] == -2 or axes[0] == 3 or axes[0] == -1):
-                logging.info(f"Attribute axes for {reduce_mean.name} should be 2 or 3, skipping")
+                logging.info(f"Attribute axes for {reduce_sum.name} should be 2 or 3, skipping")
                 continue
                 
         elif numdims == 3:
             if not(axes[0] == 1 or axes[0] == -2 or axes[0] == 2 or axes[0] == -1):
-                logging.info(f"Attribute axes for {reduce_mean.name} should be 1 or 2, skipping")
+                logging.info(f"Attribute axes for {reduce_sum.name} should be 1 or 2, skipping")
                 continue
 
         elif numdims == 2:
             if not(axes[0] == 0 or axes[0] == -2 or axes[0] == 1 or axes[0] == -1):
-                logging.info(f"Attribute axes for {reduce_mean.name} should be 0 or 1, skipping")
+                logging.info(f"Attribute axes for {reduce_sum.name} should be 0 or 1, skipping")
                 continue
 
         if numdims == 4:
@@ -170,7 +156,7 @@ def tidl_convert_reducemean_to_matmul (graph: gs.Graph, onnx_graph: onnx.GraphPr
 
                 # 2. MatMul
                 const_dim = H
-                values  = np.ones(shape=(const_dim, 1), dtype=np.float32) / const_dim
+                values  = np.ones(shape=(const_dim, 1), dtype=np.float32)
                 const_inmatmul = gs.Constant(f"in_rm_matmul.{idx}", values=values)
                 var_outmatmul  = [gs.Variable(f"out_rm_matmul.{idx}",
                                               dtype=np.float32, shape=shape_outmatmul)]
@@ -185,19 +171,19 @@ def tidl_convert_reducemean_to_matmul (graph: gs.Graph, onnx_graph: onnx.GraphPr
                 if keepdims == 1:
                     transpose2 = gs.Node(op="Transpose", name=f"rm_transpose.{idx}.2",
                                          attrs={"perm": permidx}, inputs=var_outmatmul,
-                                         outputs=reduce_mean.outputs)
+                                         outputs=reduce_sum.outputs)
                     graph.nodes.append(transpose2)
                     logging.debug(f"Adding Node {transpose2.name}")
                 else:
                     if graph.opset < 13:
                         squeeze = gs.Node(op="Squeeze", name=f"rm_squeeze.{idx}",
                                         attrs={"axes": [-1]}, inputs=var_outmatmul,
-                                        outputs=reduce_mean.outputs)
+                                        outputs=reduce_sum.outputs)
                     else:
                         axes = gs.Constant(f'rm_squeeze.{idx}_axes', values= np.array([-1], dtype=np.int64))
                         squeeze = gs.Node(op="Squeeze", name=f"rm_squeeze.{idx}",
                                         inputs=var_outmatmul + [axes],
-                                        outputs=reduce_mean.outputs)
+                                        outputs=reduce_sum.outputs)
                     graph.nodes.append(squeeze)
                     logging.debug(f"Adding Node {squeeze.name}")
 
@@ -214,11 +200,11 @@ def tidl_convert_reducemean_to_matmul (graph: gs.Graph, onnx_graph: onnx.GraphPr
 
                 # 1. MatMul
                 const_dim = W
-                values  = np.ones(shape=(const_dim, 1), dtype=np.float32) / const_dim
+                values  = np.ones(shape=(const_dim, 1), dtype=np.float32) 
                 const_inmatmul = gs.Constant(f"in_rm_matmul.{idx}", values=values)
 
                 if keepdims == 1:
-                    var_outmatmul = reduce_mean.outputs
+                    var_outmatmul = reduce_sum.outputs
                 else:
                     var_outmatmul  = [gs.Variable(f"out_rm_matmul.{idx}",
                                                   dtype=np.float32, shape=shape_outmatmul)]
@@ -233,12 +219,12 @@ def tidl_convert_reducemean_to_matmul (graph: gs.Graph, onnx_graph: onnx.GraphPr
                     if graph.opset < 13:
                         squeeze = gs.Node(op="Squeeze", name=f"rm_squeeze.{idx}",
                                         attrs={"axes": [-1]}, inputs=var_outmatmul,
-                                        outputs=reduce_mean.outputs)
+                                        outputs=reduce_sum.outputs)
                     else:
                         axes = gs.Constant(f'rm_squeeze.{idx}_axes', values= np.array([-1], dtype=np.int64))
                         squeeze = gs.Node(op="Squeeze", name=f"rm_squeeze.{idx}",
                                         inputs=var_outmatmul + [axes],
-                                        outputs=reduce_mean.outputs)
+                                        outputs=reduce_sum.outputs)
                     graph.nodes.append(squeeze)
                     logging.debug(f"Adding Node {squeeze.name}")
 
@@ -276,15 +262,15 @@ def tidl_convert_reducemean_to_matmul (graph: gs.Graph, onnx_graph: onnx.GraphPr
 
             if numdims == 2:
                 if keepdims != 1:
-                    logging.info(f"Attribute keepdims should be 1 for 2D tensor for {reduce_mean.name}, skipping")
+                    logging.info(f"Attribute keepdims should be 1 for 2D tensor for {reduce_sum.name}, skipping")
                     continue
 
                 # 2. MatMul
                 const_dim      = H*W
-                values         = np.ones(shape=(const_dim, 1), dtype=np.float32) / const_dim
+                values         = np.ones(shape=(const_dim, 1), dtype=np.float32)
                 const_inmatmul = gs.Constant(f"in_rm_matmul.{idx}", values=values)
 
-                var_outmatmul = reduce_mean.outputs                
+                var_outmatmul = reduce_sum.outputs                
                 matmul = gs.Node(op="MatMul", name=f"rm_matmul.{idx}",
                                  inputs=[var_outshape[0], const_inmatmul], outputs=var_outmatmul)
                 graph.nodes.append(matmul)
@@ -292,7 +278,7 @@ def tidl_convert_reducemean_to_matmul (graph: gs.Graph, onnx_graph: onnx.GraphPr
             else:
                 # 2. MatMul
                 const_dim      = H*W
-                values         = np.ones(shape=(const_dim, 1), dtype=np.float32) / const_dim
+                values         = np.ones(shape=(const_dim, 1), dtype=np.float32)
                 const_inmatmul = gs.Constant(f"in_rm_matmul.{idx}", values=values)
                 var_outmatmul  = [gs.Variable(f"out_rm_matmul.{idx}",
                                               dtype=np.float32, shape=shape_outmatmul)]
@@ -308,9 +294,9 @@ def tidl_convert_reducemean_to_matmul (graph: gs.Graph, onnx_graph: onnx.GraphPr
 
                 reshape2 = gs.Node(op="Reshape", name=f"rm_reshape.{idx}.2",
                                    inputs=[var_outmatmul[0], const_newshape],
-                                   outputs=reduce_mean.outputs)
+                                   outputs=reduce_sum.outputs)
                 graph.nodes.append(reshape2)
                 logging.debug(f"Adding Node {reshape2.name}")
 
-        # remove ReduceMean node by clearing its outputs
-        reduce_mean.outputs.clear()
+        # remove ReduceSum node by clearing its outputs
+        reduce_sum.outputs.clear()

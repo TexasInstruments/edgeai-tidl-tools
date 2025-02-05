@@ -159,3 +159,29 @@ def tidl_convert_concat_axis_width_to_channel (graph: gs.Graph, onnx_graph: onnx
                     # feed new input to concat
                     node.outputs[idx] = transpose_in
 
+
+def tidl_convert_single_concat_to_consecutive_concats (graph: gs.Graph, onnx_graph: onnx.GraphProto):
+    """
+    Convert a concat which works as expanding a dimension of a tensor to 
+    multiple consecutive concats which only takes 2 inputs at once. TIDL 
+    does not support the initial as of now. This is a workaround. It is 
+    important to specify "skipped_optimizers=['fuse_consecutive_concats']" 
+    while simplifying, otherwise, the graph is converted to the initial one. 
+    """
+    # Iterate through the nodes in the graph
+    for node in graph.nodes:
+        if node.op == "Concat":
+            num_inputs = len(node.inputs)
+            concat_axis = node.attrs['axis']
+            # if all the inputs to concat are same, then we expand them to multiple concats
+            if num_inputs > 2 and all(x.name == node.inputs[0].name for x in node.inputs):
+                input_node = node.inputs[0]
+                for i in range(num_inputs - 2):
+                    output_nodes = node.outputs if i==0 else [interim_input]
+                    interim_input = gs.Variable(name= node.name + "_interim_{}".format(i), dtype=np.float32)
+                    concat_node = gs.Node(name = node.name + "_concat_{}".format(i), op = "Concat",
+                                    attrs = dict({"axis" : concat_axis}),
+                                    inputs = [input_node, interim_input], outputs = output_nodes)
+                    graph.nodes.append(concat_node)
+                node.inputs = [input_node, input_node]
+                node.outputs = [interim_input]

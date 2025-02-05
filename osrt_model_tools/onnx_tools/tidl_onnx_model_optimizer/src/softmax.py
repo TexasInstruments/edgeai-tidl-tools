@@ -76,6 +76,12 @@ def tidl_convert_softmax_axis_channel_to_width(graph: gs.Graph, onnx_graph: onnx
     for idx, softmax in enumerate(softmaxes):
         # Dimension in which Softmax should occur
         softmax_dimension = softmax.attrs["axis"] if 'axis' in softmax.attrs else -1
+        if softmax.inputs[0].shape is not None:
+            inp_shape = softmax.inputs[0].shape
+            #TODO modify code to use this instead and check
+        else:
+            logging.info(f"{softmax.inputs[0].name} softmax layer does not have input shape, disabling the onnx optimization.")
+            continue
 
         # Assumes tensor with channel axis, NxCxHxW or CxHxW order
         if len(softmax.inputs[0].shape) >= 3:
@@ -134,6 +140,12 @@ def tidl_convert_softmax_axis_height_to_width(graph: gs.Graph, onnx_graph: onnx.
     for idx, softmax in enumerate(softmaxes):
         # Dimension in which Softmax should occur
         softmax_dimension = softmax.attrs["axis"] if 'axis' in softmax.attrs else -1
+        if softmax.inputs[0].shape is not None:
+            inp_shape = softmax.inputs[0].shape
+            #TODO modify code to use this instead and check
+        else:
+            logging.info(f"{softmax.inputs[0].name} softmax layer does not have input shape, disabling the onnx optimization.")
+            continue
 
         # Assumes tensor height axis, with NxCxHxW, CxHxW, HxW order
         if len(softmax.inputs[0].shape) >= 2:
@@ -198,6 +210,13 @@ def tidl_push_large_channel_dim_to_height_for_width_wise_softmax (graph: gs.Grap
         # must be widthwise
         inp = node.inputs[0]
         axis = node.attrs['axis'] if 'axis' in node.attrs else -1
+        if inp.shape is not None:
+            inp_shape = inp.shape
+            #TODO modify code to use this instead and check
+        else:
+            logging.info(f"{node.name} softmax layer does not have input shape, disabling the onnx optimization.")
+            continue
+
         if axis in ((len(inp.shape) - 1), -1):
             # must have large channel dim value
             if (len(inp.shape) > 2) and (inp.shape[-3] > TIDL_SOFTMAX_LARGE_DIM_THRESHOLD):
@@ -218,10 +237,8 @@ def tidl_push_large_channel_dim_to_height_for_width_wise_softmax (graph: gs.Grap
                         t = t - int(t)
                         if t > opt_ratio:
                             opt_ratio = t
-                            new_shape = [new_channel, new_height, w]
+                            new_shape = inp.shape[:-3] + [new_channel, int(new_height), w]
                             logging.debug(f"Found better optimization {t} with shape {new_shape}")
-
-
 
                 # add reshapes before
                 reshp_out = gs.Variable(name= f'{inp.name}_Opt_Reshape_out', dtype= np.float32)

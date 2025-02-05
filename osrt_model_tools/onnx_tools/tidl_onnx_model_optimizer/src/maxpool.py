@@ -78,7 +78,8 @@ def tidl_convert_maxpool_to_cascaded_maxpool(graph: gs.Graph, onnx_graph: onnx.G
 
         if (kernelsize > 3):
             num_iter = (kernelsize - 1) // 2 - 1
-            assert num_iter > 0
+            if num_iter <= 0:
+                logging.info(f"{maxpool.name} optimization skipping as insufficient kernel size.")
 
             maxpool.attrs["kernel_shape"] = [3,3]
             maxpool.attrs["pads"]         = [1,1,1,1]

@@ -72,45 +72,153 @@ def tidl_expand_slice_across_multiple_axis (graph: gs.Graph, onnx_graph: onnx.Gr
     node_iter = 0
     
     for node in nodes:
-        if (node.op == "Slice") and isinstance(node.inputs[1], gs.Constant) and (node.inputs[1].values.size > 1): 
-            # slice is across multiple axis
-            node_name = node.inputs[1].name if node.name=='' else node.name 
-            
-            len_inputs = len(node.inputs)
-            if len_inputs<4: # all_axes isn't defined
-                logging.warning(f"All Axes isn't defined in a multi-axis slice node : {node_name}. Skipping the conversion")
+        if (node.op == "Slice"):
+            if len(node.inputs)<2:
+                # Slice-1 implementation (old opset)
+                len_starts = len(node.attrs['starts'])
+                if len_starts > 1:
+                    logging.warning(f"Slice-1 implementation is not supported as of now. We suggest using higher opset version.")
+                    continue
+            elif isinstance(node.inputs[1], gs.Constant):
+                len_starts = node.inputs[1].values.size
+            else:
                 continue
             
-            all_starts = node.inputs[1].values
-            len_axes = len(all_starts)
-            all_ends = node.inputs[2].values
-            all_axes = node.inputs[3].values
-            if len_inputs > 4: # steps are provided
-                all_steps = node.inputs[4].values
-            else:
-                all_steps = np.ones(len_axes, dtype=np.int64)
-   
-            prev_slice_node = None
-            for i in range(len_axes):
-                curr_start = gs.Constant(name= node_name + "_start_" + str(node_iter) + "_" + str(i), values=np.array([all_starts[i]]))
-                curr_end = gs.Constant(name= node_name + "_end_" + str(node_iter) + "_" + str(i), values=np.array([all_ends[i]]))
-                curr_axis = gs.Constant(name= node_name + "_axis_" + str(node_iter) + "_" + str(i), values=np.array([all_axes[i]]))
-                curr_step = gs.Constant(name= node_name + "_step_" + str(node_iter) + "_" + str(i), values=np.array([all_steps[i]]))
-                interim_output = gs.Variable(name= node_name + "_out_" + str(node_iter) + "_" + str(i), dtype=np.float32)
+            if len_starts > 1:
+                # slice is across multiple axis
+                node_name = node.inputs[1].name if node.name=='' else node.name 
                 
-                node_output = node.outputs[0] if i==(len_axes-1) else interim_output
-                node_input = node.inputs[0] if i==0 else prev_slice_node.outputs[0]
+                len_inputs = len(node.inputs)
+                if len_inputs<4: # all_axes isn't defined
+                    logging.warning(f"All Axes isn't defined in a multi-axis slice node : {node_name}. Skipping the conversion")
+                    continue
+                
+                all_starts = node.inputs[1].values
+                len_axes = len(all_starts)
+                all_ends = node.inputs[2].values
+                all_axes = node.inputs[3].values
+                if len_inputs > 4: # steps are provided
+                    all_steps = node.inputs[4].values
+                else:
+                    all_steps = np.ones(len_axes, dtype=np.int64)
+    
+                prev_slice_node = None
+                for i in range(len_axes):
+                    curr_start = gs.Constant(name= node_name + "_start_" + str(node_iter) + "_" + str(i), values=np.array([all_starts[i]]))
+                    curr_end = gs.Constant(name= node_name + "_end_" + str(node_iter) + "_" + str(i), values=np.array([all_ends[i]]))
+                    curr_axis = gs.Constant(name= node_name + "_axis_" + str(node_iter) + "_" + str(i), values=np.array([all_axes[i]]))
+                    curr_step = gs.Constant(name= node_name + "_step_" + str(node_iter) + "_" + str(i), values=np.array([all_steps[i]]))
+                    interim_output = gs.Variable(name= node_name + "_out_" + str(node_iter) + "_" + str(i), dtype=np.float32)
+                    
+                    node_output = node.outputs[0] if i==(len_axes-1) else interim_output
+                    node_input = node.inputs[0] if i==0 else prev_slice_node.outputs[0]
 
-                slice_node = gs.Node(name= node_name + "_" + str(node_iter) + "_" + str(all_axes[i]), op= "Slice",
-                        inputs= [node_input, curr_start, curr_end, curr_axis, curr_step], outputs = [node_output])
-                
-                logging.debug(f"Adding Node {slice_node.name}")
-                graph.nodes.append(slice_node)
-                prev_slice_node = slice_node 
-                
+                    slice_node = gs.Node(name= node_name + "_" + str(node_iter) + "_" + str(all_axes[i]), op= "Slice",
+                            inputs= [node_input, curr_start, curr_end, curr_axis, curr_step], outputs = [node_output])
+                    
+                    logging.debug(f"Adding Node {slice_node.name}")
+                    graph.nodes.append(slice_node)
+                    prev_slice_node = slice_node 
+                    
+                node.outputs.clear()
+                node_iter += 1
+
+
+def tidl_convert_2_dimension_slice_to_maxpool (graph: gs.Graph, onnx_graph: onnx.GraphProto):
+    """
+    Convert the Slice present in 2 dimensions to a maxpool layer. A slice with steps=[2,2] with axes=[2,3] can be converted 
+    to maxpool with a stride of 2. There could be 2 different possibilities i.e. NCHW format
+    and NHWC format. In the second part, we will have to introduce transpose -> maxpool -> transpose. 
+    """
+    nodes = graph.nodes
+    node_iter = 0
+    
+    for node in nodes:
+        if (node.op == "Slice") and len(node.inputs) > 3 and isinstance(node.inputs[3], gs.Constant) and (node.inputs[3].values.size == 2): 
+            # slice has axes input and axes is across 2 axis
+            if len(node.inputs) < 5:
+                # does not have access to the steps input , continuing
+                continue
+
+            input_shape = node.inputs[0].shape
+            if input_shape is None or len(input_shape) != 4:
+                logging.warning(f"Shape Inference is not done, or the dimensions are not equal to 4")
+                continue
+
+            # Normalize negative axes to positive values
+            axes = node.inputs[3].values.copy()
+            axes = np.where(axes < 0, axes + len(input_shape), axes)
+            
+
+            if abs(axes[0] - axes[1]) == 1 and (node.inputs[4].values[0] == node.inputs[4].values[1]):
+                # slice axes are consecutive and both axes has the same step
+                stride = node.inputs[4].values[0]
+                # stride == 2 is supported in TIDL, if greater than that, it will be broken into 2 by other optimizations
+                node_name = node.name if node.name else f"slice_to_maxpool_{node_iter}"
+
+                end_axes = sorted(axes)[-1]
+                if end_axes != (len(input_shape) - 1):
+                    # would require a transpose before and after the maxpool
+                    transpose_output = gs.Variable(name=f"{node_name}_transpose_out")
+                    maxpool_output = gs.Variable(name=f"{node_name}_maxpool_out")
+                    perm1 = [0, 3, 1, 2] if end_axes==2 else [2, 3, 0, 1]
+                    perm2 = [0, 2, 3, 1] if end_axes==2 else [2, 3, 0, 1]
+
+                    transpose1_node = gs.Node(
+                        name=f"{node_name}_transpose1",
+                        op="Transpose",
+                        attrs={"perm": perm1},
+                        inputs=[node.inputs[0]],
+                        outputs=[transpose_output]
+                    )
+                    logging.debug(f"Adding Node {transpose1_node.name}")
+
+                    # MaxPool2D
+                    maxpool_node = gs.Node(
+                        name=f"{node_name}_maxpool",
+                        op="MaxPool",
+                        attrs={
+                            "kernel_shape": [1, 1],
+                            "strides": [stride, stride]
+                        },
+                        inputs=[transpose_output],
+                        outputs=[maxpool_output]
+                    )
+                    logging.debug(f"Adding Node {maxpool_node.name}")
+                    
+                    # NCHW to NHWC transpose
+                    transpose2_node = gs.Node(
+                        name=f"{node_name}_transpose2",
+                        op="Transpose",
+                        attrs={"perm": perm2},
+                        inputs=[maxpool_output],
+                        outputs=[node.outputs[0]]
+                    )
+                    logging.debug(f"Adding Node {transpose2_node.name}")
+                    
+                    graph.nodes.extend([transpose1_node, maxpool_node, transpose2_node])
+                #
+                else:
+                    maxpool_node = gs.Node(
+                        name=f"{node_name}_maxpool",
+                        op="MaxPool",
+                        attrs={
+                            "kernel_shape": [1, 1],
+                            "strides": [stride, stride],
+                            "pads": [0, 0, 0, 0]
+                        },
+                        inputs=[node.inputs[0]],
+                        outputs=[node.outputs[0]]
+                    )
+                    logging.debug(f"Adding Node {maxpool_node.name}")
+                    graph.nodes.append(maxpool_node)
+                #
+            #
             node.outputs.clear()
             node_iter += 1
-            
+        #
+    #
+
 
 def tidl_add_slice_step_axis (graph: gs.Graph, onnx_graph: onnx.GraphProto):
     """
