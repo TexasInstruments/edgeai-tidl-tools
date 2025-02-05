@@ -48,7 +48,7 @@ os.environ["TIDL_RT_PERFSTATS"] = "1"
 
 so = rt.SessionOptions()
 # would be needed for transformer and convnext models
-# so.graph_optimization_level = rt.GraphOptimizationLevel.ORT_DISABLE_ALL 
+# so.graph_optimization_level = rt.GraphOptimizationLevel.ORT_DISABLE_ALL
 so.log_severity_level=3
 
 print("Available execution providers : ", rt.get_available_providers())
@@ -78,6 +78,10 @@ SOC = os.environ["SOC"]
 if(SOC == "am62"):
     args.disable_offload = True
     args.compile = False
+
+if args.compile == True and tidl_tools_path == None:
+    print("TIDL_TOOLS_PATH is not set" )
+    exit(-1)
 
 def get_benchmark_output(interpreter):
     benchmark_dict = interpreter.get_TI_benchmark_data()
@@ -149,7 +153,6 @@ def run_model(model, mIdx):
             ):
                 copy_path = config["model_path"][:-5] + "_org.onnx"
                 # Check if copy path exists and prompt for permission to overwrite
-                # if no permission, then anyway overwrites the file
                 if os.path.isfile(copy_path):
                     if sys.stdin.isatty():  # Check if running in interactive mode
                         overwrite_permission = input(
@@ -171,19 +174,16 @@ def run_model(model, mIdx):
                             )
                         #
                     #
-                    else:
-                        print(f"The original file and optimized file still exists, skipping the model optimization")
+                else:
+                    print(f"The original file and optimized file still exists, skipping the model optimization")
                 #
             #
             else:
                 print(
                     "Model optimization is only supported in compilation or disabled offload mode on x86 machines"
                 )
-        #
         else:
             print("Model optimizer not found, -o flag has no effect")
-        #
-    #
 
     delegate_options = {}
     delegate_options.update(required_options)
@@ -281,4 +281,3 @@ if ncpus > 1:
 else :
     for mIdx, model in enumerate(models):
         run_model(model, mIdx)
-
