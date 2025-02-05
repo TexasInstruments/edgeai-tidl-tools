@@ -283,7 +283,7 @@ fi
 
 # graph optimizer tool setup
 if [[ $arch == x86_64 && $skip_model_optimizer -eq 0 ]]; then
-    cd $SCRIPTDIR/osrt_model_tools
+    cd $SCRIPTDIR/osrt-model-tools
     source ./setup.sh
     cd $SCRIPTDIR
 fi

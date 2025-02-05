@@ -13,7 +13,7 @@ You can refer to [Extending support for other colorspaces section](../../../../s
 2. Follow the steps to generate YUV data from input jpg image
 
 ```bash
-cd edgeai-tidl-tools/osrt_model_tools/onnx_tools 
+cd edgeai-tidl-tools/osrt-model-tools/osrt_model_tools/onnx_tools 
 python3 RGB_YUV_model_converter.py -g -i <input_image_path> -w <width> -l <height>
 ```
 eg:
@@ -23,8 +23,8 @@ python3 RGB_YUV_model_converter.py -g -i edgeai-tidl-tools/test_data/ADE_val_000
 
 3. Follow the steps to generate YUV model from a RGB trained model
 ```bash
-cd edgeai-tidl-tools/osrt_model_tools/tflite_tools #for tflite models
-cd edgeai-tidl-tools/osrt_model_tools/onnx_tools/tidl_onnx_model_utils #for onnx models
+cd edgeai-tidl-tools/osrt-model-tools/osrt_model_tools/tflite_tools #for tflite models
+cd edgeai-tidl-tools/osrt-model-tools/osrt_model_tools/onnx_tools/tidl_onnx_model_utils #for onnx models
 python3 RGB_YUV_model_converter.py -m <input datalayout> -i <input_model_path> -o <output_model_path>
 ```
 eg:

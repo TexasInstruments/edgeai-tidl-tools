@@ -18,14 +18,14 @@ This optimization is included by default in the model compilation examples in th
 
 ## RGB to YUV model converter
 
-Sometimes a model which is trained with RGB data needs to be run with YUV data. During these scenarios we propose to update model offline to change its input from RGB to YUV. The script to convert TFlite models can be found [here](osrt_model_tools/tflite_tools/RGB_YUV_model_converter.py) and for ONNX model can be found [here](osrt_model_tools/onnx_tools/tidl_onnx_model_utils/RGB_YUV_model_converter.py). The figure below shows the conversion of original model with RGB converted to a model which takes YUV input. The operators inside the box are additional operators added to perform this task. 
+Sometimes a model which is trained with RGB data needs to be run with YUV data. During these scenarios we propose to update model offline to change its input from RGB to YUV. The script to convert TFlite models can be found [here](osrt-model-tools/osrt_model_tools/tflite_tools/RGB_YUV_model_converter.py) and for ONNX model can be found [here](osrt-model-tools/osrt_model_tools/onnx_tools/tidl_onnx_model_utils/RGB_YUV_model_converter.py). The figure below shows the conversion of original model with RGB converted to a model which takes YUV input. The operators inside the box are additional operators added to perform this task. 
 
 ![RGB_YUV_model_converter](../docs/images/converted_mobilenet.png) 
 ![RGB_YUV_model_converter](../docs/images/Resnet_YUV420SP.png)
 
 ## Extending support for other colorspaces
 
-The convolution layer with name **Conv_YUV_RGB_\*** handles the computation of converting the YUV to RGB. If your input is in a different colorspace, you can update the weights of the convolution layer in [RGB_YUV_model_converter.py](../osrt_model_tools/onnx_tools/tidl_onnx_model_utils/RGB_YUV_model_converter.py) for onnx model or [ RGB_YUV_model_converter.py](../osrt_model_tools/tflite_tools/RGB_YUV_model_converter.py) for tflite model accordingly.
+The convolution layer with name **Conv_YUV_RGB_\*** handles the computation of converting the YUV to RGB. If your input is in a different colorspace, you can update the weights of the convolution layer in [RGB_YUV_model_converter.py](../osrt-model-tools/osrt_model_tools/onnx_tools/tidl_onnx_model_utils/RGB_YUV_model_converter.py) for onnx model or [ RGB_YUV_model_converter.py](../osrt-model-tools/osrt_model_tools/tflite_tools/RGB_YUV_model_converter.py) for tflite model accordingly.
 
 ```python
 # for onnx model
