@@ -74,7 +74,7 @@ from .common import remove_node
 
 def tidl_detr_optimize_attention (graph: gs.Graph, onnx_graph: onnx.GraphProto):
     logging.info(f"Currently under development, not being used")
-    break
+    return
     """
     Wrapper function to re-arrange and optimize self-attention block for Transformers
     """
