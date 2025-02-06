@@ -1,20 +1,20 @@
 # Enabling backward compatibility
 
-This section describes how to use an updated tools version (Say from SDK 10.1) with a lower SDK version (e.g. SDK 10.0). The tools version will clearly call out that if this is possible in the [Version Compatibility Table](../docs/version_compatibility_table.md). 
+This section describes **how to use an updated tools version with a SDK version 10.1, 10.0, 9.2**. The tools version will clearly call out that if this is possible in the [Version Compatibility Table](../docs/version_compatibility_table.md). 
 
 > **_NOTE:_**
 > This is an experimental feature which has gone through limited validation
-## Setup on Target Device
+# Setup on Target Device
   - Follow the steps below on the target device to patch the **firmware**, **libraries**, **wheels**, **shared object files**.
 
   - **UPDATE_OSRT_COMPONENTS** and **UPDATE_FIRMWARE_AND_LIB** env variables can be set before running the script to control what to update.
 
- - UPDATE_OSRT_COMPONENTS replaces the following components on the target device filesystem and is set to **1** by default i.e it will replace the components:
+ - UPDATE_OSRT_COMPONENTS replaces the following components on the target device filesystem:
     - onnxruntime, tflite_runtime and dlr python wheels
     - /usr/include/itidl_rt.h, /usr/include/itvm_rt.h, /usr/include/tensorflow, /usr/include/onnxruntime
     - /usr/lib/tflite_2.21, /usr/lib/libonnxruntime.so, /usr/lib/libtensorflow-lite.a
 
-  - UPDATE_FIRMWARE_AND_LIB replaces the following components on the target device filesystem and is set to **0** by default i.e it will not replace the components unless explicitly set:
+  - UPDATE_FIRMWARE_AND_LIB replaces the following components on the target device filesystem:
     - C7X firmwares under /lib/firmware
     - /usr/lib/libtivision_apps.so, /usr/lib/libvx_tidl_rt.so, /usr/lib/libtidl_onnxrt_EP.so, /usr/lib/libtidl_tfl_delegate.so
 
@@ -22,31 +22,61 @@ This section describes how to use an updated tools version (Say from SDK 10.1) w
 >  Make sure you have stable internet connection on the EVM to run this script.
 
 
-**Example usage for updating OSRT components (This assumes you are manually updating C7x firmwares with a patched SDK)**
+## SDK 10.1 / SDK 10.0
+### Example usage for updating OSRT components and C7x firmwares
+**Run the following on target device** 
 ```
+export SDK_VERSION=*10_1 or 10_0*   // Set based on SDK used
 export SOC=*soc*                    // [am62a,am68a,am68pa,am69a,am67a]
 export TISDK_IMAGE=*adas or edgeai* // [adas for evm boards, edgeai for sk boards]
-export UPDATE_OSRT_COMPONENTS=1
+export UPDATE_OSRT_COMPONENTS=1     // Set to 0 to not update OSRT components
+export UPDATE_FIRMWARE_AND_LIB=1    // Set to 0 to not update firmware and libraries
 ./update_firmware_and_lib.sh
 ```
 
-**Example usage for updating OSRT components and C7x firmwares**
-```
-export SOC=*soc*                    // [am62a,am68a,am68pa,am69a,am67a]
-export TISDK_IMAGE=*adas or edgeai* // [adas for evm boards, edgeai for sk boards]
-export UPDATE_OSRT_COMPONENTS=1
-export UPDATE_FIRMWARE_AND_LIB=1
-./update_firmware_and_lib.sh
-```
-
-
-## Compile and Validate on Target Device
+### Compilation and validation
 - Once the setup is done, follow the steps below to build CPP application on EVM
 
+**Run the following on target device** 
 ```
 mkdir build
 cd build
 cmake ../examples
+make -j
+cd ../
+```
+- Compile the models on X86_PC using the latest tidl-tools and copy over the artifacts to target device file system at ./edgeai-tidl-tools/
+- Execute below to run inference on target device with both Python and CPP APIs
+
+```
+# scp -r <pc>/edgeai-tidl-tools/model-artifacts/  <dev board>/edgeai-tidl-tool/
+# scp -r <pc>/edgeai-tidl-tools/models/  <dev board>/edgeai-tidl-tool/
+python3 ./scripts/gen_test_report.py
+```
+- The execution of above step will generate output images at ```./edgeai-tidl-tools/output_images```.
+
+## SDK 9.2
+### Example usage for updating OSRT components and C7x firmwares
+**Run the following on target device** 
+
+```
+export SDK_VERSION=9_2
+export SOC=*soc*                    // [am62a,am68a,am68pa,am69a,am67a]
+export TISDK_IMAGE=*adas or edgeai* // [adas for evm boards, edgeai for sk boards]
+export UPDATE_OSRT_COMPONENTS=1     // Set to 0 to not update OSRT components
+export UPDATE_FIRMWARE_AND_LIB=1    // Set to 0 to not update firmware and libraries
+./update_firmware_and_lib.sh
+```
+
+### Compilation and validation
+- Once the setup is done, follow the steps below to build CPP application on EVM
+
+**Run the following on target device** 
+
+```
+mkdir build
+cd build
+cmake ../examples -DENABLE_SDK_9_2_COMPATIBILITY=1
 make -j
 cd ../
 ```
