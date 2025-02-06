@@ -79,6 +79,8 @@ if [ -z "$( ls -A $TIDL_TOOLS_PATH )" ]; then
 fi
 
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$TIDL_TOOLS_PATH:$SCRIPTDIR/tools/osrt_deps:$SCRIPTDIR/tools/osrt_deps/opencv_4.2.0_x86_u22/opencv/
+
+arch=$(uname -m)
 if [[ $arch == x86_64 ]]; then
     if [ -d $SCRIPTDIR/tools/ti-cgt-c7000_3.1.0.LTS ];then
         export CGT7X_ROOT=$SCRIPTDIR/tools/ti-cgt-c7000_3.1.0.LTS
