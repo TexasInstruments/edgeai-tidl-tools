@@ -33,13 +33,15 @@ SCRIPTDIR=`pwd`
 TARGET_FS_PATH=/
 
 # List of supported REL versions for backward compatibility
-SUPPORTED_REL=("10_01_00_02")
+SUPPORTED_REL=("10_01_03_00")
 
-REL=${REL:-"10_01_00_02"}
-UPDATE_OSRT_COMPONENTS=${UPDATE_OSRT_COMPONENTS:-1}
+REL=${REL:-"10_01_03_00"}
+SDK_VERSION=${SDK_VERSION:-'null'}
+UPDATE_OSRT_COMPONENTS=${UPDATE_OSRT_COMPONENTS:-0}
 UPDATE_FIRMWARE_AND_LIB=${UPDATE_FIRMWARE_AND_LIB:-0}
 
 echo "REL: ${REL}"
+echo "SDK_VERSION: ${SDK_VERSION}"
 echo "UPDATE_OSRT_COMPONENTS: ${UPDATE_OSRT_COMPONENTS}"
 echo "UPDATE_FIRMWARE_AND_LIB: ${UPDATE_FIRMWARE_AND_LIB}"
 
@@ -93,6 +95,13 @@ verify_env() {
         return 1
     fi
 
+    if [ "$SDK_VERSION" != "9_2" ] && [ "$SDK_VERSION" != "10_0" ] && [ "$SDK_VERSION" != "10_1" ]; then
+        echo
+        echo "Incorrect SDK_VERSION defined: $SDK_VERSION"
+        echo "Allowed values are 9_2, 10_0, 10_1"
+        return 1
+    fi
+
     return 0
 }
 
@@ -113,7 +122,7 @@ update_osrt_components() {
     cd $TARGET_FS_PATH/$HOME/arago_j7_pywhl
 
     echo "==================== Updating dlr runtime wheel ===================="
-    wget --proxy off https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/ARM_LINUX/ARAGO/dlr-1.13.0-py3-none-any.whl
+    wget --proxy off https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/ARM_LINUX/ARAGO/$SDK_VERSION/dlr-1.13.0-py3-none-any.whl
     pip3 install --upgrade --force-reinstall dlr-1.13.0-py3-none-any.whl --disable-pip-version-check
 
     echo "==================== Updating arm-tidl headers ===================="
@@ -139,28 +148,35 @@ update_osrt_components() {
     cd $TARGET_FS_PATH/$HOME/arago_j7_pywhl
 
     echo "==================== Updating onnxruntime wheel ===================="
-    wget --proxy off https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/ARM_LINUX/ARAGO/onnxruntime_tidl-1.15.0-cp312-cp312-linux_aarch64.whl
-    pip3 install onnxruntime_tidl-1.15.0-cp312-cp312-linux_aarch64.whl --disable-pip-version-check
+    if [ "$SDK_VERSION" == "9_2" ]; then
+        onnx_wheel=onnxruntime_tidl-1.15.0-cp310-cp310-linux_aarch64.whl
+        onnx_tar=onnx_1.15.0_aragoj7_cp310
+    else
+        onnx_wheel=onnxruntime_tidl-1.15.0-cp312-cp312-linux_aarch64.whl
+        onnx_tar=onnx_1.15.0_aragoj7
+    fi
+    wget --proxy off https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/ARM_LINUX/ARAGO/$SDK_VERSION/$onnx_wheel
+    pip3 install $onnx_wheel --disable-pip-version-check
 
     cd $TARGET_FS_PATH/$HOME/required_libs
 
     echo "==================== Updating onnxruntime components ===================="
-    wget --proxy off https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/ARM_LINUX/ARAGO/onnx_1.15.0_aragoj7.tar.gz
+    wget --proxy off https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/ARM_LINUX/ARAGO/$SDK_VERSION/$onnx_tar.tar.gz
     if [ "$?" -eq "0" ]; then
-        tar xf onnx_1.15.0_aragoj7.tar.gz && rm onnx_1.15.0_aragoj7.tar.gz
+        tar xf $onnx_tar.tar.gz && rm $onnx_tar.tar.gz
 
         # Backup old directory
         if [ ! -d "$TARGET_FS_PATH/usr/include/onnxruntime.bkp" ]; then
             mv $TARGET_FS_PATH/usr/include/onnxruntime $TARGET_FS_PATH/usr/include/onnxruntime.bkp
         fi
         rm -rf $TARGET_FS_PATH/usr/include/onnxruntime
-        mv onnx_1.15.0_aragoj7/onnxruntime $TARGET_FS_PATH/usr/include/
+        mv $onnx_tar/onnxruntime $TARGET_FS_PATH/usr/include/
         
         # Backup old file
         if [ ! -f "$TARGET_FS_PATH/usr/lib/libonnxruntime.so.1.15.0.bkp" ]; then
             mv $TARGET_FS_PATH/usr/lib/libonnxruntime.so.1.15.0 $TARGET_FS_PATH/usr/lib/libonnxruntime.so.1.15.0.bkp
         fi
-        cp -r  onnx_1.15.0_aragoj7/libonnxruntime.so.1.15.0   $TARGET_FS_PATH/usr/lib/
+        cp -r  $onnx_tar/libonnxruntime.so.1.15.0   $TARGET_FS_PATH/usr/lib/
         cd   $TARGET_FS_PATH/usr/lib/
         ln -sf libonnxruntime.so.1.15.0 libonnxruntime.so
     fi
@@ -171,13 +187,18 @@ update_osrt_components() {
     cd $TARGET_FS_PATH/$HOME/arago_j7_pywhl
 
     echo "==================== Updating tflite wheel ===================="
-    wget --proxy off https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/ARM_LINUX/ARAGO/tflite_runtime-2.12.0-cp312-cp312-linux_aarch64.whl
-    pip3 install --upgrade --force-reinstall tflite_runtime-2.12.0-cp312-cp312-linux_aarch64.whl --disable-pip-version-check
+    if [ "$SDK_VERSION" == "9_2" ]; then
+        tfl_wheel=tflite_runtime-2.12.0-cp310-cp310-linux_aarch64.whl
+    else
+        tfl_wheel=tflite_runtime-2.12.0-cp312-cp312-linux_aarch64.whl
+    fi
+    wget --proxy off https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/ARM_LINUX/ARAGO/$SDK_VERSION/$tfl_wheel
+    pip3 install --upgrade --force-reinstall $tfl_wheel --disable-pip-version-check
 
     cd $TARGET_FS_PATH/$HOME/required_libs
 
     echo "==================== Updating tflite components ===================="
-    wget --proxy off https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/ARM_LINUX/ARAGO/tflite_2.12_aragoj7.tar.gz
+    wget --proxy off https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/ARM_LINUX/ARAGO/$SDK_VERSION/tflite_2.12_aragoj7.tar.gz
     if [ "$?" -eq "0" ]; then
         tar xf tflite_2.12_aragoj7.tar.gz && rm tflite_2.12_aragoj7.tar.gz
         
@@ -205,7 +226,11 @@ update_osrt_components() {
     cd $TARGET_FS_PATH/$HOME/
 
     # Updating NUMPY
-    pip3 install --upgrade --force-reinstall --no-cache-dir numpy==1.26.4 --disable-pip-version-check
+    if [ "$SDK_VERSION" == "9_2" ]; then
+        pip3 install --upgrade --force-reinstall --no-cache-dir numpy==1.23.0 --disable-pip-version-check
+    else 
+        pip3 install --upgrade --force-reinstall --no-cache-dir numpy==1.26.4 --disable-pip-version-check
+    fi
 
     # Cleanup
     rm -rf $TARGET_FS_PATH/$HOME/arago_j7_pywhl
@@ -222,8 +247,8 @@ update_firmware_and_lib() {
 
     cd $TARGET_FS_PATH/$HOME/updated_firmware_and_lib
 
-    FIRMWARE_TARBALL=https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/FIRMWARES/$SOC/$TISDK_IMAGE/firmware.tar.gz
-    TIDL_LIB_TARBALL=https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/FIRMWARES/$SOC/$TISDK_IMAGE/tidl_lib.tar.gz
+    FIRMWARE_TARBALL=https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/FIRMWARES/$SOC/$TISDK_IMAGE/$SDK_VERSION/firmware.tar.gz
+    TIDL_LIB_TARBALL=https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/FIRMWARES/$SOC/$TISDK_IMAGE/$SDK_VERSION/tidl_lib.tar.gz
 
     echo "==================== Updating C7X firmware ===================="
     if [ "${TISDK_IMAGE}" == "edgeai" ]; then
@@ -237,13 +262,12 @@ update_firmware_and_lib() {
         echo "Downloading firmware failed. Please check if $FIRMWARE_TARBALL is valid"
     fi
     tar -xf firmware.tar.gz && rm firmware.tar.gz
-    cd firmware
     if [ "${TISDK_IMAGE}" == "edgeai" ]; then
         cd firmware/vision_apps_eaik
     else
         cd firmware/vision_apps_evm
     fi
-    for file in `find ./ -name vx_app_rtos_linux_c*.out`; do
+    for file in `find ./ -name "vx_app_rtos_linux_c*"`; do
         echo "Replacing ${file}"
         # Backup files
         if [ -f $FIRMWARE_PATH/$file ]; then

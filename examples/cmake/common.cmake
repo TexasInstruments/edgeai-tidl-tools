@@ -86,8 +86,11 @@ if(ARMNN_ENABLE)
     endif()
   endif()
 
-
-set(TARGET_DEVICE_PYTHON python3.12)
+if(ENABLE_SDK_9_2_COMPATIBILITY)
+  set(TARGET_DEVICE_PYTHON python3.10)
+else()
+  set(TARGET_DEVICE_PYTHON python3.12)
+endif()
 
 set(TFLITE_2_12_LIBS 
   # Enable these when migrating to tflite 2.12
