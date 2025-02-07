@@ -31,7 +31,7 @@ export SOC=*soc*                    // [am62a,am68a,am68pa,am69a,am67a]
 export TISDK_IMAGE=*adas or edgeai* // [adas for evm boards, edgeai for sk boards]
 export UPDATE_OSRT_COMPONENTS=1     // Set to 0 to not update OSRT components
 export UPDATE_FIRMWARE_AND_LIB=1    // Set to 0 to not update firmware and libraries
-./update_firmware_and_lib.sh
+./enable_backward_compatibility.sh
 ```
 
 ### Compilation and validation
@@ -65,7 +65,7 @@ export SOC=*soc*                    // [am62a,am68a,am68pa,am69a,am67a]
 export TISDK_IMAGE=*adas or edgeai* // [adas for evm boards, edgeai for sk boards]
 export UPDATE_OSRT_COMPONENTS=1     // Set to 0 to not update OSRT components
 export UPDATE_FIRMWARE_AND_LIB=1    // Set to 0 to not update firmware and libraries
-./update_firmware_and_lib.sh
+./enable_backward_compatibility.sh
 ```
 
 ### Compilation and validation

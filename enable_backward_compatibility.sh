@@ -36,14 +36,20 @@ TARGET_FS_PATH=/
 SUPPORTED_REL=("10_01_03_00")
 
 REL=${REL:-"10_01_03_00"}
+SOC=${SOC:-'null'}
+TISDK_IMAGE=${TISDK_IMAGE:-'null'}
 SDK_VERSION=${SDK_VERSION:-'null'}
 UPDATE_OSRT_COMPONENTS=${UPDATE_OSRT_COMPONENTS:-0}
 UPDATE_FIRMWARE_AND_LIB=${UPDATE_FIRMWARE_AND_LIB:-0}
 
+echo "========================================================================="
 echo "REL: ${REL}"
+echo "SOC: ${SOC}"
+echo "TISDK_IMAGE: ${TISDK_IMAGE}"
 echo "SDK_VERSION: ${SDK_VERSION}"
 echo "UPDATE_OSRT_COMPONENTS: ${UPDATE_OSRT_COMPONENTS}"
 echo "UPDATE_FIRMWARE_AND_LIB: ${UPDATE_FIRMWARE_AND_LIB}"
+echo "========================================================================="
 
 if [ `arch` != "aarch64" ]; then
     echo "The script must be invoked on aarch64 system"
