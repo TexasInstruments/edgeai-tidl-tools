@@ -4,7 +4,7 @@ ss-tfl-deeplabv3_mnv2_ade20k_float,33,32.8,0,tfl-py
 od-tfl-ssd_mobilenet_v2_300_float,19.05,19,0,tfl-py
 cl-ort-resnet18-v1,9.34,0,0,ort-py
 od-ort-ssd-lite_mobilenetv2_fpn,34.7,0,0,ort-py
-ss-tfl-deeplabv3_mnv2_ade20k_float,33,0,0,tfl-cpp
-cl-tfl-mobilenet_v1_1.0_224,3.6,0,0,tfl-cpp
+ss-tfl-deeplabv3_mnv2_ade20k_float,37,0,0,tfl-cpp
+cl-tfl-mobilenet_v1_1.0_224,4.3,0,0,tfl-cpp
 cl-ort-resnet18-v1,8.86,0,0,ort-cpp
-od-ort-ssd-lite_mobilenetv2_fpn,34.5,0,0,ort-cpp
+od-ort-ssd-lite_mobilenetv2_fpn,35.2,0,0,ort-cpp
