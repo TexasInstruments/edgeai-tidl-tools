@@ -144,6 +144,8 @@ def find_attentions(graph: gs.Graph):
         if not is_attention:
             continue
         
+        for i in range(len(qkv_branches)):
+            qkv_branches[i].reverse()
         attentions.append((*qkv_branches, matmul1, softmax, matmul2))
         
     return attentions
@@ -160,9 +162,6 @@ def tidl_merge_adds_between_matmul_and_softmax(graph:gs.Graph, onnx_graph:onnx.G
     
     attentions = attentions or find_attentions(graph)
     for q_branch, k_branch, v_branch, matmul1, softmax, matmul2 in attentions:
-        q_branch.reverse()
-        k_branch.reverse()
-        v_branch.reverse()
         node = softmax
         intermediate_nodes = []
         while True:
@@ -212,6 +211,30 @@ def tidl_merge_adds_between_matmul_and_softmax(graph:gs.Graph, onnx_graph:onnx.G
         output_node = intermediate_nodes[start_index-1] if start_index > 0 else softmax
         input_index = [i for i in range(len(output_node.inputs)) if isinstance(output_node.inputs[i], gs.Variable) ][0]
         output_node.inputs[input_index] =add1.outputs[0]
+
+def tidl_move_mul_or_div_to_q_branch(graph:gs.Graph, onnx_graph:onnx.GraphProto, attentions=None):
+    
+    attentions = attentions or find_attentions(graph)
+    for q_branch, k_brach, v_branch, matmul1, softmax, matmul2 in attentions:
+        q_branch_out = matmul1.inputs[0]
+        q_branch_out_node = q_branch_out.inputs[0]
+        out_ind =q_branch_out_node
+        matmul_out = matmul1.outputs[0]
+        if (node := matmul_out.outputs[0]).op not in ('Mul', 'Div') and len(matmul_out.outputs) !=1:
+            continue
+        index, consant_inp = [(i,inp) for i,inp in enumerate(node.inputs) if isinstance(inp, gs.Constant)][0]
+        if len(consant_inp.values.shape) != 0:
+            continue
+        index = (index + 1 ) % 2
+        node_out = node.outputs[0]
+        out_nodes = list(node_out.outputs)
+        out_nodes = [(node.inputs.index(node_out),node) for node in out_nodes ]
+        node.inputs[index] = q_branch_out
+        matmul1.inputs[0] = node.outputs[0]
+        node.outputs[0].shape = None
+        for index, node in out_nodes:
+            node.inputs[index] = matmul_out
+
 
 def tidl_optimize_hf_attention(graph:gs.Graph, onnx_graph:onnx.GraphProto):
     r'''
@@ -334,4 +357,4 @@ def tidl_optimize_hf_attention(graph:gs.Graph, onnx_graph:onnx.GraphProto):
                 out.shape = None
 
             cntr +=1
-        
+    tidl_move_mul_or_div_to_q_branch(graph, onnx_graph, attentions)
