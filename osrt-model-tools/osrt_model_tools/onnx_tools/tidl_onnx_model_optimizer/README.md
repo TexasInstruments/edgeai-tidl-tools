@@ -69,7 +69,7 @@ The different optimizations performed are summarized here along with their defau
 | 25 | convert_expand_to_reshape_and_concat | Converts the expand layer to reshape and concat | True |
 | 26 | convert_single_concat_to_consecutive_concats | Convert a concat which works as expanding a dimension of a tensor (1x1x10 -> 1x5x10) to multiple consecutive concats which only takes 2 inputs at once, thus in the example, we would have 4 different concats.  | True |
 | 27 | convert_conv_7x7_stride4_to_stride1 | Few models(segformer) has a convolution layer with 7x7 kernel and 4 stride, converting the layer to the one with a stride of 1 using combination of maxpool and conv  | True |
-| 28 | convert_2_dimension_slice_to_maxpool | Slice if present in 2 axes, with same steps, it is converted to a corresponding maxpool with kernel size of 1, transpose also are inserted if channel not in 2nd dimension | True |
+| 28 | convert_2_dimension_slice_to_maxpool | Slice if present in 2 axes, with same steps, it is converted to a corresponding maxpool with kernel size of 1, transpose also are inserted if channel not in 2nd dimension | False |
 | 29 | Change_argmax_keepdims_to_1 | Changes the keepdims parameter from 0 to 1 and adds a reshape node to accomodate for the shape | False |
 | 30 | Hf_attention_block_optimization | Attention block optimization function, identifies attention blocks and performs TIDL specific optimizations on the attention blocks as a whole | True |
 | 31 | convert_reducesum_to_matmul | The ReduceSum layer is replaced with the cascaded multiple layers, e.g., "Reshape + MatMul + Reshape". The attribute, "axes" of ReduceSum should be W and H dimension. ReduceSum in channel dimension is not supported | True |

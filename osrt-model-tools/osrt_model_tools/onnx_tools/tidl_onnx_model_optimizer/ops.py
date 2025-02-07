@@ -202,7 +202,7 @@ def get_optimizers():
         "convert_expand_to_reshape_and_concat"      : True,
         "convert_single_concat_to_consecutive_concats" : True,
         "change_argmax_keepdims_to_1"               : False,
-        "convert_2_dimension_slice_to_maxpool"      : True,
+        "convert_2_dimension_slice_to_maxpool"      : False,  # theoritically better than splitting in 2 axis
         "convert_reducesum_to_matmul"               : True,
 
         # utilities specific
