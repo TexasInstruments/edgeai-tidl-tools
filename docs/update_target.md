@@ -1,4 +1,4 @@
-# Enabling backward compatibility
+# Updating target device with firmware, components and libraries
 
 This section describes **how to use an updated tools version with a SDK version 10.1, 10.0, 9.2**. The tools version will clearly call out that if this is possible in the [Version Compatibility Table](../docs/version_compatibility_table.md). 
 
@@ -22,16 +22,17 @@ This section describes **how to use an updated tools version with a SDK version 
 >  Make sure you have stable internet connection on the EVM to run this script.
 
 
-## SDK 10.1 / SDK 10.0
+## SDK 10.0
+> **_NOTE:_**
 ### Example usage for updating OSRT components and C7x firmwares
 **Run the following on target device** 
 ```
-export SDK_VERSION=*10_1 or 10_0*   // Set based on SDK used
+export SDK_VERSION=*10_1 or 10_0 or 9_2*
 export SOC=*soc*                    // [am62a,am68a,am68pa,am69a,am67a]
 export TISDK_IMAGE=*adas or edgeai* // [adas for evm boards, edgeai for sk boards]
 export UPDATE_OSRT_COMPONENTS=1     // Set to 0 to not update OSRT components
 export UPDATE_FIRMWARE_AND_LIB=1    // Set to 0 to not update firmware and libraries
-./enable_backward_compatibility.sh
+./update_target.sh
 ```
 
 ### Compilation and validation
@@ -42,41 +43,6 @@ export UPDATE_FIRMWARE_AND_LIB=1    // Set to 0 to not update firmware and libra
 mkdir build
 cd build
 cmake ../examples
-make -j
-cd ../
-```
-- Compile the models on X86_PC using the latest tidl-tools and copy over the artifacts to target device file system at ./edgeai-tidl-tools/
-- Execute below to run inference on target device with both Python and CPP APIs
-
-```
-# scp -r <pc>/edgeai-tidl-tools/model-artifacts/  <dev board>/edgeai-tidl-tool/
-# scp -r <pc>/edgeai-tidl-tools/models/  <dev board>/edgeai-tidl-tool/
-python3 ./scripts/gen_test_report.py
-```
-- The execution of above step will generate output images at ```./edgeai-tidl-tools/output_images```.
-
-## SDK 9.2
-### Example usage for updating OSRT components and C7x firmwares
-**Run the following on target device** 
-
-```
-export SDK_VERSION=9_2
-export SOC=*soc*                    // [am62a,am68a,am68pa,am69a,am67a]
-export TISDK_IMAGE=*adas or edgeai* // [adas for evm boards, edgeai for sk boards]
-export UPDATE_OSRT_COMPONENTS=1     // Set to 0 to not update OSRT components
-export UPDATE_FIRMWARE_AND_LIB=1    // Set to 0 to not update firmware and libraries
-./enable_backward_compatibility.sh
-```
-
-### Compilation and validation
-- Once the setup is done, follow the steps below to build CPP application on EVM
-
-**Run the following on target device** 
-
-```
-mkdir build
-cd build
-cmake ../examples -DENABLE_SDK_9_2_COMPATIBILITY=1
 make -j
 cd ../
 ```

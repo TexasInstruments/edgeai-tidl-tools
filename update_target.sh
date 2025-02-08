@@ -35,7 +35,7 @@ TARGET_FS_PATH=/
 # List of supported REL versions for backward compatibility
 SUPPORTED_REL=("10_01_03_00")
 
-REL=${REL:-"10_01_03_00"}
+REL="10_01_03_00"
 SOC=${SOC:-'null'}
 TISDK_IMAGE=${TISDK_IMAGE:-'null'}
 SDK_VERSION=${SDK_VERSION:-'null'}
@@ -57,26 +57,6 @@ if [ `arch` != "aarch64" ]; then
 fi
 
 verify_env() {
-
-    rel_found=0
-    for i in "${SUPPORTED_REL[@]}"
-    do
-        if [[ $i == $REL ]];then
-            rel_found=1
-        fi
-    done
-
-    if [[ "$rel_found" -ne "1" ]]; then
-        echo
-        echo "Unsupported REL: ${REL}"
-        echo "Supported Versions are:"
-        for i in "${SUPPORTED_REL[@]}"
-        do
-            echo "${i}"
-        done
-        return 1
-    fi
-
     if [ "$SOC" != "am62" ] && [ "$SOC" != "am62a" ] &&
     [ "$SOC" != "am68a" ] && [ "$SOC" != "am68pa" ] &&
     [ "$SOC" != "am69a" ] && [ "$SOC" != "am67a" ]; then
@@ -101,10 +81,10 @@ verify_env() {
         return 1
     fi
 
-    if [ "$SDK_VERSION" != "9_2" ] && [ "$SDK_VERSION" != "10_0" ] && [ "$SDK_VERSION" != "10_1" ]; then
+    if [ "$SDK_VERSION" != "9_2" ] && [ "$SDK_VERSION" != "10_0" ]; then
         echo
         echo "Incorrect SDK_VERSION defined: $SDK_VERSION"
-        echo "Allowed values are 9_2, 10_0, 10_1"
+        echo "Allowed values for $REL are 9_2 or 10_0"
         return 1
     fi
 
