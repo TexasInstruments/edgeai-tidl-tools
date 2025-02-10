@@ -1,6 +1,6 @@
 # Updating target device with firmware, components and libraries
 
-This section describes **how to use an updated tools version with a SDK version 10.1, 10.0, 9.2**. The tools version will clearly call out that if this is possible in the [Version Compatibility Table](../docs/version_compatibility_table.md). 
+This section describes **how to use an updated tidl tools version with a previous SDK version**. The tools version will clearly call out that if this is possible in the [Version Compatibility Table](../docs/version_compatibility_table.md). 
 
 > **_NOTE:_**
 > This is an experimental feature which has gone through limited validation
@@ -23,17 +23,16 @@ This section describes **how to use an updated tools version with a SDK version 
 
 
 ## SDK 10.0
-> **_NOTE:_**
 ### Example usage for updating OSRT components and C7x firmwares
 **Run the following on target device** 
 ```
-export SDK_VERSION=*10_1 or 10_0 or 9_2*
+export SDK_VERSION=10_0
 export SOC=*soc*                    // [am62a,am68a,am68pa,am69a,am67a]
 export TISDK_IMAGE=*adas or edgeai* // [adas for evm boards, edgeai for sk boards]
-export UPDATE_OSRT_COMPONENTS=1     // Set to 0 to not update OSRT components
-export UPDATE_FIRMWARE_AND_LIB=1    // Set to 0 to not update firmware and libraries
 ./update_target.sh
 ```
+> **_NOTE:_**
+> Make sure you reboot the EVM after the update for the new firmware to be loaded
 
 ### Compilation and validation
 - Once the setup is done, follow the steps below to build CPP application on EVM

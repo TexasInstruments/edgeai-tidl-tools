@@ -35,8 +35,6 @@ Steps to build and run the docker image:
 
 3. Build the docker image:
           
-        user@pc:~/edgeai-tidl-tools$ export REPO_LOCATION=artifactory.itg.ti.com/docker-public/library/  # Internal to TI
-        user@pc:~/edgeai-tidl-tools$ export PROXY=http://webproxy.ext.ti.com:80    # Internal to TI
         user@pc:~/edgeai-tidl-tools$ source ./scripts/docker/build_docker.sh
 
 4. Run the docker image:
