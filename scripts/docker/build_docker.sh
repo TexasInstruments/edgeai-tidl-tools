@@ -43,22 +43,18 @@ else
     fi
 fi
 
-repo_location=''
+
 if [ -z "$REPO_LOCATION" ];then
     echo "No REPO_LOCATION specified, using default"
-    repo_location=''
 else
     echo "Using REPO_LOCATION: $REPO_LOCATION"
-    repo_location=''
 fi
 
-proxy=0
 if [ -z "$PROXY" ];then
     echo "No PROXY specified"
-    proxy=0
+    PROXY=none
 else
     echo "Using PROXY: $PROXY"
-    proxy=1
 fi
 
 if [ $tidl_gpu_tools -eq 1 ];then
