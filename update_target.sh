@@ -33,9 +33,9 @@ SCRIPTDIR=`pwd`
 TARGET_FS_PATH=/
 
 # List of supported REL versions for backward compatibility
-SUPPORTED_REL=("10_01_03_00")
+SUPPORTED_REL=("10_01_04_00")
 
-REL="10_01_03_00"
+REL="10_01_04_00"
 SOC=${SOC:-'null'}
 TISDK_IMAGE=${TISDK_IMAGE:-'null'}
 SDK_VERSION=${SDK_VERSION:-'null'}
@@ -81,10 +81,10 @@ verify_env() {
         return 1
     fi
 
-    if [ "$SDK_VERSION" != "9_2" ] && [ "$SDK_VERSION" != "10_0" ]; then
+    if [ "$SDK_VERSION" != "10_1" ]; then
         echo
         echo "Incorrect SDK_VERSION defined: $SDK_VERSION"
-        echo "Allowed values for $REL are 9_2 or 10_0"
+        echo "Allowed values for $REL is 10_1"
         return 1
     fi
 
