@@ -22,11 +22,11 @@ This section describes **how to use an updated tidl tools version with a previou
 >  Make sure you have stable internet connection on the EVM to run this script.
 
 
-## SDK 10.0
+## SDK 10.1
 ### Example usage for updating OSRT components and C7x firmwares
 **Run the following on target device** 
 ```
-export SDK_VERSION=10_0
+export SDK_VERSION=10_1
 export SOC=*soc*                    // [am62a,am68a,am68pa,am69a,am67a]
 export TISDK_IMAGE=*adas or edgeai* // [adas for evm boards, edgeai for sk boards]
 ./update_target.sh
