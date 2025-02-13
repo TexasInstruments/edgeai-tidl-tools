@@ -43,11 +43,18 @@ fi
 ######################################################################
 #1. Install docker if not previously installed:
 sudo apt-get install docker.io
-#2. Add docker to the sudoers group:
-sudo groupadd docker
-sudo usermod -aG docker $USER
-newgrp docker # to reflect the changes in current session
+#2. Add docker to the sudoers group if not already added:
+if [ $(getent group docker) ]; then
+	echo "Group: docker exists, adding user to group"
+    sudo usermod -aG docker $USER
+else
+	echo "Creating Group: docker and adding user to group"
+    sudo groupadd docker
+    sudo usermod -aG docker $USER
+fi
 #3. Install NVIDIA-Container-Toolkit
 if [ $tidl_gpu_tools -eq 1 ];then
+	echo $tidl_gpu_tools
     sudo apt-get install -y docker nvidia-container-toolkit
 fi
+newgrp docker # to reflect the changes in current session
