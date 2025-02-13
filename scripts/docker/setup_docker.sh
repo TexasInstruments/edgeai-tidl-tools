@@ -45,7 +45,7 @@ fi
 sudo apt-get install docker.io
 #2. Add docker to the sudoers group if not already added:
 if [ $(getent group docker) ]; then
-	echo "Group: docker exists, adding user to group"
+    echo "Group: docker exists, adding user to group"
     sudo usermod -aG docker $USER
 else
     echo "Creating Group: docker and adding user to group"
