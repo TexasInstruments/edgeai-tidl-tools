@@ -277,6 +277,8 @@ def tidl_remove_duplicates(graph:gs.Graph, onnx_graph:onnx.GraphProto, do_cleanu
     Some nodes are simply duplicates of each other. 
     There is no need to process these, and we can reuse the outputs of one for all of them
     '''
+
+    #find set of nodes that we can remove and replace with an existing one
     replacement_node_pairs = []
     for i, node_i in enumerate(graph.nodes):
         
@@ -286,14 +288,16 @@ def tidl_remove_duplicates(graph:gs.Graph, onnx_graph:onnx.GraphProto, do_cleanu
             nodes_to_remove = list(map(lambda x: x[1], replacement_node_pairs))
 
             if node_i == node_j or node_i in nodes_to_remove: 
-                continue # skip itself
-            elif node_i.inputs != node_j.inputs or node_i.attrs != node_j.attrs:
-                continue 
+                continue # skip itself or if node is already to be replaced
 
-            # hang onto the nodes we will remove/replace. We should not remove them while iterating
-            replacement_node_pairs.append((node_i, node_j)) #(node to keep as replacement, node to remove)
+            if node_i.inputs == node_j.inputs and \
+                node_i.attrs == node_j.attrs and \
+                len(node_j.inputs) != 0:
+                # check if there are any inputs/attributes that are not identical
+                # hang onto the nodes we will remove/replace. We should not remove them while iterating
+                # If no inputs, meaning a constant/initializer, skip
+                replacement_node_pairs.append((node_i, node_j)) #(node to keep as replacement, node to remove)           
             
-
     for n in replacement_node_pairs: 
         removal_node = n[1]
         keep_node = n[0]

@@ -64,7 +64,7 @@ import onnx_graphsurgeon as gs
 import onnx
 from onnx import numpy_helper
 import numpy as np
-from tidl_onnx_model_optimizer.src.common import *
+from .common import *
 
 
 def tidl_convert_resize_params_size_to_scale(graph: gs.Graph,

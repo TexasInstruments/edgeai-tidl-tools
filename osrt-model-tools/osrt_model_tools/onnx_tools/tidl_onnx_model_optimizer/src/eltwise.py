@@ -69,8 +69,6 @@ def tidl_replace_sub_with_neg_add(graph: gs.Graph,
     '''
     Sub node is not supported, but this can be replaced (less efficiently) with negation and add
     '''
-    print('\n*\ntidl_replace_mean_with_eltwise\n*\n')
-
 
     for node in graph.nodes:
 

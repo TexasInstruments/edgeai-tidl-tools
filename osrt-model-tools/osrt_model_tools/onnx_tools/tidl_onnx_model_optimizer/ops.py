@@ -128,7 +128,7 @@ opt_ops = {
         "change_argmax_keepdims_to_1"               : tidl_change_argmax_keepdims_to_1,
         "convert_2_dimension_slice_to_maxpool"      : tidl_convert_2_dimension_slice_to_maxpool,
         "convert_reducesum_to_matmul"               : tidl_convert_reducesum_to_matmul,
-        'convert_resize_params_size_to_scale_dynamic_batch' : tidl_convert_resize_params_size_to_scale_dynamic_batch
+        'convert_resize_params_size_to_scale_dynamic_batch' : tidl_convert_resize_params_size_to_scale_dynamic_batch,
         'replace_mean_with_eltwise'                 : tidl_replace_mean_with_eltwise,
         'replace_sub_with_neg_add'                  : tidl_replace_sub_with_neg_add,
         'convert_conv_even_filter_to_odd'           : tidl_convert_conv_even_filter_to_odd,
@@ -172,7 +172,7 @@ adj_list = {
         "change_argmax_keepdims_to_1"               : [],
         "convert_2_dimension_slice_to_maxpool"      : ['expand_slice_across_multiple_axis', 'convert_maxpool_to_cascaded_maxpool'],
         "convert_reducesum_to_matmul"               : [],
-        'convert_resize_params_size_to_scale_dynamic_batch' : ['convert_resize_params_size_to_scale']
+        'convert_resize_params_size_to_scale_dynamic_batch' : ['convert_resize_params_size_to_scale'],
         'replace_mean_with_eltwise'                 : [],
         'replace_sub_with_neg_add'                  : [],
         'convert_conv_even_filter_to_odd'           : [],
