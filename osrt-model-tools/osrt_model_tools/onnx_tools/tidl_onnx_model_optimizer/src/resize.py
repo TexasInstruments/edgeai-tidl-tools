@@ -156,7 +156,7 @@ def tidl_convert_resize_params_size_to_scale_dynamic_batch(graph: gs.Graph,
         if len(resize_n.inputs) <= 3 : 
             ## if len is 3, then it's using 'scales' already.
             ## if less than 3, it is not a valid Resize node, and we'll skip anyway
-            i += 1; continue;
+            i += 1; continue
 
 
         input_shape = resize_n.inputs[0].shape
@@ -174,7 +174,7 @@ def tidl_convert_resize_params_size_to_scale_dynamic_batch(graph: gs.Graph,
         if sizes_path_node_concat is None: 
             #didn't find a concat node, so skip this one..
             logging.debug(f'Could not find concat node preceding {resize_n.name} in sizes path; skipping')
-            i += 1; continue;
+            i += 1; continue
 
         concat_inputs = sizes_path_node_concat.inputs
         
@@ -182,7 +182,7 @@ def tidl_convert_resize_params_size_to_scale_dynamic_batch(graph: gs.Graph,
 
         if HW_values is None or len(HW_values) != 2: 
             logging.warning(F'Did not find constant values in the concat node, and the path is more complex to parse than expected. Ignore this node {resize_n.name}')
-            i += 1; continue;
+            i += 1; continue
 
         logging.debug(f'Found height and width values for the resize tensor output: {HW_values}')
         expected_output_shape[-2:] = HW_values
@@ -194,7 +194,7 @@ def tidl_convert_resize_params_size_to_scale_dynamic_batch(graph: gs.Graph,
 
         if sizes_path_node_slice.op != 'Slice': 
             logging.warning('Could not find slice node in sizes path; skipping')
-            i += 1; continue;
+            i += 1; continue
 
         slice_start = extract_constant_values(slice_inputs[1], graph)
         slice_end = extract_constant_values(slice_inputs[2], graph)
@@ -203,7 +203,7 @@ def tidl_convert_resize_params_size_to_scale_dynamic_batch(graph: gs.Graph,
         sizes_path_node_shape = input_nodes[0]
         if sizes_path_node_shape.op != 'Shape': 
             logging.warning('Could not find Shape node in sizes path; skipping')
-            i += 1; continue;
+            i += 1; continue
         ## If we reach here, the whole dynamic shapes path has been found
 
         input_nodes = find_in_layers(sizes_path_node_shape)
@@ -211,7 +211,7 @@ def tidl_convert_resize_params_size_to_scale_dynamic_batch(graph: gs.Graph,
 
         if original_node_check != original_input_node:
             logging.warning(f"Failure to match source of Shape node to original input to resize {original_input_node.name} vs. {original_node_check.name}")
-            i += 1; continue;
+            i += 1; continue
 
         ## extract batch and channel info
         NC_values = input_shape[slice_start[0]:slice_end[0]]
@@ -276,7 +276,7 @@ def tidl_remove_unity_resize(graph: gs.Graph,
                     logging.warning("Detected Resize node as using ROI... skipping")
                     continue
 
-                logging.debug("Removing unity Resize node %s" % node.name)
+                logging.debug(f"Removing unity (scales all 1) Resize node {node.name}")
             
                 out_nodes = find_out_layers(node)
 

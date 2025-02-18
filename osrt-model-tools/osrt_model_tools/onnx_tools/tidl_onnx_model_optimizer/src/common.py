@@ -268,6 +268,7 @@ def reset_shape_inference(onnx_graph:onnx.GraphProto):
     '''
     Clear all value_info entries that hold shape inference information
     '''
+    logging.debug('Resetting inferred shapes for graph')
     while len(onnx_graph.value_info) > 0: 
         onnx_graph.value_info.pop()
     return onnx_graph
@@ -301,6 +302,7 @@ def tidl_remove_duplicates(graph:gs.Graph, onnx_graph:onnx.GraphProto, do_cleanu
     for n in replacement_node_pairs: 
         removal_node = n[1]
         keep_node = n[0]
+        logging.debug(f'Remove duplicate node {removal_node.name} and replace with equivalent {keep_node.name}')
         removal_outputs = removal_node.outputs
         keep_outputs = keep_node.outputs
 

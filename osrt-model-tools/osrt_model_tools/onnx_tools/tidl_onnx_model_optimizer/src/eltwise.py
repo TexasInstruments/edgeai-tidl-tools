@@ -56,7 +56,7 @@
 # OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 # OF THE POSSIBILITY OF SUCH DAMAGE.
 """
-Module containing Global average pooling layer specific functions and optimizations
+Module containing elementwise layer (e.g. multiply, subtract, mean) specific functions and optimizations
 """
 import logging
 import onnx_graphsurgeon as gs
@@ -98,6 +98,8 @@ def tidl_replace_sub_with_neg_add(graph: gs.Graph,
 
             node.outputs.pop(0)
 
+            logging.debug(f'Add Multiply node {mul_node.name}')
+            logging.debug(f'Add "Add" node {add_node.name}')
             graph.nodes.append(mul_node)
             graph.nodes.append(add_node)
             #old Sub node will be removed with graph.cleanup. 
@@ -144,6 +146,8 @@ def tidl_replace_mean_with_eltwise(graph: gs.Graph,
 
             node.outputs.clear()
 
+            logging.debug(f'Add Multiply node {mul_node.name}')
+            logging.debug(f'Add "Add" node {add_node.name}')
             graph.nodes.append(mul_node)
             graph.nodes.append(add_node)
 
