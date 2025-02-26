@@ -3,10 +3,10 @@ from osrt_model_tools.onnx_tools.tidl_onnx_model_optimizer.ops import test_optim
 import numpy as np
 import onnxruntime
 
-# model_name = "" # add the path to your onnx file here
+model_name = "" # add the path to your onnx file here
 
-# optimizers = test_optimizers() # need to modify this to debug your transformation
-optimizers = get_optimizers() # need to modify this to debug all transformations
+optimizers = test_optimizers() # need to modify this to debug your transformation
+# optimizers = get_optimizers() # need to modify this to debug all transformations
 # optimizers = None # checks the default setting
 optimized_model_path = '/'.join(model_name.split('/')[:-1]) + f"/optimized_{model_name.split('/')[-1]}" 
 
@@ -25,5 +25,7 @@ output1 = session1.run([], input_dict)
 output2 = session2.run([], input_dict)
 
 for i in range(len(output1)):
-    print(f"Error obtained in the onnx optimization for output {i} is : {(output1[i] - output2[i]).mean()}")
+    print(f"Absolute error obtained in the onnx optimization for output {i} is : {(output1[i] - output2[i]).mean()}")
+    print(f"Percentage error obtained in the onnx optimization for output {i} is : {100*abs(output1[i] - output2[i]).mean()/(output1[i].max()-output1[i].min())}%")
+
 

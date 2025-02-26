@@ -91,6 +91,7 @@ from .src.neg import tidl_convert_neg_to_mul
 from .src.expand import tidl_convert_expand_to_reshape_and_concat
 from .src.reducesum import tidl_convert_reducesum_to_matmul
 from .src.eltwise import tidl_replace_mean_with_eltwise, tidl_replace_sub_with_neg_add
+from .src.depthtospace import tidl_insert_1x1_conv_before_depthtospace
 from .src.common import tidl_remove_duplicates
 
 
@@ -134,6 +135,7 @@ opt_ops = {
         'convert_conv_even_filter_to_odd'           : tidl_convert_conv_even_filter_to_odd,
         'remove_duplicates'                         : tidl_remove_duplicates,
         'remove_unity_resize'                       : tidl_remove_unity_resize,
+        'insert_1x1_conv_before_depthtospace'       : tidl_insert_1x1_conv_before_depthtospace,
 }
 
 qdq_supported_ops = ['add_bias_qdq', 'remove_quantize_initializer', 'remove_duplicate_quantize_dequantize']
@@ -178,6 +180,7 @@ adj_list = {
         'convert_conv_even_filter_to_odd'           : [],
         'remove_duplicates'                         : [],
         'remove_unity_resize'                       : ['convert_resize_params_size_to_scale'],
+        'insert_1x1_conv_before_depthtospace'       : []
 }
 
 def get_optimizers():
@@ -188,10 +191,6 @@ def get_optimizers():
         # operation specific
         'convert_resize_params_size_to_scale'       : False,
         'convert_concat_axis_width_to_channel'      : False,
-        'attention_block_optimization'              : False,
-        'hf_attention_block_optimization'           : True,
-        'hf_detr_attention_block_optimization'      : False,
-        'split_batch_dim_to_parallel_input_branches': False,
         'convert_maxpool_to_cascaded_maxpool'       : True,
         'convert_reducemean_to_matmul'              : True,
         'convert_gemm_to_matmul_and_add'            : False,
@@ -199,24 +198,27 @@ def get_optimizers():
         'convert_large_global_avg_pooling_to_matmul': True,
         'convert_gather_with_single_index_to_slice' : True,
         'convert_batchnorm_input_to_4D'             : True,
+        'attention_block_optimization'              : False,
+        'split_batch_dim_to_parallel_input_branches': False,
         'convert_softmax_axis_channel_to_width'     : True,
         'convert_softmax_axis_height_to_width'      : True,
         'push_large_channel_dim_to_height_for_width_wise_softmax': True,
         'convert_conv_large_pad_to_smaller_kernel'  : True,
-        'convert_conv_7x7_stride4_to_stride1'       : True,
         'expand_layernorm_to_component_ops'         : False, # Added support in import, no longer needed
         'push_matmul_channel_in_height'             : False,
         'expand_slice_across_multiple_axis'         : True,
         'convert_instancenorm_to_layernorm'         : False,
         'convert_unsqueeze_to_reshape'              : False,
         'add_bias_qdq'                              : False,
-        'remove_quantize_initializer'               : True, # some bug, use only for pt2e exported models
+        'remove_quantize_initializer'               : True, 
         'remove_duplicate_quantize_dequantize'      : False, # not yet implemented 
         "convert_neg_to_mul"                        : True,
         "convert_expand_to_reshape_and_concat"      : True,
         "convert_single_concat_to_consecutive_concats" : True,
-        "change_argmax_keepdims_to_1"               : False,
+        'convert_conv_7x7_stride4_to_stride1'       : True,
         "convert_2_dimension_slice_to_maxpool"      : False,  # theoritically better than splitting in 2 axis
+        "change_argmax_keepdims_to_1"               : False,
+        'hf_attention_block_optimization'           : True,
         "convert_reducesum_to_matmul"               : True,
         'convert_resize_params_size_to_scale_dynamic_batch' : False, 
         'replace_mean_with_eltwise'                 : False, 
@@ -224,6 +226,9 @@ def get_optimizers():
         'convert_conv_even_filter_to_odd'           : False, 
         'remove_duplicates'                         : False, 
         'remove_unity_resize'                       : False, 
+        'insert_1x1_conv_before_depthtospace'       : True,
+        'hf_detr_attention_block_optimization'      : False,
+        
 
         # utilities specific
         'shape_inference_mode'      : 'all',
@@ -237,7 +242,7 @@ def test_optimizers():
     """
     return {
         # operation specific to be specified here
-        'hf_detr_attention_block_optimization' : True,
+        'insert_1x1_conv_before_depthtospace' : True,
 
         # utilities specific
         'shape_inference_mode'      : 'all',

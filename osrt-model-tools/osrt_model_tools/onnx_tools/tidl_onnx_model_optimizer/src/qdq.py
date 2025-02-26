@@ -134,7 +134,6 @@ def tidl_remove_quantize_initializer(graph: gs.Graph, onnx_graph: onnx.GraphProt
             weight_shape = input_weight.shape
             if len(weight_shape)==0:
                 target_shape = (-1)
-                continue
             else:
                 target_shape = np.ones_like(weight_shape)
                 target_shape[0] = -1
@@ -145,7 +144,17 @@ def tidl_remove_quantize_initializer(graph: gs.Graph, onnx_graph: onnx.GraphProt
                 input_zero_point = np.zeros_like(input_scale, dtype=np.uint8)
             dequant_node = find_out_layers(node)[0]
             zero_point_dtype = dequant_node.inputs[2].values.dtype if len(dequant_node.inputs)>2 else np.uint8
-            quant_weight = (np.round(np.divide(input_weight, input_scale.reshape(target_shape))) + input_zero_point.reshape(target_shape)).astype(zero_point_dtype)
+
+            # directly using "astype" has a circular (not clipping implementation)
+            quant_weight = (np.round(np.divide(input_weight, input_scale.reshape(target_shape))) + input_zero_point.reshape(target_shape))
+            if zero_point_dtype == np.int8:
+                quant_weight = np.clip(quant_weight, -128, 127)
+            elif zero_point_dtype == np.uint8:
+                quant_weight = np.clip(quant_weight, 0, 255)
+            else:
+                logging.info(f"{zero_point_dtype} is not a currently accepted dtype format for removing initialisers. Only int8 or uint8 are supported")
+            quant_weight = quant_weight.astype(zero_point_dtype)
+
             if quant_weight.shape[0]==1 and len(quant_weight.shape)==1:
                 dequant_node.inputs[0] = gs.Constant(name= node.name + "_quantized", values=np.array(quant_weight[0], dtype=zero_point_dtype))
             else:
