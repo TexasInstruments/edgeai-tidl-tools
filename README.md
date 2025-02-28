@@ -57,7 +57,7 @@ These heterogeneous execution enables:
    
 Edge AI TIDL Tools provided in this repository supports model compilation and model inference. The diagram below illustrates the TFLite based work flow as an example. ONNX Runtime and TVM/Neo-AI Runtime also follows similar work flow.
 
-<p align="center"> <img width = 500 src="./docs/images/tflrt_work_flow.png"> </p>
+<p align="center"> <img width = 500 src="./docs/images/osrt_user_workflow.png"> </p>
 
 The below table covers the supported operations with this repository on X86_PC and TI's development board.
 <div align="center">

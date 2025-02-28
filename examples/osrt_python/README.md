@@ -39,7 +39,7 @@ OSRT offering also supports general purpose ARM-only OSRT inference capability f
 
 The diagram below illustrates the TFLite based work flow as an example. ONNX RunTime and TVM/Neo-AI DLR RunTime also follow similar work flow. The user needs to run the model compilation (sub-graph(s) creation and quantization) on PC and the generated artifacts can be used for inference on the device.  
 
-![TFLite runtime based user work flow](../../docs/images/tflrt_work_flow.png)
+![TFLite runtime based user work flow](../../docs/images/osrt_user_workflow.png)
 
 ## Model Compilation
 
