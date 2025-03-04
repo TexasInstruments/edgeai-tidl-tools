@@ -91,7 +91,8 @@ from .src.neg import tidl_convert_neg_to_mul
 from .src.expand import tidl_convert_expand_to_reshape_and_concat
 from .src.reducesum import tidl_convert_reducesum_to_matmul
 from .src.eltwise import tidl_replace_mean_with_eltwise, tidl_replace_sub_with_neg_add
-from .src.depthtospace import tidl_insert_1x1_conv_before_depthtospace
+from .src.depthtospace import tidl_insert_1x1_conv_before_depthtospace, tidl_convert_depth2space_to_reshp_tr_reshp
+from .src.spacetodepth import tidl_convert_space2depth_to_reshp_tr_reshp
 from .src.common import tidl_remove_duplicates
 
 
@@ -136,6 +137,8 @@ opt_ops = {
         'remove_duplicates'                         : tidl_remove_duplicates,
         'remove_unity_resize'                       : tidl_remove_unity_resize,
         'insert_1x1_conv_before_depthtospace'       : tidl_insert_1x1_conv_before_depthtospace,
+        'convert_depth2space_to_reshp_tr_reshp'     : tidl_convert_depth2space_to_reshp_tr_reshp,
+        'convert_space2depth_to_reshp_tr_reshp'     : tidl_convert_space2depth_to_reshp_tr_reshp,
 }
 
 qdq_supported_ops = ['add_bias_qdq', 'remove_quantize_initializer', 'remove_duplicate_quantize_dequantize']
@@ -180,7 +183,9 @@ adj_list = {
         'convert_conv_even_filter_to_odd'           : [],
         'remove_duplicates'                         : [],
         'remove_unity_resize'                       : ['convert_resize_params_size_to_scale'],
-        'insert_1x1_conv_before_depthtospace'       : []
+        'insert_1x1_conv_before_depthtospace'       : [],
+        'convert_depth2space_to_reshp_tr_reshp'     : [],
+        'convert_space2depth_to_reshp_tr_reshp'     : [],
 }
 
 def get_optimizers():
@@ -226,7 +231,9 @@ def get_optimizers():
         'convert_conv_even_filter_to_odd'           : False, 
         'remove_duplicates'                         : False, 
         'remove_unity_resize'                       : False, 
-        'insert_1x1_conv_before_depthtospace'       : True,
+        'insert_1x1_conv_before_depthtospace'       : False,
+        'convert_depth2space_to_reshp_tr_reshp'     : True,
+        'convert_space2depth_to_reshp_tr_reshp'     : True,
         'hf_detr_attention_block_optimization'      : False,
         
 
@@ -242,7 +249,7 @@ def test_optimizers():
     """
     return {
         # operation specific to be specified here
-        'insert_1x1_conv_before_depthtospace' : True,
+        'convert_depth2space_to_reshp_tr_reshp' : True,
 
         # utilities specific
         'shape_inference_mode'      : 'all',

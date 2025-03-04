@@ -67,6 +67,105 @@ import numpy as np
 from .common import find_in_layer
 
 
+
+def tidl_convert_depth2space_to_reshp_tr_reshp (graph: gs.Graph, onnx_graph: onnx.GraphProto):
+    """
+    Convert depth to space node to reshape->transpose->transpose->reshape nodes
+    Two transpose are added because TIDL converts single transpose one to depth2space 
+    #TODO fix after this is fixed in TIDL
+    """
+
+    nodes = graph.nodes
+
+    for node in nodes:
+        if node.op == "DepthToSpace":
+            inp = node.inputs[0]
+    
+            inp_shape = inp.shape
+            if len(inp_shape) != 4:
+                logging.warning(f"The input to Depth to Space was a tensor of shape {inp_shape}, expected a tensor of size 4.")
+                continue
+
+            if hasattr(node, 'attrs'):
+                if 'blocksize' in node.attrs and node.attrs['blocksize'] is not None:
+                    block_size = node.attrs['blocksize']
+                else:
+                    logging.info(f"Block size is not present in depth2space node {node.name}, skipping the conversion")
+
+                if 'mode' in node.attrs and node.attrs['mode'] is not None:
+                    mode = node.attrs['mode']
+                else:
+                    mode = 'DCR'
+
+            if mode == 'DCR':
+                new_shape = np.array([inp_shape[0], block_size, block_size, inp_shape[1]//(block_size*block_size)] + inp_shape[2:], dtype= np.int64)
+                reshp_shape1 = gs.Constant(name= f"{node.name}_Reshape_shape_1", values= new_shape)
+                reshape_out_1 = gs.Variable(name=f"{node.name}_Reshape_out_1", dtype=np.float32)
+                reshape_node1 = gs.Node(name=f"{node.name}_Reshape_1", op="Reshape", inputs=[inp, reshp_shape1], outputs=[reshape_out_1])
+                graph.nodes.append(reshape_node1)
+                logging.debug(f"Adding Reshape node {reshape_node1.name} instead of DepthToSpace layer {node.name}")
+
+                transpose_out_1 = gs.Variable(name=f"{node.name}_transpose_out_1", dtype=np.float32)
+                permidx = [0, 3, 4, 1, 2, 5]
+                transpose_node_1 = gs.Node(op="Transpose", name=f"{node.name}_transpose_node_1",
+                                        attrs={"perm": permidx}, inputs=[reshape_out_1],
+                                        outputs=[transpose_out_1])
+                graph.nodes.append(transpose_node_1)
+                logging.debug(f"Adding Transpose node {transpose_node_1.name} instead of DepthToSpace layer {node.name}")
+
+                transpose_out_2 = gs.Variable(name=f"{node.name}_transpose_out_2", dtype=np.float32)
+                permidx = [0, 1, 2, 3, 5, 4]
+                transpose_node_2 = gs.Node(op="Transpose", name=f"{node.name}_transpose_node_2",
+                                        attrs={"perm": permidx}, inputs=[transpose_out_1],
+                                        outputs=[transpose_out_2])
+                graph.nodes.append(transpose_node_2)
+                logging.debug(f"Adding Transpose node {transpose_node_2.name} instead of DepthToSpace layer {node.name}")
+
+                new_shape = np.array((inp_shape[0], inp_shape[1]//(block_size*block_size), inp_shape[2]*block_size, inp_shape[3]*block_size), dtype= np.int64)
+                reshp_shape2 = gs.Constant(name= f"{node.name}_Reshape_shape_2", values= new_shape)
+                reshape_node2 = gs.Node(name=f"{node.name}_Reshape_2", op="Reshape", inputs=[transpose_out_2, reshp_shape2], outputs=node.outputs)
+                graph.nodes.append(reshape_node2)
+                logging.debug(f"Adding Reshape node {reshape_node2.name} instead of DepthToSpace layer {node.name}")
+                
+                node.outputs.clear()
+
+            elif mode=='CRD':
+                new_shape = np.array([inp_shape[0], inp_shape[1]//(block_size*block_size), block_size, block_size] + inp_shape[2:], dtype= np.int64)
+                reshp_shape1 = gs.Constant(name= f"{node.name}_Reshape_shape_1", values= new_shape)
+                reshape_out_1 = gs.Variable(name=f"{node.name}_Reshape_out_1", dtype=np.float32)
+                reshape_node1 = gs.Node(name=f"{node.name}_Reshape_1", op="Reshape", inputs=[inp, reshp_shape1], outputs=[reshape_out_1])
+                graph.nodes.append(reshape_node1)
+                logging.debug(f"Adding Reshape node {reshape_node1.name} instead of DepthToSpace layer {node.name}")
+
+                transpose_out_1 = gs.Variable(name=f"{node.name}_transpose_out_1", dtype=np.float32)
+                permidx = [0, 1, 4, 2, 3, 5]
+                transpose_node_1 = gs.Node(op="Transpose", name=f"{node.name}_transpose_node_1",
+                                        attrs={"perm": permidx}, inputs=[reshape_out_1],
+                                        outputs=[transpose_out_1])
+                graph.nodes.append(transpose_node_1)
+                logging.debug(f"Adding Transpose node {transpose_node_1.name} instead of DepthToSpace layer {node.name}")
+
+                transpose_out_2 = gs.Variable(name=f"{node.name}_transpose_out_2", dtype=np.float32)
+                permidx = [0, 1, 2, 3, 5, 4]
+                transpose_node_2 = gs.Node(op="Transpose", name=f"{node.name}_transpose_node_2",
+                                        attrs={"perm": permidx}, inputs=[transpose_out_1],
+                                        outputs=[transpose_out_2])
+                graph.nodes.append(transpose_node_2)
+                logging.debug(f"Adding Transpose node {transpose_node_2.name} instead of DepthToSpace layer {node.name}")
+
+                new_shape = np.array((inp_shape[0], inp_shape[1]//(block_size*block_size), inp_shape[2]*block_size, inp_shape[3]*block_size), dtype= np.int64)
+                reshp_shape2 = gs.Constant(name= f"{node.name}_Reshape_shape_2", values= new_shape)
+                reshape_node2 = gs.Node(name=f"{node.name}_Reshape_2", op="Reshape", inputs=[transpose_out_2, reshp_shape2], outputs=node.outputs)
+                graph.nodes.append(reshape_node2)
+                logging.debug(f"Adding Reshape node {reshape_node2.name} instead of DepthToSpace layer {node.name}")
+                
+                node.outputs.clear()
+
+            else:
+                logging.info(f"Provided mode :{mode} in depth2space which is not a recognised mode.")
+
+
+
 def tidl_insert_1x1_conv_before_depthtospace (graph: gs.Graph, onnx_graph: onnx.GraphProto):
     """
     Only depthtospace operations preceeded by a conv is supported

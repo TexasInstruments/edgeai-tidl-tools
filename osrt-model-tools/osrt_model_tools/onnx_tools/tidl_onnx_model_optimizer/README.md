@@ -79,7 +79,9 @@ The different optimizations performed are summarized here along with their defau
 | 35 | convert_conv_even_filter_to_odd | Replaces even-sized convolutions with the next-size-up Odd filer as a workaround for unimplemented even-sized kernels. This is supported up to 6x6 (replace w/ 7x7). This rule will insert an additional (asymmetric) Pad before, and TIDL import will likely add a corresponding Crop layer during parsing. | False |
 | 36 | remove_duplicates | Removes duplicate nodes, i.e. those that take the same inputs and have the same parameters. These should produce identical results and can be skipped. | False |
 | 37 | remove_unity_resize | Remove "Resize" notes with unity scaling factor (scales=1) | False |
-| 38 | insert_1x1_conv_before_depthtospace | Add a 1x1 conv before depthtospace operation as this layer fuses into the previous conv | True |
+| 38 | insert_1x1_conv_before_depthtospace | Add a 1x1 conv before depthtospace operation as this layer fuses into the previous conv | False |
+| 39 | convert_depth2space_to_reshp_tr_reshp | Replace the DepthToSpace operation with reshape->transpose->reshape operation | True |
+| 40 | convert_space2depth_to_reshp_tr_reshp |  Replace the SpaceToDepth operation with reshape->transpose->reshape operation | True |
 
 
 ### NOTE
