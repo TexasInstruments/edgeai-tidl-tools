@@ -94,6 +94,7 @@ from .src.eltwise import tidl_replace_mean_with_eltwise, tidl_replace_sub_with_n
 from .src.depthtospace import tidl_insert_1x1_conv_before_depthtospace, tidl_convert_depth2space_to_reshp_tr_reshp
 from .src.spacetodepth import tidl_convert_space2depth_to_reshp_tr_reshp
 from .src.common import tidl_remove_duplicates
+from .src.gelu import tidl_convert_tanhgelu_to_erfgelu
 
 
 ### function dict to execute
@@ -139,6 +140,7 @@ opt_ops = {
         'insert_1x1_conv_before_depthtospace'       : tidl_insert_1x1_conv_before_depthtospace,
         'convert_depth2space_to_reshp_tr_reshp'     : tidl_convert_depth2space_to_reshp_tr_reshp,
         'convert_space2depth_to_reshp_tr_reshp'     : tidl_convert_space2depth_to_reshp_tr_reshp,
+        'convert_tanhgelu_to_erfgelu'               : tidl_convert_tanhgelu_to_erfgelu
 }
 
 qdq_supported_ops = ['add_bias_qdq', 'remove_quantize_initializer', 'remove_duplicate_quantize_dequantize']
@@ -186,6 +188,7 @@ adj_list = {
         'insert_1x1_conv_before_depthtospace'       : [],
         'convert_depth2space_to_reshp_tr_reshp'     : [],
         'convert_space2depth_to_reshp_tr_reshp'     : [],
+        'convert_tanhgelu_to_erfgelu'               : [],
 }
 
 def get_optimizers():
@@ -234,6 +237,7 @@ def get_optimizers():
         'insert_1x1_conv_before_depthtospace'       : False,
         'convert_depth2space_to_reshp_tr_reshp'     : True,
         'convert_space2depth_to_reshp_tr_reshp'     : True,
+        'convert_tanhgelu_to_erfgelu'               : True,
         'hf_detr_attention_block_optimization'      : False,
         
 
@@ -249,7 +253,8 @@ def test_optimizers():
     """
     return {
         # operation specific to be specified here
-        'convert_depth2space_to_reshp_tr_reshp' : True,
+        'convert_tanhgelu_to_erfgelu' : True,
+        'convert_reducemean_to_matmul' : True,
 
         # utilities specific
         'shape_inference_mode'      : 'all',

@@ -88,13 +88,14 @@ def find_attentions(graph: gs.Graph):
         if node.op != 'Softmax' or len(node.outputs[0].outputs) > 1:
             continue
         softmax = node
-        is_attention = True
+        is_attention = False
         while True:
             if len(node.inputs[0].inputs) == 0 :
                 break
             prev_node = [inp for inp in node.inputs if isinstance(inp, gs.Variable)][0].inputs[0]
             if prev_node.op == 'MatMul':
                 node1 = node
+                is_attention = True
                 break
             if len([inp for inp in prev_node.inputs if isinstance(inp, gs.Variable)]) != 1:
                 is_attention = False
