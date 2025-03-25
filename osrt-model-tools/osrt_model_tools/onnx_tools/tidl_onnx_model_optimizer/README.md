@@ -84,6 +84,7 @@ The different optimizations performed are summarized here along with their defau
 | 40 | convert_space2depth_to_reshp_tr_reshp |  Replace the SpaceToDepth operation with reshape->transpose->reshape operation | True |
 | 41 | convert_tanhgelu_to_erfgelu | Replace the gelu based on tanh to the originial erf based gelu  | True |
 | 42 | support_broadcast_ops_constant_input | Replaces the constants in elt-wise arithmetic operators to prevent multidimensional broadcast or cross-broadcast | False |
+| 43 | remove_where_layer | Remove the where layer when the condition is all True or all False | True |  
 
 ### NOTE
 1. This module performs some optimizations on the model and one of the optimization is in early stage named as "split_batch_dim_to_parallel_input_branches". This optimization changes a network with its partial structure with batch to multiple parallel branches in order to have TIDL-RT compatible structure. As of now the "batch specific optimization" is **experimental and at early stage** and require user to provide the start and end node names where the batch dimension needs to be replaced with parallel branches. (*Check batch.py for these two global variables named START_NODE_NAME and END_NODE_NAME*) In future support will be added to automatically detect these nodes and these variables will be removed.

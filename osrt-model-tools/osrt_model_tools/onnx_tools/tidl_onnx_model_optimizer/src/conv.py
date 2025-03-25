@@ -176,9 +176,7 @@ def tidl_convert_conv_7x7_stride4_to_stride1(graph: gs.Graph, onnx_graph: onnx.G
         if node.op == 'Conv':
             if node.attrs['kernel_shape'] == [7, 7] and node.attrs['strides'] == [4, 4]:
                 node.attrs['strides'] = [1, 1]
-                conv_out_shape = copy.deepcopy(node.inputs[0].shape)
-                conv_out_shape[1] = node.outputs[0].shape[1]
-                node.outputs[0].shape = conv_out_shape
+                node.outputs[0].shape = None
 
                 next_nodes = list(node.outputs[0].outputs)
 

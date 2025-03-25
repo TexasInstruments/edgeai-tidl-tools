@@ -95,6 +95,7 @@ from .src.depthtospace import tidl_insert_1x1_conv_before_depthtospace, tidl_con
 from .src.spacetodepth import tidl_convert_space2depth_to_reshp_tr_reshp
 from .src.common import tidl_remove_duplicates
 from .src.gelu import tidl_convert_tanhgelu_to_erfgelu
+from .src.where import tidl_remove_where_layer
 
 
 ### function dict to execute
@@ -142,6 +143,7 @@ opt_ops = {
         'convert_space2depth_to_reshp_tr_reshp'     : tidl_convert_space2depth_to_reshp_tr_reshp,
         'convert_tanhgelu_to_erfgelu'               : tidl_convert_tanhgelu_to_erfgelu,
         'support_broadcast_ops_constant_input'      : tidl_support_broadcast_ops_constant_input,
+        "remove_where_layer"                        : tidl_remove_where_layer,
 }
 
 qdq_supported_ops = ['add_bias_qdq', 'remove_quantize_initializer', 'remove_duplicate_quantize_dequantize']
@@ -191,6 +193,7 @@ adj_list = {
         'convert_space2depth_to_reshp_tr_reshp'     : [],
         'convert_tanhgelu_to_erfgelu'               : [],
         'support_broadcast_ops_constant_input'      : [],
+        'remove_where_layer'                        : [],
 }
 
 def get_optimizers():
@@ -241,6 +244,7 @@ def get_optimizers():
         'convert_space2depth_to_reshp_tr_reshp'     : True,
         'convert_tanhgelu_to_erfgelu'               : True,
         'support_broadcast_ops_constant_input'      : False, 
+        'remove_where_layer'                        : True,
         'hf_detr_attention_block_optimization'      : False,
         
 
@@ -256,8 +260,7 @@ def test_optimizers():
     """
     return {
         # operation specific to be specified here
-        'convert_tanhgelu_to_erfgelu' : True,
-        'convert_reducemean_to_matmul' : True,
+        'remove_where_layer' : True,
 
         # utilities specific
         'shape_inference_mode'      : 'all',
