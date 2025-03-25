@@ -153,9 +153,9 @@ def tidl_replace_mean_with_eltwise(graph: gs.Graph,
 
             #cleanup and toposort graph to fully apply changes
 
-def tidl_remove_multi_broadcast_and_cross_brod_cast_from_eltwise_arithmetic_operators_in_constants(graph: gs.Graph, onnx_graph: onnx.GraphProto):
+def tidl_support_broadcast_ops_constant_input(graph: gs.Graph, onnx_graph: onnx.GraphProto):
     '''
-    Remove multi-broadcast and cross-brodcast from elementwise arithmetic operators
+    Replaces the constants in elt-wise arithmetic operators to prevent multidimensional broadcast or cross-broadcast
     '''
     change_multi_broadcast = True
     for node in graph.nodes:
@@ -168,7 +168,7 @@ def tidl_remove_multi_broadcast_and_cross_brod_cast_from_eltwise_arithmetic_oper
             if not (isinstance(inp, gs.Variable) and isinstance(const, gs.Constant)):
                 continue
             inp_shape = inp.shape
-            const_shape = const.shape
+            old_shape = const_shape = const.shape
             const_value = const.values
 
             if len(inp_shape) <= 3 or len(const_shape)==0:
@@ -180,12 +180,15 @@ def tidl_remove_multi_broadcast_and_cross_brod_cast_from_eltwise_arithmetic_oper
             broadcast_dims = []
             broadcast_dims = [i for i, x in enumerate(const_shape) if x == 1 and inp_shape[i] != 1]
             
+            ## to check any broad cast from variable with constant will happen or not
             cross_broadcast_dims = [i for i, x in enumerate(inp_shape) if x == 1 and const_shape[i] != 1]
 
             except_last_3_dims = list(range(len(inp_shape)-3))
 
             if len(broadcast_dims)==1:
                 if broadcast_dims[0] in except_last_3_dims or len(cross_broadcast_dims)>0:
+                    ## cross broadcast and broadcasting outside C, H, W is not allowed
+                    logging.debug(f"Constant {const.name} at dim {broadcast_dims[0]} from {const_shape[broadcast_dims[0]]} to {inp_shape[broadcast_dims[0]]}")
                     const_value = np.concatenate([const_value for _ in range(inp_shape[broadcast_dims[0]])], axis=broadcast_dims[0])
                 else:
                     continue
@@ -193,9 +196,13 @@ def tidl_remove_multi_broadcast_and_cross_brod_cast_from_eltwise_arithmetic_oper
                 broadcast_dims_in_last_3 = [dim for dim in broadcast_dims if dim not in except_last_3_dims]
                 for dim in broadcast_dims:
                     if dim in except_last_3_dims or len(cross_broadcast_dims)>0:
+                        ## cross broadcast and broadcasting outside C, H, W is not allowed
+                        logging.debug(f"Constant {const.name} at dim {dim} from {const_shape[dim]} to {inp_shape[dim]}")
                         const_value = np.concatenate([const_value for _ in range(inp_shape[dim])], axis=dim)
                     else:
                         if change_multi_broadcast and len(broadcast_dims_in_last_3) > 1:
+                            ## to preserve atleast one dimension to broadcast
+                            logging.debug(f"Constant {const.name} at dim {dim} from {const_shape[dim]} to {inp_shape[dim]}")
                             const_value = np.concatenate([const_value for _ in range(inp_shape[dim])], axis=dim)
                             broadcast_dims_in_last_3.remove(dim)
                         else:
@@ -204,4 +211,5 @@ def tidl_remove_multi_broadcast_and_cross_brod_cast_from_eltwise_arithmetic_oper
                 continue
                 
             node.inputs[inp_types.index(gs.Constant)].values = const_value
+            logging.debug(f"Modified input {const.name} from {old_shape} to {const.shape} Node {node.name}")
 
