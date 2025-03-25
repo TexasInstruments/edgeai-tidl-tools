@@ -153,4 +153,55 @@ def tidl_replace_mean_with_eltwise(graph: gs.Graph,
 
             #cleanup and toposort graph to fully apply changes
 
+def tidl_remove_multi_broadcast_and_cross_brod_cast_from_eltwise_arithmetic_operators_in_constants(graph: gs.Graph, onnx_graph: onnx.GraphProto):
+    '''
+    Remove multi-broadcast and cross-brodcast from elementwise arithmetic operators
+    '''
+    change_multi_broadcast = True
+    for node in graph.nodes:
+        if node.op in ('Add','Sub','Mul','Div'):
+            inp_types = [type(inp) for inp in node.inputs]
+            if not(gs.Variable in inp_types and gs.Constant in inp_types):
+                continue
+            inp = node.inputs[inp_types.index(gs.Variable)]
+            const = node.inputs[inp_types.index(gs.Constant)]
+            if not (isinstance(inp, gs.Variable) and isinstance(const, gs.Constant)):
+                continue
+            inp_shape = inp.shape
+            const_shape = const.shape
+            const_value = const.values
+
+            if len(inp_shape) <= 3 or len(const_shape)==0:
+                continue
+            new_shape = [1 for _ in inp_shape[:-(len(const_shape))]]+ list(const_shape)
+            const_value = np.reshape(const_value, new_shape)
+            const_shape = new_shape
+
+            broadcast_dims = []
+            broadcast_dims = [i for i, x in enumerate(const_shape) if x == 1 and inp_shape[i] != 1]
+            
+            cross_broadcast_dims = [i for i, x in enumerate(inp_shape) if x == 1 and const_shape[i] != 1]
+
+            except_last_3_dims = list(range(len(inp_shape)-3))
+
+            if len(broadcast_dims)==1:
+                if broadcast_dims[0] in except_last_3_dims or len(cross_broadcast_dims)>0:
+                    const_value = np.concatenate([const_value for _ in range(inp_shape[broadcast_dims[0]])], axis=broadcast_dims[0])
+                else:
+                    continue
+            elif broadcast_dims:
+                broadcast_dims_in_last_3 = [dim for dim in broadcast_dims if dim not in except_last_3_dims]
+                for dim in broadcast_dims:
+                    if dim in except_last_3_dims or len(cross_broadcast_dims)>0:
+                        const_value = np.concatenate([const_value for _ in range(inp_shape[dim])], axis=dim)
+                    else:
+                        if change_multi_broadcast and len(broadcast_dims_in_last_3) > 1:
+                            const_value = np.concatenate([const_value for _ in range(inp_shape[dim])], axis=dim)
+                            broadcast_dims_in_last_3.remove(dim)
+                        else:
+                            continue
+            else:
+                continue
+                
+            node.inputs[inp_types.index(gs.Constant)].values = const_value
 

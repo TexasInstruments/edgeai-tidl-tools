@@ -90,7 +90,7 @@ from .src.qdq import tidl_add_bias_qdq, tidl_remove_quantize_initializer, tidl_r
 from .src.neg import tidl_convert_neg_to_mul
 from .src.expand import tidl_convert_expand_to_reshape_and_concat
 from .src.reducesum import tidl_convert_reducesum_to_matmul
-from .src.eltwise import tidl_replace_mean_with_eltwise, tidl_replace_sub_with_neg_add
+from .src.eltwise import tidl_replace_mean_with_eltwise, tidl_replace_sub_with_neg_add, tidl_remove_multi_broadcast_and_cross_brod_cast_from_eltwise_arithmetic_operators_in_constants
 from .src.depthtospace import tidl_insert_1x1_conv_before_depthtospace, tidl_convert_depth2space_to_reshp_tr_reshp
 from .src.spacetodepth import tidl_convert_space2depth_to_reshp_tr_reshp
 from .src.common import tidl_remove_duplicates
@@ -134,6 +134,7 @@ opt_ops = {
         'convert_resize_params_size_to_scale_dynamic_batch' : tidl_convert_resize_params_size_to_scale_dynamic_batch,
         'replace_mean_with_eltwise'                 : tidl_replace_mean_with_eltwise,
         'replace_sub_with_neg_add'                  : tidl_replace_sub_with_neg_add,
+        'remove_multi_broadcast_and_cross_brod_cast_from_eltwise_arithmetic_operators_in_constants': tidl_remove_multi_broadcast_and_cross_brod_cast_from_eltwise_arithmetic_operators_in_constants,
         'convert_conv_even_filter_to_odd'           : tidl_convert_conv_even_filter_to_odd,
         'remove_duplicates'                         : tidl_remove_duplicates,
         'remove_unity_resize'                       : tidl_remove_unity_resize,
@@ -181,7 +182,8 @@ adj_list = {
         "convert_reducesum_to_matmul"               : [],
         'convert_resize_params_size_to_scale_dynamic_batch' : ['convert_resize_params_size_to_scale'],
         'replace_mean_with_eltwise'                 : [],
-        'replace_sub_with_neg_add'                  : [],
+        'replace_sub_with_neg_add'                  : ['remove_multi_broadcast_and_cross_brod_cast_from_eltwise_arithmetic_operators_in_constants'],
+        'remove_multi_broadcast_and_cross_brod_cast_from_eltwise_arithmetic_operators_in_constants' : [],
         'convert_conv_even_filter_to_odd'           : [],
         'remove_duplicates'                         : [],
         'remove_unity_resize'                       : ['convert_resize_params_size_to_scale'],
@@ -231,6 +233,7 @@ def get_optimizers():
         'convert_resize_params_size_to_scale_dynamic_batch' : False, 
         'replace_mean_with_eltwise'                 : False, 
         'replace_sub_with_neg_add'                  : False, 
+        'remove_multi_broadcast_and_cross_brod_cast_from_eltwise_arithmetic_operators_in_constants' : False, 
         'convert_conv_even_filter_to_odd'           : False, 
         'remove_duplicates'                         : False, 
         'remove_unity_resize'                       : False, 
