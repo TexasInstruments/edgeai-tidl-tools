@@ -180,7 +180,7 @@ def tidl_convert_conv_7x7_stride4_to_stride1(graph: gs.Graph, onnx_graph: onnx.G
                 conv_out_shape[1] = node.outputs[0].shape[1]
                 node.outputs[0].shape = conv_out_shape
 
-                next_nodes = node.outputs[0].outputs
+                next_nodes = list(node.outputs[0].outputs)
 
                 maxpool_output1 = gs.Variable(node.name.replace('Conv','MaxPool_out1'), dtype=np.float32)
                 maxpool_output2 = gs.Variable(node.name.replace('Conv','MaxPool_out2'), dtype=np.float32)
@@ -190,16 +190,20 @@ def tidl_convert_conv_7x7_stride4_to_stride1(graph: gs.Graph, onnx_graph: onnx.G
                                             outputs=[maxpool_output1])
                 new_maxpool1.attrs = dict(kernel_shape=[1, 1], strides=[2, 2])
                 graph.nodes.append(new_maxpool1)
+                logging.debug(f"Adding max pool node {new_maxpool1.name} in conv 7x7 conversion")
 
                 new_maxpool2 = gs.Node(op="MaxPool", name=node.name.replace('Conv', 'MaxPool2'),
                                                 inputs=[maxpool_output1],
                                             outputs=[maxpool_output2])
                 new_maxpool2.attrs = dict(kernel_shape=[1, 1], strides=[2, 2])
                 graph.nodes.append(new_maxpool2)
+                logging.debug(f"Adding max pool node {new_maxpool2.name} in conv 7x7 conversion")
 
                 for next_node in next_nodes:
                     index = next_node.inputs.index(node.outputs[0])
                     next_node.inputs[index] = maxpool_output2
+                logging.debug(f"Changed the inputs of the conv {node.name}'s next layers in conv 7x7 conversion")
+
 
                     
 def tidl_convert_conv_even_filter_to_odd(graph: gs.Graph, onnx_graph: onnx.GraphProto, zero_points={'Conv_Name_Fake_Example': -0.001}):
