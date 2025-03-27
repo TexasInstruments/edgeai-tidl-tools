@@ -81,7 +81,8 @@ from .src.gather import tidl_convert_gather_with_single_index_to_slice
 from .src.batchnorm import tidl_convert_batchnorm_input_to_4D
 from .src.softmax import tidl_convert_softmax_axis_channel_to_width, tidl_convert_softmax_axis_height_to_width
 from .src.softmax import tidl_push_large_channel_dim_to_height_for_width_wise_softmax
-from .src.conv import tidl_convert_conv_large_pad_to_smaller_kernel, tidl_convert_conv_7x7_stride4_to_stride1, tidl_convert_conv_even_filter_to_odd
+from .src.conv import tidl_convert_conv_large_pad_to_smaller_kernel, tidl_convert_conv_7x7_stride4_to_stride1, tidl_convert_conv_even_filter_to_odd, \
+    tidl_convert_tr_conv_stride_n_tr_to_matmul
 from .src.layernorm import tidl_expand_layernorm_to_component_ops
 from .src.slice import tidl_expand_slice_across_multiple_axis, tidl_convert_2_dimension_slice_to_maxpool
 from .src.instancenorm import tidl_convert_instancenorm_to_layernorm
@@ -144,6 +145,7 @@ opt_ops = {
         'convert_tanhgelu_to_erfgelu'               : tidl_convert_tanhgelu_to_erfgelu,
         'support_broadcast_ops_constant_input'      : tidl_support_broadcast_ops_constant_input,
         "remove_where_layer"                        : tidl_remove_where_layer,
+        "convert_tr_conv_stride_n_tr_to_matmul"     : tidl_convert_tr_conv_stride_n_tr_to_matmul,
 }
 
 qdq_supported_ops = ['add_bias_qdq', 'remove_quantize_initializer', 'remove_duplicate_quantize_dequantize']
@@ -194,6 +196,7 @@ adj_list = {
         'convert_tanhgelu_to_erfgelu'               : [],
         'support_broadcast_ops_constant_input'      : [],
         'remove_where_layer'                        : [],
+        'convert_tr_conv_stride_n_tr_to_matmul'     : [],
 }
 
 def get_optimizers():
@@ -245,6 +248,7 @@ def get_optimizers():
         'convert_tanhgelu_to_erfgelu'               : True,
         'support_broadcast_ops_constant_input'      : False, 
         'remove_where_layer'                        : True,
+        'convert_tr_conv_stride_n_tr_to_matmul'     : True,
         'hf_detr_attention_block_optimization'      : False,
         
 
@@ -260,7 +264,7 @@ def test_optimizers():
     """
     return {
         # operation specific to be specified here
-        'remove_where_layer' : True,
+        'convert_tr_conv_stride_n_tr_to_matmul' : True,
 
         # utilities specific
         'shape_inference_mode'      : 'all',

@@ -64,6 +64,7 @@ import onnx_graphsurgeon as gs
 import onnx
 import numpy as np
 import copy
+from .common import find_in_layers, find_out_layers
 
 
 def tidl_convert_conv_large_pad_to_smaller_kernel (graph: gs.Graph, onnx_graph: onnx.GraphProto):
@@ -276,3 +277,105 @@ def tidl_convert_conv_even_filter_to_odd(graph: gs.Graph, onnx_graph: onnx.Graph
             graph.nodes.append(pad_node)
             #topographical sort should be run after this function completes to reorder the new Pad nodes
 
+
+def tidl_convert_tr_conv_stride_n_tr_to_matmul(graph: gs.Graph, onnx_graph: onnx.GraphProto):
+    """
+    Models having transpose -> conv(stride n) -> transpose need to be converted to 
+    reshape -> transpose -> reshape -> matmul -> add -> reshape
+    """
+    for node in graph.nodes:
+        if node.op == 'Conv':
+            in_layers =  find_in_layers(node)
+            out_layers = find_out_layers(node)
+            if not(len(in_layers) == 1 and len(out_layers) == 1):
+                logging.debug(f"convert_tr_conv_stride_n_tr_to_matmul is supported only in the case of transpose->conv->tranpose,\
+                              skipping conversion of {node.name}")
+                continue
+            if not (in_layers[0].op == 'Transpose' and out_layers[0].op == 'Transpose'):
+                logging.debug(f"convert_tr_conv_stride_n_tr_to_matmul is supported only in the case of transpose->conv->tranpose,\
+                              skipping conversion of {node.name}")
+                continue
+            strides = node.attrs['strides']
+            kernel_shape = node.attrs['kernel_shape']
+
+            if not (kernel_shape[0] == kernel_shape[1] == strides[0] == strides[0]):
+                logging.debug(f"Kernel shape should match the strides of the layer {node.name}, skipping")
+                continue
+            group = node.attrs['group']
+            dilations = node.attrs['dilations']
+            if group != 1 or dilations[0] != 1:
+                logging.debug(f"The rule is currently not applicable for group or dilation > 1, have it in {node.name}, skipping")
+                continue
+            if isinstance(node.inputs[1], gs.Constant):
+                conv_weights = node.inputs[1].values
+            else:
+                logging.debug(f"Weights of the conv node {node.name} are not a constant, skipping the conversion")
+                continue  
+            if len(node.inputs) > 2:
+                conv_bias = node.inputs[2].values
+            else:
+                logging.info(f"The conv node {node.name} does not have a bias node, will not add an extra add layer")
+                conv_bias = None
+
+            input_shape = in_layers[0].inputs[0].shape
+            if len(input_shape) != 4:
+                logging.info(f"The input shape of the conv node {node.name} is not 4, skipping")
+                continue
+            if (input_shape[1] % kernel_shape[0] != 0) or (input_shape[2] % kernel_shape[1] != 0):
+                logging.info(f"The input shape of the conv node {node.name} are not divisible by kernel, skipping")
+                continue
+
+            reshape_out_node_1 = gs.Variable(node.name + "rehsp_1_out")
+            reshape_1_shape = np.array([input_shape[0], input_shape[1]//kernel_shape[0], kernel_shape[0], input_shape[2]//kernel_shape[1], \
+                                        kernel_shape[1], input_shape[3]], dtype = np.int64)
+            reshp_node_1 = gs.Node(op="Reshape", name=node.name + "rehsp_1", \
+                                   inputs=[in_layers[0].inputs[0], gs.Constant(node.name + "rehsp_1_shape", reshape_1_shape)], \
+                                    outputs=[reshape_out_node_1])
+            graph.nodes.append(reshp_node_1)
+            logging.debug(f"Added node {reshape_out_node_1.name}")
+
+            transpose_out_node = gs.Variable(node.name + "transpose_1_out")
+            transpose_node = gs.Node(op="Transpose", name=node.name + "Transpose", \
+                                     attrs= {'perm': [0,1,3,2,4,5]}, inputs=[reshape_out_node_1],\
+                                        outputs = [transpose_out_node])
+            graph.nodes.append(transpose_node)
+            logging.debug(f"Added node {transpose_node.name}")
+
+            reshape_out_node_2 = gs.Variable(node.name + "rehsp_2_out")
+            reshape_2_shape = np.array([input_shape[0], (input_shape[1]//kernel_shape[0])*(input_shape[2]//kernel_shape[1]), \
+                                        kernel_shape[0]*kernel_shape[1]*input_shape[3]], dtype = np.int64)
+            reshp_node_2 = gs.Node(op="Reshape", name=node.name + "rehsp_2", \
+                                   inputs=[transpose_out_node, gs.Constant(node.name + "rehsp_2_shape", reshape_2_shape)], \
+                                    outputs=[reshape_out_node_2])
+            graph.nodes.append(reshp_node_2)
+            logging.debug(f"Added node {reshp_node_2.name}")
+            
+            matmul_out = gs.Variable(node.name + 'matmul_out')
+            matmul_weights = np.reshape(np.transpose(conv_weights, (2,3,1,0)), (kernel_shape[0]*kernel_shape[1]*input_shape[3], -1))
+            matmul_node = gs.Node(op="MatMul", name = node.name + "matmul", \
+                                   inputs=[reshape_out_node_2, gs.Constant(node.name + "matmul_weights", matmul_weights)], \
+                                    outputs=[matmul_out])
+            graph.nodes.append(matmul_node)
+            logging.debug(f"Added node {matmul_node.name}")
+
+            if conv_bias is not None:
+                add_out = gs.Variable(node.name + 'add_out')
+                add_bias = np.expand_dims(conv_bias, axis=(0,1))
+                add_node = gs.Node(op="Add", name = node.name + "add", \
+                                   inputs = [matmul_out, gs.Constant(node.name + "add_bias", np.array(add_bias, dtype=np.float32))], outputs = [add_out])
+                graph.nodes.append(add_node)
+                logging.debug(f"Added node {add_node.name}")
+            else:
+                add_out = matmul_out
+                logging.debug(f"Bias node is not present in the conv node {node.name}, not adding the add node")
+
+            reshape_3_shape = np.array([input_shape[0], input_shape[1]//kernel_shape[0], input_shape[2]//kernel_shape[1], -1], dtype = np.int64)
+            reshp_node_3 = gs.Node(op="Reshape", name=node.name + "rehsp_3", \
+                                   inputs=[add_out, gs.Constant(node.name + "rehsp_3_shape", reshape_3_shape)], \
+                                    outputs=[out_layers[0].outputs[0]])
+            graph.nodes.append(reshp_node_3)
+            logging.debug(f"Added node {reshp_node_3.name}")
+
+            node.outputs.clear()
+            in_layers[0].outputs.clear()
+            out_layers[0].outputs.clear()
