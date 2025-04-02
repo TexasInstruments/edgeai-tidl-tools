@@ -55,8 +55,8 @@ models = ['cl-tfl-custom-model']
 
 | Official Python API documentation | Simple Colab notebook for end-to-end working reference |
 |----|---|
-| [**TFLite Python API**](https://www.tensorflow.org/lite/guide/inference#load_and_run_a_model_in_python) | [**TFLite Colab Notebook**](../examples/osrt_python/jupyter_notebooks/colab/infer_tflite.ipynb)|
-| [**ONNX Runtime Python API**](https://onnxruntime.ai/docs/get-started/with-python.html)|[**ONNX Runtime Colab Notebook**](../examples/osrt_python/jupyter_notebooks/colab/infer_ort.ipynb)|
+| [**TFLite Python API**](https://www.tensorflow.org/lite/guide/inference#load_and_run_a_model_in_python) | [**TFLite Colab Notebook**](../examples/jupyter_notebooks/colab/infer_tflite.ipynb)|
+| [**ONNX Runtime Python API**](https://onnxruntime.ai/docs/get-started/with-python.html)|[**ONNX Runtime Colab Notebook**](../examples/jupyter_notebooks/colab/infer_ort.ipynb)|
 
 </div>
 

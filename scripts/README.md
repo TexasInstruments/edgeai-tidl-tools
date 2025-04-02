@@ -55,12 +55,19 @@ The following [example](../examples/osrt_python/advanced_examples/RGB_YUV_model_
 # Inspecting intermediate layer traces
 This module enables users to analyze layer-level traces to identify layers causing deviations. It leverages the mapping between ONNX traces and TIDL traces, which is constructed using the layer_info.txt file generated from compiled artifacts.
 
+### Setup
+
+Install the dependencies for this module as follows:
+
+```bash
+pip install streamlit plotly
+```
 ### Usage:
 
 To run the module for inspecting intermediate layer traces, use the following command:
 
 ```bash
-streamlit run layer_trace_inspector.py -- \
+streamlit run tidl_debug_scripts/layer_trace_inspector.py -- \
   --traceONNX <path to the onnx trace folder> \
   --traceTIDL <path to the tidl trace folder> \
   --traceInfo <path to the network layer info> \
