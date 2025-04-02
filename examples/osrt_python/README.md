@@ -217,6 +217,5 @@ Please refer [Quantization](../../docs/tidl_fsg_quantization.md) for more detail
 - [3]: Running TIDL-unsupported layers on DSP with parameter "c7x_codegen=1", requires Processor SDK 8.2 or newer. This feature has only been validated with selected models in TI's Edgeai-benchmark that are using the TVM flow.  We will continue to work on this feature
 to improve the operator coverage and generate more performant DSP code.  If your model encounters problem with this feature, please set "c7x_codegen=0" and run the TIDL-unsupported layers on ARM.
 
-
 ## Trouble Shooting
 Refer this [Troubleshooting](../../docs/tidl_osr_debug.md) section if any issues observed during compilation of custom models.

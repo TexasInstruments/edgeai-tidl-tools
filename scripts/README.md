@@ -3,6 +3,8 @@
 - [Scripts for RGB to YUV Model conversion](#scripts-for-rgb-to-yuv-model-conversion)
   - [RGB_YUV_model_converter](#rgb-to-yuv-model-converter) 
   - [Extending Support for other Colorspaces](#extending-support-for-other-colorspaces)
+- [Inspecting intermediate layer traces](#inspecting-intermediate-layer-traces)
+  - [Extending for custom use case](#extending-for-custom-use-case)
 
 # Scripts for Model Optimization and Validation
 
@@ -49,3 +51,45 @@ def getWightsAndBiasData():
   return weights, bias
 ```
 The following [example](../examples/osrt_python/advanced_examples/RGB_YUV_model_conversion/README.md) illustrates this further
+
+# Inspecting intermediate layer traces
+This module enables users to analyze layer-level traces to identify layers causing deviations. It leverages the mapping between ONNX traces and TIDL traces, which is constructed using the layer_info.txt file generated from compiled artifacts.
+
+### Usage:
+
+To run the module for inspecting intermediate layer traces, use the following command:
+
+```bash
+streamlit run layer_trace_inspector.py -- \
+  --traceONNX <path to the onnx trace folder> \
+  --traceTIDL <path to the tidl trace folder> \
+  --traceInfo <path to the network layer info> \
+  --v # for extra debug info
+```
+
+### Single Plot
+This feature generates a visualization for a single layer trace:
+
+![SinglePlot](../docs/images/layer_trace_inspector/single_plot.png)
+### Multi Plot 
+This feature provides a comparative inspection across multiple layers:
+
+![Mulit Plot](../docs/images/layer_trace_inspector/multi_plot.png)
+### Network Error Summary 
+This feature summarizes errors across the network layers:
+
+![Network Error Summary](../docs/images/layer_trace_inspector/network_error_summary.png)
+
+## Extending for custom use case
+
+The module for inspecting intermediate layer traces includes a default mapping function, __LayerTraceInspector.getTraces__. To adapt the module for custom use cases, you can follow the example provided below:
+
+```python
+from layer_trace_inspector import LayerTraceInspector
+
+class CustomLayerTraceInspector(LayerTraceInspector):
+  # overriding the default getTraces function
+  def getTraces(self):
+    # your custom mapping logic
+    self.tidl_onnx_trace_mapping = {...}
+```
