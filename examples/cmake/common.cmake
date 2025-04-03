@@ -54,7 +54,8 @@ else()
   endif()
 endif()
 
-
+find_package(OpenCV REQUIRED)
+include_directories(${OpenCV_INCLUDE_DIRS})
 if (EXISTS $ENV{TIDL_TOOLS_PATH}/osrt_deps/opencv_4.2.0_x86_u22/)
   set(OPENCV_INSTALL_DIR $ENV{TIDL_TOOLS_PATH}/osrt_deps/opencv_4.2.0_x86_u22/)
   message (STATUS  "setting OPENCV_INSTALL_DIR path:${OPENCV_INSTALL_DIR}")
