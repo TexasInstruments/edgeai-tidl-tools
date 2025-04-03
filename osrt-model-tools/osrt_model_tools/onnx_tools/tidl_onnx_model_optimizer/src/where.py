@@ -72,6 +72,11 @@ def tidl_remove_where_layer(graph: gs.Graph, onnx_graph: onnx.GraphProto):
     
     for node in nodes:
         if (node.op == "Where"):
+            
+            if isinstance(node.inputs[0], gs.Variable):
+                logging.info(f"Removal of where layer {node.name} with condition having variable inputs is not supported")
+                continue
+
             condition = node.inputs[0].values
             if np.all(condition):
                 # If condition is all True, replace Where with the 'x' input
