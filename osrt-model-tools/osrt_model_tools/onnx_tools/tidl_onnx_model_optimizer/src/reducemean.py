@@ -133,6 +133,9 @@ def tidl_convert_reducemean_to_matmul (graph: gs.Graph, onnx_graph: onnx.GraphPr
                 logging.info(f"Attribute axes for {reduce_mean.name} should be 0 or 1, skipping")
                 continue
 
+        dtype = reduce_sum.inputs[0].dtype if (isinstance(reduce_sum.inputs[0], gs.Variable) and hasattr(reduce_sum.inputs[0], 'dtype')) \
+                    else np.float32
+
         if numdims == 4:
             B, C, H, W = input_shape
         elif numdims == 3:
@@ -161,7 +164,7 @@ def tidl_convert_reducemean_to_matmul (graph: gs.Graph, onnx_graph: onnx.GraphPr
 
                 # 1. Transpose
                 var_outshape   = [gs.Variable(f"rm_transpose_out.{idx}",
-                                              dtype=np.float32, shape=shape_outshape)]
+                                              dtype=dtype, shape=shape_outshape)]
                 transpose1 = gs.Node(op="Transpose", name=f"rm_transpose.{idx}.1",
                                      attrs={"perm": permidx}, inputs=input_tensor,
                                      outputs=var_outshape)
@@ -170,10 +173,10 @@ def tidl_convert_reducemean_to_matmul (graph: gs.Graph, onnx_graph: onnx.GraphPr
 
                 # 2. MatMul
                 const_dim = H
-                values  = np.ones(shape=(const_dim, 1), dtype=np.float32) / const_dim
+                values  = np.ones(shape=(const_dim, 1), dtype=dtype) / const_dim
                 const_inmatmul = gs.Constant(f"in_rm_matmul.{idx}", values=values)
                 var_outmatmul  = [gs.Variable(f"out_rm_matmul.{idx}",
-                                              dtype=np.float32, shape=shape_outmatmul)]
+                                              dtype=dtype, shape=shape_outmatmul)]
 
                 matmul = gs.Node(op="MatMul", name=f"rm_matmul.{idx}",
                                  inputs=[var_outshape[0], const_inmatmul],
@@ -214,14 +217,14 @@ def tidl_convert_reducemean_to_matmul (graph: gs.Graph, onnx_graph: onnx.GraphPr
 
                 # 1. MatMul
                 const_dim = W
-                values  = np.ones(shape=(const_dim, 1), dtype=np.float32) / const_dim
+                values  = np.ones(shape=(const_dim, 1), dtype=dtype) / const_dim
                 const_inmatmul = gs.Constant(f"in_rm_matmul.{idx}", values=values)
 
                 if keepdims == 1:
                     var_outmatmul = reduce_mean.outputs
                 else:
                     var_outmatmul  = [gs.Variable(f"out_rm_matmul.{idx}",
-                                                  dtype=np.float32, shape=shape_outmatmul)]
+                                                  dtype=dtype, shape=shape_outmatmul)]
 
                 matmul = gs.Node(op="MatMul", name=f"rm_matmul.{idx}",
                                  inputs=[input_tensor[0], const_inmatmul], outputs=var_outmatmul)
@@ -267,7 +270,7 @@ def tidl_convert_reducemean_to_matmul (graph: gs.Graph, onnx_graph: onnx.GraphPr
             newshape       = np.array(shape_outshape, dtype=np.int64)
             const_newshape = gs.Constant(f"rm_reshape_shape.{idx}.1", values=newshape)
             var_outshape   = [gs.Variable(f"rm_reshape_out.{idx}",
-                                          dtype=np.float32, shape=shape_outshape)]
+                                          dtype=dtype, shape=shape_outshape)]
 
             reshape1 = gs.Node(op="Reshape", name=f"rm_reshape.{idx}.1",
                                inputs=[input_tensor[0], const_newshape] , outputs=var_outshape)
@@ -281,7 +284,7 @@ def tidl_convert_reducemean_to_matmul (graph: gs.Graph, onnx_graph: onnx.GraphPr
 
                 # 2. MatMul
                 const_dim      = H*W
-                values         = np.ones(shape=(const_dim, 1), dtype=np.float32) / const_dim
+                values         = np.ones(shape=(const_dim, 1), dtype=dtype) / const_dim
                 const_inmatmul = gs.Constant(f"in_rm_matmul.{idx}", values=values)
 
                 var_outmatmul = reduce_mean.outputs                
@@ -292,10 +295,10 @@ def tidl_convert_reducemean_to_matmul (graph: gs.Graph, onnx_graph: onnx.GraphPr
             else:
                 # 2. MatMul
                 const_dim      = H*W
-                values         = np.ones(shape=(const_dim, 1), dtype=np.float32) / const_dim
+                values         = np.ones(shape=(const_dim, 1), dtype=dtype) / const_dim
                 const_inmatmul = gs.Constant(f"in_rm_matmul.{idx}", values=values)
                 var_outmatmul  = [gs.Variable(f"out_rm_matmul.{idx}",
-                                              dtype=np.float32, shape=shape_outmatmul)]
+                                              dtype=dtype, shape=shape_outmatmul)]
 
                 matmul = gs.Node(op="MatMul", name=f"rm_matmul.{idx}",
                                  inputs=[var_outshape[0], const_inmatmul], outputs=var_outmatmul)

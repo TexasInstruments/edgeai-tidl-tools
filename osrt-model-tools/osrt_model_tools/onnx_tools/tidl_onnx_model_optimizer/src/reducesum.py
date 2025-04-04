@@ -119,6 +119,9 @@ def tidl_convert_reducesum_to_matmul (graph: gs.Graph, onnx_graph: onnx.GraphPro
                 logging.info(f"Attribute axes for {reduce_sum.name} should be 0 or 1, skipping")
                 continue
 
+        dtype = reduce_sum.inputs[0].dtype if (isinstance(reduce_sum.inputs[0], gs.Variable) and hasattr(reduce_sum.inputs[0], 'dtype')) \
+                    else np.float32
+
         if numdims == 4:
             B, C, H, W = input_shape
         elif numdims == 3:
@@ -147,7 +150,7 @@ def tidl_convert_reducesum_to_matmul (graph: gs.Graph, onnx_graph: onnx.GraphPro
 
                 # 1. Transpose
                 var_outshape   = [gs.Variable(f"rs_transpose_out.{idx}",
-                                              dtype=np.float32, shape=shape_outshape)]
+                                              dtype=dtype, shape=shape_outshape)]
                 transpose1 = gs.Node(op="Transpose", name=f"rs_transpose.{idx}.1",
                                      attrs={"perm": permidx}, inputs=input_tensor,
                                      outputs=var_outshape)
@@ -156,10 +159,10 @@ def tidl_convert_reducesum_to_matmul (graph: gs.Graph, onnx_graph: onnx.GraphPro
 
                 # 2. MatMul
                 const_dim = H
-                values  = np.ones(shape=(const_dim, 1), dtype=np.float32)
+                values  = np.ones(shape=(const_dim, 1), dtype=dtype)
                 const_inmatmul = gs.Constant(f"in_rs_matmul.{idx}", values=values)
                 var_outmatmul  = [gs.Variable(f"out_rs_matmul.{idx}",
-                                              dtype=np.float32, shape=shape_outmatmul)]
+                                              dtype=dtype, shape=shape_outmatmul)]
 
                 matmul = gs.Node(op="MatMul", name=f"rs_matmul.{idx}",
                                  inputs=[var_outshape[0], const_inmatmul],
@@ -200,14 +203,14 @@ def tidl_convert_reducesum_to_matmul (graph: gs.Graph, onnx_graph: onnx.GraphPro
 
                 # 1. MatMul
                 const_dim = W
-                values  = np.ones(shape=(const_dim, 1), dtype=np.float32) 
+                values  = np.ones(shape=(const_dim, 1), dtype=dtype) 
                 const_inmatmul = gs.Constant(f"in_rs_matmul.{idx}", values=values)
 
                 if keepdims == 1:
                     var_outmatmul = reduce_sum.outputs
                 else:
                     var_outmatmul  = [gs.Variable(f"out_rs_matmul.{idx}",
-                                                  dtype=np.float32, shape=shape_outmatmul)]
+                                                  dtype=dtype, shape=shape_outmatmul)]
 
                 matmul = gs.Node(op="MatMul", name=f"rs_matmul.{idx}",
                                  inputs=[input_tensor[0], const_inmatmul], outputs=var_outmatmul)
@@ -253,7 +256,7 @@ def tidl_convert_reducesum_to_matmul (graph: gs.Graph, onnx_graph: onnx.GraphPro
             newshape       = np.array(shape_outshape, dtype=np.int64)
             const_newshape = gs.Constant(f"rs_reshape_shape.{idx}.1", values=newshape)
             var_outshape   = [gs.Variable(f"rs_reshape_out.{idx}",
-                                          dtype=np.float32, shape=shape_outshape)]
+                                          dtype=dtype, shape=shape_outshape)]
 
             reshape1 = gs.Node(op="Reshape", name=f"rs_reshape.{idx}.1",
                                inputs=[input_tensor[0], const_newshape] , outputs=var_outshape)
@@ -267,7 +270,7 @@ def tidl_convert_reducesum_to_matmul (graph: gs.Graph, onnx_graph: onnx.GraphPro
 
                 # 2. MatMul
                 const_dim      = H*W
-                values         = np.ones(shape=(const_dim, 1), dtype=np.float32)
+                values         = np.ones(shape=(const_dim, 1), dtype=dtype)
                 const_inmatmul = gs.Constant(f"in_rs_matmul.{idx}", values=values)
 
                 var_outmatmul = reduce_sum.outputs                
@@ -278,10 +281,10 @@ def tidl_convert_reducesum_to_matmul (graph: gs.Graph, onnx_graph: onnx.GraphPro
             else:
                 # 2. MatMul
                 const_dim      = H*W
-                values         = np.ones(shape=(const_dim, 1), dtype=np.float32)
+                values         = np.ones(shape=(const_dim, 1), dtype=dtype)
                 const_inmatmul = gs.Constant(f"in_rs_matmul.{idx}", values=values)
                 var_outmatmul  = [gs.Variable(f"out_rs_matmul.{idx}",
-                                              dtype=np.float32, shape=shape_outmatmul)]
+                                              dtype=dtype, shape=shape_outmatmul)]
 
                 matmul = gs.Node(op="MatMul", name=f"rs_matmul.{idx}",
                                  inputs=[var_outshape[0], const_inmatmul], outputs=var_outmatmul)
