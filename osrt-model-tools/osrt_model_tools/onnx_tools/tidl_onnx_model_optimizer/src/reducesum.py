@@ -146,9 +146,9 @@ def tidl_convert_reducesum_to_matmul (graph: gs.Graph, onnx_graph: onnx.GraphPro
                     permidx = [1, 0]
 
                 # 1. Transpose
-                var_outshape   = [gs.Variable(f"rm_transpose_out.{idx}",
+                var_outshape   = [gs.Variable(f"rs_transpose_out.{idx}",
                                               dtype=np.float32, shape=shape_outshape)]
-                transpose1 = gs.Node(op="Transpose", name=f"rm_transpose.{idx}.1",
+                transpose1 = gs.Node(op="Transpose", name=f"rs_transpose.{idx}.1",
                                      attrs={"perm": permidx}, inputs=input_tensor,
                                      outputs=var_outshape)
                 graph.nodes.append(transpose1)
@@ -157,11 +157,11 @@ def tidl_convert_reducesum_to_matmul (graph: gs.Graph, onnx_graph: onnx.GraphPro
                 # 2. MatMul
                 const_dim = H
                 values  = np.ones(shape=(const_dim, 1), dtype=np.float32)
-                const_inmatmul = gs.Constant(f"in_rm_matmul.{idx}", values=values)
-                var_outmatmul  = [gs.Variable(f"out_rm_matmul.{idx}",
+                const_inmatmul = gs.Constant(f"in_rs_matmul.{idx}", values=values)
+                var_outmatmul  = [gs.Variable(f"out_rs_matmul.{idx}",
                                               dtype=np.float32, shape=shape_outmatmul)]
 
-                matmul = gs.Node(op="MatMul", name=f"rm_matmul.{idx}",
+                matmul = gs.Node(op="MatMul", name=f"rs_matmul.{idx}",
                                  inputs=[var_outshape[0], const_inmatmul],
                                  outputs=var_outmatmul)
                 graph.nodes.append(matmul)
@@ -169,19 +169,19 @@ def tidl_convert_reducesum_to_matmul (graph: gs.Graph, onnx_graph: onnx.GraphPro
 
                 # 3. Transpose or Reshape
                 if keepdims == 1:
-                    transpose2 = gs.Node(op="Transpose", name=f"rm_transpose.{idx}.2",
+                    transpose2 = gs.Node(op="Transpose", name=f"rs_transpose.{idx}.2",
                                          attrs={"perm": permidx}, inputs=var_outmatmul,
                                          outputs=reduce_sum.outputs)
                     graph.nodes.append(transpose2)
                     logging.debug(f"Adding Node {transpose2.name}")
                 else:
                     if graph.opset < 13:
-                        squeeze = gs.Node(op="Squeeze", name=f"rm_squeeze.{idx}",
+                        squeeze = gs.Node(op="Squeeze", name=f"rs_squeeze.{idx}",
                                         attrs={"axes": [-1]}, inputs=var_outmatmul,
                                         outputs=reduce_sum.outputs)
                     else:
-                        axes = gs.Constant(f'rm_squeeze.{idx}_axes', values= np.array([-1], dtype=np.int64))
-                        squeeze = gs.Node(op="Squeeze", name=f"rm_squeeze.{idx}",
+                        axes = gs.Constant(f'rs_squeeze.{idx}_axes', values= np.array([-1], dtype=np.int64))
+                        squeeze = gs.Node(op="Squeeze", name=f"rs_squeeze.{idx}",
                                         inputs=var_outmatmul + [axes],
                                         outputs=reduce_sum.outputs)
                     graph.nodes.append(squeeze)
@@ -201,15 +201,15 @@ def tidl_convert_reducesum_to_matmul (graph: gs.Graph, onnx_graph: onnx.GraphPro
                 # 1. MatMul
                 const_dim = W
                 values  = np.ones(shape=(const_dim, 1), dtype=np.float32) 
-                const_inmatmul = gs.Constant(f"in_rm_matmul.{idx}", values=values)
+                const_inmatmul = gs.Constant(f"in_rs_matmul.{idx}", values=values)
 
                 if keepdims == 1:
                     var_outmatmul = reduce_sum.outputs
                 else:
-                    var_outmatmul  = [gs.Variable(f"out_rm_matmul.{idx}",
+                    var_outmatmul  = [gs.Variable(f"out_rs_matmul.{idx}",
                                                   dtype=np.float32, shape=shape_outmatmul)]
 
-                matmul = gs.Node(op="MatMul", name=f"rm_matmul.{idx}",
+                matmul = gs.Node(op="MatMul", name=f"rs_matmul.{idx}",
                                  inputs=[input_tensor[0], const_inmatmul], outputs=var_outmatmul)
                 graph.nodes.append(matmul)
                 logging.debug(f"Adding Node {matmul.name}")
@@ -217,12 +217,12 @@ def tidl_convert_reducesum_to_matmul (graph: gs.Graph, onnx_graph: onnx.GraphPro
                 # 2. Reshape
                 if keepdims == 0:
                     if graph.opset < 13:
-                        squeeze = gs.Node(op="Squeeze", name=f"rm_squeeze.{idx}",
+                        squeeze = gs.Node(op="Squeeze", name=f"rs_squeeze.{idx}",
                                         attrs={"axes": [-1]}, inputs=var_outmatmul,
                                         outputs=reduce_sum.outputs)
                     else:
-                        axes = gs.Constant(f'rm_squeeze.{idx}_axes', values= np.array([-1], dtype=np.int64))
-                        squeeze = gs.Node(op="Squeeze", name=f"rm_squeeze.{idx}",
+                        axes = gs.Constant(f'rs_squeeze.{idx}_axes', values= np.array([-1], dtype=np.int64))
+                        squeeze = gs.Node(op="Squeeze", name=f"rs_squeeze.{idx}",
                                         inputs=var_outmatmul + [axes],
                                         outputs=reduce_sum.outputs)
                     graph.nodes.append(squeeze)
@@ -251,11 +251,11 @@ def tidl_convert_reducesum_to_matmul (graph: gs.Graph, onnx_graph: onnx.GraphPro
 
             # 1. Reshape node
             newshape       = np.array(shape_outshape, dtype=np.int64)
-            const_newshape = gs.Constant(f"rm_reshape_shape.{idx}.1", values=newshape)
-            var_outshape   = [gs.Variable(f"rm_reshape_out.{idx}",
+            const_newshape = gs.Constant(f"rs_reshape_shape.{idx}.1", values=newshape)
+            var_outshape   = [gs.Variable(f"rs_reshape_out.{idx}",
                                           dtype=np.float32, shape=shape_outshape)]
 
-            reshape1 = gs.Node(op="Reshape", name=f"rm_reshape.{idx}.1",
+            reshape1 = gs.Node(op="Reshape", name=f"rs_reshape.{idx}.1",
                                inputs=[input_tensor[0], const_newshape] , outputs=var_outshape)
             graph.nodes.append(reshape1)
             logging.debug(f"Adding Node {reshape1.name}")
@@ -268,10 +268,10 @@ def tidl_convert_reducesum_to_matmul (graph: gs.Graph, onnx_graph: onnx.GraphPro
                 # 2. MatMul
                 const_dim      = H*W
                 values         = np.ones(shape=(const_dim, 1), dtype=np.float32)
-                const_inmatmul = gs.Constant(f"in_rm_matmul.{idx}", values=values)
+                const_inmatmul = gs.Constant(f"in_rs_matmul.{idx}", values=values)
 
                 var_outmatmul = reduce_sum.outputs                
-                matmul = gs.Node(op="MatMul", name=f"rm_matmul.{idx}",
+                matmul = gs.Node(op="MatMul", name=f"rs_matmul.{idx}",
                                  inputs=[var_outshape[0], const_inmatmul], outputs=var_outmatmul)
                 graph.nodes.append(matmul)
                 logging.debug(f"Adding Node {matmul.name}")
@@ -279,20 +279,20 @@ def tidl_convert_reducesum_to_matmul (graph: gs.Graph, onnx_graph: onnx.GraphPro
                 # 2. MatMul
                 const_dim      = H*W
                 values         = np.ones(shape=(const_dim, 1), dtype=np.float32)
-                const_inmatmul = gs.Constant(f"in_rm_matmul.{idx}", values=values)
-                var_outmatmul  = [gs.Variable(f"out_rm_matmul.{idx}",
+                const_inmatmul = gs.Constant(f"in_rs_matmul.{idx}", values=values)
+                var_outmatmul  = [gs.Variable(f"out_rs_matmul.{idx}",
                                               dtype=np.float32, shape=shape_outmatmul)]
 
-                matmul = gs.Node(op="MatMul", name=f"rm_matmul.{idx}",
+                matmul = gs.Node(op="MatMul", name=f"rs_matmul.{idx}",
                                  inputs=[var_outshape[0], const_inmatmul], outputs=var_outmatmul)
                 graph.nodes.append(matmul)
                 logging.debug(f"Adding Node {matmul.name}")
 
                 # 3. Reshape: Output shape (newshape) depends on numdims and keepdims
                 newshape = np.array(shape_output, dtype=np.int64)
-                const_newshape = gs.Constant(f"rm_reshape_shape.{idx}.2", values=newshape)
+                const_newshape = gs.Constant(f"rs_reshape_shape.{idx}.2", values=newshape)
 
-                reshape2 = gs.Node(op="Reshape", name=f"rm_reshape.{idx}.2",
+                reshape2 = gs.Node(op="Reshape", name=f"rs_reshape.{idx}.2",
                                    inputs=[var_outmatmul[0], const_newshape],
                                    outputs=reduce_sum.outputs)
                 graph.nodes.append(reshape2)
