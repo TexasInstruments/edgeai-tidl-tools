@@ -122,7 +122,7 @@ namespace tidl
                 }
 
                 const std::string &artSrc = n["artifacts_folder"].as<std::string>();
-                infConfig.artifactsPath = modelBasePath + artSrc;
+                infConfig.artifactsPath = modelBasePath + "/" + artSrc;
 
                 if (n["device_type"])
                 {
