@@ -97,6 +97,7 @@ from .src.spacetodepth import tidl_convert_space2depth_to_reshp_tr_reshp
 from .src.common import tidl_remove_duplicates
 from .src.gelu import tidl_convert_tanhgelu_to_erfgelu
 from .src.where import tidl_remove_where_layer
+from .src.reshp_tr_reshp import tidl_optimize_reshp_tr_reshp
 
 
 ### function dict to execute
@@ -146,6 +147,7 @@ opt_ops = {
         'support_broadcast_ops_constant_input'      : tidl_support_broadcast_ops_constant_input,
         "remove_where_layer"                        : tidl_remove_where_layer,
         "convert_tr_conv_stride_n_tr_to_matmul"     : tidl_convert_tr_conv_stride_n_tr_to_matmul,
+        "optimize_reshp_tr_reshp"                   : tidl_optimize_reshp_tr_reshp,
 }
 
 qdq_supported_ops = ['add_bias_qdq', 'remove_quantize_initializer', 'remove_duplicate_quantize_dequantize']
@@ -191,12 +193,13 @@ adj_list = {
         'remove_duplicates'                         : [],
         'remove_unity_resize'                       : ['convert_resize_params_size_to_scale'],
         'insert_1x1_conv_before_depthtospace'       : [],
-        'convert_depth2space_to_reshp_tr_reshp'     : [],
-        'convert_space2depth_to_reshp_tr_reshp'     : [],
+        'convert_depth2space_to_reshp_tr_reshp'     : ['optimize_reshp_tr_reshp'],
+        'convert_space2depth_to_reshp_tr_reshp'     : ['optimize_reshp_tr_reshp'],
         'convert_tanhgelu_to_erfgelu'               : [],
         'support_broadcast_ops_constant_input'      : [],
         'remove_where_layer'                        : [],
         'convert_tr_conv_stride_n_tr_to_matmul'     : [],
+        'optimize_reshp_tr_reshp'                   : [], 
 }
 
 def get_optimizers():
@@ -249,6 +252,7 @@ def get_optimizers():
         'support_broadcast_ops_constant_input'      : False, 
         'remove_where_layer'                        : True,
         'convert_tr_conv_stride_n_tr_to_matmul'     : True,
+        'optimize_reshp_tr_reshp'                   : True,
         'hf_detr_attention_block_optimization'      : False,
         
 
@@ -264,7 +268,7 @@ def test_optimizers():
     """
     return {
         # operation specific to be specified here
-        'convert_tr_conv_stride_n_tr_to_matmul' : True,
+        'optimize_reshp_tr_reshp' : True,
 
         # utilities specific
         'shape_inference_mode'      : 'all',

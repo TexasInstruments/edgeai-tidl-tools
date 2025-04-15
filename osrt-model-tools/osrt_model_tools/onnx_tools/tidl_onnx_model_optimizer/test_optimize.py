@@ -19,8 +19,13 @@ session1 = onnxruntime.InferenceSession(model_name, sess_options, providers=['CP
 session2 = onnxruntime.InferenceSession(optimized_model_path, sess_options, providers=['CPUExecutionProvider'])
 
 input_dict = {}
+dtype_mapping = {'tensor(float)' : np.float32, 
+                 'tensor(int64)' : np.int64,
+                 'tensor(uint8)' : np.uint8,
+                 'tensor(int32)' : np.int32}
+
 for inp in session1.get_inputs():
-    input_dict[inp.name] = np.ones(inp.shape, dtype=np.float32)
+    input_dict[inp.name] = np.ones(inp.shape, dtype=dtype_mapping[inp.type])
 output1 = session1.run([], input_dict)
 output2 = session2.run([], input_dict)
 
