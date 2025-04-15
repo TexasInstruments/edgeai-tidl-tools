@@ -28,13 +28,15 @@
 
 import os
 import platform
-
 from config_utils import create_model_config
 
-models_base_path = "../../../models/public/"
-if platform.machine() == "aarch64":
+
+models_base_path = '../../../models/public/'
+if platform.machine() == 'aarch64':
     numImages = 100
-else:
+else : 
+    import requests
+    import onnx
     numImages = 3
 
 models_configs = {
@@ -874,9 +876,9 @@ models_configs = {
         postprocess=dict(),
         extra_info=dict(num_images=numImages, num_classes=1000),
         runtime_options={
-            "advanced_options:inference_mode": 1,  # inference mode to run high throughput (parallel batch processing) inference
-            "advanced_options:num_cores": 4,
-        },
+            'advanced_options:inference_mode' : 1,  # inference mode to run high throughput (parallel batch processing) inference
+            'advanced_options:num_cores' : 4,
+        }
     ),
     "cl-tfl-mobilenetv2_4batch": create_model_config(
         task_type="classification",
@@ -900,9 +902,9 @@ models_configs = {
         postprocess=dict(),
         extra_info=dict(num_images=numImages, num_classes=1001),
         runtime_options={
-            "advanced_options:inference_mode": 1,  # inference mode to run high throughput (parallel batch processing) inference
-            "advanced_options:num_cores": 4,
-        },
+            'advanced_options:inference_mode' : 1,  # inference mode to run high throughput (parallel batch processing) inference
+            'advanced_options:num_cores' : 4,
+        }
     ),
     "cl-dlr-tflite_inceptionnetv3": create_model_config(
         task_type="classification",
@@ -920,8 +922,8 @@ models_configs = {
         session=dict(
             session_name="tvmdlr",
             model_path=os.path.join(models_base_path, "inception_v3.tflite"),
-            input_mean=[0, 0, 0],
-            input_scale=[1, 1, 1],
+            input_mean= [0,0,0],
+            input_scale= [1,1,1],
             input_optimization=True,
         ),
         postprocess=dict(),
@@ -943,8 +945,8 @@ models_configs = {
         session=dict(
             session_name="tvmdlr",
             model_path=os.path.join(models_base_path, "mobilenetv2-1.0.onnx"),
-            input_mean=[0, 0, 0],
-            input_scale=[1, 1, 1],
+            input_mean= [0,0,0],
+            input_scale= [1,1,1],
             input_optimization=True,
         ),
         postprocess=dict(),
@@ -970,36 +972,37 @@ models_configs = {
         task_type="classification",
         extra_info=dict(num_images=numImages, num_classes=1000),
     ),
-    "ss-tfl-deeplabv3_mnv2_ade20k_float_low_latency": create_model_config(
-        task_type="segmentation",
+    'ss-tfl-deeplabv3_mnv2_ade20k_float_low_latency': create_model_config(
+        task_type='segmentation',
         source=dict(
-            model_url="http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models/vision/segmentation/ade20k32/mlperf/deeplabv3_mnv2_ade20k32_float.tflite",
+            model_url='http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models/vision/segmentation/ade20k32/mlperf/deeplabv3_mnv2_ade20k32_float.tflite',  
         ),
         preprocess=dict(
             resize=512,
             crop=512,
-            data_layout="NCHW",
+            data_layout='NCHW',
             pad_color=0,
             resize_with_pad=False,
             reverse_channels=False,
         ),
         session=dict(
-            session_name="tflitert",
-            model_path=os.path.join(
-                models_base_path, "deeplabv3_mnv2_ade20k_float.tflite"
-            ),
+            session_name='tflitert' ,
+            model_path=os.path.join(models_base_path, 'deeplabv3_mnv2_ade20k_float.tflite'),
             input_mean=[127.5, 127.5, 127.5],
-            input_scale=[1 / 127.5, 1 / 127.5, 1 / 127.5],
+            input_scale= [1/127.5, 1/127.5, 1/127.5],
             input_optimization=True,
         ),
         postprocess=dict(),
-        extra_info=dict(num_images=numImages, num_classes=32),
-        runtime_options={
-            "advanced_options:inference_mode": 2,  # inference mode to run low latency inference
-            "advanced_options:num_cores": 4,
-        },
+        extra_info=dict(
+            num_images = numImages ,
+            num_classes = 32
+        ),
+        runtime_options= {
+            'advanced_options:inference_mode' : 2,  # inference mode to run low latency inference
+            'advanced_options:num_cores' : 4, 
+        }
     ),
-    "cl-ort-resnet18-v1_low_latency": create_model_config(
+    'cl-ort-resnet18-v1_low_latency' : create_model_config(
         task_type="classification",
         source=dict(
             model_url="https://git.ti.com/cgit/jacinto-ai/jacinto-ai-modelzoo/plain/models/vision/classification/imagenet1k/torchvision/resnet18_opset9.onnx",
@@ -1020,13 +1023,16 @@ models_configs = {
             input_optimization=True,
         ),
         postprocess=dict(),
-        extra_info=dict(num_images=numImages, num_classes=1000),
-        runtime_options={
-            "advanced_options:inference_mode": 2,  # inference mode to run low latency inference
-            "advanced_options:num_cores": 4,
-            "advanced_options:calibration_frames": 1,
-            "advanced_options:calibration_iterations": 1,
-        },
+        extra_info=dict(
+            num_images = numImages ,
+            num_classes = 1000
+        ),
+        runtime_options = {
+            'advanced_options:inference_mode' : 2,  # inference mode to run low latency inference
+            'advanced_options:num_cores' : 4,
+            'advanced_options:calibration_frames' : 1, 
+            'advanced_options:calibration_iterations' : 1
+        }
     ),
 }
 
@@ -1420,3 +1426,4 @@ models_configs = {
         'meta_arch_type' : 5
     },
 """
+
