@@ -38,7 +38,7 @@ shift # past argument
 done
 set -- "${POSITIONAL[@]}" # restore positional parameters
 echo $run_model
-echo $ncpus
+echo --ncpus=$ncpus
 
 if [ -z "$SOC" ];then
     echo "SOC not defined. Run either of below commands"
@@ -67,18 +67,14 @@ if [[ $SOC == am68pa ]]; then
         echo "run python3 onnxrt_ep.py"
         python3 onnxrt_ep.py --ncpus=$ncpus
     fi    
-    # cd $CURDIR/examples/osrt_python/tvm_dlr
+    # cd $CURDIR/examples/osrt_python/tvm
     # if [[ $arch == x86_64 ]]; then
-    # python3  tvm_compilation_onnx_example.py --pc-inference
-    # python3  tvm_compilation_tflite_example.py --pc-inference
-    # python3  tvm_compilation_onnx_example.py
-    # python3  tvm_compilation_tflite_example.py
-    # python3  tvm_compilation_timm_example.py
+    # python3 tvm_example.py -c --ncpus=$ncpus
     # fi
     # if [ $run_model != 0 ];then
-    #     echo "run python3  dlr_inference_example.py "
-    #     python3  dlr_inference_example.py 
-    # fi    
+    #     echo "run python3 tvm_example.py"
+    #     python3 tvm_example.py --ncpus=$ncpus
+    # fi  
     cd $CURDIR
 elif [[ $SOC == am68a ]]; then
     cd $CURDIR/examples/osrt_python/tfl
@@ -97,17 +93,13 @@ elif [[ $SOC == am68a ]]; then
         echo "run python3 onnxrt_ep.py"
         python3 onnxrt_ep.py --ncpus=$ncpus
     fi        
-    # cd $CURDIR/examples/osrt_python/tvm_dlr
+    # cd $CURDIR/examples/osrt_python/tvm
     # if [[ $arch == x86_64 ]]; then
-    # python3  tvm_compilation_onnx_example.py --pc-inference
-    # python3  tvm_compilation_tflite_example.py --pc-inference
-    # python3  tvm_compilation_onnx_example.py
-    # python3  tvm_compilation_tflite_example.py
-    # python3  tvm_compilation_timm_example.py
+    # python3 tvm_example.py -c --ncpus=$ncpus
     # fi
     # if [ $run_model != 0 ];then
-    #     echo "run python3  dlr_inference_example.py "
-    #     python3  dlr_inference_example.py 
+    #     echo "run python3 tvm_example.py"
+    #     python3 tvm_example.py --ncpus=$ncpus
     # fi    
     cd $CURDIR
 elif [[ $SOC == am69a ]]; then
@@ -127,17 +119,13 @@ elif [[ $SOC == am69a ]]; then
         echo "run python3 onnxrt_ep.py"
         python3 onnxrt_ep.py --ncpus=$ncpus
     fi 
-    # cd $CURDIR/examples/osrt_python/tvm_dlr
+    # cd $CURDIR/examples/osrt_python/tvm
     # if [[ $arch == x86_64 ]]; then
-    # python3  tvm_compilation_onnx_example.py --pc-inference
-    # python3  tvm_compilation_tflite_example.py --pc-inference
-    # python3  tvm_compilation_onnx_example.py
-    # python3  tvm_compilation_tflite_example.py
-    # python3  tvm_compilation_timm_example.py
+    # python3 tvm_example.py -c --ncpus=$ncpus
     # fi
     # if [ $run_model != 0 ];then
-    #     echo "run python3  dlr_inference_example.py "
-    #     python3  dlr_inference_example.py 
+    #     echo "run python3 tvm_example.py"
+    #     python3 tvm_example.py --ncpus=$ncpus
     # fi 
     cd $CURDIR    
 elif [[ $SOC == am62 ]]; then
@@ -150,7 +138,7 @@ elif [[ $SOC == am62 ]]; then
     if [ $run_model != 0 ];then
         echo "run python3 onnxrt_ep.py"
         python3 onnxrt_ep.py --ncpus=$ncpus
-    fi 
+    fi
     cd $CURDIR
 elif [[ $SOC == am62a ]]; then
     cd $CURDIR/examples/osrt_python/tfl
@@ -168,18 +156,14 @@ elif [[ $SOC == am62a ]]; then
     if [ $run_model != 0 ];then
         echo "run python3 onnxrt_ep.py"
         python3 onnxrt_ep.py --ncpus=$ncpus
-    fi 
-    # cd $CURDIR/examples/osrt_python/tvm_dlr
+    fi
+    # cd $CURDIR/examples/osrt_python/tvm
     # if [[ $arch == x86_64 ]]; then
-    # python3  tvm_compilation_onnx_example.py --pc-inference
-    # python3  tvm_compilation_tflite_example.py --pc-inference
-    # python3  tvm_compilation_onnx_example.py
-    # python3  tvm_compilation_tflite_example.py
-    # python3  tvm_compilation_timm_example.py
+    # python3 tvm_example.py -c --ncpus=$ncpus
     # fi
     # if [ $run_model != 0 ];then
-    #     echo "run python3  dlr_inference_example.py "
-    #     python3  dlr_inference_example.py 
+    #     echo "run python3 tvm_example.py"
+    #     python3 tvm_example.py --ncpus=$ncpus
     # fi
     cd $CURDIR    
 elif [[ $SOC == am67a ]]; then
@@ -199,18 +183,6 @@ elif [[ $SOC == am67a ]]; then
         echo "run python3 onnxrt_ep.py"
         python3 onnxrt_ep.py --ncpus=$ncpus
     fi
-    # cd $CURDIR/examples/osrt_python/tvm_dlr
-    # if [[ $arch == x86_64 ]]; then
-    # python3  tvm_compilation_onnx_example.py --pc-inference
-    # python3  tvm_compilation_tflite_example.py --pc-inference
-    # python3  tvm_compilation_onnx_example.py
-    # python3  tvm_compilation_tflite_example.py
-    # python3  tvm_compilation_timm_example.py
-    # fi
-    # if [ $run_model != 0 ];then
-    #     echo "run python3  dlr_inference_example.py "
-    #     python3  dlr_inference_example.py 
-    # fi
     cd $CURDIR 
 fi
 

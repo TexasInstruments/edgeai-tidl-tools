@@ -1,6 +1,6 @@
 # Supported Operators & Runtimes
 
-TIDL-RT supports acceleration of the operators listed below and any unsupported operator will execute on cortex-A Core as part of the corresponding  open source run time (ONNX-RT, TFLite-RT and NEO AI DLR)
+TIDL-RT supports acceleration of the operators listed below and any unsupported operator will execute on cortex-A Core as part of the corresponding  open source run time (ONNX-RT, TFLite-RT and Apache TVM)
 
 
 <center>

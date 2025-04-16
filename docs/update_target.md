@@ -10,7 +10,7 @@ This section describes **how to use an updated tidl tools version with a previou
   - **UPDATE_OSRT_COMPONENTS** and **UPDATE_FIRMWARE_AND_LIB** env variables can be set before running the script to control what to update.
 
  - UPDATE_OSRT_COMPONENTS replaces the following components on the target device filesystem:
-    - onnxruntime, tflite_runtime and dlr python wheels
+    - onnxruntime, tflite_runtime and tvm python wheels
     - /usr/include/itidl_rt.h, /usr/include/itvm_rt.h, /usr/include/tensorflow, /usr/include/onnxruntime
     - /usr/lib/tflite_2.21, /usr/lib/libonnxruntime.so, /usr/lib/libtensorflow-lite.a
 

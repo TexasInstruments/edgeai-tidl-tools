@@ -159,67 +159,27 @@ def get_benchmark_output(interpreter):
 
     return copy_time, proc_time, totaltime, ddr_bw
 
-
-def infer_image(sess, image_files, config):
+def infer_image(sess, input_dict):
     '''
     Invoke the runtime session
 
     :param sess: Runtime session
-    :param image_files: List of input image filename
-    :param config: Configuration dictionary
-    :return: Input Images
+    :param input_dict: Dictionary with input name and data
     :return: Output tensors
     :return: Total Processing time
     :return: Subgraphs Processing time
-    :return: Height of input tensor
-    :return: Width of input tensor
     '''
-
-    # Get input details from the session
-    input_details = sess.get_inputs()
-    input_name = input_details[0].name
-    floating_model = input_details[0].type == "tensor(float)"
-    height = input_details[0].shape[2]
-    width = input_details[0].shape[3]
-    channel = input_details[0].shape[1]
-    batch = input_details[0].shape[0]
-    imgs = []
-    shape = [batch, channel, height, width]
-
-    # Prepare the input data
-    input_data = np.zeros(shape)
-    for i in range(batch):
-        imgs.append(
-            Image.open(image_files[i])
-            .convert("RGB")
-            .resize((width, height), PIL.Image.LANCZOS)
-        )
-        temp_input_data = np.expand_dims(imgs[i], axis=0)
-        temp_input_data = np.transpose(temp_input_data, (0, 3, 1, 2))
-        input_data[i] = temp_input_data[0]
-    if floating_model:
-        input_data = np.float32(input_data)
-        for mean, scale, ch in zip(
-            config["session"]["input_mean"],
-            config["session"]["input_scale"],
-            range(input_data.shape[1]),
-        ):
-            input_data[:, ch, :, :] = (input_data[:, ch, :, :] - mean) * scale
-    else:
-        input_data = np.uint8(input_data)
-        config["session"]["input_mean"] = [0, 0, 0]
-        config["session"]["input_scale"] = [1, 1, 1]
 
     # Invoke the session
     start_time = time.time()
-    output = list(sess.run(None, {input_name: input_data}))
+    output = list(sess.run(None, input_dict))
     stop_time = time.time()
     infer_time = stop_time - start_time
 
     copy_time, sub_graphs_proc_time, totaltime, ddr_bw = get_benchmark_output(sess)
     proc_time = totaltime - copy_time
 
-    return imgs, output, proc_time, sub_graphs_proc_time, ddr_bw, height, width
+    return output, proc_time, sub_graphs_proc_time, ddr_bw
 
 
 def run_model(model, mIdx):
@@ -229,257 +189,251 @@ def run_model(model, mIdx):
     :param model: Name of the model
     :param mIdx: Run number
     '''
-    print("\nRunning_Model : ", model, " \n")
-    if platform.machine() != "aarch64":
-        mutex_lock.acquire()
-        download_model(models_configs, model)
-        mutex_lock.release()
+    try:
+        print("\nRunning_Model : ", model, " \n")
+        if platform.machine() != "aarch64":
+            mutex_lock.acquire()
+            download_model(models_configs, model)
+            mutex_lock.release()
 
-    config = models_configs[model]
+        config = models_configs[model]
 
-    # Run graph optimization
-    if args.graph_optimize:
-        if model_optimizer_found:
-            if (args.compile or args.disable_offload) and (
-                platform.machine() != "aarch64"
-            ):
-                copy_path = config["model_path"][:-5] + "_org.onnx"
-                # Check if copy path exists and prompt for permission to overwrite
-                if os.path.isfile(copy_path):
-                    overwrite_permission = input(
-                        f"\033[96mThe file {copy_path} exists, do you want to overwrite? [Y/n] \033[00m"
-                    )
-                    if overwrite_permission != "Y":
-                        print("Aborting run...")
-                        sys.exit(-1)
-                    else:
-                        print(
-                            f"\033[93m[WARNING] File {copy_path} will be overwritten\033[00m"
+        # Run graph optimization
+        if args.graph_optimize:
+            if model_optimizer_found:
+                if (args.compile or args.disable_offload) and (
+                    platform.machine() != "aarch64"
+                ):
+                    copy_path = config["model_path"][:-5] + "_org.onnx"
+                    # Check if copy path exists and prompt for permission to overwrite
+                    if os.path.isfile(copy_path):
+                        overwrite_permission = input(
+                            f"\033[96mThe file {copy_path} exists, do you want to overwrite? [Y/n] \033[00m"
                         )
+                        if overwrite_permission != "Y":
+                            print("Aborting run...")
+                            sys.exit(-1)
+                        else:
+                            print(
+                                f"\033[93m[WARNING] File {copy_path} will be overwritten\033[00m"
+                            )
 
-                shutil.copy2(config["model_path"], copy_path)
-                print(
-                    f"\033[93mOptimization Enabled: Moving {config['model_path']} to {copy_path} before overwriting by optimization\033[00m"
-                )
-                optimize(
-                    model=config["model_path"], out_model=config["model_path"]
+                    shutil.copy2(config["model_path"], copy_path)
+                    print(
+                        f"\033[93mOptimization Enabled: Moving {config['model_path']} to {copy_path} before overwriting by optimization\033[00m"
+                    )
+                    optimize(
+                        model=config["model_path"], out_model=config["model_path"]
+                    )
+                else:
+                    print(
+                        "Model optimization is only supported in compilation or disabled offload mode on x86 machines"
+                    )
+            else:
+                print("Model optimizer not found, -o flag has no effect")
+
+        # Set input images
+        config = models_configs[model]
+        if config["task_type"] == "classification":
+            test_images = class_test_images
+        elif config["task_type"] == "detection":
+            test_images = od_test_images
+        elif config["task_type"] == "segmentation":
+            test_images = seg_test_images
+        
+        # Set delegate options 
+        delegate_options = {}
+        delegate_options.update(required_options)
+        delegate_options.update(optional_options)
+        delegate_options.update(config.get("runtime_options", {}))
+
+        delegate_options["artifacts_folder"] = (
+            delegate_options["artifacts_folder"] + "/" + model + "/artifacts"
+        )
+
+        # Disabling onnxruntime optimizations for vision transformers
+        if model == "cl-ort-deit-tiny":
+            so.graph_optimization_level = rt.GraphOptimizationLevel.ORT_DISABLE_ALL
+
+        if config["task_type"] == "detection":
+            delegate_options["object_detection:meta_layers_names_list"] = config["session"].get("meta_layers_names_list", "")
+            delegate_options["object_detection:meta_arch_type"] = config["session"].get("meta_arch_type", -1)
+
+        # Create/Cleanup artifacts_folder
+        if args.compile or args.disable_offload:
+            os.makedirs(delegate_options["artifacts_folder"], exist_ok=True)
+            for root, dirs, files in os.walk(
+                delegate_options["artifacts_folder"], topdown=False
+            ):
+                [os.remove(os.path.join(root, f)) for f in files]
+                [os.rmdir(os.path.join(root, d)) for d in dirs]
+
+        input_details = get_tensor_details('onnx', 'input', config["session"]["model_path"])
+        output_details = get_tensor_details('onnx', 'output', config["session"]["model_path"])
+
+        # Adding input_details and output_details to configuration
+        config["session"]["input_details"] = input_details
+        config["session"]["output_details"] = output_details
+
+        num_frames = config["extra_info"]["num_images"]
+
+        # Set the formatter for post-processing
+        if "postprocess" in config and "formatter" in config["postprocess"]:
+            formatter = config["postprocess"]["formatter"]
+            if isinstance(formatter, str):
+                formatter_name = formatter
+                formatter = getattr(formatter_transform, formatter_name)()
+            elif isinstance(formatter, dict) and "type" in formatter:
+                formatter_name = formatter.pop("type")
+                formatter = getattr(formatter_transform, formatter_name)(**formatter)
+            config["postprocess"]["formatter"] = formatter
+
+        if args.compile == True:  ## Model compilation
+            input_image = calib_images
+            import onnx
+            mutex_lock.acquire()
+            #### Shape inference - required for ONNX models #######
+            log = f'\nRunning shape inference on model {config["session"]["model_path"]} \n'
+            print(log)
+            onnx.shape_inference.infer_shapes_path(
+                config["session"]["model_path"], config["session"]["model_path"]
+            )
+            mutex_lock.release()
+            
+            # Create input list for TIDL calibration
+            if num_frames > delegate_options["advanced_options:calibration_frames"]:
+                num_frames = delegate_options["advanced_options:calibration_frames"]
+            calib_data_list = []
+            for i in range(num_frames):
+                input_images = append_inputs_for_batch(i, input_image, input_details)        
+                input_dict, _  = preprocess_input(input_images, config, input_details, "onnx")
+                calib_data_list.append(input_dict)
+            
+            ####### Using TIDL Compilation Provider if compiling the model
+            EP_list = ["TIDLCompilationProvider", "CPUExecutionProvider"]
+            sess = rt.InferenceSession(
+                config["session"]["model_path"],
+                providers=EP_list,
+                provider_options=[delegate_options, {}],
+                sess_options=so,
+            )
+            
+            # Invoke the session to do compilation
+            for i in range(num_frames):
+                output, proc_time, sub_graph_time, _ = infer_image(sess, calib_data_list[i])
+        
+        else:   ## Model inference
+            input_image = test_images
+            if args.disable_offload:
+                # Using default EP if offload is disabled
+                EP_list = ["CPUExecutionProvider"]
+                sess = rt.InferenceSession(
+                    config["session"]["model_path"], providers=EP_list, sess_options=so
                 )
             else:
-                print(
-                    "Model optimization is only supported in compilation or disabled offload mode on x86 machines"
+                # Using TIDL Execution Provider if running the inference
+                EP_list = ["TIDLExecutionProvider", "CPUExecutionProvider"]
+                sess = rt.InferenceSession(
+                    config["session"]["model_path"],
+                    providers=EP_list,
+                    provider_options=[delegate_options, {}],
+                    sess_options=so,
                 )
-        else:
-            print("Model optimizer not found, -o flag has no effect")
+            
+            total_proc_time = 0
+            sub_graphs_time = 0
+            ddr_bw_total = 0
+            for i in range(num_frames):
+                input_images = append_inputs_for_batch(i, input_image, input_details)        
+                input_dict, imgs = preprocess_input(input_images, config, input_details, "onnx")
+                # Invoke session for inference
+                output, proc_time, sub_graph_time, ddr_bw = infer_image(sess, input_dict)
 
-    # Set input images
-    config = models_configs[model]
-    if config["task_type"] == "classification":
-        test_images = class_test_images
-    elif config["task_type"] == "detection":
-        test_images = od_test_images
-    elif config["task_type"] == "segmentation":
-        test_images = seg_test_images
-    
-    # Set delegate options 
-    delegate_options = {}
-    delegate_options.update(required_options)
-    delegate_options.update(optional_options)
-    delegate_options.update(config.get("runtime_options", {}))
+                total_proc_time = total_proc_time + proc_time
+                sub_graphs_time = sub_graphs_time + sub_graph_time
+                ddr_bw_total = ddr_bw_total + ddr_bw
 
-    delegate_options["artifacts_folder"] = (
-        delegate_options["artifacts_folder"] + "/" + model + "/artifacts"
-    )
+            total_proc_time = total_proc_time / 1000000  # Conveting to miliseconds
+            sub_graphs_time = sub_graphs_time / 1000000  # Conveting to miliseconds
+            ddr_bw_total = ddr_bw_total / 1000000        # Conveting to MB/s
 
-    # Disabling onnxruntime optimizations for vision transformers
-    if model == "cl-ort-deit-tiny":
-        so.graph_optimization_level = rt.GraphOptimizationLevel.ORT_DISABLE_ALL
+            # Averaging out for number of frames
+            total_proc_time = total_proc_time / num_frames
+            sub_graphs_time = sub_graphs_time / num_frames
+            ddr_bw_total = int(ddr_bw_total / num_frames)
 
-    if config["task_type"] == "detection":
-        delegate_options["object_detection:meta_layers_names_list"] = config["session"].get("meta_layers_names_list", "")
-        delegate_options["object_detection:meta_arch_type"] = config["session"].get("meta_arch_type", -1)
-
-    # Create/Cleanup artifacts_folder
-    if args.compile or args.disable_offload:
-        os.makedirs(delegate_options["artifacts_folder"], exist_ok=True)
-        for root, dirs, files in os.walk(
-            delegate_options["artifacts_folder"], topdown=False
-        ):
-            [os.remove(os.path.join(root, f)) for f in files]
-            [os.rmdir(os.path.join(root, d)) for d in dirs]
-
-    if args.compile == True:
-        input_image = calib_images
-        import onnx
-
-        log = f'\nRunning shape inference on model {config["session"]["model_path"]} \n'
-        print(log)
-
-        # Run shape inference on the model
-        onnx.shape_inference.infer_shapes_path(
-            config["session"]["model_path"], config["session"]["model_path"]
-        )
-    else:
-        input_image = test_images
-
-    numFrames = config["extra_info"]["num_images"]
-    if args.compile:
-        if numFrames > delegate_options["advanced_options:calibration_frames"]:
-            numFrames = delegate_options["advanced_options:calibration_frames"]
-
-    # Create the Inference Session
-    if args.disable_offload:
-        # Using default EP if offload is disabled
-        EP_list = ["CPUExecutionProvider"]
-        sess = rt.InferenceSession(
-            config["session"]["model_path"], providers=EP_list, sess_options=so
-        )
-    elif args.compile:
-        # Using TIDL Compilation Provider if compiling the model
-        EP_list = ["TIDLCompilationProvider", "CPUExecutionProvider"]
-        sess = rt.InferenceSession(
-            config["session"]["model_path"],
-            providers=EP_list,
-            provider_options=[delegate_options, {}],
-            sess_options=so,
-        )
-    else:
-        # Using TIDL Execution Provider if running the inference
-        EP_list = ["TIDLExecutionProvider", "CPUExecutionProvider"]
-        sess = rt.InferenceSession(
-            config["session"]["model_path"],
-            providers=EP_list,
-            provider_options=[delegate_options, {}],
-            sess_options=so,
-        )
-
-    # Adding input_details and output_details to configuration
-    input_details = sess.get_inputs()
-    input_name = input_details[0].name
-    type = input_details[0].type
-    height = input_details[0].shape[2]
-    width = input_details[0].shape[3]
-    channel = input_details[0].shape[1]
-    batch = input_details[0].shape[0]
-    shape = [batch, channel, height, width]
-    input_details = {"name": input_name, "shape": shape, "type": type}
-
-    output_details = sess.get_outputs()
-    output_name = output_details[0].name
-    type = output_details[0].type
-    num_class = output_details[0].shape[1]
-    batch = output_details[0].shape[0]
-    shape = [batch, num_class]
-    output_details = {"name": input_name, "shape": shape, "type": type}
-
-    config["session"]["input_details"] = [input_details]
-    config["session"]["output_details"] = [output_details]
-
-    # Set the formatter for post-processing
-    if "postprocess" in config and "formatter" in config["postprocess"]:
-        formatter = config["postprocess"]["formatter"]
-        if isinstance(formatter, str):
-            formatter_name = formatter
-            formatter = getattr(formatter_transform, formatter_name)()
-        elif isinstance(formatter, dict) and "type" in formatter:
-            formatter_name = formatter.pop("type")
-            formatter = getattr(formatter_transform, formatter_name)(**formatter)
-        config["postprocess"]["formatter"] = formatter
-
-    total_proc_time = 0
-    sub_graphs_time = 0
-    ddr_bw_total = 0
-    for i in range(numFrames):
-        start_index = i % len(input_image)
-        input_details = sess.get_inputs()
-        batch = input_details[0].shape[0]
-
-        input_images = []
-        # For batch processing different images are needed for a single input
-        for j in range(batch):
-            input_images.append(input_image[(start_index + j) % len(input_image)])
-
-        # Invoke the session
-        imgs, output, proc_time, sub_graph_time, ddr_bw, height, width = infer_image(sess, input_images, config)
-
-        total_proc_time = total_proc_time + proc_time
-        sub_graphs_time = sub_graphs_time + sub_graph_time
-        ddr_bw_total = ddr_bw_total + ddr_bw
-
-    total_proc_time = total_proc_time / 1000000  # Conveting to miliseconds
-    sub_graphs_time = sub_graphs_time / 1000000  # Conveting to miliseconds
-    ddr_bw_total = ddr_bw_total / 1000000        # Conveting to MB/s
-
-    # Averaging out for number of frames
-    total_proc_time = total_proc_time / numFrames
-    sub_graphs_time = sub_graphs_time / numFrames
-    ddr_bw_total = int(ddr_bw_total / numFrames)
-
-    # Post-Processing for inference
-    output_image_file_name = "py_out_" + model + "_" + os.path.basename(input_image[i % len(input_image)])
-    output_bin_file_name = output_image_file_name.replace(".jpg", "") + ".bin"
-    if args.compile == False:
-        images = []
-        output_tensors = []
-        if config["task_type"] == "classification":
-            for j in range(batch):
-                classes, image = get_class_labels(output[0][j], imgs[j])
-                print("\n", classes)
-                images.append(image)
-                output_tensors.append(
-                    np.array(output[0][j], dtype=np.float32).flatten()
-                )
-        elif config["task_type"] == "detection":
-            for j in range(batch):
-                classes, image = det_box_overlay(
-                    output,
-                    imgs[j],
-                    config["extra_info"]["od_type"],
-                    config["extra_info"]["framework"],
-                )
-                images.append(image)
-                output_np = np.array([], dtype=np.float32)
-                for tensor in output:
-                    output_np = np.concatenate(
-                        (output_np, np.array(tensor, dtype=np.float32).flatten())
-                    )
-                output_tensors.append(output_np)
-        elif config["task_type"] == "segmentation":
-            for j in range(batch):
-                imgs[j] = imgs[j].resize(
-                    (output[0][j].shape[-1], output[0][j].shape[-2]), PIL.Image.LANCZOS
-                )
-                classes, image = seg_mask_overlay(output[0][j], imgs[j])
-                images.append(image)
-                output_tensors.append(
-                    np.array(output[0][j], dtype=np.float32).flatten()
-                )
-        else:
-            print("\nInvalid task type ", config["task_type"])
-
-        # Save the output images and output tensors
-        for j in range(batch):
-            output_image_file_name = "py_out_" + model + "_" + os.path.basename(input_images[j])
-            print("\nSaving image to ", output_images_folder)
-            if not os.path.exists(output_images_folder):
-                os.makedirs(output_images_folder)
-            images[j].save(output_images_folder + output_image_file_name, "JPEG")
-            print("\nSaving output tensor to ", output_binary_folder)
-            if not os.path.exists(output_binary_folder):
-                os.makedirs(output_binary_folder)
+            # Post-Processing for inference
+            output_image_file_name = "py_out_" + model + "_" + os.path.basename(input_image[i % len(input_image)])
             output_bin_file_name = output_image_file_name.replace(".jpg", "") + ".bin"
-            output_tensors[j].tofile(output_binary_folder + output_bin_file_name)
+            if args.compile == False:
+                images = []
+                output_tensors = []
+                batch = input_details[0]['shape'][0]
+                if config["task_type"] == "classification":
+                    for j in range(batch):
+                        classes, image = get_class_labels(output[0][j], imgs[j])
+                        print("\n", classes)
+                        images.append(image)
+                        output_tensors.append(
+                            np.array(output[0][j], dtype=np.float32).flatten()
+                        )
+                elif config["task_type"] == "detection":
+                    for j in range(batch):
+                        classes, image = det_box_overlay(
+                            output,
+                            imgs[j],
+                            config["extra_info"]["od_type"],
+                            config["extra_info"]["framework"],
+                        )
+                        images.append(image)
+                        output_np = np.array([], dtype=np.float32)
+                        for tensor in output:
+                            output_np = np.concatenate(
+                                (output_np, np.array(tensor, dtype=np.float32).flatten())
+                            )
+                        output_tensors.append(output_np)
+                elif config["task_type"] == "segmentation":
+                    for j in range(batch):
+                        imgs[j] = imgs[j].resize(
+                            (output[0][j].shape[-1], output[0][j].shape[-2]), PIL.Image.LANCZOS
+                        )
+                        classes, image = seg_mask_overlay(output[0][j], imgs[j])
+                        images.append(image)
+                        output_tensors.append(
+                            np.array(output[0][j], dtype=np.float32).flatten()
+                        )
+                else:
+                    print("\nInvalid task type ", config["task_type"])
 
-    # Generate param.yaml after model compilation
-    if args.compile or args.disable_offload:
-        gen_param_yaml(
-            delegate_options["artifacts_folder"], config, int(height), int(width)
-        )
+                # Save the output images and output tensors
+                for j in range(batch):
+                    output_image_file_name = "py_out_" + model + "_" + os.path.basename(input_images[j])
+                    print("\nSaving image to ", output_images_folder)
+                    if not os.path.exists(output_images_folder):
+                        os.makedirs(output_images_folder)
+                    images[j].save(output_images_folder + output_image_file_name, "JPEG")
+                    print("\nSaving output tensor to ", output_binary_folder)
+                    if not os.path.exists(output_binary_folder):
+                        os.makedirs(output_binary_folder)
+                    output_bin_file_name = output_image_file_name.replace(".jpg", "") + ".bin"
+                    output_tensors[j].tofile(output_binary_folder + output_bin_file_name)
 
-    log = f"\n \nCompleted_Model : {mIdx+1:5d}, Name : {model:50s}, Total time : {total_proc_time:10.2f}, Offload Time : {sub_graphs_time:10.2f} , DDR RW MBs : {ddr_bw_total}, Output Image File : {output_image_file_name}, Output Bin File : {output_bin_file_name}\n \n "  # {classes} \n \n'
-    print(log)
-    if ncpus > 1:
-        sem.release()
+        # Generate param.yaml after model compilation
+        if args.compile or args.disable_offload:
+            gen_param_yaml(
+                delegate_options["artifacts_folder"], config, "onnx"
+            )
 
+        if args.compile == True:
+            log = f"\n \nCompleted_Model : {mIdx+1:5d}, Name : {model:50s}\n\n"
+        else:
+            log = f"\n \nCompleted_Model : {mIdx+1:5d}, Name : {model:50s}, Total time : {total_proc_time:10.2f}, Offload Time : {sub_graphs_time:10.2f} , DDR RW MBs : {ddr_bw_total}, Output Image File : {output_image_file_name}, Output Bin File : {output_bin_file_name}\n \n "  # {classes} \n \n'
+        print(log)
+    except Exception as e:
+        print(f"Error processing model {model}: {str(e)}")
+    finally:
+        if ncpus > 1:
+            sem.release()
 
 if len(args.models) > 0:
     models = args.models

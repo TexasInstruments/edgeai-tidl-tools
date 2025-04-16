@@ -13,7 +13,7 @@
 
 
 # Troubleshooting Guide for both performance and accuracy/functional issues
-This document lists troubleshooting steps for debugging accuracy and performance issues observed during model deployment. This section is common across the all the OSRT (TFlite / ONNX runtime /TVM-DLR )
+This document lists troubleshooting steps for debugging accuracy and performance issues observed during model deployment. This section is common across the all the OSRT (TFlite / ONNX runtime /TVM )
 
 # Troubleshooting for performance issues
 - If user is observing performance issues during model deployment on C7x-DSP then user can refer this section to get more detailed performance information of any given model.

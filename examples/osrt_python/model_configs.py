@@ -906,54 +906,12 @@ models_configs = {
             'advanced_options:num_cores' : 4,
         }
     ),
-    "cl-dlr-tflite_inceptionnetv3": create_model_config(
+    "cl-tvm-ort-resnet18-v1": create_model_config(
         task_type="classification",
         source=dict(
-            model_url="https://git.ti.com/cgit/jacinto-ai/jacinto-ai-modelzoo/plain/models/vision/classification/imagenet1k/tf1-models/inception_v3.tflite",
-            infer_shape=False,
+            model_url="https://git.ti.com/cgit/jacinto-ai/jacinto-ai-modelzoo/plain/models/vision/classification/imagenet1k/torchvision/resnet18_opset9.onnx",
+            infer_shape=True,
         ),
-        preprocess=dict(
-            resize=299,
-            crop=299,
-            data_layout="NHWC",
-            resize_with_pad=False,
-            reverse_channels=False,
-        ),
-        session=dict(
-            session_name="tvmdlr",
-            model_path=os.path.join(models_base_path, "inception_v3.tflite"),
-            input_mean= [127.5,127.5,127.5],
-            input_scale= [1/127.5,1/127.5,1/127.5],
-            input_optimization=True,
-        ),
-        postprocess=dict(),
-        extra_info=dict(num_images=numImages, num_classes=1001),
-    ),
-    "cl-dlr-onnx_mobilenetv2": create_model_config(
-        task_type="classification",
-        source=dict(
-            model_url="https://git.ti.com/cgit/jacinto-ai/jacinto-ai-modelzoo/plain/models/vision/classification/imagenet1k/torchvision/mobilenet_v2_tv_opset9.onnx",
-            infer_shape=False,
-        ),
-        preprocess=dict(
-            resize=224,
-            crop=224,
-            data_layout="NCHW",
-            resize_with_pad=False,
-            reverse_channels=False,
-        ),
-        session=dict(
-            session_name="tvmdlr",
-            model_path=os.path.join(models_base_path, "mobilenetv2-1.0.onnx"),
-            input_mean= [127.5,127.5,127.5],
-            input_scale= [1/127.5,1/127.5,1/127.5],
-            input_optimization=True,
-        ),
-        postprocess=dict(),
-        extra_info=dict(num_images=numImages, num_classes=1000),
-    ),
-    "cl-dlr-timm_mobilenetv3_large_100": create_model_config(
-        source=dict(),
         preprocess=dict(
             resize=256,
             crop=224,
@@ -962,15 +920,131 @@ models_configs = {
             reverse_channels=False,
         ),
         session=dict(
-            session_name="tvmdlr",
-            model_path=os.path.join(models_base_path, "mobilenetv3_large_100.onnx"),
+            session_name="tvmrt",
+            model_path=os.path.join(models_base_path, "resnet18_opset9.onnx"),
+            input_mean=[123.675, 116.28, 103.53],
+            input_scale=[0.017125, 0.017507, 0.017429],
+            input_optimization=True,
+        ),
+        extra_info=dict(num_images=numImages, num_classes=1000),
+    ),
+    "cl-tvm-tfl-mobilenet_v1_1.0_224": create_model_config(
+        task_type="classification",
+        source=dict(
+            model_url="http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models/vision/classification/imagenet1k/tf1-models/mobilenet_v1_1.0_224.tflite",
+        ),
+        preprocess=dict(
+            resize=256,
+            crop=224,
+            data_layout="NHWC",
+            resize_with_pad=False,
+            reverse_channels=False,
+        ),
+        session=dict(
+            session_name="tvmrt",
+            model_path=os.path.join(models_base_path, "mobilenet_v1_1.0_224.tflite"),
             input_mean=[127.5, 127.5, 127.5],
             input_scale=[1 / 127.5, 1 / 127.5, 1 / 127.5],
             input_optimization=True,
         ),
-        postprocess=dict(),
+        extra_info=dict(num_images=numImages, num_classes=1001),
+    ),
+    "cl-tvm-ort-resnet18-v1_c7x": create_model_config(
         task_type="classification",
+        source=dict(
+            model_url="https://git.ti.com/cgit/jacinto-ai/jacinto-ai-modelzoo/plain/models/vision/classification/imagenet1k/torchvision/resnet18_opset9.onnx",
+            infer_shape=True,
+        ),
+        preprocess=dict(
+            resize=256,
+            crop=224,
+            data_layout="NCHW",
+            resize_with_pad=False,
+            reverse_channels=False,
+        ),
+        session=dict(
+            session_name="tvmrt",
+            model_path=os.path.join(models_base_path, "resnet18_opset9.onnx"),
+            input_mean=[123.675, 116.28, 103.53],
+            input_scale=[0.017125, 0.017507, 0.017429],
+            input_optimization=True,
+        ),
         extra_info=dict(num_images=numImages, num_classes=1000),
+        runtime_options={
+            'deny_list': 'nn.global_avg_pool2d',
+            'advanced_options:c7x_codegen' : 1
+        }
+    ),
+    "od-tvm-ort-ssd-lite_mobilenetv2_fpn": create_model_config(
+        task_type="detection",
+        source=dict(
+            model_url="https://git.ti.com/cgit/jacinto-ai/jacinto-ai-modelzoo/plain/models/vision/detection/coco/edgeai-mmdet/ssd-lite_mobilenetv2_fpn_512x512_20201110_model.onnx",
+            meta_arch_url="https://git.ti.com/cgit/jacinto-ai/jacinto-ai-modelzoo/plain/models/vision/detection/coco/edgeai-mmdet/ssd-lite_mobilenetv2_fpn_512x512_20201110_model.prototxt",
+            infer_shape=True,
+        ),
+        preprocess=dict(
+            resize=512,
+            crop=512,
+            data_layout="NCHW",
+            pad_color=0,
+            resize_with_pad=False,
+            reverse_channels=False,
+        ),
+        session=dict(
+            session_name="tvmrt",
+            model_path=os.path.join(models_base_path, "ssd-lite_mobilenetv2_fpn.onnx"),
+            meta_layers_names_list=os.path.join(
+                models_base_path, "ssd-lite_mobilenetv2_fpn.prototxt"
+            ),
+            meta_arch_type=3,
+            input_mean=[0, 0, 0],
+            input_scale=[0.003921568627, 0.003921568627, 0.003921568627],
+            input_optimization=True,
+        ),
+        postprocess=dict(
+            formatter="DetectionBoxSL2BoxLS",
+            resize_with_pad=False,
+            keypoint=False,
+            object6dpose=False,
+            normalized_detections=False,
+            shuffle_indices=None,
+            squeeze_axis=None,
+            reshape_list=[(-1, 5), (-1, 1)],
+            ignore_index=None,
+        ),
+        extra_info=dict(
+            od_type="SSD",
+            framework="MMDetection",
+            num_images=numImages,
+            num_classes=91,
+            label_offset_type="80to90",
+            label_offset=1,
+        ),
+    ),
+    "ss-tvm-ort-deeplabv3lite_mobilenetv2": create_model_config(
+        task_type="segmentation",
+        source=dict(
+            model_url="https://git.ti.com/cgit/jacinto-ai/jacinto-ai-modelzoo/plain/models/vision/segmentation/ade20k32/jai-pytorch/deeplabv3lite_mobilenetv2_512x512_ade20k32_20210308.onnx",
+            infer_shape=True,
+        ),
+        preprocess=dict(
+            resize=512,
+            crop=512,
+            data_layout="NCHW",
+            pad_color=0,
+            resize_with_pad=False,
+            reverse_channels=False,
+        ),
+        session=dict(
+            session_name="tvmrt",
+            model_path=os.path.join(models_base_path, "deeplabv3lite_mobilenetv2.onnx"),
+            meta_arch_type=3,
+            input_mean=[123.675, 116.28, 103.53],
+            input_scale=[0.017125, 0.017507, 0.017429],
+            input_optimization=True,
+        ),
+        postprocess=dict(with_argmax=True),
+        extra_info=dict(num_images=numImages, num_classes=19),
     ),
     'ss-tfl-deeplabv3_mnv2_ade20k_float_low_latency': create_model_config(
         task_type='segmentation',

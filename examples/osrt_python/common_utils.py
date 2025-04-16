@@ -30,11 +30,13 @@ import os
 import sys
 import platform
 import numpy as np
+import PIL
 from PIL import Image, ImageFont, ImageDraw, ImageEnhance
 import yaml
 import shutil
 import json
 from config_utils import *
+import copy
 
 
 if platform.machine() == "aarch64":
@@ -65,7 +67,7 @@ else:
     from caffe2onnx.src.args_parser import parse_args
     from caffe2onnx.src.utils import freeze
 
-artifacts_folder = "../../../model-artifacts/"
+artifacts_folder = "../../../model-artifacts"
 output_images_folder = "../../../output_images/"
 output_binary_folder = "../../../output_binaries/"
 
@@ -83,6 +85,7 @@ high_resolution_optimization = 0
 pre_batchnorm_fold = 1
 inference_mode = 0
 num_cores = 1
+c7x_codegen = 0
 ti_internal_nc_flag = 1601
 
 data_convert = 3
@@ -135,6 +138,8 @@ optional_options = {
     # Advanced options for SOC 'am69a'
     "advanced_options:inference_mode": inference_mode,
     "advanced_options:num_cores": num_cores,
+    # TVM specific options
+    'advanced_options:c7x_codegen': c7x_codegen
 }
 
 modelzoo_path = "../../../../../../jacinto-ai-modelzoo/models"
@@ -152,28 +157,119 @@ def get_dataset_info(task_type, num_classes):
                             color_map=get_color_palette(num_classes))
         return dataset_info
 
-    
-def gen_param_yaml(artifacts_folder_path, config, new_height, new_width):
+def append_inputs_for_batch(frame_idx, input_image_list, input_details):
+    start_index = frame_idx % len(input_image_list)
+    batch = input_details[0]['shape'][0]
 
-    resize = []
-    crop = []
-    resize.append(new_width)
-    resize.append(new_height)
-    crop.append(new_width)
-    crop.append(new_height)
-    if config["task_type"] == "classification":
-        model_type = "classification"
-    elif config["task_type"] == "detection":
-        model_type = "detection"
-    elif config["task_type"] == "segmentation":
-        model_type = "segmentation"
-    model_file = config["task_type"].split("/")[0]
-    dict_file = dict()
+    input_images = []
+    # For batch processing different images are needed for a single input
+    for j in range(batch):
+        input_images.append(input_image_list[(start_index + j) % len(input_image_list)])
+    return input_images
+
+def preprocess_input(image_files, config, input_details, model_type):
+    input_dict = {}
+    for input_detail in input_details:
+        input_name = input_detail['name']
+        floating_model = input_detail['type'] == "tensor(float)"
+        if model_type == 'tflite':
+            floating_model = str(input_detail['type'].__name__) == "float32"
+        # Map N, C, H, W to correct values based on framework
+        batch = input_detail['shape'][0]
+        channel = input_detail['shape'][1]
+        height = input_detail['shape'][2]
+        width = input_detail['shape'][3]
+        if model_type == "tflite":
+            batch = input_detail['shape'][0]
+            height = input_detail['shape'][1]
+            width = input_detail['shape'][2]
+            channel = input_detail['shape'][3]
+
+        imgs = []
+        # Prepare data assuming NCHW format
+        shape = [batch, channel, height, width]
+        input_data = np.zeros(shape)
+        for i in range(batch):
+            imgs.append(
+                Image.open(image_files[i])
+                .convert("RGB")
+                .resize((width, height), PIL.Image.LANCZOS)
+            )
+            temp_input_data = np.expand_dims(imgs[i], axis=0)
+            temp_input_data = np.transpose(temp_input_data, (0, 3, 1, 2))
+            input_data[i] = temp_input_data[0]
+        if floating_model:
+            input_data = np.float32(input_data)
+            for mean, scale, ch in zip(
+                config["session"]["input_mean"],
+                config["session"]["input_scale"],
+                range(input_data.shape[1]),
+            ):
+                input_data[:, ch, :, :] = (input_data[:, ch, :, :] - mean) * scale
+        else:
+            input_data = np.uint8(input_data)
+            config["session"]["input_mean"] = [0, 0, 0]
+            config["session"]["input_scale"] = [1, 1, 1]
+        
+        # Update to NHWC after data preparation for TfLite
+        if model_type == "tflite":
+            input_data = np.transpose(input_data, (0, 2, 3, 1))
+        input_dict[input_name] = input_data
+    return input_dict, imgs
+
+def get_tensor_details(model_type, details_type, model_path):
+    if details_type not in ['input', 'output']:
+        details_type = 'input'
+        print("Tensor details type not specified correctly - assuming 'input' ")
+    
+    if model_type == 'onnx':
+        import onnxruntime
+        sess_options = onnxruntime.SessionOptions()
+        ep_list = ['CPUExecutionProvider']
+        interpreter = onnxruntime.InferenceSession(model_path, providers=ep_list,
+                        provider_options=[{}], sess_options=sess_options)
+        if details_type == 'input':
+            model_tensor_details = interpreter.get_inputs()
+        else:
+            model_tensor_details = interpreter.get_outputs()
+        del interpreter
+    elif model_type == 'tflite':
+        import tflite_runtime.interpreter as tflitert_interpreter
+        interpreter = tflitert_interpreter.Interpreter(model_path)
+        if details_type == 'input':
+            model_tensor_details = interpreter.get_input_details()
+        else:
+            model_tensor_details = interpreter.get_output_details()
+        del interpreter
+
+    # Maps property name from framework to a common property name, e.g. 'dtype' in tflite is mapped to 'type'
+    properties_mapping = {'name':'name', 'shape':'shape', 'dtype':'type', 'type':'type', 'index':'index'}
+    tensor_details = []
+    for tensor_d in model_tensor_details:
+        tensor_dict = {}
+        for p_key, p_val in properties_mapping.items():
+            if (model_type == 'onnx' and hasattr(tensor_d, p_key)):
+                tensor_d_val = getattr(tensor_d, p_key)
+                if p_key == 'shape':
+                    tensor_d_val = list(tensor_d_val)
+                tensor_dict[p_val] = tensor_d_val
+            elif (model_type == 'tflite' and p_key in tensor_d):
+                tensor_d_val = tensor_d[p_key]
+                if p_key == 'shape':
+                    tensor_d_val = [int(val) for val in tensor_d_val]
+                tensor_dict[p_val] = tensor_d_val
+
+        tensor_dict_to_append = {"name": tensor_dict['name'], "shape": tensor_dict['shape'], "type": tensor_dict['type']}
+        tensor_details.append(tensor_dict_to_append)
+    return tensor_details
+
+
+def gen_param_yaml(artifacts_folder_path, config_orig, model_type):
+    config = copy.deepcopy(config_orig)
     layout = config["preprocess"]["data_layout"]
-    if config["session"]["session_name"] == "tflitert":
+    if model_type == "tflite":
         layout = "NHWC"
         config["preprocess"]["data_layout"] = layout
-    model_file_name = os.path.basename(config["session"]["model_path"])
 
     model_path = config["session"]["model_path"]
     model_name = model_path.split("/")[-1]
@@ -203,6 +299,12 @@ def gen_param_yaml(artifacts_folder_path, config, new_height, new_width):
             config["preprocess"]["resize"],
             config["preprocess"]["resize"],
         )
+    
+    for detail in config["session"]["input_details"]:
+        detail['type'] = str(detail['type'])
+
+    for detail in config["session"]["output_details"]:
+        detail['type'] = str(detail['type'])
 
     param_dict = pretty_object(config)
     param_dict.pop("source")
@@ -216,6 +318,7 @@ def gen_param_yaml(artifacts_folder_path, config, new_height, new_width):
     dataset_path_yaml = os.path.join(artifacts_model_path, "dataset.yaml")
     with open(dataset_path_yaml, "w") as dataset_fp:
         yaml.safe_dump(dataset_info, dataset_fp, sort_keys=False)
+    del config
 
 headers = {
     "User-Agent": "My User Agent 1.0",

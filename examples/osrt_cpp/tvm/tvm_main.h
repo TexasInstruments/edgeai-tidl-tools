@@ -3,10 +3,10 @@ Copyright (c) 2020 – 2021 Texas Instruments Incorporated
 
 All rights reserved not granted herein.
 
-Limited License.  
+Limited License.
 
 Texas Instruments Incorporated grants a world-wide, royalty-free, non-exclusive
-license under copyrights and patents it now or hereafter owns or controls to 
+license under copyrights and patents it now or hereafter owns or controls to
 make, have made, use, import, offer to sell and sell ("Utilize") this software
 subject to the terms herein.  With respect to the foregoing patent license,
 such license is granted  solely to the extent that any such patent is necessary
@@ -31,14 +31,14 @@ provided that the following conditions are met:
 *	Nothing shall obligate TI to provide you with source code for the software
     licensed and provided to you in object code.
 
-If software source code is provided to you, modification and redistribution of 
+If software source code is provided to you, modification and redistribution of
 the source code are permitted provided that the following conditions are met:
 
 *	any redistribution and use of the source code, including any resulting
     derivative works, are licensed by TI for use only with TI Devices.
 
 *	any redistribution and use of any object code compiled from the source code
-    and any resulting derivative works, are licensed by TI for use only with TI 
+    and any resulting derivative works, are licensed by TI for use only with TI
     Devices.
 
 Neither the name of Texas Instruments Incorporated nor the names of its
@@ -60,8 +60,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef DLR_MAIN_H_
-#define DLR_MAIN_H_
+#ifndef TVM_MAIN_H_
+#define TVM_MAIN_H_
 
 #include <iostream>
 #include <cstdio>
@@ -72,7 +72,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <limits>
 #include <stdexcept>
-#include <dlr.h>
+
 #include <libgen.h>
 #include <utility>
 #include <thread>
@@ -108,4 +108,4 @@ using namespace tidl::utils;
 using namespace tidl::postprocess;
 using namespace tidl::preprocess;
 
-#endif //DLR_MAIN_H
+#endif //TVM_MAIN_H

@@ -44,13 +44,12 @@ else()
   endif()
 endif()
 
-if (EXISTS $ENV{TIDL_TOOLS_PATH}/osrt_deps/dlr_1.10.0_x86_u22/)
-  set(DLR_INSTALL_DIR $ENV{TIDL_TOOLS_PATH}/osrt_deps/dlr_1.10.0_x86_u22/)
-  message (STATUS  "setting DLR_INSTALL_DIR path:${DLR_INSTALL_DIR}")
+if (EXISTS $ENV{TIDL_TOOLS_PATH}/osrt_deps/tvm_0.18.0_x86_u22/)
+  set(TVM_INSTALL_DIR $ENV{TIDL_TOOLS_PATH}/osrt_deps/tvm_0.18.0_x86_u22/)
 else()
-  # avoid warning in case of hw accelerated device which have this in filesystem
+  # avoid warning in case of  hw accelerated device which have this in filesystem
   if( NOT ((NOT ${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" AND ${HOST_CPU} STREQUAL  "arm"))  )
-    message (WARNING  "DLR_INSTALL_DIR is not set")
+    message (WARNING "TVM_INSTALL_DIR is not set because tvm 0.18.0 is not found in osrt_deps")
   endif()
 endif()
 
@@ -182,7 +181,6 @@ set(TARGET_COMPILE_INCLUDE_DIR
   ${PROJECT_SOURCE_DIR}/..
   ${PROJECT_SOURCE_DIR}/include
   /usr/local/include
-  /usr/local/dlr
   /usr/include/gstreamer-1.0/
   /usr/include/glib-2.0/
   /usr/lib/aarch64-linux-gnu/glib-2.0/include
@@ -225,8 +223,11 @@ set(PC_INCLUDE_DIR
   ${ONNXRT_INSTALL_DIR}/onnxruntime/include/onnxruntime
   ${ONNXRT_INSTALL_DIR}/onnxruntime/include/onnxruntime/core/session
 
-  ${DLR_INSTALL_DIR}/neo-ai-dlr/include
-  ${DLR_INSTALL_DIR}/neo-ai-dlr/3rdparty/tvm/3rdparty/dlpack/include
+  # TVM
+  ${TVM_INSTALL_DIR}/include
+  ${TVM_INSTALL_DIR}/standalone_crt/include
+  ${TVM_INSTALL_DIR}/3rdparty/dmlc-core/include
+  ${TVM_INSTALL_DIR}/3rdparty/dlpack/include
 
   PUBLIC ${PROJECT_SOURCE_DIR}/post_process
   PUBLIC ${PROJECT_SOURCE_DIR}/pre_process
@@ -246,7 +247,6 @@ if(${TARGET_DEVICE} STREQUAL  "am62" AND  (${TARGET_CPU} STREQUAL  "x86" AND ${H
               ${PROJECT_SOURCE_DIR}/..
               ${PROJECT_SOURCE_DIR}/include
               /usr/local/include
-              /usr/local/dlr
               /usr/include/gstreamer-1.0/
               /usr/include/glib-2.0/
               /usr/lib/aarch64-linux-gnu/glib-2.0/include
@@ -268,8 +268,7 @@ if(${TARGET_DEVICE} STREQUAL  "am62" AND  (${TARGET_CPU} STREQUAL  "x86" AND ${H
               ${ONNXRT_INSTALL_DIR}/include
               ${ONNXRT_INSTALL_DIR}/include/onnxruntime
               ${ONNXRT_INSTALL_DIR}/include/onnxruntime/core/session                    
-              ${DLR_INSTALL_DIR}/include
-              ${DLR_INSTALL_DIR}/3rdparty/tvm/3rdparty/dlpack/include
+
               PUBLIC ${PROJECT_SOURCE_DIR}/post_process
               PUBLIC ${PROJECT_SOURCE_DIR}/pre_process
               PUBLIC ${PROJECT_SOURCE_DIR}/utils
@@ -288,7 +287,6 @@ if(${TARGET_DEVICE} STREQUAL  "am62" AND  (${TARGET_CPU} STREQUAL  "x86" AND ${H
                       IlmImf
                       zlib
                       libjasper
-                      #dlr
                       tensorflow-lite
                       onnxruntime
                       vx_tidl_rt
@@ -337,10 +335,7 @@ if(${TARGET_DEVICE} STREQUAL  "am62" AND  (${TARGET_CPU} STREQUAL  "x86" AND ${H
 
   link_directories(
                     /usr/lib 
-                    /usr/local/dlr
                     /usr/lib/aarch64-linux-gnu
-                    /usr/lib/python3.10/site-packages/dlr/
-                    $ENV{HOME}/.local/dlr/ 
                     # opencv libraries
                     ${OPENCV_INSTALL_DIR}/cmake/lib
                     ${OPENCV_INSTALL_DIR}/cmake/3rdparty/lib
@@ -385,7 +380,8 @@ if(NOT ${TARGET_DEVICE} STREQUAL  "am62" AND  (${TARGET_CPU} STREQUAL  "x86" AND
     # IlmImf
     # zlib
     # libjasper
-    #dlr
+    # tvm
+    tvm_runtime
     tensorflow-lite
     onnxruntime
     vx_tidl_rt
@@ -398,11 +394,8 @@ if(NOT ${TARGET_DEVICE} STREQUAL  "am62" AND  (${TARGET_CPU} STREQUAL  "x86" AND
 
   link_directories(
     /usr/lib 
-    /usr/local/dlr
     /usr/lib/aarch64-linux-gnu
-    /usr/lib/python3.10/site-packages/dlr/
-    $ENV{HOME}/.local/dlr/ 
-
+    ${TVM_INSTALL_DIR}
     ${OPENCV_INSTALL_DIR}/opencv/
 
     ${ONNXRT_INSTALL_DIR}/
@@ -470,7 +463,6 @@ if((${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" AND ${
                   tiff
                   onnxruntime
                   dl
-                  #dlr
                   yaml-cpp
                   fft2d_fftsg2d
                   fft2d_fftsg
@@ -497,8 +489,9 @@ if((${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" AND ${
 
                   ${TARGET_FS_PATH}/usr/include/onnxruntime
                   ${TARGET_FS_PATH}/usr/include/onnxruntime/core/session                    
-                  ${DLR_INSTALL_DIR}/include
-                  ${DLR_INSTALL_DIR}/3rdparty/tvm/3rdparty/dlpack/include
+                  ${TVM_INSTALL_DIR}/include
+                  ${TVM_INSTALL_DIR}/3rdparty/dmlc-core/include
+                  ${TVM_INSTALL_DIR}/3rdparty/dlpack/include
                   ${TARGET_FS_PATH}/usr/include/opencv4/opencv2/core/include
                   ${TARGET_FS_PATH}/usr/include/opencv4/opencv2/highgui/include
                   ${TARGET_FS_PATH}/usr/include/opencv4/opencv2/imgcodecs/include
@@ -549,7 +542,6 @@ if((NOT ${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" AN
     ${TARGET_FS_PATH}/usr/lib/tflite_2.12/flatbuffers-build
     ${TARGET_FS_PATH}/usr/lib/tflite_2.12/farmhash-build
     ${TARGET_FS_PATH}/usr/lib/tflite_2.12/pthreadpool
-    ${TARGET_FS_PATH}/usr/lib/python3.10/site-packages/dlr
     # Enable these when migrating to tflite 2.12
   )
   set(SYSTEM_LINK_LIBS
@@ -567,7 +559,7 @@ if((NOT ${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" AN
     tiff
     onnxruntime
     dl
-    #dlr
+    tvm_runtime
     yaml-cpp
     tivision_apps
     GLESv2
@@ -598,7 +590,10 @@ if((NOT ${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" AN
     ${TARGET_FS_PATH}/usr/include/tensorflow/lite/tools/pip_package/gen/tflite_pip/python3/cmake_build/flatbuffers/include/
     ${TARGET_FS_PATH}/usr/include/onnxruntime/include/
     ${TARGET_FS_PATH}/usr/include/onnxruntime/include/onnxruntime/core/session/
-    ${TARGET_FS_PATH}/usr/lib/python3.10/site-packages/dlr/include/
+
+    ${TARGET_FS_PATH}/usr/include/tvm/tvm/include
+    ${TARGET_FS_PATH}/usr/include/tvm/tvm/3rdparty/dmlc-core/include
+    ${TARGET_FS_PATH}/usr/include/tvm/tvm/3rdparty/dlpack/include
 
     #armnn
     ${ARMNN_PATH}/delegate/include
@@ -631,7 +626,6 @@ if((${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" AND ${
                 opencv_imgproc
                 opencv_imgcodecs
                 opencv_core
-                # dlr
                 tensorflow-lite
                 onnxruntime            
                 pthread
@@ -645,10 +639,7 @@ if((${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" AND ${
 
     link_directories(
                     /usr/lib 
-                    /usr/local/dlr
                     /usr/lib/aarch64-linux-gnu
-                    /usr/lib/${TARGET_DEVICE_PYTHON}/site-packages/dlr/
-                    $ENV{HOME}/.local/dlr/                 
     )
 endif()
 
@@ -675,17 +666,12 @@ if( ((NOT ${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" 
                   /usr/lib/tflite_2.12/farmhash-build
                   /usr/lib/tflite_2.12/pthreadpool
                   # Enable these when migrating to tflite 2.12
-                  /usr/local/dlr
                   /usr/lib/aarch64-linux-gnu
-                  /usr/lib/${TARGET_DEVICE_PYTHON}/site-packages/dlr/
-                  /usr/local/lib/${TARGET_DEVICE_PYTHON}/dist-packages/dlr/
-                  $ENV{HOME}/.local/dlr/                  
   )
   set(SYSTEM_LINK_LIBS
                   opencv_imgproc
                   opencv_imgcodecs
                   opencv_core
-                  #dlr
                   tensorflow-lite
                   onnxruntime
                   vx_tidl_rt
@@ -695,6 +681,7 @@ if( ((NOT ${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" 
                   jpeg
                   webp
                   png16
+                  tvm_runtime
                   tiff
                   ${ADV_UTILS_LIB}
                   ${TFLITE_2_12_LIBS}
@@ -702,8 +689,6 @@ if( ((NOT ${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" 
   include_directories(
                   /usr/include
                   /usr/local/include
-                  /usr/local/dlr
-                  /usr/lib/${TARGET_DEVICE_PYTHON}/site-packages/dlr/include #for am68pa evm
                   /usr/include/tensorflow/lite/tools/pip_package/gen/tflite_pip/python3/cmake_build/flatbuffers/include/
                   ${PROJECT_SOURCE_DIR}
                   ${PROJECT_SOURCE_DIR}/..
@@ -721,13 +706,15 @@ if( ((NOT ${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" 
 
                   
                   /usr/include/tensorflow
-                  /usr/include/neo-ai-dlr/include
-                  /usr/include/neo-ai-dlr/3rdparty/tvm/3rdparty/dlpack/include
                   /usr/include/onnxruntime/include
                   /usr/include/onnxruntime/include/onnxruntime/core/session
                   PUBLIC ${PROJECT_SOURCE_DIR}/post_process
                   PUBLIC ${PROJECT_SOURCE_DIR}/pre_process
                   PUBLIC ${PROJECT_SOURCE_DIR}/utils/include
+
+                  /usr/include/tvm/tvm/include
+                  /usr/include/tvm/tvm/3rdparty/dmlc-core/include
+                  /usr/include/tvm/tvm/3rdparty/dlpack/include
   )
 endif()
 

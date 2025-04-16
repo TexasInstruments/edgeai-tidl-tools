@@ -28,7 +28,7 @@
   - During cmake build following paths are expected at $HOME(to override default path use cmake flags during cmake build).
       - TENSORFLOW_INSTALL_DIR : defaults check at ~/tensorflow 
       - ONNXRT_INSTALL_DIR: defaults check at ~/onnxruntime
-      - DLR_INSTALL_DIR: defaults check at ~/neo-ai-dlr
+      - TVM_HOME: this is expected to be defined to point to the tvm git checkout
       - OPENCV_INSTALL_DIR: defaults check at ~/opencv-4.1.0
       - ARMNN_PATH: defaults check at ~/armnn
       - TARGET_FS_PATH: defaults check ~/targetfs
@@ -74,8 +74,7 @@
     ```
     ./bin/Release/ort_main -f model-artifacts/cl-ort-resnet18-v1/artifacts  -i test_data/airshow.jpg
     ./bin/Release/tfl_main -f model-artifacts/cl-tfl-mobilenet_v1_1.0_224/artifacts -i test_data/airshow.jpg
-    ./bin/Release/dlr_main -f model-artifacts/cl-dlr-tflite_inceptionnetv3/artifacts  -i test_data/airshow.jpg
-    ./bin/Release/dlr_main -f model-artifacts/cl-dlr-onnx_mobilenetv2/artifacts  -i test_data/airshow.jpg
+    ./bin/Release/tvm_main -f model-artifacts/cl-ort-resnet18-v1/artifacts/ -i test_data/airshow.jpg
     ./bin/Release/ort_main -f model-artifacts/od-ort-ssd-lite_mobilenetv2_fpn/artifacts -i test_data/ADE_val_00001801.jpg
     ./bin/Release/tfl_main -f model-artifacts/od-tfl-ssd_mobilenet_v2_300_float/artifacts -i test_data/ADE_val_00001801.jpg
     ./bin/Release/tfl_main -f model-artifacts/ss-tfl-deeplabv3_mnv2_ade20k_float/artifacts -i test_data/ADE_val_00001801.jpg
@@ -85,7 +84,7 @@
     - -i : input image path
     - -c : number of iteration to run for model
     - -l: labels path for classification model
-    - -y: device_type for dlr models can be cpu,gpu
+    - -y: device_type for tvm models can be cpu,gpu
     - -a : accelarate [0|1|2|3]
       - 0 : None valid on all device
       - 1 : TIDL valid on J7 and x86 in runtimes(tfl and onnx)

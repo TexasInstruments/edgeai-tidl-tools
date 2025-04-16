@@ -23,8 +23,7 @@
 TIDL provides multiple deployment options with industry defined inference engines as listed below. These inference engines are being referred as Open Source Run Times  in this document.
 * **ONNX RunTime**: [ONNX Runtime]( https://www.onnxruntime.ai/) based inference with heterogeneous execution on cortex-A** + C7x-MMA.
 * **TFLite Runtime**: [TensorFlow Lite](https://www.tensorflow.org/lite/guide/inference) based inference with heterogeneous execution on cortex-A** + C7x-MMA, using TFlite Delegates [TFLite Delgate](https://www.tensorflow.org/lite/performance/delegates) API
-* **TVM/Neo-AI RunTime**: [TVM]( https://tvm.apache.org)/[Neo-AI-DLR]( https://github.com/neo-ai/neo-ai-dlr) based inference with heterogeneous execution on cortex-A** + C7x-MMA
-
+* **TVM RunTime**: [TVM]( https://tvm.apache.org) based inference with heterogeneous execution on cortex-A** + C7x-MMA
 
 >** *Please refer to the device TRM to know which cortex-A MPU* the device of interest contains
 
@@ -37,7 +36,7 @@ OSRT offering also supports general purpose ARM-only OSRT inference capability f
 
 ## OSRT based user work flow 
 
-The diagram below illustrates the TFLite based work flow as an example. ONNX RunTime and TVM/Neo-AI DLR RunTime also follow similar work flow. The user needs to run the model compilation (sub-graph(s) creation and quantization) on PC and the generated artifacts can be used for inference on the device.  
+The diagram below illustrates the TFLite based work flow as an example. ONNX RunTime and TVM RunTime also follow similar work flow. The user needs to run the model compilation (sub-graph(s) creation and quantization) on PC and the generated artifacts can be used for inference on the device.  
 
 ![TFLite runtime based user work flow](../../docs/images/osrt_user_workflow.png)
 
@@ -233,7 +232,7 @@ Please refer [Quantization](../../docs/tidl_fsg_quantization.md) for more detail
 | advanced_options:log_file_name   | This option allows the user to redirect the output logs to a file | String | "" | Model compilation |  |
 | advanced_options:single_core_layers_names_list   | This option allows the user to specify layers to run on single core in multi core inference | Comma separated string | "" | Model inference | - |
 | model_type                   | This option is meant to communicate to TIDL import library that specified model is object detection model | "OD" |  ""    | Model compilation | This option is required to be set to "OD" only if model is object detection, and compilation throws warning asking to explicitly specify this option as "OD", else this option can be ignored |
-| c7x_codegen        | This option is used to enable running TIDL-unsupported layers on DSP using TVM auto code generation feature | 0 - Run TIDL-unsupported layers on ARM, <br> 1 - Run TIDL-unsupported layers on DSP | 0 | Model compilation | This is a TVM specific feature, has undergone limited validation [^3]|
+| advanced_options:enable_c7x_codegen        | This option is used to enable running TIDL-unsupported layers on DSP using TVM auto code generation feature | 0 - Run TIDL-unsupported layers on ARM, <br> 1 - Run TIDL-unsupported layers on DSP | 0 | Model compilation | This is a TVM specific feature, has undergone limited validation [^3]|
 | ti_internal_nc_flag   | internal use only     | -   | - | - | -|
 | advanced_options:packetize_mode   | This option allows the user to enable packetization for sparse weights in the model | 0 - disable, 1 - enable | 0 | Model compilation | - |
 | advanced_options:temp_buffer_dir   | This option allows the user to redirect OpenVX buffers (x86) to an alternate path (instead of /dev/shm) | String | "/dev/shm" | Model compilation & Inference (x86 Only) | - |
@@ -248,8 +247,8 @@ Note: User shall implement custom layer specific functions for compilation stage
  ONNX runtime : Specify the ONNX operator name e.g. "MaxPool" to deny offloading Max pooling operator to TIDL
  TVM runtime : Specify TVM relay operator name e.g. "nn.conv2d" to deny offloading convolution operator to TIDL
 - [2]: ONNX runtime - In case layer name is not present as part of layer in model, output name corresponding to output(0) for the particular layer can be specified
-- [3]: Running TIDL-unsupported layers on DSP with parameter "c7x_codegen=1", requires Processor SDK 8.2 or newer. This feature has only been validated with selected models in TI's Edgeai-benchmark that are using the TVM flow.  We will continue to work on this feature
-to improve the operator coverage and generate more performant DSP code.  If your model encounters problem with this feature, please set "c7x_codegen=0" and run the TIDL-unsupported layers on ARM.
+- [3]: Running TIDL-unsupported layers on DSP with parameter "enable_c7x_codegen=1", requires Processor SDK 8.2 or newer. This feature has only been validated with selected models in TI's Edgeai-benchmark that are using the TVM flow.  We will continue to work on this feature
+to improve the operator coverage and generate more performant DSP code.  If your model encounters problem with this feature, please set "enable_c7x_codegen=0" and run the TIDL-unsupported layers on ARM.
 
 ## Trouble Shooting
 Refer this [Troubleshooting](../../docs/tidl_osr_debug.md) section if any issues observed during compilation of custom models.

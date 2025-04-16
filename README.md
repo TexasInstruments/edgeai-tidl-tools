@@ -46,7 +46,7 @@ The figure below illustrates the work flow of DNN development and deployment on 
 TIDL provides multiple deployment options with industry defined inference engines as listed below. These inference engines are being referred as Open Source Runtimes (OSRT) in this document.
 * **TFLite Runtime**: [TensorFlow Lite](https://www.tensorflow.org/lite/guide/inference) based inference with heterogeneous execution on cortex-A** + C7x-MMA, using TFlite Delegates [TFLite Delgate](https://www.tensorflow.org/lite/performance/delegates) API
 * **ONNX RunTime**: [ONNX Runtime]( https://www.onnxruntime.ai/) based inference with heterogeneous execution on cortex-A** + C7x-MMA.
-* **TVM/Neo-AI RunTime**: [TVM]( https://tvm.apache.org)/[Neo-AI-DLR]( https://github.com/neo-ai/neo-ai-dlr) based inference with heterogeneous execution on cortex-A** + C7x-MMA
+* **TVM RunTime**: [TVM](https://tvm.apache.org) based inference with heterogeneous execution on cortex-A** + C7x-MMA
 
 >** *AM68PA has cortex-A72 as its MPU, refer to the device TRM to know which cortex-A MPU* it contains.
 

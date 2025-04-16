@@ -80,7 +80,7 @@ namespace tidl
                 << "--count, -c: loop interpreter->Invoke() for certain times\n"
                 << "--artifact_path, -f: model artifacts folder path\n"
                 << "--image, -i: input image with full path\n"
-                << "--device_type, -y: device_type for dlr models can be cpu,gpu\n"
+                << "--device_type, -y: device_type for TVM models can be cpu,gpu\n"
                 << "--labels, -l: labels for the model\n"
                 << "--threads, -t: number of threads\n"
                 << "--num_results, -r: number of results to show\n"

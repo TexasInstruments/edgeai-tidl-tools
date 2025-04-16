@@ -216,10 +216,12 @@ if [[ $arch == x86_64 ]]; then
     pip3 install pybind11[global]
     if [[ $use_local == 1 ]];then
         echo 'Installing python osrt packages from local...'
+        pip_install_local tvm-0.18.0-cp310-cp310-linux_x86_64.whl
         pip_install_local onnxruntime_tidl-1.15.0-cp310-cp310-linux_x86_64.whl
         pip_install_local tflite_runtime-2.12.0-cp310-cp310-linux_x86_64.whl
     else
         echo 'Installing python osrt packages...'
+        pip3 install --quiet https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/tvm-0.18.0-cp310-cp310-linux_x86_64.whl
         pip3 install --quiet https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/onnxruntime_tidl-1.15.0-cp310-cp310-linux_x86_64.whl
         pip3 install --quiet https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/tflite_runtime-2.12.0-cp310-cp310-linux_x86_64.whl
     fi
@@ -372,7 +374,15 @@ if [ $skip_cpp_deps -eq 0 ]; then
         mkdir opencv_4.2.0_x86_u22 && tar xf opencv_4.2.0_x86_u22.tar.gz -C opencv_4.2.0_x86_u22 --strip-components 1
         rm opencv_4.2.0_x86_u22.tar.gz
 
-
+        # for tvm, use the wheel installation and link to it to get
+        # the headers and shared libraries.
+        tvm_python_module_dir=$(python3  << EOF
+import tvm
+import os
+print(os.path.dirname(tvm.__file__))
+EOF
+)
+        ln -sf "$tvm_python_module_dir" tvm_0.18.0_x86_u22
     fi
 
 fi
