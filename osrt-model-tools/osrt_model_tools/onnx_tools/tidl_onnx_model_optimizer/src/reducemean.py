@@ -133,7 +133,7 @@ def tidl_convert_reducemean_to_matmul (graph: gs.Graph, onnx_graph: onnx.GraphPr
                 logging.info(f"Attribute axes for {reduce_mean.name} should be 0 or 1, skipping")
                 continue
 
-        dtype = reduce_sum.inputs[0].dtype if (isinstance(reduce_sum.inputs[0], gs.Variable) and hasattr(reduce_sum.inputs[0], 'dtype')) \
+        dtype = reduce_mean.inputs[0].dtype if (isinstance(reduce_mean.inputs[0], gs.Variable) and hasattr(reduce_mean.inputs[0], 'dtype')) \
                     else np.float32
 
         if numdims == 4:
