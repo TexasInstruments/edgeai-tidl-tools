@@ -290,12 +290,12 @@ def get_optimizers(bucket_flags=None):
         'convert_tanhgelu_to_erfgelu'               : True,
         'support_broadcast_ops_constant_input'      : False, 
         'remove_where_layer'                        : True,
-        'convert_tr_conv_stride_n_tr_to_matmul'     : True,
-        'optimize_reshp_tr_reshp'                   : True,
-        'hf_detr_attention_block_optimization'      : True,
         'eliminate_noop_slice'                      : True,
         'eliminate_unsqueeze'                       : True,
         'break_gelu_to_components'                  : True, 
+        'convert_tr_conv_stride_n_tr_to_matmul'     : True,
+        'optimize_reshp_tr_reshp'                   : True,
+        'hf_detr_attention_block_optimization'      : True,
         
         # utilities specific
         'shape_inference_mode'      : 'all',

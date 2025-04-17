@@ -122,6 +122,8 @@ The different optimizations performed are summarized here along with their defau
 | 44 | eliminate_noop_slice | Removes Slice nodes that do not change the input tensor | True |
 | 45 | eliminate_unsqueeze | Removes Unsqueeze nodes that do not change the input tensor | True |
 | 46 | break_gelu_to_components | Breaks the GELU activation into its primitive operations using the erf-based formula | True |
+| 47 | convert_tr_conv_stride_n_tr_to_matmul | Models having transpose -> conv(stride n) -> transpose need to be converted to reshape -> transpose -> reshape -> matmul -> add -> reshape | True | 
+| 48 | optimize_reshp_tr_reshp | Optimize the reshape transpose reshape layers such that if transpose exists in consecutive axis, then it can be clubbed together such that the number of dimension are reduced. | True | 
 
 ### NOTE
 1. This module performs some optimizations on the model and one of the optimization is in early stage named as "split_batch_dim_to_parallel_input_branches". This optimization changes a network with its partial structure with batch to multiple parallel branches in order to have TIDL-RT compatible structure. As of now the "batch specific optimization" is **experimental and at early stage** and require user to provide the start and end node names where the batch dimension needs to be replaced with parallel branches. (*Check batch.py for these two global variables named START_NODE_NAME and END_NODE_NAME*) In future support will be added to automatically detect these nodes and these variables will be removed.
