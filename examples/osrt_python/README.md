@@ -207,7 +207,10 @@ Please refer [Quantization](../../docs/tidl_fsg_quantization.md) for more detail
 | c7x_codegen        | This option is used to enable running TIDL-unsupported layers on DSP using TVM auto code generation feature | 0 - Run TIDL-unsupported layers on ARM, <br> 1 - Run TIDL-unsupported layers on DSP | 0 | Model compilation | This is a TVM specific feature, has undergone limited validation [^3]|
 | ti_internal_nc_flag   | internal use only     | -   | - | - | -|
 | advanced_options:packetize_mode   | This option allows the user to enable packetization for sparse weights in the model | 0 - disable, 1 - enable | 0 | Model compilation | - |
+| advanced_options:enable_custom_layers   | This option allows the user to run custom implementation of a a layer on C7x | 0 - disable, 1 - enable | 0 | Model compilation | - |
+| advanced_options:custom_layers_names_list   | This option allows the user to specify the names of the layers which have custom implementation | Comma separated string | "" | Model compilation | This option is only significant and compulsory for models running via ONNX-RT |
 
+Note: User shall implement custom layer specific functions for compilation stage and inference, it will require access to source code, custom layer specific documentation and capability to build firmware and tools. These are only for advanced customers having access to additional add-on package. The details to find add-on package are available as part of SDK documentation (for example for J721S2 10.1 release it is [here](https://software-dl.ti.com/jacinto7/esd/processor-sdk-rtos-j721s2/10_01_00_04/exports/docs/vision_apps/docs/user_guide/ENVIRONMENT_SETUP.html), you can find at similar place for the specific device you are using).
 
 - [1]: Specifying layer_type as part of deny_list option :   
  Tflite runtime : Specify registration code as specified in tflite builtin ops - Please refer [Tflite builtin ops](https://github.com/tensorflow/tensorflow/blob/r2.3/tensorflow/lite/builtin_ops.h)  , e.g. "1, 2" to deny offloading 'AveragePool2d' and 'Concatenation' operators to TIDL.  

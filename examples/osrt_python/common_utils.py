@@ -97,7 +97,8 @@ bias_calibration = 1
 channel_wise_quantization = 0
 
 tidl_tools_path = os.environ.get("TIDL_TOOLS_PATH")
-
+# custom_layers_list_name = "125"
+# enable_custom_layers = 1
 optional_options = {
     # "priority":0,
     # delay in ms
@@ -118,6 +119,8 @@ optional_options = {
     "advanced_options:params_16bit_names_list": params_16bit_names_list,
     "advanced_options:mixed_precision_factor": mixed_precision_factor,
     "advanced_options:quantization_scale_type": quantization_scale_type,
+    # "advanced_options:enable_custom_layers":enable_custom_layers,
+    # "advanced_options:custom_layers_list_name":custom_layers_list_name
     # "object_detection:meta_layers_names_list" : meta_layers_names_list,  -- read from models_configs dictionary below
     # "object_detection:meta_arch_type" : meta_arch_type,                  -- read from models_configs dictionary below
     "advanced_options:high_resolution_optimization": high_resolution_optimization,
