@@ -71,7 +71,17 @@ def tidl_convert_unsqueeze_to_reshape (graph: gs.Graph, onnx_graph: onnx.GraphPr
     nodes = graph.nodes
     
     for node in nodes:
-        if (node.op == "Unsqueeze") and isinstance(node.inputs[1], gs.Constant) and (not has_unk_axis(node.inputs[0])): 
+        if (node.op == "Unsqueeze") and (not has_unk_axis(node.inputs[0])):
+            if hasattr(node, 'attrs') and ('axes' in node.attrs):
+                print(node.attrs['axes'])
+                axes = node.attrs['axes']
+                axes = np.array(axes)
+            elif len(node.inputs)> 1 and isinstance(node.inputs[1], gs.Constant):
+                axes = node.inputs[1].values
+            else:
+                logging.info(f"axes is not present in inputs for node {node.name}")
+                continue
+            inp = node.inputs[0]
             inp, axes = node.inputs[0], node.inputs[1].values
             orig_shape = inp.shape
             axes = np.where(axes<0, axes+len(orig_shape) + len(axes), axes)
