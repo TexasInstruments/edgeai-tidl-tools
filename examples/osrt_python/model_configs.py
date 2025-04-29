@@ -922,8 +922,8 @@ models_configs = {
         session=dict(
             session_name="tvmdlr",
             model_path=os.path.join(models_base_path, "inception_v3.tflite"),
-            input_mean= [0,0,0],
-            input_scale= [1,1,1],
+            input_mean= [127.5,127.5,127.5],
+            input_scale= [1/127.5,1/127.5,1/127.5],
             input_optimization=True,
         ),
         postprocess=dict(),
@@ -945,8 +945,8 @@ models_configs = {
         session=dict(
             session_name="tvmdlr",
             model_path=os.path.join(models_base_path, "mobilenetv2-1.0.onnx"),
-            input_mean= [0,0,0],
-            input_scale= [1,1,1],
+            input_mean= [127.5,127.5,127.5],
+            input_scale= [1/127.5,1/127.5,1/127.5],
             input_optimization=True,
         ),
         postprocess=dict(),

@@ -125,6 +125,10 @@ def preprocess_for_onnx_mobilenetv2(image_path):
     img = np.expand_dims(np.transpose(img, (2, 0, 1)), axis=0)
 
     config = models_configs[model_id]
+    # "download_model" function does pre-processing to absorb actual mean/scale into the model, 
+    # so update mean/scale to 0/1 respectively before generating yaml file for inference
+    config["session"]["input_mean"] = [0, 0, 0]
+    config["session"]["input_scale"] = [1, 1, 1]
 
     gen_param_yaml(model_output_directory, config, 224, 224)
     return img

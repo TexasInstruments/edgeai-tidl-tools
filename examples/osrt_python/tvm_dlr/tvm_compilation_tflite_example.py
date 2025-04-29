@@ -124,6 +124,10 @@ def preprocess_for_tflite_inceptionnetv3(image_path):
     img = np.expand_dims(img, axis=0)
 
     config = models_configs[model_id]
+    # "download_model" function does pre-processing to absorb actual mean/scale into the model, 
+    # so update mean/scale to 0/1 respectively before generating yaml file for inference
+    config["session"]["input_mean"] = [0, 0, 0]
+    config["session"]["input_scale"] = [1, 1, 1]
 
     gen_param_yaml(
         model_output_directory, config, model_input_height, model_input_width
