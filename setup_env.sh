@@ -82,13 +82,13 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$TIDL_TOOLS_PATH:$SCRIPTDIR/tools/osrt_d
 
 arch=$(uname -m)
 if [[ $arch == x86_64 ]]; then
-    if [ -d $SCRIPTDIR/tools/ti-cgt-c7000_3.1.0.LTS ];then
-        export CGT7X_ROOT=$SCRIPTDIR/tools/ti-cgt-c7000_3.1.0.LTS
+    if [ -d $SCRIPTDIR/tools/ti-cgt-c7000_5.0.0.LTS ];then
+        export CGT7X_ROOT=$SCRIPTDIR/tools/ti-cgt-c7000_5.0.0.LTS
     fi
 fi
 if [[ $arch == x86_64 ]]; then
-    if [ -d $SCRIPTDIR/tools/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu ];then
-        export ARM64_GCC_PATH=$SCRIPTDIR/tools/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu
+    if [ -d $SCRIPTDIR/tools/arm-gnu-toolchain-13.2.Rel1-x86_64-aarch64-none-linux-gnu ];then
+        export ARM64_GCC_PATH=$SCRIPTDIR/tools/arm-gnu-toolchain-13.2.Rel1-x86_64-aarch64-none-linux-gnu
     fi
 fi
 

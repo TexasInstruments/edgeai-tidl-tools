@@ -168,7 +168,7 @@ scripts below to set environment variables
 
  ```
 mkdir build && cd build
-cmake ../examples && make -j && cd ..
+cmake ../examples && make -j2 && cd ..
 source ./scripts/run_python_examples.sh
 python3 ./scripts/gen_test_report.py
 ```
@@ -210,7 +210,7 @@ export SOC=<Your SOC name>
 rm -rf build bin lib
 mkdir build
 cd build
-cmake ../examples && make -j
+cmake ../examples && make -j2
 cd ..
 python3 ./scripts/gen_test_report.py
 ```

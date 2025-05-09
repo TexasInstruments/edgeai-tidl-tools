@@ -75,7 +75,7 @@ cp_osrt_lib()
 
 
 SCRIPTDIR=`pwd`
-REL=10_01_04_00
+REL=11_00_00_00
 skip_cpp_deps=0
 skip_arm_gcc_download=0
 skip_x86_python_install=0
@@ -290,13 +290,14 @@ fi
 
 if [[ $arch == x86_64 && $skip_arm_gcc_download -eq 0 ]]; then
     cd $SCRIPTDIR/tools/
-    if [ ! -d gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu ];then
-        wget --quiet  https://developer.arm.com/-/media/Files/downloads/gnu-a/9.2-2019.12/binrel/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu.tar.xz
-        tar -xf gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu.tar.xz
-        export ARM64_GCC_PATH=$(pwd)/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu
+    if [ ! -d arm-gnu-toolchain-13.2.Rel1-x86_64-aarch64-none-linux-gnu ];then
+        wget --quiet https://developer.arm.com/-/media/Files/downloads/gnu/13.2.rel1/binrel/arm-gnu-toolchain-13.2.rel1-x86_64-aarch64-none-linux-gnu.tar.xz
+        tar -xf arm-gnu-toolchain-13.2.rel1-x86_64-aarch64-none-linux-gnu.tar.xz
+        rm -rf arm-gnu-toolchain-13.2.rel1-x86_64-aarch64-none-linux-gnu.tar.xz
+        export ARM64_GCC_PATH=$(pwd)/arm-gnu-toolchain-13.2.Rel1-x86_64-aarch64-none-linux-gnu
     else
-        echo "skipping gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu download: found $(pwd)/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu"
-        export ARM64_GCC_PATH=$(pwd)/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu
+        echo "skipping arm-gnu-toolchain-13.2.Rel1-x86_64-aarch64-none-linux-gnu download: found $(pwd)/arm-gnu-toolchain-13.2.Rel1-x86_64-aarch64-none-linux-gnu"
+        export ARM64_GCC_PATH=$(pwd)/arm-gnu-toolchain-13.2.Rel1-x86_64-aarch64-none-linux-gnu
     fi
     cd $SCRIPTDIR
 fi
@@ -306,14 +307,15 @@ if [[ $arch == x86_64 ]]; then
     if [ -f $CGT7X_ROOT/bin/cl7x ]; then
         echo "CGT7X_ROOT already set to $CGT7X_ROOT, skipping download"
     else
-        if [ ! -d ti-cgt-c7000_3.1.0.LTS ];then
-            wget --quiet https://dr-download.ti.com/software-development/ide-configuration-compiler-or-debugger/MD-707zYe3Rik/3.1.0.LTS/ti_cgt_c7000_3.1.0.LTS_linux-x64_installer.bin
-            chmod +x ti_cgt_c7000_3.1.0.LTS_linux-x64_installer.bin
-            ./ti_cgt_c7000_3.1.0.LTS_linux-x64_installer.bin --mode unattended --installdir $(pwd)
-            export CGT7X_ROOT=$(pwd)/ti-cgt-c7000_3.1.0.LTS
+        if [ ! -d ti-cgt-c7000_5.0.0.LTS ];then
+            wget --quiet https://dr-download.ti.com/software-development/ide-configuration-compiler-or-debugger/MD-707zYe3Rik/5.0.0.LTS/ti_cgt_c7000_5.0.0.LTS_linux-x64_installer.bin
+            chmod +x ti_cgt_c7000_5.0.0.LTS_linux-x64_installer.bin
+            ./ti_cgt_c7000_5.0.0.LTS_linux-x64_installer.bin --mode unattended --installdir $(pwd)
+            rm -rf ti_cgt_c7000_5.0.0.LTS_linux-x64_installer.bin
+            export CGT7X_ROOT=$(pwd)/ti-cgt-c7000_5.0.0.LTS
         else
-            echo "skipping ti-cgt-c7000_3.1.0.LTS download: found $(pwd)/ti-cgt-c7000_3.1.0.LTS"
-            export CGT7X_ROOT=$(pwd)/ti-cgt-c7000_3.1.0.LTS
+            echo "skipping ti-cgt-c7000_5.0.0.LTS download: found $(pwd)/ti-cgt-c7000_5.0.0.LTS"
+            export CGT7X_ROOT=$(pwd)/ti-cgt-c7000_5.0.0.LTS
         fi
     fi
     cd $SCRIPTDIR

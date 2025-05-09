@@ -23,7 +23,7 @@
     ```
     mkdir build && cd build
     cmake ../examples/
-    make -j 
+    make -j2 
     cd  ../
     ```
 

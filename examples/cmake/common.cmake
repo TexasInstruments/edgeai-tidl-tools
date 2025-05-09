@@ -438,8 +438,8 @@ if((${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" AND ${
   add_compile_options(-DXNN_ENABLE=1)
 
   if(NOT ARM64GCC_PATH)
-    if (EXISTS $ENV{HOME}/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu)
-      set(ARM64GCC_PATH $ENV{HOME}/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu)
+    if (EXISTS $ENV{HOME}/arm-gnu-toolchain-13.2.Rel1-x86_64-aarch64-none-linux-gnu)
+      set(ARM64GCC_PATH $ENV{HOME}/arm-gnu-toolchain-13.2.Rel1-x86_64-aarch64-none-linux-gnu)
     else()
      message(WARNING "ARM64GCC_PATH is not set")
     endif()
@@ -522,8 +522,8 @@ if((NOT ${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" AN
   message(STATUS "cross compiling for TARGET_DEVICE:${TARGET_DEVICE}")
   add_compile_options(-DXNN_ENABLE=1)
   
-  if (EXISTS $ENV{TIDL_TOOLS_PATH}/../gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu/)
-    set(ARM64GCC_PATH $ENV{TIDL_TOOLS_PATH}/../gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu)
+  if (EXISTS $ENV{TIDL_TOOLS_PATH}/../arm-gnu-toolchain-13.2.Rel1-x86_64-aarch64-none-linux-gnu/)
+    set(ARM64GCC_PATH $ENV{TIDL_TOOLS_PATH}/../arm-gnu-toolchain-13.2.Rel1-x86_64-aarch64-none-linux-gnu)
     message (STATUS  "setting ARM64GCC_PATH path:${ARM64GCC_PATH}")
   else()
     message(WARNING "ARM64GCC_PATH is not set")

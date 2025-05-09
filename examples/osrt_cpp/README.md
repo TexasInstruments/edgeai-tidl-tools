@@ -32,10 +32,10 @@
       - OPENCV_INSTALL_DIR: defaults check at ~/opencv-4.1.0
       - ARMNN_PATH: defaults check at ~/armnn
       - TARGET_FS_PATH: defaults check ~/targetfs
-      - CROSS_COMPILER_PATH: defaults check ~/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu
+      - CROSS_COMPILER_PATH: defaults check ~/arm-gnu-toolchain-13.2.Rel1-x86_64-aarch64-none-linux-gnu
     ```
     cmake -DFLAG1=val -DFLAG2=val ../examples
-    make -j
+    make -j2
     cd ../
     ```
 
@@ -52,7 +52,7 @@
   - Example: for cross compiling cpp examples for am62 device on x86 host
     ```
     cmake -DTARGET_DEVICE=am62 TARGET_CPU=arm ../examples
-    make -j
+    make -j2
     cd ../
     ```
   - To compile ARMNN delegate option in AM62 native on AM62 device

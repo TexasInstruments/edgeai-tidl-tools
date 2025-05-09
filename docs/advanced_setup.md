@@ -68,7 +68,7 @@ Steps to build and run the docker image:
   - To use existing ARM GCC tools chain installed  and avoid downloading, invoke the setup script with below option and set "ARM64_GCC_PATH" environment variable
 
 ```
-export ARM64_GCC_PATH=$(pwd)/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu
+export ARM64_GCC_PATH=$(pwd)/arm-gnu-toolchain-13.2.Rel1-x86_64-aarch64-none-linux-gnu
 source ./setup.sh --skip_arm_gcc_download
 ```
 

@@ -42,7 +42,7 @@ export TISDK_IMAGE=*adas or edgeai* // [adas for evm boards, edgeai for sk board
 mkdir build
 cd build
 cmake ../examples
-make -j
+make -j2
 cd ../
 ```
 - Compile the models on X86_PC using the latest tidl-tools and copy over the artifacts to target device file system at ./edgeai-tidl-tools/
