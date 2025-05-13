@@ -142,6 +142,45 @@ def tidl_convert_tanhgelu_to_erfgelu(graph: gs.Graph, onnx_graph: onnx.GraphProt
                          output bit-wise comparision, however, the accuracy should not be impacted.")
 
 
+def tidl_break_gelu_to_components(graph: gs.Graph, onnx_graph: onnx.GraphProto):
+    """
+    Replace each Gelu node with its mathematical components:
+    gelu(x) = 0.5 * x * (1 + erf(x / sqrt(2)))
+    """
+    nodes_to_remove = []
+    for node in graph.nodes:
+        if node.op == "Gelu":
+            x = node.inputs[0]
+            logging.info(f"Found Gelu node: {node.name}, replacing with primitive operations.")
 
+            # Create constants
+            sqrt2_const = gs.Constant(name=f"{node.name}_sqrt2", values=np.array(1.4142135623730951, dtype=np.float32))
+            one_const = gs.Constant(name=f"{node.name}_one", values=np.array(1.0, dtype=np.float32))
+            half_const = gs.Constant(name=f"{node.name}_half", values=np.array(0.5, dtype=np.float32))
 
+            # Create intermediate variables
+            div_out = gs.Variable(name=f"{node.name}_div_out", dtype=np.float32)
+            erf_out = gs.Variable(name=f"{node.name}_erf_out", dtype=np.float32)
+            add_out = gs.Variable(name=f"{node.name}_add_out", dtype=np.float32)
+            mul1_out = gs.Variable(name=f"{node.name}_mul1_out", dtype=np.float32)
+
+            # Build subgraph with correct wiring
+            div_node = gs.Node(op="Div", name=f"{node.name}_div", inputs=[x, sqrt2_const], outputs=[div_out])
+            erf_node = gs.Node(op="Erf", name=f"{node.name}_erf", inputs=[div_out], outputs=[erf_out])
+            add_node = gs.Node(op="Add", name=f"{node.name}_add", inputs=[erf_out, one_const], outputs=[add_out])
+            mul1_node = gs.Node(op="Mul", name=f"{node.name}_mul1", inputs=[x, add_out], outputs=[mul1_out])
+            mul2_node = gs.Node(op="Mul", name=f"{node.name}_mul2", inputs=[mul1_out, half_const], outputs=node.outputs)
+
+            logging.debug(f"Adding nodes for Gelu decomposition: {div_node.name}, {erf_node.name}, {add_node.name}, {mul1_node.name}, {mul2_node.name}")
+
+            # Add new nodes to the graph
+            graph.nodes.extend([div_node, erf_node, add_node, mul1_node, mul2_node])
+            nodes_to_remove.append(node)
+            # Disconnect original node
+            node.outputs.clear()
+            logging.info(f"Replaced Gelu node '{node.name}' with primitive operations.")
+
+    for node in nodes_to_remove:
+        logging.info(f"Removing original Gelu node: {node.name}")
+        graph.nodes.remove(node)
         

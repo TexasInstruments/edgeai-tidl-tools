@@ -100,3 +100,68 @@ def tidl_convert_unsqueeze_to_reshape (graph: gs.Graph, onnx_graph: onnx.GraphPr
 
             # clear out original node outputs and remove
             node.outputs.clear()
+            
+            
+def tidl_eliminate_unsqueeze(graph: gs.Graph, onnx_graph: onnx.GraphProto):
+    """
+    Eliminate Unsqueeze nodes when the input is a constant initializer (gs.Constant)
+    and axes are provided as a constant input
+    Replace the Unsqueeze node with a new constant with the correct shape.
+    """
+    nodes_to_remove = []
+
+    for node in graph.nodes:
+        if node.op != "Unsqueeze":
+            continue
+
+        inp = node.inputs[0]
+        # Only handle constant initializer input
+        if not isinstance(inp, gs.Constant):
+            logging.debug(f"Skipping Unsqueeze node '{node.name}': input is not a constant.")
+            continue
+
+        if len(node.inputs) < 2 or not isinstance(node.inputs[1], gs.Constant):
+            logging.debug(f"Skipping Unsqueeze node '{node.name}': axes input is not a constant or missing.")
+            continue
+        axes = node.inputs[1].values
+        if axes is None:
+            logging.debug(f"Skipping Unsqueeze node '{node.name}': axes values are None.")
+            continue
+        axes = axes.tolist() if hasattr(axes, "tolist") else list(axes)
+
+        orig_shape = list(inp.values.shape)
+        num_axes = len(axes)
+        output_rank = num_axes + len(orig_shape)
+
+        # handle negative axes
+        axes = [a + output_rank if a < 0 else a for a in axes]
+        axes = sorted(axes)
+
+        # Generate new dims (all 0s, will fill in below)
+        new_dims = [0] * output_rank
+        for axis in axes:
+            if axis >= len(new_dims):
+                logging.warning(f"UnsqueezeElimination cannot remove node due to invalid axes: {node.name}")
+                break
+            new_dims[axis] = 1
+        else:
+            # Fill in the non-unsqueezed dims from the input shape
+            begin = 0
+            for i in range(output_rank):
+                if new_dims[i] == 0:
+                    new_dims[i] = orig_shape[begin]
+                    begin += 1
+
+            logging.debug(f"Eliminating Unsqueeze node '{node.name}': reshaping constant from {orig_shape} to {new_dims}.")
+            # Create new constant with new shape
+            new_const = gs.Constant(name=f"{inp.name}_unsqueeze_elim", values=inp.values.reshape(new_dims))
+            # Replace all outputs of the node with the new constant
+            for out in node.outputs:
+                logging.debug(f"Redirecting output '{out.name}' of node '{node.name}' to new constant '{new_const.name}'.")
+                out.inputs = [new_const]
+            nodes_to_remove.append(node)
+            logging.info(f"Eliminated Unsqueeze node: {node.name}")
+
+    for node in nodes_to_remove:
+        logging.info(f"Removing node: {node.name}")
+        graph.nodes.remove(node)

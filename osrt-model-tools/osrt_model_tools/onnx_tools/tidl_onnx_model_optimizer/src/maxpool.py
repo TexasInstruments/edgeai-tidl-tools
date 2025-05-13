@@ -68,46 +68,47 @@ import numpy as np
 def tidl_convert_maxpool_to_cascaded_maxpool(graph: gs.Graph, onnx_graph: onnx.GraphProto):
     """
     The MaxPool layer with large kernel (> 3x3) is replaced with
-    cascaded MaxPool layers wiht 3x3 kernel. Assume that the kernel size
-    is NxN where N is odd
+    cascaded MaxPool layers with 3x3 kernel, handling arbitrary stride.
+    The strides are set so that the receptive field and downsampling
+    match the original MaxPool, using the receptive field formula.
     """
     max_pools = [node for node in graph.nodes if node.op == "MaxPool"]
 
     for maxpool in max_pools:
         kernelsize = maxpool.attrs["kernel_shape"][0]
+        orig_stride = maxpool.attrs["strides"][0]
 
-        if (kernelsize > 3):
-            num_iter = (kernelsize - 1) // 2 - 1
-            if num_iter <= 0:
-                logging.info(f"{maxpool.name} optimization skipping as insufficient kernel size.")
+        logging.debug(f"Checking MaxPool node '{maxpool.name}' (kernel={kernelsize}, stride={orig_stride})")
+
+        if (kernelsize > 3) and (orig_stride >= 1):
+            logging.info(f"Converting MaxPool node '{maxpool.name}' to cascaded 3x3 MaxPools.")
+            num_layers = (kernelsize - 1) // 2
+            strides = [1] * (num_layers - 1) + [orig_stride] if num_layers > 1 else [orig_stride]
 
             maxpool.attrs["kernel_shape"] = [3,3]
             maxpool.attrs["pads"]         = [1,1,1,1]
-            maxpool.attrs["strides"]      = [1,1]
+            maxpool.attrs["strides"]      = [strides[0], strides[0]]
 
-            # copy and save maxpool.outputs
             saved_outputs = copy.copy(maxpool.outputs)
-
-            outputs = [gs.Variable(f"{saved_outputs[0].name}.0",
-                                   shape=maxpool.outputs[0].shape, dtype=np.float32)]
+            outputs = [gs.Variable(f"{saved_outputs[0].name}.0", shape=None, dtype=np.float32)]
             maxpool.outputs = outputs
 
-            # set inputs for the next maxpool to append
             inputs = maxpool.outputs
-            for i in range(num_iter):
-                if i == num_iter-1:
-                    # For the last maxpool node, ouputs is set to saved_outputs
-                    new_maxpool = gs.Node(op="MaxPool", name=f"{maxpool.name}."+f"{i+1}",
-                                          attrs=maxpool.attrs, inputs=inputs,
-                                          outputs=saved_outputs)
+            for i in range(1, num_layers):
+                attrs = {
+                    "kernel_shape": [3,3],
+                    "pads": [1,1,1,1],
+                    "strides": [strides[i], strides[i]]
+                }
+                if i == num_layers - 1:
+                    new_maxpool = gs.Node(op="MaxPool", name=f"{maxpool.name}.{i+1}",
+                                          attrs=attrs, inputs=inputs, outputs=saved_outputs)
                 else:
-                    outputs = [gs.Variable(f"{saved_outputs[0].name}."+f"{i+1}",
-                                           shape=maxpool.outputs[0].shape, dtype=np.float32)]
-                    new_maxpool = gs.Node(op="MaxPool", name=f"{maxpool.name}."+f"{i+1}",
-                                          attrs=maxpool.attrs, inputs=inputs,  outputs=outputs)
-
-                    # set inputs for the next maxpool to append
+                    outputs = [gs.Variable(f"{saved_outputs[0].name}.{i+1}", shape=None, dtype=np.float32)]
+                    new_maxpool = gs.Node(op="MaxPool", name=f"{maxpool.name}.{i+1}",
+                                          attrs=attrs, inputs=inputs, outputs=outputs)
                     inputs = new_maxpool.outputs
-
-                # Append to the graph
                 graph.nodes.append(new_maxpool)
+            logging.info(f"Finished converting MaxPool node '{maxpool.name}' to {num_layers} cascaded 3x3 MaxPools.")
+        else:
+            logging.debug(f"MaxPool node '{maxpool.name}' does not require conversion.")

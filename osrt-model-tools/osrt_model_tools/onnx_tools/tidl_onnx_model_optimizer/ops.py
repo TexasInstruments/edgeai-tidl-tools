@@ -61,6 +61,7 @@ Can give a topologically sorted order of execution to handle
 dependencies between optimizations.
 Only module to grow with time
 """
+import logging
 from typing import List, Dict
 
 
@@ -69,7 +70,6 @@ from .src.argmax import tidl_change_argmax_keepdims_to_1
 from .src.resize import tidl_convert_resize_params_size_to_scale, tidl_convert_resize_params_size_to_scale_dynamic_batch, tidl_remove_unity_resize
 from .src.attention import tidl_optimize_attention
 from .src.attention_hf import tidl_optimize_hf_attention
-from .src.attention_hf_detr import tidl_detr_optimize_attention
 from .src.batch import tidl_modify_batch_dim
 from .src.concat import tidl_convert_concat_axis_width_to_channel, tidl_convert_single_concat_to_consecutive_concats
 from .src.maxpool import tidl_convert_maxpool_to_cascaded_maxpool
@@ -84,9 +84,9 @@ from .src.softmax import tidl_push_large_channel_dim_to_height_for_width_wise_so
 from .src.conv import tidl_convert_conv_large_pad_to_smaller_kernel, tidl_convert_conv_7x7_stride4_to_stride1, tidl_convert_conv_even_filter_to_odd, \
     tidl_convert_tr_conv_stride_n_tr_to_matmul
 from .src.layernorm import tidl_expand_layernorm_to_component_ops
-from .src.slice import tidl_expand_slice_across_multiple_axis, tidl_convert_2_dimension_slice_to_maxpool
+from .src.slice import tidl_expand_slice_across_multiple_axis, tidl_convert_2_dimension_slice_to_maxpool, tidl_eliminate_noop_slice
 from .src.instancenorm import tidl_convert_instancenorm_to_layernorm
-from .src.unsqueeze import tidl_convert_unsqueeze_to_reshape
+from .src.unsqueeze import tidl_convert_unsqueeze_to_reshape, tidl_eliminate_unsqueeze
 from .src.qdq import tidl_add_bias_qdq, tidl_remove_quantize_initializer, tidl_remove_duplicate_quantize_dequantize
 from .src.neg import tidl_convert_neg_to_mul
 from .src.expand import tidl_convert_expand_to_reshape_and_concat
@@ -95,9 +95,10 @@ from .src.eltwise import tidl_replace_mean_with_eltwise, tidl_replace_sub_with_n
 from .src.depthtospace import tidl_insert_1x1_conv_before_depthtospace, tidl_convert_depth2space_to_reshp_tr_reshp
 from .src.spacetodepth import tidl_convert_space2depth_to_reshp_tr_reshp
 from .src.common import tidl_remove_duplicates
-from .src.gelu import tidl_convert_tanhgelu_to_erfgelu
+from .src.gelu import tidl_convert_tanhgelu_to_erfgelu, tidl_break_gelu_to_components
 from .src.where import tidl_remove_where_layer
 from .src.reshp_tr_reshp import tidl_optimize_reshp_tr_reshp
+from .src.attention_detr import tidl_detr_attention
 
 
 ### function dict to execute
@@ -105,7 +106,7 @@ opt_ops = {
         'convert_resize_params_size_to_scale'       : tidl_convert_resize_params_size_to_scale,
         'attention_block_optimization'              : tidl_optimize_attention,
         'hf_attention_block_optimization'           : tidl_optimize_hf_attention,
-        'hf_detr_attention_block_optimization'      : tidl_detr_optimize_attention,
+        'hf_detr_attention_block_optimization'      : tidl_detr_attention,
         'convert_concat_axis_width_to_channel'      : tidl_convert_concat_axis_width_to_channel,
         'split_batch_dim_to_parallel_input_branches': tidl_modify_batch_dim,
         'convert_maxpool_to_cascaded_maxpool'       : tidl_convert_maxpool_to_cascaded_maxpool,
@@ -148,7 +149,42 @@ opt_ops = {
         "remove_where_layer"                        : tidl_remove_where_layer,
         "convert_tr_conv_stride_n_tr_to_matmul"     : tidl_convert_tr_conv_stride_n_tr_to_matmul,
         "optimize_reshp_tr_reshp"                   : tidl_optimize_reshp_tr_reshp,
+        "eliminate_noop_slice"                      : tidl_eliminate_noop_slice,
+        "eliminate_unsqueeze"                       : tidl_eliminate_unsqueeze,
+        "break_gelu_to_components"                  : tidl_break_gelu_to_components    
 }
+
+# Bucket definitions
+BUCKETS = {
+    "BASIC_ALL": [
+        'eliminate_noop_slice',
+        'remove_duplicates',
+        'convert_resize_params_size_to_scale',
+    ],
+    "EXTENDED_ALL": [
+        'expand_slice_across_multiple_axis',
+        'convert_maxpool_to_cascaded_maxpool',
+    ],
+    "LAYOUT_ALL": [
+        'convert_depth2space_to_reshp_tr_reshp',
+    ]
+}
+
+BUCKET_ADJ_LIST = {
+    "BASIC_ALL": [],
+    "EXTENDED_ALL": ["BASIC_ALL"],
+    "LAYOUT_ALL": ["EXTENDED_ALL"],
+}
+
+
+def expand_bucket_flags(args):
+    """
+    Only log which buckets are enabled. Do NOT set all optimizations in the bucket to True.
+    """
+    for bucket in BUCKETS.keys():
+        if args.get(bucket, False):
+            logging.info(f"[BUCKET] {bucket} optimizations enabled via {bucket}")
+                
 
 qdq_supported_ops = ['add_bias_qdq', 'remove_quantize_initializer', 'remove_duplicate_quantize_dequantize']
 
@@ -174,7 +210,7 @@ adj_list = {
         'convert_conv_7x7_stride4_to_stride1'       : [],
         'expand_layernorm_to_component_ops'         : ['attention_block_optimization', 'hf_attention_block_optimization'],
         'push_matmul_channel_in_height'             : [],
-        'expand_slice_across_multiple_axis'         : [],
+        'expand_slice_across_multiple_axis'         : ['expand_slice_across_multiple_axis'],
         'convert_instancenorm_to_layernorm'         : ['expand_layernorm_to_component_ops'],
         'convert_unsqueeze_to_reshape'              : [],
         'add_bias_qdq'                              : [],
@@ -195,18 +231,21 @@ adj_list = {
         'insert_1x1_conv_before_depthtospace'       : [],
         'convert_depth2space_to_reshp_tr_reshp'     : ['optimize_reshp_tr_reshp'],
         'convert_space2depth_to_reshp_tr_reshp'     : ['optimize_reshp_tr_reshp'],
-        'convert_tanhgelu_to_erfgelu'               : [],
+        'convert_tanhgelu_to_erfgelu'               : ['break_gelu_to_components'],
         'support_broadcast_ops_constant_input'      : [],
         'remove_where_layer'                        : [],
         'convert_tr_conv_stride_n_tr_to_matmul'     : [],
         'optimize_reshp_tr_reshp'                   : [], 
+        'eliminate_noop_slice'                      : [],
+        'eliminate_unsqueeze'                       : [],
+        'break_gelu_to_components'                  : [],
 }
 
-def get_optimizers():
+def get_optimizers(bucket_flags=None):
     """
     Default optimizers option list
     """
-    return {
+    opts = {
         # operation specific
         'convert_resize_params_size_to_scale'       : False,
         'convert_concat_axis_width_to_channel'      : False,
@@ -253,14 +292,30 @@ def get_optimizers():
         'remove_where_layer'                        : True,
         'convert_tr_conv_stride_n_tr_to_matmul'     : True,
         'optimize_reshp_tr_reshp'                   : True,
-        'hf_detr_attention_block_optimization'      : False,
+        'hf_detr_attention_block_optimization'      : True,
+        'eliminate_noop_slice'                      : True,
+        'eliminate_unsqueeze'                       : True,
+        'break_gelu_to_components'                  : True, 
         
-
         # utilities specific
         'shape_inference_mode'      : 'all',
         'simplify_mode'             : None,
         'simplify_kwargs'           : {'skipped_optimizers': ['fuse_consecutive_concats']},
     }
+    
+    for bucket in BUCKETS:
+        opts[bucket] = False
+    
+    if bucket_flags:
+        # Set all individual optimizers to False
+        for k in opt_ops:
+            opts[k] = False
+        # Set all bucket flags to False, then enable only those requested
+        for b in BUCKETS:
+            opts[b] = b in bucket_flags
+    return opts
+
+
     
 def test_optimizers():
     """
@@ -268,13 +323,14 @@ def test_optimizers():
     """
     return {
         # operation specific to be specified here
-        'optimize_reshp_tr_reshp' : True,
+        'hf_detr_attention_block_optimization' : True,
 
         # utilities specific
         'shape_inference_mode'      : 'all',
         'simplify_mode'             : None,
         'simplify_kwargs'           : None
     }
+
 
 class DependencyGraph:
     """
@@ -335,4 +391,28 @@ def get_topological_sorted_key_order ():
     # construct the graph
     g = DependencyGraph(vertices= len(opt_ops), adj= adj_list)
     # return topo sorted order of keys
+    return g.topological_sort()
+
+class BucketDependencyGraph(DependencyGraph):
+    def __init__(self, adj):
+        self.graph = adj
+        self.buckets = list(adj.keys())
+
+    def topological_sort_util(self, v, visited, stack):
+        visited[v] = True
+        for u in self.graph[v]:
+            if not visited[u]:
+                self.topological_sort_util(u, visited, stack)
+        stack.append(v)
+
+    def topological_sort(self):
+        visited = {k: False for k in self.buckets}
+        stack = []
+        for v in self.buckets:
+            if not visited[v]:
+                self.topological_sort_util(v, visited, stack)
+        return stack
+
+def get_topological_sorted_bucket_order():
+    g = BucketDependencyGraph(BUCKET_ADJ_LIST)
     return g.topological_sort()

@@ -323,3 +323,371 @@ def tidl_remove_duplicates(graph:gs.Graph, onnx_graph:onnx.GraphProto, do_cleanu
     if do_cleanup:
         graph.cleanup().toposort()
 
+def find_consumers(node: gs.Node, graph: gs.Graph) -> list:
+    consumers = []
+    node_output_names = set([out.name for out in node.outputs])
+    for n in graph.nodes:
+        for inp in n.inputs:
+            if inp.name in node_output_names:
+                consumers.append(n)
+                break
+    return consumers
+
+def is_constant_node(node: gs.Node) -> bool:
+    """
+    Return True if all outputs of the node are gs.Constant, else False.
+    """
+    return all(isinstance(out, gs.Constant) for out in node.outputs)
+
+def get_node_names_by_op(graph: gs.Graph, op_type: str) -> list:
+    """
+    Return a list of node names in the graph that match the given operator type.
+    """
+    return [node.name for node in graph.nodes if node.op == op_type]
+
+def insert_subgraph_between_tensors(graph: gs.Graph, before_tensor_name: str, after_tensor_name: str, new_subgraph: gs.Graph):
+    """
+    Replace the subgraph between before_tensor_name and after_tensor_name with new_subgraph.
+    Assumes user ensures input/output compatibility.
+    """
+    before_tensor = next((t for t in graph.tensors().values() if t.name == before_tensor_name), None)
+    after_tensor = next((t for t in graph.tensors().values() if t.name == after_tensor_name), None)
+
+    if before_tensor is None:
+        logging.error(f"Tensor '{before_tensor_name}' not found in the graph.")
+        return False
+    if after_tensor is None:
+        logging.error(f"Tensor '{after_tensor_name}' not found in the graph.")
+        return False
+    
+    subgraph_input_tensor = new_subgraph.inputs[0]
+    subgraph_output_tensor = new_subgraph.outputs[0]
+    assert tuple(before_tensor.shape) == tuple(subgraph_input_tensor.shape), \
+    f"Shape mismatch: before_tensor shape {before_tensor.shape} != subgraph input shape {subgraph_input_tensor.shape}"
+    assert tuple(after_tensor.shape) == tuple(subgraph_output_tensor.shape), \
+    f"Shape mismatch: after_tensor shape {after_tensor.shape} != subgraph output shape {subgraph_output_tensor.shape}"
+
+    # dfs to find all the nodes between before_tensor and after_tensor
+    nodes_to_remove = []
+
+    def dfs_collect_nodes_bt(tensor, stop_tensor, path, nodes_to_remove):
+        for consumer in tensor.outputs:
+            path.append(consumer)
+            for out_tensor in consumer.outputs:
+                if out_tensor is stop_tensor:
+                    for node in path:
+                        if node not in nodes_to_remove:
+                            nodes_to_remove.append(node)
+                else:
+                    dfs_collect_nodes_bt(out_tensor, stop_tensor, path, nodes_to_remove)
+            path.pop()
+            
+    dfs_collect_nodes_bt(before_tensor, after_tensor, [], nodes_to_remove)
+    
+    def get_external_produced_tensors(graph, nodes_to_remove, before_tensor_name, after_tensor_name):
+        """
+        Returns a set of tensor names produced by nodes NOT in nodes_to_remove,
+        and graph input tensors that are NOT initializers/constants,
+        excluding before_tensor and after_tensor.
+        """
+        external_tensors = set()
+        # Add outputs of nodes not being removed
+        for node in graph.nodes:
+            if node not in nodes_to_remove:
+                # Skip constant nodes
+                if hasattr(node, "op") and node.op == "Constant":
+                    continue
+                for out_tensor in node.outputs:
+                    if out_tensor.name not in (before_tensor_name, after_tensor_name):
+                        external_tensors.add(out_tensor.name)
+        # Add graph input tensors that are not initializers/constants
+        for inp in graph.inputs:
+            if inp.name not in (before_tensor_name, after_tensor_name):
+                is_initializer = hasattr(inp, "values") and inp.values is not None
+                if not is_initializer:
+                    external_tensors.add(inp.name)
+        return external_tensors
+
+    external_tensors = get_external_produced_tensors(graph, nodes_to_remove, before_tensor_name, after_tensor_name)
+
+    def has_external_input(node, external_tensors):
+        for inp in node.inputs:
+            if inp.name in external_tensors:
+                return inp.name
+        return None
+
+    def has_external_output(node, nodes_to_remove, after_tensor_name):
+        for out_tensor in node.outputs:
+            if out_tensor.name == after_tensor_name:
+                continue  # skip after_tensor
+            for consumer in out_tensor.outputs:
+                if consumer not in nodes_to_remove:
+                    return out_tensor.name, getattr(consumer, "name", "<unnamed>")
+        return None, None
+
+    # Check for external inputs/outputs
+    for node in graph.nodes:
+        if node not in nodes_to_remove:
+            continue
+        ext_in = has_external_input(node, external_tensors)
+        if ext_in:
+            logging.warning(
+                f"Node '{node}' has input '{ext_in}' from outside the subgraph region. Skipping transformation."
+            )
+            return False
+        ext_out, ext_consumer = has_external_output(node, nodes_to_remove, after_tensor_name)
+        if ext_out:
+            logging.warning(
+                f"Node '{node}' has output '{ext_out}' consumed by node '{ext_consumer}' outside the subgraph region. Skipping transformation."
+            )
+            return False
+        
+    graph.nodes = [node for node in graph.nodes if node not in nodes_to_remove]
+
+    # change graph connections
+    # Only connect before_tensor to new subgraph's input for nodes that are being removed
+    for node in new_subgraph.nodes:
+        for idx, inp in enumerate(node.inputs):
+            if inp.name == subgraph_input_tensor.name:
+                node.inputs[idx] = before_tensor
+
+    for node in graph.nodes:
+        if node in nodes_to_remove:
+            continue
+        for idx, inp in enumerate(node.inputs):
+            if inp.name == after_tensor.name:
+                node.inputs[idx] = subgraph_output_tensor
+                
+    # Handle the case where after_tensor is a graph output
+    for idx, out in enumerate(graph.outputs):
+        if out.name == after_tensor.name:
+            graph.outputs[idx] = subgraph_output_tensor
+
+    # insert all nodes from new_subgraph into the original graph
+    graph.nodes.extend(new_subgraph.nodes)
+
+    graph.cleanup().toposort()
+    # onnx.save(gs.export_onnx(graph), "") <- for testing
+
+    return True
+
+def insert_subgraph_with_mappings(
+    graph: gs.Graph,
+    input_mapping: dict,   # {subgraph_input_name: original_graph_tensor_name}
+    output_mapping: dict,  # {subgraph_output_name: original_graph_tensor_name}
+    new_subgraph: gs.Graph,
+    suffix : str = None
+):
+    """
+    Replace the subgraph between before_tensor_name and after_tensor_name with new_subgraph.
+    Assumes user ensures input/output compatibility.
+    """
+    # Rename the nodes and tensor names in the new subgraph to avoid conflicts
+    if suffix:
+        # 1. Rename nodes
+        for node in new_subgraph.nodes:
+            if node.name:
+                node.name = node.name + suffix
+            elif hasattr(node, "op") and node.op:
+                node.name = f"{node.op}{suffix}"
+            else:
+                node.name = f"node_<no_name>{suffix}"
+
+        # 2. Rename tensors and update input/output mapping keys
+        tensor_rename_map = {}
+        # First, rename all tensors and build a mapping
+        for tensor in new_subgraph.tensors().values():
+            old_name = tensor.name
+            tensor.name = old_name + suffix
+            tensor_rename_map[old_name] = tensor.name
+
+        # Update input_mapping keys if needed
+        new_input_mapping = {}
+        for k, v in input_mapping.items():
+            new_k = tensor_rename_map.get(k, k)
+            new_input_mapping[new_k] = v
+        input_mapping = new_input_mapping
+
+        # Update output_mapping keys if needed
+        new_output_mapping = {}
+        for k, v in output_mapping.items():
+            new_k = tensor_rename_map.get(k, k)
+            new_output_mapping[new_k] = v
+        output_mapping = new_output_mapping
+    
+    
+    original_inputs = {}
+    for sub_in, orig_in in input_mapping.items():
+        tensor = next((t for t in graph.tensors().values() if t.name == orig_in), None)
+        if tensor is None:
+            logging.error(f"Input tensor '{orig_in}' not found in the original graph.")
+            return False
+        original_inputs[sub_in] = tensor
+
+    original_outputs = {}
+    for sub_out, orig_out in output_mapping.items():
+        tensor = next((t for t in graph.tensors().values() if t.name == orig_out), None)
+        if tensor is None:
+            logging.error(f"Output tensor '{orig_out}' not found in the original graph.")
+            return False
+        original_outputs[sub_out] = tensor
+        
+    
+    # check for missing mappings
+    missing_inputs = [inp.name for inp in new_subgraph.inputs if inp.name not in input_mapping]
+    if missing_inputs:
+        logging.error(f"No mapping provided for subgraph input(s): {missing_inputs}")
+        return False
+
+    missing_outputs = [out.name for out in new_subgraph.outputs if out.name not in output_mapping]
+    if missing_outputs:
+        logging.error(f"No mapping provided for subgraph output(s): {missing_outputs}")
+        return False
+
+    # assert shape compatibility for each mapping
+    for sub_in in new_subgraph.inputs:
+        orig_tensor = original_inputs[sub_in.name]
+        if tuple(sub_in.shape) != tuple(orig_tensor.shape):
+            logging.error(f"Shape mismatch for input mapping: subgraph input '{sub_in.name}' shape {sub_in.shape} != original tensor '{orig_tensor.name}' shape {orig_tensor.shape}")
+            return False
+
+    for sub_out in new_subgraph.outputs:
+        orig_tensor = original_outputs[sub_out.name]
+        if tuple(sub_out.shape) != tuple(orig_tensor.shape):
+            logging.error(f"Shape mismatch for output mapping: subgraph output '{sub_out.name}' shape {sub_out.shape} != original tensor '{orig_tensor.name}' shape {orig_tensor.shape}")
+            return False
+
+
+
+    nodes_to_remove = []
+
+    # def dfs_collect_nodes_multi(tensor, output_tensors, path, nodes_to_remove):
+    #     for consumer in tensor.outputs:
+    #         path.append(consumer)
+    #         for out_tensor in consumer.outputs:
+    #             if out_tensor in output_tensors:
+    #                 # Found a mapped output tensor: add all nodes in the path
+    #                 for node in path:
+    #                     if node not in nodes_to_remove:
+    #                         nodes_to_remove.append(node)
+    #                 # Continue traversal to catch chained outputs
+    #                 dfs_collect_nodes_multi(out_tensor, output_tensors, path, nodes_to_remove)
+    #             else:
+    #                 dfs_collect_nodes_multi(out_tensor, output_tensors, path, nodes_to_remove)
+    #         path.pop()
+    def dfs_collect_nodes_multi(tensor, output_tensors, path, nodes_to_remove, visited):
+        if tensor in visited:
+            return
+        visited.append(tensor)
+        for consumer in tensor.outputs:
+            path.append(consumer)
+            for out_tensor in consumer.outputs:
+                if out_tensor in output_tensors:
+                    for node in path:
+                        if node not in nodes_to_remove:
+                            nodes_to_remove.append(node)
+                    dfs_collect_nodes_multi(out_tensor, output_tensors, path, nodes_to_remove, visited)
+                else:
+                    dfs_collect_nodes_multi(out_tensor, output_tensors, path, nodes_to_remove, visited)
+            path.pop()
+
+    input_tensors = list(original_inputs.values())   # from input_mapping
+    output_tensors = list(original_outputs.values()) # from output_mapping
+
+    for tensor in input_tensors:
+        dfs_collect_nodes_multi(tensor, output_tensors, [], nodes_to_remove, [])
+
+
+
+    def get_external_produced_tensors_multi(graph, nodes_to_remove, input_tensor_names, output_tensor_names):
+        """
+        Returns a set of tensor names produced by nodes NOT in nodes_to_remove,
+        and graph input tensors that are NOT initializers/constants,
+        excluding input_tensor_names and output_tensor_names.
+        """
+        external_tensors = set()
+        # Add outputs of nodes not being removed
+        for node in graph.nodes:
+            if node not in nodes_to_remove:
+                if hasattr(node, "op") and node.op == "Constant":
+                    continue
+                for out_tensor in node.outputs:
+                    if out_tensor.name not in input_tensor_names and out_tensor.name not in output_tensor_names:
+                        external_tensors.add(out_tensor.name)
+        # Add graph input tensors that are not initializers/constants
+        for inp in graph.inputs:
+            if inp.name not in input_tensor_names and inp.name not in output_tensor_names:
+                is_initializer = hasattr(inp, "values") and inp.values is not None
+                if not is_initializer:
+                    external_tensors.add(inp.name)
+        return external_tensors
+
+    external_tensors = get_external_produced_tensors_multi(
+        graph, nodes_to_remove, set(input_mapping.values()), set(output_mapping.values())
+    )
+
+    def has_external_input_multi(node, external_tensors):
+        for inp in node.inputs:
+            if inp.name in external_tensors:
+                return inp.name
+        return None
+
+    def has_external_output_multi(node, nodes_to_remove, output_tensor_names):
+        for out_tensor in node.outputs:
+            if out_tensor.name in output_tensor_names:
+                continue  # skip mapped outputs
+            for consumer in out_tensor.outputs:
+                if consumer not in nodes_to_remove:
+                    return out_tensor.name, getattr(consumer, "name", "<unnamed>")
+        return None, None
+
+    # Check for external inputs/outputs for all nodes to be removed
+    for node in nodes_to_remove:
+        ext_in = has_external_input_multi(node, external_tensors)
+        if ext_in:
+            logging.warning(
+                f"Node '{node}' has input '{ext_in}' from outside the subgraph region. Skipping transformation."
+            )
+            return False
+        ext_out, ext_consumer = has_external_output_multi(node, nodes_to_remove, set(output_mapping.values()))
+        if ext_out:
+            logging.warning(
+                f"Node '{node}' has output '{ext_out}' consumed by node '{ext_consumer}' outside the subgraph region. Skipping transformation."
+            )
+            return False
+
+
+    # remove the nodes
+    graph.nodes = [node for node in graph.nodes if node not in nodes_to_remove]
+    
+    # wiring the new subgraph
+    # 1. Connect subgraph inputs
+    for node in new_subgraph.nodes:
+        for idx, inp in enumerate(node.inputs):
+            if inp.name in input_mapping:
+                node.inputs[idx] = original_inputs[inp.name]
+
+    # 2. Connect subgraph outputs
+    for node in graph.nodes:
+        for idx, inp in enumerate(node.inputs):
+            for sub_out_name, orig_out_tensor in original_outputs.items():
+                if inp is orig_out_tensor:
+                    # Find the corresponding subgraph output tensor
+                    subgraph_out_tensor = next((t for t in new_subgraph.outputs if t.name == sub_out_name), None)
+                    if subgraph_out_tensor:
+                        node.inputs[idx] = subgraph_out_tensor
+
+    # 3. Update graph outputs if needed
+    for idx, out in enumerate(graph.outputs):
+        for sub_out_name, orig_out_tensor in original_outputs.items():
+            if out is orig_out_tensor:
+                subgraph_out_tensor = next((t for t in new_subgraph.outputs if t.name == sub_out_name), None)
+                if subgraph_out_tensor:
+                    graph.outputs[idx] = subgraph_out_tensor
+
+    # 4. Insert new subgraph nodes
+    graph.nodes.extend(new_subgraph.nodes)
+    graph.cleanup().toposort()
+    
+    # onnx.save(gs.export_onnx(graph), "")   <- For testing
+    return True

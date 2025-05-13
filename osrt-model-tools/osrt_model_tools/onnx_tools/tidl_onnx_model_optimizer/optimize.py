@@ -69,12 +69,98 @@ import onnx
 from onnx import shape_inference
 from onnxsim import simplify
 
-from .ops import opt_ops, get_optimizers, get_topological_sorted_key_order, qdq_supported_ops
+from .ops import opt_ops, get_optimizers, get_topological_sorted_key_order, qdq_supported_ops, expand_bucket_flags, get_topological_sorted_bucket_order, BUCKETS, BUCKET_ADJ_LIST
 from .src.common import format_logger
 
 NUM_OPS = len(opt_ops)
 
-def tidl_modify (model_path: str, out_model_path: str, args: dict):
+def get_bucket_for_opt(opt_name):
+    for bucket in BUCKETS.keys():
+        if opt_name in BUCKETS[bucket]:
+            return bucket
+    return None
+
+def log_all_optimizations(args):
+    """
+    Log the status (enabled/disabled) of all optimizations in args.
+    """
+    for key, val in args.items():
+        if key in opt_ops:
+            status = "Enabled" if val else "Disabled"
+            logging.info(f"Optimization {key}: {status}")
+
+def enable_bucket_dependencies(args, bucket_order, bucket_adj_list):
+    """
+    For each enabled bucket in args, recursively enable all its dependency buckets.
+    This ensures that if a bucket is enabled, all buckets it depends on are also enabled,
+    so their optimizations will be executed in the correct order.
+    """   
+    for bucket in bucket_order:
+        flag = bucket
+        if args.get(flag, False):
+            # Recursively enable dependencies
+            stack = list(bucket_adj_list.get(bucket, []))
+            while stack:
+                dep = stack.pop()
+                dep_flag = dep
+                if not args.get(dep_flag, False):
+                    args[dep_flag] = True
+                    stack.extend(bucket_adj_list.get(dep, []))
+                    
+
+def run_optimizations(graph, onnx_graph, args, is_quantized_model, topo_sorted_keys, bucket_order, BUCKETS, mode="auto"):
+    """
+    Unified optimization runner for both bucket and individual modes.
+    mode: "bucket", "individual", or "auto" (auto-detects from args)
+    """
+    curr_op = 1
+    NUM_OPS = len(topo_sorted_keys)
+    already_run = set()
+
+    if mode == "auto":
+        bucket_mode = any(args.get(bucket, False) for bucket in bucket_order)
+        mode = "bucket" if bucket_mode else "individual"
+
+    if mode == "bucket":
+        # get (bucket, key) for all enabled buckets and their keys
+        def key_iter():
+            for bucket in bucket_order:
+                if not args.get(bucket, False):
+                    continue
+                for key in topo_sorted_keys:
+                    if key in BUCKETS[bucket]:
+                        yield bucket, key
+    else:
+        # get (bucket, key) for all enabled individual keys
+        def key_iter():
+            for key in topo_sorted_keys:
+                if args.get(key, False):
+                    yield get_bucket_for_opt(key), key
+
+    for bucket, key in key_iter():
+        if key in already_run:
+            continue
+        disabled_op = True
+        if not is_quantized_model or (is_quantized_model and key in qdq_supported_ops):
+            logging.info(f"[{curr_op}/{NUM_OPS}] {key.capitalize()} optimization (bucket: {bucket}) : Enabled")
+            func = opt_ops[key]
+            ret = func(graph, onnx_graph)
+            if isinstance(ret, gs.Graph):
+                logging.warning("Graph was updated within optimization function")
+                graph = ret
+            graph.cleanup().toposort()
+            temp_model = gs.export_onnx(graph)
+            temp_model = shape_inference.infer_shapes(temp_model, check_type=True, strict_mode=True)
+            graph = gs.import_onnx(temp_model)
+            disabled_op = False
+        if disabled_op:
+            logging.info(f"[{curr_op}/{NUM_OPS}] {key.capitalize()} optimization (bucket: {bucket}) : Disabled")
+        curr_op += 1
+        already_run.add(key)
+    return graph
+
+
+def tidl_modify(model_path: str, out_model_path: str, args: dict):
     """
     Wrapper function to modify the passed model network following standard TIDL
     specific constraints
@@ -97,34 +183,16 @@ def tidl_modify (model_path: str, out_model_path: str, args: dict):
     onnx_graph = model.graph
     graph = gs.import_onnx(model)
 
-    # check whether a quantized qdq model
     is_quantized_model = any(node.op == "QuantizeLinear" for node in graph.nodes)
-
-    curr_op = 1
     topo_sorted_keys = get_topological_sorted_key_order()
-    # logging.debug(topo_sorted_keys)
-    for key in topo_sorted_keys:
-        disabled_op = True
-        if (key in args) and args[key]:
-            if not(is_quantized_model) or (is_quantized_model and key in qdq_supported_ops):  
-                logging.info(f"[{curr_op}/{NUM_OPS}] {key.capitalize()} optimization : Enabled")
-                func = opt_ops[key]
-                ret = func(graph, onnx_graph) # only returns if graph needed to change
-                if (type(ret) == gs.Graph):
-                    #return an updated graph
-                    logging.warning("Graph was updated within optimization function") #fixme
-                    graph = ret
-                # cleanup
-                graph.cleanup().toposort()
+    bucket_order = get_topological_sorted_bucket_order()
+    enable_bucket_dependencies(args, bucket_order, BUCKET_ADJ_LIST)
+    bucket_mode = any(args.get(bucket, False) for bucket in bucket_order)
 
-                temp_model = gs.export_onnx(graph)
-                temp_model = shape_inference.infer_shapes(temp_model, check_type= True, strict_mode= True)
-                graph = gs.import_onnx(temp_model)
-                disabled_op = False
-        if disabled_op:
-            logging.info(f"[{curr_op}/{NUM_OPS}] {key.capitalize()} optimization : Disabled")
-        curr_op += 1
-
+    if bucket_mode:
+        graph = run_optimizations(graph, onnx_graph, args, is_quantized_model, topo_sorted_keys, bucket_order, BUCKETS)
+    else:
+        graph = run_optimizations(graph, onnx_graph, args, is_quantized_model, topo_sorted_keys, bucket_order, BUCKETS)
 
     # post processing simplification
     out_model = gs.export_onnx(graph)
@@ -140,7 +208,6 @@ def tidl_modify (model_path: str, out_model_path: str, args: dict):
             logging.error("Failed during simplification, aborting...")
             sys.exit(-1)
 
-    # svae to output path
     onnx.save(out_model, out_model_path)
     
 
@@ -175,6 +242,8 @@ def optimize (model:str, out_model:str = None, verbose:bool= False, custom_optim
     for key, val in kwargs.items():
         args[key] = val
 
+    expand_bucket_flags(args)
+    
     # format logger
     format_logger(args['log_level'])
 

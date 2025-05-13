@@ -76,6 +76,7 @@ def tidl_optimize_reshp_tr_reshp(graph: gs.Graph, onnx_graph: onnx.GraphProto):
         if (node.op == "Reshape") and (find_out_layer(node, 0).op == "Transpose") and (find_out_layer(find_out_layer(node, 0), 0).op == "Reshape"):
             # found reshape transpose reshape combination
             input_shape = node.inputs[0].shape
+            reshp_output_shape = node.outputs[0].shape
 
             if input_shape is None or len(input_shape) >= 7:
                 logging.info(f"Skipping optimization for {node.name} as input dimensions exceed 6 or shape unavailable")
@@ -106,12 +107,21 @@ def tidl_optimize_reshp_tr_reshp(graph: gs.Graph, onnx_graph: onnx.GraphProto):
             old_perms_consecutive = copy.deepcopy(perms_consecutive)
             perms_consecutive.sort(key=lambda x: min(x))
 
+            if not isinstance(node.inputs[1], gs.Constant):         #TODO
+                logging.info(f"Skipping optimization for {node.name} as reshape shape is not constant.")
+                continue
+            
             reshp_1_shape_old = node.inputs[1].values
 
             reshp_1_shape_new = []
             idx = 0
             for group in perms_consecutive:
-                group_size = np.prod([reshp_1_shape_old[elem] for elem in group])
+                group_size = 1
+                for elem in group:
+                    if elem > 0:
+                        group_size *= reshp_1_shape_old[elem]
+                    else: # when the reshape dim is -1, we want to pick from the original shape
+                        group_size *= reshp_output_shape[elem]
                 reshp_1_shape_new.append(group_size)
                 idx += len(group)
 
@@ -123,15 +133,14 @@ def tidl_optimize_reshp_tr_reshp(graph: gs.Graph, onnx_graph: onnx.GraphProto):
             node.inputs[1] = gs.Constant(node.inputs[1].name + "rehsp_1_shape" + str(iteration) , np.array(reshp_1_shape_new))
 
             min_old_perms_consecutive = [min(group) for group in old_perms_consecutive]
-
+                        
             # Ensure min_old_perms_consecutive contains all elements from 0 to len(min_old_perms_consecutive)
-            for num in range(len(min_old_perms_consecutive)):
-                if num not in min_old_perms_consecutive:
-                    for idx in range(len(min_old_perms_consecutive)):
-                        if min_old_perms_consecutive[idx] > num:
-                            min_old_perms_consecutive[idx] = num
-                            break
+            new_min_old_perms_consecutive = list(range(len(min_old_perms_consecutive)))
+            magnitude_order = sorted(range(len(min_old_perms_consecutive)), key=lambda x: min_old_perms_consecutive[x])
+            for idx, original_idx in enumerate(magnitude_order):
+                new_min_old_perms_consecutive[original_idx] = idx
 
+            min_old_perms_consecutive = new_min_old_perms_consecutive
 
             tr_node.attrs['perm'] = min_old_perms_consecutive
 

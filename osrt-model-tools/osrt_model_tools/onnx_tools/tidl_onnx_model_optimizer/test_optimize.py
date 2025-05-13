@@ -3,14 +3,18 @@ from osrt_model_tools.onnx_tools.tidl_onnx_model_optimizer.ops import test_optim
 import numpy as np
 import onnxruntime
 
+import logging
+logging.basicConfig(level=logging.INFO) 
+
 model_name = "" # add the path to your onnx file here
 
-optimizers = test_optimizers() # need to modify this to debug your transformation
-# optimizers = get_optimizers() # need to modify this to debug all transformations
+# optimizers = test_optimizers() # need to modify this to debug your transformation
+# optimizers = get_optimizers(bucket_flags=['LAYOUT_ALL']) # need to modify this to debug bucket transformations
+optimizers = get_optimizers() # need to modify this to debug all transformations
 # optimizers = None # checks the default setting
 optimized_model_path = '/'.join(model_name.split('/')[:-1]) + f"/optimized_{model_name.split('/')[-1]}" 
 
-optimize(model_name, out_model=optimized_model_path, custom_optimizers=optimizers, verbose=False)
+optimize(model_name, out_model=optimized_model_path, custom_optimizers=optimizers, verbose=True)
 
 # check if the output of the original and the converted onnx model matches
 sess_options = onnxruntime.SessionOptions()

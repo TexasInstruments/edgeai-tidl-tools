@@ -36,6 +36,40 @@ Input arguments to `optimize`
 
 The above command will generate the output model in the same location as mentioned. Some shapes are removed while making changes to graph structure, so shape inference has to be run on the output model before model compilation
 
+## Bucket-Based Optimization
+
+The optimizer supports a **bucket** mechanism to group related optimizations and control their execution order. Buckets are logical collections of optimization passes that can be enabled or disabled as a group. This allows users to easily apply sets of related transformations, ensuring dependencies and execution order are respected.
+> **Note:** Buckets are for better categorization and creating structure. All optimizations will work even without using buckets; you can enable and use individual optimizations directly.
+
+
+### How Buckets Work
+
+- Each bucket (e.g., `BASIC_ALL`, `EXTENDED_ALL`, `LAYOUT_ALL`) contains a list of optimization keys.
+- Buckets can have dependencies on other buckets, enforced via a dependency graph.
+- When a bucket is enabled, all optimizations within it are considered for execution, and any dependent buckets are automatically enabled.
+- The optimizer determines whether to run in "bucket mode" or "individual mode" based on the provided flags.
+
+### Usage
+
+To enable a bucket, use the `get_optimizers` function with the `bucket_flags` argument:
+
+```python
+from osrt_model_tools.onnx_tools.tidl_onnx_model_optimizer.ops import get_optimizers
+
+optimizers = get_optimizers(bucket_flags=['LAYOUT_ALL'])
+```
+
+This will enable all optimizations in the `LAYOUT_ALL` bucket and its dependencies.
+
+You can also combine bucket flags with individual optimization flags for fine-grained control.
+
+### Example Buckets
+
+- `BASIC_ALL`: Foundational optimizations (e.g., removing duplicates, basic shape changes).
+- `EXTENDED_ALL`: More advanced or dependent optimizations, depends on `BASIC_ALL`.
+- `LAYOUT_ALL`: Layout-related optimizations, depends on `EXTENDED_ALL`.
+
+See [ops.py](ops.py) for the full list of buckets and their contents.
 
 ## Operations
 The different optimizations performed are summarized here along with their default flag value (Enabled = True, Disabled = False).
@@ -44,7 +78,7 @@ The different optimizations performed are summarized here along with their defau
 |:------: | :------------------------------------ |:------------------------------------: | :---------------- |
 | 1 | convert_resize_params_size_to_scale | Resize operator can specify either size of scale parameter in input, but TIDL does not support size input params. This function converts size to corresposding scale. For e.g, with input [3, 256, 256] and size input [3, 128, 128], it will convert to scales [1, 2, 2]| False |
 | 2 | convert_concat_axis_width_to_channel | TIDL only supports concat on channel axis. This function converts Concat layer with width axis to Concat layer with channel axis adjusting the input and output accordingly with Reshapes | False |
-| 3 | convert_maxpool_to_cascaded_maxpool | The MaxPool layer with large kernel (> 3x3) is replaced with cascaded MaxPool layers wiht 3x3 kernel. Assume that the kernel size is NxN where N is odd | True |
+| 3 | convert_maxpool_to_cascaded_maxpool | The MaxPool layer with large kernel (> 3x3) is replaced with cascaded MaxPool layers with 3x3 kernel. Assume that the kernel size is NxN where N is odd. Arbitrary stride supported | True |
 | 4 | convert_reducemean_to_matmul | The ReduceMean layer is replaced with the cascaded multiple layers, e.g., "Reshape + MatMul + Reshape". The attribute, "axes" of ReduceMean should be W and H dimension. ReduceMean in channel dimension is not supported | True |
 | 5 | convert_gemm_to_matmul_and_add | Gemm layer with constant B input in converted to Matmul and Gemm bias (if exists) is converted to a following Add layer | False |
 | 6 | convert_matmul_to_conv_1x1s1 | Function to convert MatMul layer to Convolution with kernel 1x1, stride 1x1. Only works for MatMuls with input dimensions not equal to 3 (i.e., 2 or >= 4 works) | False |
@@ -85,6 +119,9 @@ The different optimizations performed are summarized here along with their defau
 | 41 | convert_tanhgelu_to_erfgelu | Replace the gelu based on tanh to the originial erf based gelu  | True |
 | 42 | support_broadcast_ops_constant_input | Replaces the constants in elt-wise arithmetic operators to prevent multidimensional broadcast or cross-broadcast | False |
 | 43 | remove_where_layer | Remove the where layer when the condition is all True or all False | True |  
+| 44 | eliminate_noop_slice | Removes Slice nodes that do not change the input tensor | True |
+| 45 | eliminate_unsqueeze | Removes Unsqueeze nodes that do not change the input tensor | True |
+| 46 | break_gelu_to_components | Breaks the GELU activation into its primitive operations using the erf-based formula | True |
 
 ### NOTE
 1. This module performs some optimizations on the model and one of the optimization is in early stage named as "split_batch_dim_to_parallel_input_branches". This optimization changes a network with its partial structure with batch to multiple parallel branches in order to have TIDL-RT compatible structure. As of now the "batch specific optimization" is **experimental and at early stage** and require user to provide the start and end node names where the batch dimension needs to be replaced with parallel branches. (*Check batch.py for these two global variables named START_NODE_NAME and END_NODE_NAME*) In future support will be added to automatically detect these nodes and these variables will be removed.

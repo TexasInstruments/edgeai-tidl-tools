@@ -246,3 +246,81 @@ def tidl_add_slice_step_axis (graph: gs.Graph, onnx_graph: onnx.GraphProto):
                 
             node.outputs.clear()
             node_iter += 1
+            
+            
+def tidl_eliminate_noop_slice(graph: gs.Graph, onnx_graph: onnx.GraphProto):
+    """
+    Eliminate Slice nodes that are no-ops (i.e., they do not change the input tensor).
+    """
+    nodes = graph.nodes
+
+    for node in nodes:
+        if node.op != "Slice":
+            continue
+
+        # Get starts, ends, axes, steps as node.inputs
+        if len(node.inputs) < 4:
+            logging.debug(f"Skipping Slice node '{node.name}': not enough inputs for starts/ends/axes.")
+            continue  # Need at least input, starts, ends, axes
+
+        input_var = node.inputs[0]
+        starts = node.inputs[1]
+        ends = node.inputs[2]
+        axes = node.inputs[3]
+        steps = node.inputs[4] if len(node.inputs) > 4 else None
+
+        if not (isinstance(starts, gs.Constant) and isinstance(ends, gs.Constant) and isinstance(axes, gs.Constant)):
+            logging.debug(f"Skipping Slice node '{node.name}': starts/ends/axes are not all constants.")
+            continue
+        if steps is not None and not isinstance(steps, gs.Constant):
+            logging.debug(f"Skipping Slice node '{node.name}': steps is not a constant.")
+            continue
+
+        starts_v = starts.values
+        ends_v = ends.values
+        axes_v = axes.values
+        steps_v = steps.values if steps is not None else np.ones_like(starts_v)
+
+        # Only support <=4D input and batch size 1
+        input_shape = input_var.shape
+        if input_shape is not None and (len(input_shape) > 4 or input_shape[0] != 1):
+            logging.debug(f"Skipping Slice node '{node.name}': input shape not supported ({input_shape}).")
+            continue
+
+        # All steps must be 1
+        if not np.all(steps_v == 1):
+            logging.debug(f"Skipping Slice node '{node.name}': steps are not all 1 ({steps_v}).")
+            continue
+
+        # Check if slice is a no-op: starts==0, ends==input_shape[axis]
+        is_noop = True
+        for i, axis in enumerate(axes_v):
+            axis = int(axis)
+            start = starts_v[i]
+            end = ends_v[i]
+            dim = input_shape[axis] if input_shape is not None and axis < len(input_shape) else None
+            if start != 0:
+                logging.debug(f"Slice node '{node.name}' is not a no-op: start[{i}]={start} != 0.")
+                is_noop = False
+                break
+            if dim is not None and end != dim:
+                logging.debug(f"Slice node '{node.name}' is not a no-op: end[{i}]={end} != dim[{axis}]={dim}.")
+                is_noop = False
+                break
+
+        if is_noop:
+            logging.info(f"Eliminating no-op Slice node: {node.name}")
+            # If the output of this slice is a graph output, update graph.outputs
+            for out in node.outputs:
+                for idx, graph_out in enumerate(graph.outputs):
+                    if out is graph_out:
+                        logging.debug(f"Updating graph output from '{out.name}' to '{input_var.name}' for node '{node.name}'.")
+                        graph.outputs[idx] = input_var
+            # Replace all consumers of this node's output with the input
+            for out in node.outputs:
+                for consumer in out.outputs:
+                    for idx, inp in enumerate(consumer.inputs):
+                        if inp is out:
+                            logging.debug(f"Redirecting consumer '{consumer.name}' input from '{out.name}' to '{input_var.name}'.")
+                            consumer.inputs[idx] = input_var
+            node.outputs.clear()

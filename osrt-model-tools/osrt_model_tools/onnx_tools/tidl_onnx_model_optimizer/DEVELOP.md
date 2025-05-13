@@ -33,7 +33,7 @@ Your function might need to be run strictly after some other existing optimizati
 
 1. Add a new entry `'abc': []` in the dict `adj_list`.
 2. For any other key, `k`, if you need your function to run before function corresposding to k, modify your entry as `'abc': [k]`. Keep adding to this list like `[k1, k2, k3, ...]` for as many functions you need.
-3. If you want your funtion to strictly run after some other function corresposnding to key `k`, modify the entry for `k` as `k: [..., 'abc']`
+3. If you want your function to strictly run after some other function corresponding to key `k`, modify the entry for `k` as `k: [..., 'abc']`
 
 Please add a single line comment justfying your reason of adding a dependency, as these are good when a strict ordering of functions are necessary but costs time when there are lot of functions i.e., nodes in the dependency graph.
 
@@ -56,3 +56,101 @@ Also please try to run pylint on the code as this codebase has been developed wi
         "--max-line-length=160"
     ],
 ```
+
+## Bucket Functionality
+
+The optimizer supports grouping related optimizations into **buckets**. This allows you to enable or disable sets of optimizations together and ensures that dependencies between groups are respected.
+> **Note:** Optimizations do not need to belong to a bucket to work. Any optimization can be enabled and executed independently, even if it is not part of any bucket.
+
+### How to Add or Modify Buckets
+
+1. **Define a Bucket**  
+   In [`ops.py`](ops.py), add your bucket to the `BUCKETS` dictionary:
+   ```python
+   BUCKETS = {
+       "BASIC_ALL": [...],
+       "EXTENDED_ALL": [...],
+       "MY_NEW_BUCKET": ['my_opt1', 'my_opt2'],
+   }
+   ```
+
+2. **Set Bucket Dependencies**  
+   In `BUCKET_ADJ_LIST`, specify dependencies between buckets:
+   ```python
+   BUCKET_ADJ_LIST = {
+       "BASIC_ALL": [],
+       "MY_NEW_BUCKET": ["BASIC_ALL"],  
+   }
+   ```
+   > **Note on Dependency Direction:**  
+   > - For **individual optimizations** (ops), the adjacency list (`adj_list`) expresses dependencies as:  
+   >   `'my_opt': ['other_opt']`  
+   >   This means **`my_opt` must run before `other_opt`**.
+   >
+   > - For **buckets**, the adjacency list (`BUCKET_ADJ_LIST`) expresses dependencies in the opposite direction:  
+   >   `'MY_NEW_BUCKET': ['BASIC_ALL']`  
+   >   This means **`MY_NEW_BUCKET` depends on `BASIC_ALL`**, so `BASIC_ALL` and its optimizations will be enabled and run before `MY_NEW_BUCKET`.
+   >
+   > Be careful with this difference when adding new dependencies!
+   
+
+3. **Enable Buckets in Optimizer**  
+   Use `get_optimizers(bucket_flags=[...])` to enable your bucket for a run.
+
+4. **Bucket Execution Flow**  
+   - When a bucket is enabled, all optimizations in that bucket are considered.
+   - Dependencies are resolved recursively, so all prerequisite buckets are also enabled.
+   - The optimizer runs optimizations in a topologically sorted order based on dependencies.
+
+5. **Logging**  
+   The optimizer logs which buckets are enabled and which optimizations are run.
+
+### Example
+
+To enable all layout-related optimizations and their dependencies:
+```python
+optimizers = get_optimizers(bucket_flags=['LAYOUT_ALL'])
+```
+
+### Notes
+
+- Buckets are useful for testing, debugging, or deploying groups of related optimizations.
+- You can still enable or disable individual optimizations as needed.
+- See [`optimize.py`](optimize.py) and [`ops.py`](ops.py) for implementation details.
+
+## Adding Optimizations Using Subgraph Insertion API
+
+A new, flexible way to add optimizations is by generating a replacement subgraph (for example, using PyTorch), exporting it to ONNX, and inserting it into the main graph using the `insert_subgraph_with_mappings` API. This approach minimizes manual rewiring and makes complex graph surgery much easier.
+
+### Workflow
+
+1. **Identify the node(s) to replace** (e.g., all `Neg` nodes).
+2. **Dynamically create a replacement subgraph** using PyTorch (or another framework), export it to ONNX, and import it with ONNX GraphSurgeon.
+3. **Map the subgraph’s inputs and outputs** to the original graph’s tensors.
+4. **Insert the subgraph** using `insert_subgraph_with_mappings`, which handles most of the rewiring automatically.
+
+### Example
+
+See [1_negToMul.ipynb](example/1_negToMul.ipynb) for a step-by-step tutorial.
+In this example, every `Neg` node is replaced by a `Mul` node with `-1`, using a PyTorch module exported to ONNX.
+
+#### Key Advantages
+
+- **Rapid prototyping:** No need to manually construct ONNX nodes or handle all wiring.
+- **Reusability:** Easily adapt the approach for other node replacements or subgraph insertions.
+- **Reliability:** The API ensures correct mapping and minimizes manual errors.
+
+#### API Reference
+
+```python
+from osrt_model_tools.onnx_tools.tidl_onnx_model_optimizer.src.common import insert_subgraph_with_mappings
+
+success = insert_subgraph_with_mappings(
+    graph,            # The main ONNX GraphSurgeon graph
+    input_mapping,    # Dict: subgraph input name → main graph tensor name
+    output_mapping,   # Dict: subgraph output name → main graph tensor name
+    subgraph,         # The ONNX GraphSurgeon subgraph to insert
+    suffix            # (Optional) Suffix for unique naming
+)
+```
+
