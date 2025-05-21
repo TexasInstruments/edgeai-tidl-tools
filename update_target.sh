@@ -35,7 +35,7 @@ TARGET_FS_PATH=/
 # List of supported REL versions for backward compatibility
 SUPPORTED_REL=("10_01_04_00")
 
-REL="11_00_00_00"
+REL="11_00_06_00"
 SOC=${SOC:-'null'}
 TISDK_IMAGE=${TISDK_IMAGE:-'null'}
 SDK_VERSION=${SDK_VERSION:-'null'}
