@@ -198,7 +198,19 @@ elif [[ $SOC == am67a ]]; then
     if [ $run_model != 0 ];then
         echo "run python3 onnxrt_ep.py"
         python3 onnxrt_ep.py $ncpus
-    fi 
+    fi
+    cd $CURDIR/examples/osrt_python/tvm_dlr
+    if [[ $arch == x86_64 ]]; then
+    python3  tvm_compilation_onnx_example.py --pc-inference
+    python3  tvm_compilation_tflite_example.py --pc-inference
+    python3  tvm_compilation_onnx_example.py
+    python3  tvm_compilation_tflite_example.py
+    python3  tvm_compilation_timm_example.py
+    fi
+    if [ $run_model != 0 ];then
+        echo "run python3  dlr_inference_example.py "
+        python3  dlr_inference_example.py 
+    fi
     cd $CURDIR 
 fi
 
