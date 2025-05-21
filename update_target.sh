@@ -32,9 +32,6 @@
 SCRIPTDIR=`pwd`
 TARGET_FS_PATH=/
 
-# List of supported REL versions for backward compatibility
-SUPPORTED_REL=("10_01_04_00")
-
 REL="11_00_06_00"
 SOC=${SOC:-'null'}
 TISDK_IMAGE=${TISDK_IMAGE:-'null'}
@@ -57,6 +54,10 @@ if [ `arch` != "aarch64" ]; then
 fi
 
 verify_env() {
+    if [ "$REL" != "11_00_07_00" ]; then
+        echo "Cannot invoke this script with version $REL. Please use version 11_00_07_00"
+    fi
+
     if [ "$SOC" != "am62" ] && [ "$SOC" != "am62a" ] &&
     [ "$SOC" != "am68a" ] && [ "$SOC" != "am68pa" ] &&
     [ "$SOC" != "am69a" ] && [ "$SOC" != "am67a" ]; then
@@ -81,10 +82,10 @@ verify_env() {
         return 1
     fi
 
-    if [ "$SDK_VERSION" != "10_1" ]; then
+    if [ "$SDK_VERSION" != "11_0" ]; then
         echo
         echo "Incorrect SDK_VERSION defined: $SDK_VERSION"
-        echo "Allowed values for $REL is 10_1"
+        echo "Allowed values for SDK_VERSION is 11_0"
         return 1
     fi
 
@@ -212,11 +213,8 @@ update_osrt_components() {
     cd $TARGET_FS_PATH/$HOME/
 
     # Updating NUMPY
-    if [ "$SDK_VERSION" == "9_2" ]; then
-        pip3 install --upgrade --force-reinstall --no-cache-dir numpy==1.23.0 --disable-pip-version-check
-    else 
-        pip3 install --upgrade --force-reinstall --no-cache-dir numpy==1.26.4 --disable-pip-version-check
-    fi
+    pip3 install --upgrade --force-reinstall --no-cache-dir numpy==1.26.4 --disable-pip-version-check
+    
 
     # Cleanup
     rm -rf $TARGET_FS_PATH/$HOME/arago_j7_pywhl
