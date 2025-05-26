@@ -85,6 +85,10 @@ def tidl_convert_gather_with_single_index_to_slice(graph: gs.Graph, onnx_graph: 
             # check if single index
             gather_indices = np.array(tensors[idx.name].values, dtype= np.int64)
             if len(gather_indices.shape) == 0:
+                # check if index is -ve
+                if gather_indices < 0:
+                    # round with gather axis dimension
+                    gather_indices = gather_indices + inp.shape[node.attrs['axis']]
                 axis = node.attrs['axis']
                 # add Slice
                 input_dtype = node.inputs[0].dtype
