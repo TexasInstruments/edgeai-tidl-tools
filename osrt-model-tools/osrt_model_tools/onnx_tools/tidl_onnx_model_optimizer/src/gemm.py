@@ -73,20 +73,24 @@ def tidl_convert_gemm_to_matmul_and_add (graph: gs.Graph, onnx_graph: onnx.Graph
     nodes = graph.nodes
     tensors = graph.tensors()
 
+    idx = 0
+
     for node in nodes:
-        if node.op == "Gemm" and\
-        isinstance(node.inputs[1], gs.Constant):		# check if B is constant input
+        if node.op == "Gemm" and isinstance(node.inputs[1], gs.Constant):		# check if B is constant input
+            if node.name:
+                node_name = node.name
+            else:
+                node_name = 'gemm' + str(idx)  
             # check attributes
             if 'alpha' in node.attrs.keys() and node.attrs['alpha'] != 1:
-                logging.critical(f"Gemm node {node.name} has unsupported alpha != 1, skipping change")
+                logging.critical(f"Gemm node {node_name} has unsupported alpha != 1, skipping change")
                 continue
 
             if 'beta' in node.attrs.keys() and node.attrs['beta'] != 1:
-                logging.critical(f"Gemm node {node.name} has unsupported beta != 1, skipping change")
+                logging.critical(f"Gemm node {node_name} has unsupported beta != 1, skipping change")
                 continue
 
             is_tranposed = node.attrs['transB'] if 'transB' in node.attrs.keys() else 0
-
 
 
             # extract weights and bias
@@ -107,27 +111,29 @@ def tidl_convert_gemm_to_matmul_and_add (graph: gs.Graph, onnx_graph: onnx.Graph
 
             # add MatMul node
             if bias is not None:
-                matmul_out = gs.Variable(name= f"{node.name}_MatMul_out", dtype= np.float32)
+                matmul_out = gs.Variable(name= f"{node_name}_MatMul_out", dtype= np.float32)
             else:
                 matmul_out = node.outputs[0]
 
-            matmul_wts = gs.Constant(name= f"{node.name}_MatMul_weights", values=weights)
-            matmul = gs.Node(name= f"{node.name}_MatMul", op= "MatMul",
+            matmul_wts = gs.Constant(name= f"{node_name}_MatMul_weights", values=weights)
+            matmul = gs.Node(name= f"{node_name}_MatMul", op= "MatMul",
                              inputs= [node.inputs[0], matmul_wts], outputs= [matmul_out])
-            logging.debug(f"Adding MatMul node {matmul.name} with weights from {node.name}")
+            logging.debug(f"Adding MatMul node {matmul.name} with weights from {node_name}")
             graph.nodes.append(matmul)
 
             # add Add if bias is not None
             if bias is not None:
                 # create add
-                # add_out = gs.Variable(name= f"{node.name}_Bias_Add_out", dtype= np.float32)
+                # add_out = gs.Variable(name= f"{node_name}_Bias_Add_out", dtype= np.float32)
                 add_out = node.outputs[0]
-                add_wts = gs.Constant(name= f"{node.name}_Bias_Add_constant", values= bias)
-                add = gs.Node(name= f"{node.name}_Bias_Add", op= "Add",
+                add_wts = gs.Constant(name= f"{node_name}_Bias_Add_constant", values= bias)
+                add = gs.Node(name= f"{node_name}_Bias_Add", op= "Add",
                               inputs= [matmul_out, add_wts], outputs= [add_out])
-                logging.debug(f"Adding Add node {add.name} with bias from {node.name}")
+                logging.debug(f"Adding Add node {add.name} with bias from {node_name}")
 
                 graph.nodes.append(add)
 
             # clear this node's output
             node.outputs.clear()
+
+            idx += 1
