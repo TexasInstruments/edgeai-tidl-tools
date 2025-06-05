@@ -175,7 +175,7 @@ namespace tidl
                     /* sw and sh are scaled co-ordiates over the results[0]
                     vector Get the color corresponding to class detected at
                     this co-ordinate*/
-                    index = (int32_t)(sh * inDataHeight + sw);
+                    index = (int32_t)(sh * inDataWidth + sw);
                     class_id = classes[index];
 
                     /* random color assignment based on class-id's */
