@@ -62,6 +62,7 @@ import filecmp
 import os
 import platform
 import sys
+import argparse
 final_report = []
 
 enable_debug = False
@@ -69,6 +70,14 @@ enable_debug = False
 ref_outputs_base_dir = 'test_data' 
 rt_base_dir_py = 'examples/osrt_python/'
 rt_base_dir_bash = 'scripts'
+
+parser = argparse.ArgumentParser(argument_default=argparse.SUPPRESS)
+parser.add_argument('--device', help='SOC (am62|am68pa|am68a|am69a|am62a|am67a)',type=str, default="None")
+parser.add_argument('--script_name', help='Enter scripts to generate report with',nargs='*' ,type=str, default="None")
+parser.add_argument('--script_dir', help='Enter respective folder inside examples/osrt_python/',nargs='*' ,type=str, default="None")
+parser.add_argument('--lang', help='Enter py for python script and bash for shell scripts for above entries',nargs='*' ,type=str, default="None")
+parser.add_argument('--rt_type', help='Enter runtime type',nargs='*' ,type=str, default="None")
+args = parser.parse_args()
 
 try:
     SOC = os.environ['SOC']
@@ -140,6 +149,12 @@ elif SOC == "am67a" :
 else:
     print( "Set SOC variable in your shell")
     exit(-1)
+
+if (args.device != "None"):
+    device = args.device
+    test_configs = []
+    for i in range(len(args.script_name)):
+        test_configs.append({'script_name':args.script_name[i], 'script_dir':args.script_dir[i], 'lang':args.lang[i], 'rt_type':args.rt_type[i]})
 
 currIdx = 0
 if platform.machine() != 'aarch64':
