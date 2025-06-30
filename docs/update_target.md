@@ -78,7 +78,7 @@ export TISDK_IMAGE=adas
 ```
 mkdir build
 cd build
-cmake ../examples
+cmake ../examples -DENABLE_SDK_9_2_COMPATIBILITY=1
 make -j2
 cd ../
 ```
