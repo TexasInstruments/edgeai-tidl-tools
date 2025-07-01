@@ -32,7 +32,7 @@
 SCRIPTDIR=`pwd`
 TARGET_FS_PATH=/
 
-REL="11_00_06_00"
+REL="11_00_07_00"
 SOC=${SOC:-'null'}
 TISDK_IMAGE=${TISDK_IMAGE:-'null'}
 SDK_VERSION=${SDK_VERSION:-'null'}
@@ -82,10 +82,25 @@ verify_env() {
         return 1
     fi
 
-    if [ "$SDK_VERSION" != "11_0" ]; then
+    if [ "$SDK_VERSION" != "10_1" ] && [ "$SDK_VERSION" != "9_2" ]; then
         echo
         echo "Incorrect SDK_VERSION defined: $SDK_VERSION"
-        echo "Allowed values for SDK_VERSION is 11_0"
+        echo "Allowed values for SDK_VERSION is 10_1 or 9_2"
+        return 1
+    fi
+
+    if [ "$SDK_VERSION" == "9_2" ] && [ "$UPDATE_FIRMWARE_AND_LIB" == "1" ]; then
+        if [ "$SOC" != "am69a" ] || [ "$TISDK_IMAGE" != "adas" ]; then
+            echo
+            echo "Backward compatibility for 9.2 SDK is only enabled for AM69A ADAS IMAGES"
+            return 1
+        fi
+    fi
+
+    if [ "$SOC" == "am62a" ] && [ "$TISDK_IMAGE" == "adas" ]; then
+        echo
+        echo "AM62A does not have ADAS Image. Using EDGEAI"
+        TISDK_IMAGE=edgeai
         return 1
     fi
 
