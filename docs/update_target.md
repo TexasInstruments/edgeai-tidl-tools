@@ -22,12 +22,12 @@ This section describes **how to use an updated tidl tools version with a previou
 >  Make sure you have stable internet connection on the EVM to run this script.
 
 
-## SDK 10.1
+## SDK 11.0
 ### Example usage for updating OSRT components and C7x firmwares
 **Run the following on target device** 
 ```
-export SDK_VERSION=10_1
-export SOC=*soc*                    // [am62a,am68a,am68pa,am69a,am67a]
+export SDK_VERSION=11_0
+export SOC=*soc*                    // [am68a,am68pa,am69a,am67a]
 export TISDK_IMAGE=*adas or edgeai* // [adas for evm boards, edgeai for sk boards]
 ./update_target.sh
 ```
@@ -42,43 +42,6 @@ export TISDK_IMAGE=*adas or edgeai* // [adas for evm boards, edgeai for sk board
 mkdir build
 cd build
 cmake ../examples
-make -j2
-cd ../
-```
-- Compile the models on X86_PC using the latest tidl-tools and copy over the artifacts to target device file system at ./edgeai-tidl-tools/
-- Execute below to run inference on target device with both Python and CPP APIs
-
-```
-# scp -r <pc>/edgeai-tidl-tools/model-artifacts/  <dev board>/edgeai-tidl-tool/
-# scp -r <pc>/edgeai-tidl-tools/models/  <dev board>/edgeai-tidl-tool/
-python3 ./scripts/gen_test_report.py
-```
-- The execution of above step will generate output images at ```./edgeai-tidl-tools/output_images```.
-
-## SDK 9.2
-### Example usage for updating OSRT components and C7x firmwares
-**Run the following on target device** 
-> **_NOTE:_**
-> Backward compatibility for 9.2 SDK is only available for AM69A ADAS SDK
-
-```
-export SDK_VERSION=9_2
-export SOC=am69a
-export TISDK_IMAGE=adas
-./update_target.sh
-```
-
-> **_NOTE:_**
-> Make sure you reboot the EVM after the update for the new firmware to be loaded
-
-### Compilation and validation
-- Once the setup is done, follow the steps below to build CPP application on EVM
-
-**Run the following on target device** 
-```
-mkdir build
-cd build
-cmake ../examples -DENABLE_SDK_9_2_COMPATIBILITY=1
 make -j2
 cd ../
 ```
