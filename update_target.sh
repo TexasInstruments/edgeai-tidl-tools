@@ -93,7 +93,6 @@ verify_env() {
             echo
             echo "AM62A SDK 11.0 does not exist."
             return 1
-        fi
     fi
 
     if [ "$SOC" == "am62a" ] && [ "$TISDK_IMAGE" == "adas" ]; then
