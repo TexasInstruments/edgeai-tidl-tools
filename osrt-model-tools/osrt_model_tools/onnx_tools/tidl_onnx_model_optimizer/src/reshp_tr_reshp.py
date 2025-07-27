@@ -73,7 +73,8 @@ def tidl_optimize_reshp_tr_reshp(graph: gs.Graph, onnx_graph: onnx.GraphProto):
     nodes = graph.nodes
     iteration = 0
     for node in nodes:
-        if (node.op == "Reshape") and (find_out_layer(node, 0).op == "Transpose") and (find_out_layer(find_out_layer(node, 0), 0).op == "Reshape"):
+        if (node.op == "Reshape") and (find_out_layer(node, 0) is not None) and (find_out_layer(node, 0).op == "Transpose") \
+            and (find_out_layer(find_out_layer(node, 0), 0) is not None) and (find_out_layer(find_out_layer(node, 0), 0).op == "Reshape"):
             # found reshape transpose reshape combination
             input_shape = node.inputs[0].shape
             reshp_output_shape = node.outputs[0].shape
@@ -149,13 +150,3 @@ def tidl_optimize_reshp_tr_reshp(graph: gs.Graph, onnx_graph: onnx.GraphProto):
             iteration += 1
             node.outputs[0].shape = None
             tr_node.outputs[0].shape = None
-
-
-
-
-
-
-
-
-            
-
