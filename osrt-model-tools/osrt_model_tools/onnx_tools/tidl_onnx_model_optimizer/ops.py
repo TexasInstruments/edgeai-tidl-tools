@@ -311,6 +311,9 @@ def get_optimizers(bucket_flags=None):
         'convert_tr_conv_stride_n_tr_to_matmul'     : True,
         'optimize_reshp_tr_reshp'                   : True,
         'hf_detr_attention_block_optimization'      : True,
+        'convert_reducemax_width_to_height'         : False,
+        'replace_tile_gatherelements_with_reshape_gather' : False,
+        'replace_einsum_with_basic_ops'             : False, 
         
         # utilities specific
         'shape_inference_mode'      : 'all',
