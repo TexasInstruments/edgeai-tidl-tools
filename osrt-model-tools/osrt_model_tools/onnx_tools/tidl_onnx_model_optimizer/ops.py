@@ -99,6 +99,9 @@ from .src.gelu import tidl_convert_tanhgelu_to_erfgelu, tidl_break_gelu_to_compo
 from .src.where import tidl_remove_where_layer
 from .src.reshp_tr_reshp import tidl_optimize_reshp_tr_reshp
 from .src.attention_detr import tidl_detr_attention
+from .src.reducemax import tidl_convert_reducemax_width_to_height
+from .src.gather_elements import tidl_replace_tile_gatherelements_with_reshape_gather
+from .src.einsum import tidl_replace_einsum_with_basic_ops
 from .src.input_optimization import tidl_add_input_normalization
 
 ### function dict to execute
@@ -152,7 +155,10 @@ opt_ops = {
         "optimize_reshp_tr_reshp"                   : tidl_optimize_reshp_tr_reshp,
         "eliminate_noop_slice"                      : tidl_eliminate_noop_slice,
         "eliminate_unsqueeze"                       : tidl_eliminate_unsqueeze,
-        "break_gelu_to_components"                  : tidl_break_gelu_to_components,   
+        "break_gelu_to_components"                  : tidl_break_gelu_to_components,
+        "convert_reducemax_width_to_height"          : tidl_convert_reducemax_width_to_height,
+        "replace_tile_gatherelements_with_reshape_gather" : tidl_replace_tile_gatherelements_with_reshape_gather,
+        "replace_einsum_with_basic_ops"             : tidl_replace_einsum_with_basic_ops,    
 }
 
 # Bucket definitions
@@ -241,6 +247,9 @@ adj_list = {
         'eliminate_noop_slice'                      : [],
         'eliminate_unsqueeze'                       : [],
         'break_gelu_to_components'                  : [],
+        'convert_reducemax_width_to_height'         : [],
+        'replace_tile_gatherelements_with_reshape_gather' : [],
+        'replace_einsum_with_basic_ops'             : [],
 }
 
 def get_optimizers(bucket_flags=None):
@@ -296,6 +305,9 @@ def get_optimizers(bucket_flags=None):
         'eliminate_noop_slice'                      : True,
         'eliminate_unsqueeze'                       : True,
         'break_gelu_to_components'                  : True, 
+        'convert_reducemax_width_to_height'         : False,
+        'replace_tile_gatherelements_with_reshape_gather' : False,
+        'replace_einsum_with_basic_ops'             : False, 
         'convert_tr_conv_stride_n_tr_to_matmul'     : True,
         'optimize_reshp_tr_reshp'                   : True,
         'hf_detr_attention_block_optimization'      : True,
