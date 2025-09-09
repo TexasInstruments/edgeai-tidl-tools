@@ -123,7 +123,7 @@ def get_all_node_names (model_path, start_end_layers={}, verbose=False, **kwargs
     model = onnx.load(model_path)
 
     graph = gs.import_onnx(model)
-    model_outputs = [node.inputs[0].name for node in graph.outputs]
+    model_outputs = [out.inputs[0].name for out in graph.outputs if len(out.outputs) == 0 ]
     
     deny_list_nodes = []
     for node in graph.nodes:

@@ -691,3 +691,112 @@ def insert_subgraph_with_mappings(
     
     # onnx.save(gs.export_onnx(graph), "")   <- For testing
     return True
+
+def get_all_deformal_convolution_nodes(graph: gs.Graph):
+    
+    def search_for_straigt_pattern_in_inputs(variable:gs.Variable, pattern):
+        nodes = []
+        for p in pattern:
+            if len(variable.inputs) == 0: return None
+            inp_node = variable.inputs[0]
+            if inp_node.op != p:
+                return None
+            nodes.append(inp_node)
+            variable = inp_node.inputs[0]
+        return nodes
+    
+    deform_convs = []
+    
+    for node in graph.nodes:
+        if node.op != 'GridSample':
+            continue
+        grid_sample_node = node
+        out_node = grid_sample_node.outputs[0]
+        if len(out_node.outputs) != 1: continue
+        out_node = out_node.outputs[0]
+        
+        if out_node.op != 'Mul':
+            continue
+        mul1_node = out_node
+        out_node = mul1_node.outputs[0]
+        if len(out_node.outputs) != 1: continue
+        out_node = out_node.outputs[0]
+        
+        if out_node.op != 'Reshape':
+            continue
+        reshape2_node = out_node
+        out_node = reshape2_node.outputs[0]
+        if len(out_node.outputs) != 1: continue
+        out_node = out_node.outputs[0]
+        
+        if out_node.op != 'Conv':
+            continue
+        final_conv_node = out_node
+        
+        inp_node = node.inputs[0]
+        if len(inp_node.inputs) == 0: continue
+        inp_node = inp_node.inputs[0]
+        
+        if inp_node.op != 'Pad':
+            continue
+        pad_node = inp_node
+        
+        main_inp = pad_node.inputs[0]
+        offset_branch = grid_sample_node.inputs[1]
+        mask_branch = mul1_node.inputs[1]
+        
+        result = search_for_straigt_pattern_in_inputs(mask_branch, ['Reshape', 'Sigmoid'])
+        if result is None:
+            continue
+        reshape1_node, sigmoid_node = result
+        
+        inp_node = sigmoid_node.inputs[0]
+        if len(inp_node.inputs) == 0: continue
+        inp_node = inp_node.inputs[0]
+        if inp_node.op not in  ('Conv', 'Slice'):
+            continue
+        if inp_node.op == 'Conv':
+            if inp_node.inputs[0] is  main_inp:
+                mask_node = mask_conv_node = inp_node
+            else: continue
+        elif inp_node.op == 'Slice':
+            mask_node = inp_node
+            inp_node = mask_node.inputs[0]
+            if len(inp_node.inputs) == 0: continue
+            inp_node = inp_node.inputs[0]
+            if inp_node.op != 'Conv':
+                continue
+            mask_conv_node = inp_node
+            if mask_conv_node.inputs[0] is not main_inp:
+                continue
+        
+        result = search_for_straigt_pattern_in_inputs(offset_branch,['Reshape', 'Sub', 'Mul', 'Concat'])
+        if result is None:
+            continue
+        reshape_node, sub_node, mul_node, concat_node = result
+        if len(concat_node.inputs) != 2: continue
+        x_side, y_side = concat_node.inputs
+
+        result = search_for_straigt_pattern_in_inputs(x_side, ['Unsqueeze', 'Div','Add','Slice'])
+        if result is None:
+            continue
+        x_unsqueeze_node, x_div_node, x_add_node, x_slice_node = result
+        result = search_for_straigt_pattern_in_inputs(y_side, ['Unsqueeze', 'Div','Add','Slice'])
+        if result is None:
+            continue
+        y_unsqueeze_node, y_div_node, y_add_node, y_slice_node = result
+        if x_slice_node.inputs[0] is not y_slice_node.inputs[0]:
+            continue
+        inp_node = x_slice_node.inputs[0]
+        if len(inp_node.inputs)==0: continue
+        inp_node = inp_node.inputs[0]
+        if inp_node.op == 'Conv':
+            offset_conv_node = inp_node
+        if offset_conv_node.inputs[0] is not main_inp:
+            continue
+        deform_convs.append([offset_conv_node, mask_node, x_slice_node, y_slice_node,
+                            x_add_node, y_add_node, x_div_node, y_div_node, x_unsqueeze_node, y_unsqueeze_node,
+                            concat_node, mul_node, sub_node, reshape_node, pad_node, grid_sample_node, 
+                            sigmoid_node, reshape1_node, mul1_node, reshape2_node, final_conv_node
+                            ])
+    return deform_convs

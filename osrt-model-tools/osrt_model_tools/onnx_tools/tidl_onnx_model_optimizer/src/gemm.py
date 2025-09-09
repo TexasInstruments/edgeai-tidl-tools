@@ -69,71 +69,80 @@ def tidl_convert_gemm_to_matmul_and_add (graph: gs.Graph, onnx_graph: onnx.Graph
     Convert Gemm layer with constant B input to Matmul and
     Gemm bias (if exists) to a following add layer
     """
-
-    nodes = graph.nodes
-    tensors = graph.tensors()
-
-    idx = 0
-
-    for node in nodes:
-        if node.op == "Gemm" and isinstance(node.inputs[1], gs.Constant):		# check if B is constant input
-            if node.name:
-                node_name = node.name
+    def add_transpose_for(tensor):
+        if isinstance(tensor, gs.Constant):
+            tensor.values = np.transpose(tensor.values,(-2,-1))
+            return tensor
+        if isinstance(tensor, gs.Variable):
+            inp_node = tensor.inputs[0]
+            if inp_node.op == 'Constant':
+                value = inp_node.attrs.get('value', None)
+                if value: 
+                    return gs.Constant(name = tensor.name, values = np.transpose(value,(-2,-1))) 
+            shape = A.shape
+            shape[-2:] = shape[-2:][::-1]
+            perm = list(range(len(shape)))
+            perm[-2:]= perm[-2:][::-1]
+            t_out = gs.Variable(name = f"{tensor.name}_t_out",dtype=tensor.dtype,shape=shape)
+            trans_node = gs.Node('Transpose',name=f"{tensor.name}_t",inputs=[tensor],outputs=[t_out], attrs=dict(perm=perm))
+            graph.nodes.append(trans_node)
+            logging.debug(f"Added transpose for {tensor.name}")
+            return t_out
+        logging.debug(f"Skipping transpose for {tensor.name} as it is of unsupported type ({tensor.__class__.__name__})")
+        return tensor
+        
+    gemm_nodes = [node for node in graph.nodes if node.op == 'Gemm']
+    for node in gemm_nodes:
+        A,B = node.inputs[0:2]
+        C = node.inputs[2] if len(node.inputs)==3 else None
+        
+        alpha = node.attrs.get('alpha',1.0)
+        beta = node.attrs.get('beta',1.0)
+        
+        transA = node.attrs.get('transA',0)
+        transB = node.attrs.get('transB',0)
+        
+        if transA:
+            A = add_transpose_for(A)
+        
+        if transB:
+            B = add_transpose_for(B)
+        
+        if alpha == 0:
+            logging.critical(f"alpha == 0 not supported for changing at node {node.name}")
+            continue
+        
+        if alpha != 1:
+            if isinstance(A, gs.Constant):
+                A.values = A.values * alpha
+            elif isinstance(B, gs.Constant):
+                B.values = B.values * alpha
             else:
-                node_name = 'gemm' + str(idx)  
-            # check attributes
-            if 'alpha' in node.attrs.keys() and node.attrs['alpha'] != 1:
-                logging.critical(f"Gemm node {node_name} has unsupported alpha != 1, skipping change")
-                continue
-
-            if 'beta' in node.attrs.keys() and node.attrs['beta'] != 1:
-                logging.critical(f"Gemm node {node_name} has unsupported beta != 1, skipping change")
-                continue
-
-            is_tranposed = node.attrs['transB'] if 'transB' in node.attrs.keys() else 0
-
-
-            # extract weights and bias
-            weights = np.array(tensors[node.inputs[1].name].values, dtype=np.float32)
-            bias = None
-            if len(node.inputs) > 2:	# bias exists
-                bias = np.array(tensors[node.inputs[2].name].values, dtype=np.float32)
-
-            if is_tranposed:
-                # swap last two indices
-                weight_dim_indices = list(range(len(weights.shape)))
-                temp = weight_dim_indices[-1]
-                weight_dim_indices[-1] = weight_dim_indices[-2]
-                weight_dim_indices[-2] = temp
-
-                weights = np.transpose(weights, tuple(weight_dim_indices))
-                logging.debug(f"transB is set to True, tranposing weights with perm = {tuple(weight_dim_indices)}")
-
-            # add MatMul node
-            if bias is not None:
-                matmul_out = gs.Variable(name= f"{node_name}_MatMul_out", dtype= np.float32)
-            else:
-                matmul_out = node.outputs[0]
-
-            matmul_wts = gs.Constant(name= f"{node_name}_MatMul_weights", values=weights)
-            matmul = gs.Node(name= f"{node_name}_MatMul", op= "MatMul",
-                             inputs= [node.inputs[0], matmul_wts], outputs= [matmul_out])
-            logging.debug(f"Adding MatMul node {matmul.name} with weights from {node_name}")
-            graph.nodes.append(matmul)
-
-            # add Add if bias is not None
-            if bias is not None:
-                # create add
-                # add_out = gs.Variable(name= f"{node_name}_Bias_Add_out", dtype= np.float32)
-                add_out = node.outputs[0]
-                add_wts = gs.Constant(name= f"{node_name}_Bias_Add_constant", values= bias)
-                add = gs.Node(name= f"{node_name}_Bias_Add", op= "Add",
-                              inputs= [matmul_out, add_wts], outputs= [add_out])
-                logging.debug(f"Adding Add node {add.name} with bias from {node_name}")
-
-                graph.nodes.append(add)
-
-            # clear this node's output
-            node.outputs.clear()
-
-            idx += 1
+                mul_out = gs.Variable(name = f"{node.name}_mul_out",dtype=A.dtype,shape=A.shape)
+                alpha_out = gs.Constant(name = f"{node.name}_alpha",values = alpha)
+                mul_node = gs.Node('Mul',name=f"{node.name}_mul",inputs=[A,alpha_out],outputs=[mul_out],)
+                A = mul_out
+                graph.nodes.append(mul_node)
+                logging.debug(f"Added mul node {mul_node.name} for node {node.name} and alpha {alpha}")
+        shape = A.shape[:-1]+B.shape[-1:]
+        matmul_out = gs.Variable(name = f"{node.name}_matmul_out",dtype=A.dtype,shape=shape) if beta!=0 and C is not None else node.outputs[0]
+        matmul_node = gs.Node('MatMul',name=f"{node.name}_matmul",inputs=[A,B],outputs=[matmul_out],)
+        graph.nodes.append(matmul_node)
+        logging.debug(f"Added matmul node {matmul_node.name} for node {node.name}")
+        
+        if C is not None and beta != 0 :
+            if beta != 1:
+                if isinstance(C, gs.Constant):
+                    C.values = C.values * beta
+                if isinstance(C, gs.Variable):
+                    mul_out = gs.Variable(name = f"{node.name}_mul_out",dtype=C.dtype,shape=C.shape)
+                    beta_out = gs.Constant(name = f"{node.name}_beta",values = beta)
+                    mul_node = gs.Node('Mul',name=f"{node.name}_mul",inputs=[C,beta_out],outputs=[mul_out],)
+                    graph.nodes.append(mul_node)
+                    logging.debug(f"Added mul node {mul_node.name} for node {node.name} and beta {beta}")
+                    C = mul_out
+            add_node = gs.Node('Add',name=f"{node.name}_add",inputs=[matmul_out,C],outputs=[node.outputs[0]],)
+            graph.nodes.append(add_node)
+            logging.debug(f"Added Add node {add_node.name} for node {node.name}")
+        node.outputs.clear()
+        

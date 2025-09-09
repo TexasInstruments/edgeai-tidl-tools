@@ -93,7 +93,8 @@ def tidl_optimize_reshp_tr_reshp(graph: gs.Graph, onnx_graph: onnx.GraphProto):
             if tr_perms is None:
                 logging.info(f"tr_perms do not exist for {tr_node.name}.")
                 continue
-
+            tr_perms = [len(reshp_output_shape)+x if x <0 else x for x in tr_perms]
+            
             perms_consecutive = []
             temp = [tr_perms[0]]
             for i in range(1, len(tr_perms)):
@@ -119,7 +120,7 @@ def tidl_optimize_reshp_tr_reshp(graph: gs.Graph, onnx_graph: onnx.GraphProto):
             for group in perms_consecutive:
                 group_size = 1
                 for elem in group:
-                    if elem > 0:
+                    if reshp_1_shape_old[elem] > 0:
                         group_size *= reshp_1_shape_old[elem]
                     else: # when the reshape dim is -1, we want to pick from the original shape
                         group_size *= reshp_output_shape[elem]

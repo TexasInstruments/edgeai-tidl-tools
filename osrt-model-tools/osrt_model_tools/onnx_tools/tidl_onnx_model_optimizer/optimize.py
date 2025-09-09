@@ -74,6 +74,45 @@ from .src.common import format_logger
 
 NUM_OPS = len(opt_ops)
 
+
+def print_node_count_table(model1:onnx.ModelProto, model2:onnx.ModelProto):
+    
+    try:
+        import tabulate
+    except:
+        logging.warning("tabulate is not installed so no node count table will be generated!")
+        return
+    
+    graph1 = gs.import_onnx(model1)
+    graph2 = gs.import_onnx(model2)
+    ops = []
+    
+    num1 = {}
+    for node in graph1.nodes:
+        num1[node.op] = num1.get(node.op, 0) + 1
+        ops.append(node.op) if node.op not in ops else None
+    
+    num2 = {}
+    for node in graph2.nodes:
+        num2[node.op] = num2.get(node.op, 0) + 1
+        ops.append(node.op) if node.op not in ops else None
+    
+    RED = "\033[91m"
+    GREEN = "\033[92m"
+    RESET = "\033[0m"
+    
+    headers = ["Operation", "Original Model", "Optimized Model"]
+    ops = sorted(ops)
+    
+    data = [ ]
+    for op in ops:
+        n1 = num1.get(op,0)
+        n2 = num2.get(op,0)
+        data.append([op, n1, f"{RED if n2>n1 else (GREEN if n2<n1 else '')}{n2}{RESET if n1!=n2 else ''}"])
+
+    table = tabulate.tabulate(data,headers,tablefmt="fancy_grid")
+    logging.info(f'After optimization, node count table:\n{table}\n')
+
 def get_bucket_for_opt(opt_name):
     for bucket in BUCKETS.keys():
         if opt_name in BUCKETS[bucket]:
@@ -125,26 +164,31 @@ def run_optimizations(graph, onnx_graph, args, is_quantized_model, topo_sorted_k
         # get (bucket, key) for all enabled buckets and their keys
         def key_iter():
             for bucket in bucket_order:
-                if not args.get(bucket, False):
-                    continue
+                val = args.get(bucket, False)
+                if not val:
+                    yield bucket, key, val
                 for key in topo_sorted_keys:
                     if key in BUCKETS[bucket]:
-                        yield bucket, key
+                        yield bucket, key, val
     else:
         # get (bucket, key) for all enabled individual keys
         def key_iter():
             for key in topo_sorted_keys:
-                if args.get(key, False):
-                    yield get_bucket_for_opt(key), key
+                val = args.get(key, False)
+                yield get_bucket_for_opt(key), key, val
 
-    for bucket, key in key_iter():
+    for bucket, key, val in key_iter():
         if key in already_run:
             continue
         disabled_op = True
-        if not is_quantized_model or (is_quantized_model and key in qdq_supported_ops):
+        if val and not is_quantized_model or (is_quantized_model and key in qdq_supported_ops):
             logging.info(f"[{curr_op}/{NUM_OPS}] {key.capitalize()} optimization (bucket: {bucket}) : Enabled")
+            if isinstance(val, dict):
+                kwargs = val
+            else:
+                kwargs = {}
             func = opt_ops[key]
-            ret = func(graph, onnx_graph)
+            ret = func(graph, onnx_graph, **kwargs)
             if isinstance(ret, gs.Graph):
                 logging.warning("Graph was updated within optimization function")
                 graph = ret
@@ -185,9 +229,20 @@ def tidl_modify(model_path: str, out_model_path: str, args: dict):
 
     is_quantized_model = any(node.op == "QuantizeLinear" for node in graph.nodes)
     topo_sorted_keys = get_topological_sorted_key_order()
+    curr_op = 1
+    for key, val in args.items():
+        if key not in topo_sorted_keys:
+            continue
+        if args[key] not in (True, False, None) and not isinstance(args[key], dict):
+            logging.warning(f"[{curr_op}/{NUM_OPS}] {key.capitalize()} optimization : Wrong input of type{type(args[key])}, defaulting to disabled")
+            args[key] =False
+            logging.warning(f"only value of True or False or None or a dict of arguments is supported")
+        curr_op += 1
+            
     bucket_order = get_topological_sorted_bucket_order()
     enable_bucket_dependencies(args, bucket_order, BUCKET_ADJ_LIST)
     bucket_mode = any(args.get(bucket, False) for bucket in bucket_order)
+    
 
     if bucket_mode:
         graph = run_optimizations(graph, onnx_graph, args, is_quantized_model, topo_sorted_keys, bucket_order, BUCKETS)
@@ -207,7 +262,10 @@ def tidl_modify(model_path: str, out_model_path: str, args: dict):
         if not ok:
             logging.error("Failed during simplification, aborting...")
             sys.exit(-1)
-
+            
+    print_node_count_table(model, out_model)
+    
+    # svae to output path
     onnx.save(out_model, out_model_path)
     
 
@@ -248,13 +306,13 @@ def optimize (model:str, out_model:str = None, verbose:bool= False, custom_optim
     format_logger(args['log_level'])
 
 
-     # check for valid path
+    # check for valid path
     if not os.path.isfile(model):
         logging.error(f"File {model} not found")
         sys.exit(-1)
     # set output model path
     model_name = model.split('/')[-1]
-    out_model_path = '/'.join(model.split('/')[:-1]) + f"/optimized_{model_name}" if out_model is None else out_model
+    out_model_path = os.path.join('/'.join(model.split('/')[:-1]) , f"optimized_{model_name}") if out_model is None else out_model
     # call main wrapper function
     tidl_modify(model_path= model, out_model_path= out_model_path, args= args)
     logging.info(f"Saved modified model at {out_model_path}")

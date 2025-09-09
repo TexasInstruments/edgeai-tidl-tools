@@ -295,6 +295,10 @@ def tidl_convert_tr_conv_stride_n_tr_to_matmul(graph: gs.Graph, onnx_graph: onnx
                 logging.debug(f"convert_tr_conv_stride_n_tr_to_matmul is supported only in the case of transpose->conv->tranpose,\
                               skipping conversion of {node.name}")
                 continue
+            if in_layers[0].attrs['perm'] != [0,2,3,1] or out_layers[0].attrs['perm'] != [0,3,1,2]:
+                logging.debug(f"convert_tr_conv_stride_n_tr_to_matmul is supported only in the case of transpose(0,2,3,1)->conv->tranpose(0,3,1,2),\
+                              skipping conversion of {node.name}")
+                continue
             strides = node.attrs['strides']
             kernel_shape = node.attrs['kernel_shape']
 

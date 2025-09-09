@@ -63,47 +63,57 @@ import onnx_graphsurgeon as gs
 import onnx
 import numpy as np
 
+from .common import get_all_deformal_convolution_nodes
+
 
 def tidl_replace_sub_with_neg_add(graph: gs.Graph,
                             onnx_graph: onnx.GraphProto):
     '''
     Sub node is not supported, but this can be replaced (less efficiently) with negation and add
     '''
+    deform_convs = get_all_deformal_convolution_nodes(graph)
 
     for node in graph.nodes:
+        
+        if any(node in deform_conv for deform_conv in deform_convs):
+            continue
 
         if node.op == "Sub":
             #Sub -> C = A-B. inputs=[A,B]
             A, B = node.inputs
-            C = node.outputs[0]
-            broadcast_neg = 1
-            if A.shape != B.shape:
-                logging.warning('This is a broadcasted node; not yet supported for Sub replacment')
-                continue
+            if isinstance(B, gs.Variable):
+                C = node.outputs[0]
+                broadcast_neg = 1
+                # if A.shape != B.shape:
+                #     logging.warning('This is a broadcasted node; not yet supported for Sub replacment')
+                #     continue
 
-            logging.debug(f'Replacing Sub node {node.name} with Multiply-Add')
-            #Create Mul node, and use B as one input and -1 (constant; broadcasted) as the other
-            base_name = node.name
-            mul_name = base_name + '_Mul'
-            #We will broadcast -1 multiplication across the whole input B
-            neg_values = np.ndarray((1), dtype=B.dtype)
-            neg_values[0] = -1
-            negation_tensor = gs.Constant(mul_name + '/neg', neg_values)
-            negation_output = gs.Variable(mul_name + '/negative', dtype=B.dtype, shape=B.shape)
-            mul_node = gs.Node('Mul', mul_name, {}, [B, negation_tensor], [negation_output])
+                logging.debug(f'Replacing Sub node {node.name} with Multiply-Add')
+                #Create Mul node, and use B as one input and -1 (constant; broadcasted) as the other
+                base_name = node.name
+                mul_name = base_name + '_Mul'
+                #We will broadcast -1 multiplication across the whole input B
+                neg_values = np.ndarray((1), dtype=B.dtype)
+                neg_values[0] = -1
+                negation_tensor = gs.Constant(mul_name + '/neg', neg_values)
+                negation_output = gs.Variable(mul_name + '/negative', dtype=B.dtype,)
+                mul_node = gs.Node('Mul', mul_name, {}, [B, negation_tensor], [negation_output])
 
-            #Create add node for A + (-B) 
-            add_name = base_name + '_Add'
-            add_node = gs.Node('Add', add_name, {} , [A, negation_output], outputs=[C])
+                #Create add node for A + (-B) 
+                add_name = base_name + '_Add'
+                add_node = gs.Node('Add', add_name, {} , [A, negation_output], outputs=[C])
 
-            node.outputs.pop(0)
+                node.outputs.pop(0)
 
-            logging.debug(f'Add Multiply node {mul_node.name}')
-            logging.debug(f'Add "Add" node {add_node.name}')
-            graph.nodes.append(mul_node)
-            graph.nodes.append(add_node)
-            #old Sub node will be removed with graph.cleanup. 
-            #The new nodes will require graph.toposort()
+                logging.debug(f'Add Multiply node {mul_node.name}')
+                logging.debug(f'Add "Add" node {add_node.name}')
+                graph.nodes.append(mul_node)
+                graph.nodes.append(add_node)
+                #old Sub node will be removed with graph.cleanup. 
+                #The new nodes will require graph.toposort()
+            elif isinstance(B, gs.Constant):
+                node.op = 'Add'
+                B.values = -B.values
 
 def tidl_replace_mean_with_eltwise(graph: gs.Graph,
                             onnx_graph: onnx.GraphProto):

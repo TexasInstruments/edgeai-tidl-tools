@@ -62,16 +62,17 @@ import logging
 import onnx_graphsurgeon as gs
 import onnx
 import numpy as np
-from .common import has_unk_axis
+from .common import has_unk_axis, get_all_deformal_convolution_nodes
 
 def tidl_convert_unsqueeze_to_reshape (graph: gs.Graph, onnx_graph: onnx.GraphProto):
     """
-    Converting the unsqueeze layer to reshape to support it in TIDL
+    Converting the unsqueeze layer to reshape to support it in TIDL, except for those in deformable convolutions
     """
     nodes = graph.nodes
+    deform_convs = get_all_deformal_convolution_nodes(graph)
     
     for node in nodes:
-        if (node.op == "Unsqueeze") and (not has_unk_axis(node.inputs[0])):
+        if (node.op == "Unsqueeze") and (not has_unk_axis(node.inputs[0])) and (not any(node in deform_conv for deform_conv in deform_convs)): 
             if hasattr(node, 'attrs') and ('axes' in node.attrs):
                 print(node.attrs['axes'])
                 axes = node.attrs['axes']

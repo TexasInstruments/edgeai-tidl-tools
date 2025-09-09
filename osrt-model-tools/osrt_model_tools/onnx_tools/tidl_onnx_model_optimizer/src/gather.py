@@ -79,7 +79,7 @@ def tidl_convert_gather_with_single_index_to_slice(graph: gs.Graph, onnx_graph: 
     for node in nodes:
         if node.op == "Gather" and isinstance(node.inputs[1], gs.Constant) and (not has_unk_axis(node.inputs[0])):
             inp, idx = node.inputs[0], node.inputs[1]
-            if len(inp.shape)<3:
+            if len(inp.shape)<2:
                 logging.info(f"The Gather node {node.name} is currently not supported for conversion to slice and reshape ! ")
                 continue
             # check if single index
