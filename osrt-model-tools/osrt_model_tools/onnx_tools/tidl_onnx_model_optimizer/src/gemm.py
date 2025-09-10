@@ -71,7 +71,9 @@ def tidl_convert_gemm_to_matmul_and_add (graph: gs.Graph, onnx_graph: onnx.Graph
     """
     def add_transpose_for(tensor):
         if isinstance(tensor, gs.Constant):
-            tensor.values = np.transpose(tensor.values,(-2,-1))
+            perm = list (range(len(tensor.shape)))
+            perm[-2],perm[-1] = perm[-1],perm[-2]
+            tensor.values = np.transpose(tensor.values,(perm))
             return tensor
         if isinstance(tensor, gs.Variable):
             inp_node = tensor.inputs[0]
@@ -124,7 +126,7 @@ def tidl_convert_gemm_to_matmul_and_add (graph: gs.Graph, onnx_graph: onnx.Graph
                 A = mul_out
                 graph.nodes.append(mul_node)
                 logging.debug(f"Added mul node {mul_node.name} for node {node.name} and alpha {alpha}")
-        shape = A.shape[:-1]+B.shape[-1:]
+        shape = list(A.shape[:-1])+list(B.shape[-1:])
         matmul_out = gs.Variable(name = f"{node.name}_matmul_out",dtype=A.dtype,shape=shape) if beta!=0 and C is not None else node.outputs[0]
         matmul_node = gs.Node('MatMul',name=f"{node.name}_matmul",inputs=[A,B],outputs=[matmul_out],)
         graph.nodes.append(matmul_node)

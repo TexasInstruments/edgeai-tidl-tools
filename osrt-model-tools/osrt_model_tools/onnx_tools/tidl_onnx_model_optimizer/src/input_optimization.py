@@ -59,7 +59,7 @@
 import logging
 import onnx_graphsurgeon as gs
 import numpy as np
-import onnx
+import numbers
 from onnx import TensorProto
 
 def tidl_add_input_normalization(graph, onnx_graph,  input_mean=None,input_scale=None):
@@ -74,15 +74,20 @@ def tidl_add_input_normalization(graph, onnx_graph,  input_mean=None,input_scale
         input_mean = [[128.0, 128.0, 128.0]]
         logging.info(f"Input mean not provided, defaulting to {input_mean}")
     num_norms = min(len(inputs), len(input_scale))
-    if isinstance(input_mean[0], (int, float)):
+    if isinstance(input_mean[0], numbers.Number):
         input_mean = [input_mean]
-    if isinstance(input_scale[0], (int, float)):
+    if isinstance(input_scale[0], numbers.Number):
         input_scale = [input_scale]
     for i in range(num_norms):
         inp = inputs[i]
         scale = input_scale[i]
         mean = input_mean[i]
         mean = [x * -1 for x in mean]
+        final_shape = [1]*len(inp.shape)
+        for axis, dim in enumerate(final_shape):
+            if dim == len(mean):
+                final_shape[axis] = -1
+                break
         new_inp = gs.Variable(inp.name + "_net_in", shape=inp.shape, dtype=np.uint8)
         graph.inputs[i] = new_inp
         cast_out = gs.Variable(f'{inp.name}_cast_out', shape=inp.shape, dtype=inp.dtype)
@@ -90,10 +95,10 @@ def tidl_add_input_normalization(graph, onnx_graph,  input_mean=None,input_scale
         graph.nodes.append(cast_node)
         
         mean = np.array(mean, dtype=np.float32)
-        mean = mean.reshape((1,-1, 1, 1))
+        mean = mean.reshape(final_shape)
         mean = gs.Constant(f'{inp.name}_bias', mean)
         scale = np.array(scale, dtype=np.float32)
-        scale = scale.reshape((1,-1, 1, 1))
+        scale = scale.reshape(final_shape)
         scale = gs.Constant(f'{inp.name}_scale', scale)
         
         add_out = gs.Variable(f'{inp.name}_add_out', shape=inp.shape, dtype=inp.dtype)

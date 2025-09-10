@@ -2,17 +2,19 @@ from osrt_model_tools.onnx_tools.tidl_onnx_model_optimizer import optimize
 from osrt_model_tools.onnx_tools.tidl_onnx_model_optimizer.ops import test_optimizers, get_optimizers
 import numpy as np
 import onnxruntime
+import os
 
 import logging
 logging.basicConfig(level=logging.INFO) 
 
-model_name = "" # add the path to your onnx file here
+model_name = "vit_tiny_patch16_224_simp.onnx" # add the path to your onnx file here
 
 # optimizers = test_optimizers() # need to modify this to debug your transformation
 # optimizers = get_optimizers(bucket_flags=['LAYOUT_ALL']) # need to modify this to debug bucket transformations
 optimizers = get_optimizers() # need to modify this to debug all transformations
 # optimizers = None # checks the default setting
-optimized_model_path = '/'.join(model_name.split('/')[:-1]) + f"/optimized_{model_name.split('/')[-1]}" 
+directory, file = os.path.split(model_name)
+optimized_model_path = os.path.join(directory, 'optimized_'+file)
 
 optimize(model_name, out_model=optimized_model_path, custom_optimizers=optimizers, verbose=True)
 
