@@ -74,6 +74,10 @@ def tidl_add_input_normalization(graph, onnx_graph,  input_mean=None,input_scale
         input_mean = [[128.0, 128.0, 128.0]]
         logging.info(f"Input mean not provided, defaulting to {input_mean}")
     num_norms = min(len(inputs), len(input_scale))
+    if isinstance(input_mean[0], (int, float)):
+        input_mean = [input_mean]
+    if isinstance(input_scale[0], (int, float)):
+        input_scale = [input_scale]
     for i in range(num_norms):
         inp = inputs[i]
         scale = input_scale[i]
