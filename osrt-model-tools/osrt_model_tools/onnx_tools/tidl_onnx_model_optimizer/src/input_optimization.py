@@ -80,6 +80,12 @@ def tidl_add_input_normalization(graph, onnx_graph,  input_mean=None,input_scale
         input_scale = [input_scale]
     for i in range(num_norms):
         inp = inputs[i]
+        if len(inp.outputs) > 1:
+            continue
+        if inp.dtype == np.uint8 and (node:=inp.outputs[0]).op == "Cast" and node.attrs["to"] == TensorProto.FLOAT:
+            logging.debug(f"Skipping normalization of {inp.name} as their is a cast node ({node.name}) for casting from uint8 to float")
+            continue
+        
         scale = input_scale[i]
         mean = input_mean[i]
         mean = [x * -1 for x in mean]

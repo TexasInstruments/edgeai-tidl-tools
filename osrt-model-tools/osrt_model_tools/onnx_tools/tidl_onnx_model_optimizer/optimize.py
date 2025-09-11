@@ -218,7 +218,7 @@ def tidl_modify(model_path: str, out_model_path: str, args: dict):
 
     if args['simplify_mode'] in ["all", "pre"]:
         logging.info("Enabled pre-processing simplification")
-        simplify_kwargs = args['simplify_kwargs']
+        simplify_kwargs = args['simplify_kwargs'] or {}
         model, ok = simplify(model, **simplify_kwargs)
         if not ok:
             logging.error("Failed during simplification, aborting...")
