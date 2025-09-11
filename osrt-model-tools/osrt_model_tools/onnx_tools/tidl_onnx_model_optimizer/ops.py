@@ -254,7 +254,7 @@ def get_optimizers(bucket_flags=None):
         'convert_concat_axis_width_to_channel'      : False,
         'convert_maxpool_to_cascaded_maxpool'       : True,
         'convert_reducemean_to_matmul'              : True,
-        'convert_gemm_to_matmul_and_add'            : True,
+        'convert_gemm_to_matmul_and_add'            : False,
         'convert_matmul_to_conv_1x1s1'              : False,
         'convert_large_global_avg_pooling_to_matmul': True,
         'convert_gather_with_single_index_to_slice' : True,
@@ -269,7 +269,7 @@ def get_optimizers(bucket_flags=None):
         'push_matmul_channel_in_height'             : False,
         'expand_slice_across_multiple_axis'         : True,
         'convert_instancenorm_to_layernorm'         : False,
-        'convert_unsqueeze_to_reshape'              : True,
+        'convert_unsqueeze_to_reshape'              : False,
         'add_bias_qdq'                              : False,
         'remove_quantize_initializer'               : True, 
         'remove_duplicate_quantize_dequantize'      : False, # not yet implemented 
@@ -278,7 +278,7 @@ def get_optimizers(bucket_flags=None):
         "convert_single_concat_to_consecutive_concats" : True,
         'convert_conv_7x7_stride4_to_stride1'       : True,
         "convert_2_dimension_slice_to_maxpool"      : False,  # theoritically better than splitting in 2 axis
-        "change_argmax_keepdims_to_1"               : True,
+        "change_argmax_keepdims_to_1"               : False,
         'hf_attention_block_optimization'           : True,
         "convert_reducesum_to_matmul"               : True,
         'convert_resize_params_size_to_scale_dynamic_batch' : False, 

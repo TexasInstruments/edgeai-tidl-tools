@@ -7,7 +7,7 @@ import os
 import logging
 logging.basicConfig(level=logging.INFO) 
 
-model_name = "vit_tiny_patch16_224_simp.onnx" # add the path to your onnx file here
+model_name = "" # add the path to your onnx file here
 
 # optimizers = test_optimizers() # need to modify this to debug your transformation
 # optimizers = get_optimizers(bucket_flags=['LAYOUT_ALL']) # need to modify this to debug bucket transformations
