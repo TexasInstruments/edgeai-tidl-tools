@@ -84,7 +84,7 @@ def tidl_add_input_normalization(graph, onnx_graph,  input_mean=None,input_scale
         mean = input_mean[i]
         mean = [x * -1 for x in mean]
         final_shape = [1]*len(inp.shape)
-        for axis, dim in enumerate(final_shape):
+        for axis, dim in enumerate(inp.shape):
             if dim == len(mean):
                 final_shape[axis] = -1
                 break
