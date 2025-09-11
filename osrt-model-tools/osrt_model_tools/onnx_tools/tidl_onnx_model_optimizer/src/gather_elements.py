@@ -69,31 +69,40 @@ def tidl_replace_tile_gatherelements_with_reshape_gather (graph: gs.Graph, onnx_
     """
     Reads an ONNX model, finds Tile+GatherElements patterns, and replaces them with Reshape+Gather.
     """
+    logging.debug("Starting Tile+GatherElements pattern replacement optimization")
     
     # Find all Tile nodes
     tile_nodes = [node for node in graph.nodes if node.op == "Tile"]
+    logging.debug(f"Found {len(tile_nodes)} Tile nodes in the graph")
     
     for tile_node in tile_nodes:
+        logging.debug(f"Processing Tile node: {tile_node.name}")
         # Check if this Tile node feeds into a GatherElements node
         if not tile_node.outputs or not tile_node.outputs[0].outputs:
+            logging.debug(f"Tile node {tile_node.name} has no outputs, skipping")
             continue
             
         gather_elements_nodes = [n for n in tile_node.outputs[0].outputs if n.op == "GatherElements"]
         
         if not gather_elements_nodes:
+            logging.debug(f"Tile node {tile_node.name} does not feed into GatherElements, skipping")
             continue
             
         # We found a Tile->GatherElements pattern
+        logging.debug(f"Found Tile->GatherElements pattern: {tile_node.name} -> {[n.name for n in gather_elements_nodes]}")
         for gather_elements_node in gather_elements_nodes:
+            logging.debug(f"Processing GatherElements node: {gather_elements_node.name}")
             try:
                 # Get the original input to the Tile
                 input_tensor = tile_node.inputs[0]
+                logging.debug(f"Input tensor shape: {getattr(input_tensor, 'shape', 'Unknown')}")
                 
                 # Get the data tensor for the GatherElements (first input)
                 data_tensor = gather_elements_node.inputs[0]
                 
                 # Get the GatherElements axis
                 gather_axis = gather_elements_node.attrs.get("axis", 0)
+                logging.debug(f"GatherElements axis: {gather_axis}")
                 
                 # Get the output of the GatherElements
                 gather_output = gather_elements_node.outputs[0]
@@ -101,12 +110,14 @@ def tidl_replace_tile_gatherelements_with_reshape_gather (graph: gs.Graph, onnx_
                 # Determine the shape needed for Reshape
                 # For a typical case where Tile expands a dimension that needs to be flattened
                 if hasattr(input_tensor, 'shape') and input_tensor.shape is not None:
+                    logging.debug(f"Processing tensor with shape: {input_tensor.shape}")
                     # For simplicity, let's flatten to the dimension needed for Gather
                     # This would need to be adjusted based on your specific use case
                     if len(input_tensor.shape) > 0:
                         # Calculate the flattened shape - removing the last dimension if it's 1
                         original_shape = list(input_tensor.shape)
                         new_shape = original_shape[1:2]
+                        logging.debug(f"Original shape: {original_shape}, New shape: {new_shape}")
                         
                         # Create shape constant for Reshape
                         shape_constant = gs.Constant(name=f"{tile_node.name}_shape", 
@@ -122,6 +133,7 @@ def tidl_replace_tile_gatherelements_with_reshape_gather (graph: gs.Graph, onnx_
                             inputs=[input_tensor, shape_constant],
                             outputs=[reshape_output]
                         )
+                        logging.debug(f"Created Reshape node: {reshape_node.name}")
                         
                         # Create Gather node
                         gather_node = gs.Node(
@@ -131,10 +143,12 @@ def tidl_replace_tile_gatherelements_with_reshape_gather (graph: gs.Graph, onnx_
                             outputs=[gather_output],  # Reuse the original output
                             attrs={"axis": gather_axis}
                         )
+                        logging.debug(f"Created Gather node: {gather_node.name}")
                         
                         # Add new nodes to the graph
                         graph.nodes.append(reshape_node)
                         graph.nodes.append(gather_node)
+                        logging.debug("Added new nodes to graph")
                         
                         # Disconnect the old nodes
                         tile_node.outputs[0].outputs.clear()
@@ -143,7 +157,15 @@ def tidl_replace_tile_gatherelements_with_reshape_gather (graph: gs.Graph, onnx_
                         tile_node.outputs.clear()
                         gather_elements_node.outputs.clear()
                         
+                        logging.debug(f"Successfully replaced Tile+GatherElements pattern: {tile_node.name} -> {gather_elements_node.name}")
                         print(f"Replaced Tile+GatherElements pattern: {tile_node.name} -> {gather_elements_node.name}")
+                    else:
+                        logging.debug(f"Input tensor shape is empty, skipping pattern replacement for {tile_node.name}")
+                else:
+                    logging.debug(f"Input tensor has no shape information, skipping pattern replacement for {tile_node.name}")
                         
             except Exception as e:
+                logging.debug(f"Exception occurred while replacing pattern for {tile_node.name}: {str(e)}")
                 print(f"Error replacing pattern for {tile_node.name}: {str(e)}")
+    
+    logging.debug("Completed Tile+GatherElements pattern replacement optimization")

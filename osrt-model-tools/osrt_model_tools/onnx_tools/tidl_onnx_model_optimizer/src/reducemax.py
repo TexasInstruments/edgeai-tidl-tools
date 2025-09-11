@@ -70,16 +70,38 @@ def tidl_convert_reducemax_width_to_height (graph: gs.Graph, onnx_graph: onnx.Gr
     The ReduceMax layer is replaced with the cascaded multiple layers, e.g.,
     "Transpose + ReduceMax + Transpose + Squeeze".
     """
+    logging.debug("Starting tidl_convert_reducemax_width_to_height optimization")
     count = 0
     for node in graph.nodes:
         if node.op == 'ReduceMax':
+            logging.debug(f"Processing ReduceMax node: {node.name}")
+            
+            # Input and output tensors
+            input_tensor = node.inputs
+            if not input_tensor:
+                logging.debug(f"No input tensors found for node {node.name}, skipping")
+                continue
+                
+            # Get shape and dtype information first to determine numdims
+            dtype = input_tensor[0].dtype
+            shape = input_tensor[0].shape
+            if shape is None:
+                logging.debug(f"Shape is None for node {node.name}, skipping")
+                continue
+                
+            numdims = len(shape)
+            logging.debug(f"Input tensor shape: {shape}, dtype: {dtype}, numdims: {numdims}")
+            
             # Get attributes
             if 'axes' in node.attrs:
                 axes = node.attrs['axes']
+                logging.debug(f"Found axes in node attributes: {axes}")
             elif len(input_tensor) > 1:
                 axes = input_tensor[1].values
+                logging.debug(f"Found axes in input tensor: {axes}")
             else:
                 axes = np.arange(0, numdims, 1)
+                logging.debug(f"Using default axes: {axes}")
 
             try:
                 keepdims = node.attrs['keepdims']
@@ -89,30 +111,20 @@ def tidl_convert_reducemax_width_to_height (graph: gs.Graph, onnx_graph: onnx.Gr
             # keepdims = node.attrs.get('keepdims', 1)
             
             if axes is None:
+                logging.debug(f"axes for {node.name} is none, skipping node")
                 continue
                 
             # Convert to list if it's not already
             if isinstance(axes, int):
                 axes = [axes]
-            
-            # Input and output tensors
-            input_tensor = node.inputs
-            if not input_tensor:
-                continue
-                
-            # Get shape and dtype information
-            dtype = input_tensor[0].dtype
-            shape = input_tensor[0].shape
-            if shape is None:
-                continue
-                
-            numdims = len(shape)
+                logging.debug(f"Converted axes to list: {axes}")
             
             # Only handle specific cases where width reduction is being performed
             if not ((numdims == 4 and axes[0] == 3) or 
                    (numdims == 3 and axes[0] == 2) or
                    (numdims == 2 and axes[0] == 1) or
                    axes[0] == -1):
+                logging.debug(f"Node {node.name} does not match width reduction criteria (numdims={numdims}, axes={axes}), skipping")
                 continue
                 
             # Define permutation for transpose
@@ -121,19 +133,23 @@ def tidl_convert_reducemax_width_to_height (graph: gs.Graph, onnx_graph: onnx.Gr
                 permidx = [0, 1, 3, 2]
                 shape_outshape = (shape[0], shape[1], shape[3], shape[2])
                 shape_outreducemax = (shape[0], shape[1], shape[3], 1)
+                logging.debug(f"4D case: permidx={permidx}, shape_outshape={shape_outshape}")
             elif numdims == 3:
                 # CHW -> CWH
                 permidx = [0, 2, 1]
                 shape_outshape = (shape[0], shape[2], shape[1])
                 shape_outreducemax = (shape[0], 1, shape[1])
+                logging.debug(f"3D case: permidx={permidx}, shape_outshape={shape_outshape}")
             elif numdims == 2:
                 # HW -> WH
                 permidx = [1, 0]
                 shape_outshape = (shape[1], shape[0])
                 shape_outreducemax = (shape[1], 1)
+                logging.debug(f"2D case: permidx={permidx}, shape_outshape={shape_outshape}")
             
             idx = count
             count += 1
+            logging.debug(f"Starting transformation for node {node.name} with index {idx}")
             
             # 1. Transpose
             var_outshape = [gs.Variable(f"rm_transpose_out.{idx}",
@@ -165,23 +181,30 @@ def tidl_convert_reducemax_width_to_height (graph: gs.Graph, onnx_graph: onnx.Gr
             
             # 4. Squeeze if keepdims is 0
             if keepdims == 0:
+                logging.debug(f"keepdims=0, adding Squeeze node for {node.name}")
                 # Create a constant for the axes to squeeze
                 if graph.opset < 13:
                     squeeze_node = gs.Node(op="Squeeze", name=f"rm_squeeze.{idx}",
                                           attrs={"axes": axes},
                                           inputs=[var_out_tr2[0]],
                                           outputs=node.outputs)
+                    logging.debug(f"Using opset < 13, squeeze with axes attribute")
                 else:
                     squeeze_axes = gs.Constant(f"squeeze_axes.{idx}", 
                                              values=np.array(axes, dtype=np.int64))
                     squeeze_node = gs.Node(op="Squeeze", name=f"rm_squeeze.{idx}",
                                           inputs=[var_out_tr2[0], squeeze_axes],
                                           outputs=node.outputs)
+                    logging.debug(f"Using opset >= 13, squeeze with axes input")
                 graph.nodes.append(squeeze_node)
                 logging.debug(f"Adding Node {squeeze_node.name}")
             else:
                 # Connect transpose output directly to original outputs
+                logging.debug(f"keepdims=1, connecting transpose output directly to original outputs")
                 transpose2.outputs = node.outputs
                 
             # Remove the original ReduceMax node
+            logging.debug(f"Removing original ReduceMax node {node.name}")
             node.outputs.clear()
+    
+    logging.debug(f"Completed tidl_convert_reducemax_width_to_height optimization. Processed {count} ReduceMax nodes")

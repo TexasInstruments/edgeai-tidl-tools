@@ -68,37 +68,50 @@ def tidl_replace_einsum_with_basic_ops(graph: gs.Graph, onnx_graph: onnx.GraphPr
     Replaces Einsum operations with equation 'bnc,bchw->bnhw' with a simplified combination of 
     Reshape, Transpose, and MatMul operations.
     """
+    logging.debug("Starting Einsum replacement with basic operations optimization")
     
     # Find all Einsum nodes
     einsum_nodes = [node for node in graph.nodes if node.op == "Einsum"]
+    logging.debug(f"Found {len(einsum_nodes)} Einsum nodes in the graph")
     
     for einsum_node in einsum_nodes:
+        logging.debug(f"Processing Einsum node: {einsum_node.name}")
         # Check if this is the specific equation we want to replace
         equation = einsum_node.attrs.get("equation", "")
+        logging.debug(f"Einsum equation: {equation}")
         if equation != "bnc,bchw->bnhw":
+            logging.debug(f"Skipping Einsum {einsum_node.name}: equation '{equation}' does not match target 'bnc,bchw->bnhw'")
             continue
             
         try:
+            logging.debug(f"Processing target equation 'bnc,bchw->bnhw' for node {einsum_node.name}")
             # Get the input tensors
             input1 = einsum_node.inputs[0]  # bnc
             input2 = einsum_node.inputs[1]  # bchw
+            logging.debug(f"Input tensors: {input1.name} (bnc), {input2.name} (bchw)")
             
             # Get the output tensor
             output = einsum_node.outputs[0]  # bnhw
+            logging.debug(f"Output tensor: {output.name} (bnhw)")
             
             # Get shapes if available
             if not all(hasattr(t, 'shape') and t.shape is not None for t in [input1, input2]):
+                logging.debug(f"Skipping Einsum {einsum_node.name}: Unable to determine input shapes")
                 print(f"Skipping Einsum {einsum_node.name}: Unable to determine input shapes")
                 continue
                 
             b, n, c = input1.shape
             b2, c2, h, w = input2.shape
+            logging.debug(f"Input1 shape (bnc): [{b}, {n}, {c}]")
+            logging.debug(f"Input2 shape (bchw): [{b2}, {c2}, {h}, {w}]")
             
             # Verify that batch size and channel dimensions match
             if b != b2 or c != c2:
+                logging.debug(f"Skipping Einsum {einsum_node.name}: Dimension mismatch - b:{b}!={b2} or c:{c}!={c2}")
                 print(f"Skipping Einsum {einsum_node.name}: Dimension mismatch")
                 continue
             
+            logging.debug("Creating replacement nodes for Einsum operation")
             # Step 1: Reshape input2 from [b,c,h,w] to [b,c,h*w]
             reshape2_output = gs.Variable(name=f"{einsum_node.name}_reshape2_output", 
                                          dtype=input2.dtype,
@@ -113,8 +126,9 @@ def tidl_replace_einsum_with_basic_ops(graph: gs.Graph, onnx_graph: onnx.GraphPr
                 inputs=[input2, reshape2_shape],
                 outputs=[reshape2_output]
             )
+            logging.debug(f"Created Reshape node: {reshape2_node.name} - shape [{b}, {c}, {h*w}]")
             
-            # Step 3: MatMul [b,n,c] x [b,h*w,c] -> [b,n,h*w]
+            # Step 3: MatMul [b,n,c] x [b,c,h*w] -> [b,n,h*w]
             matmul_output = gs.Variable(name=f"{einsum_node.name}_matmul_output", 
                                        dtype=output.dtype,
                                        shape=[b, n, h*w])
@@ -125,6 +139,7 @@ def tidl_replace_einsum_with_basic_ops(graph: gs.Graph, onnx_graph: onnx.GraphPr
                 inputs=[input1, reshape2_output],
                 outputs=[matmul_output]
             )
+            logging.debug(f"Created MatMul node: {matmul_node.name} - [{b}, {n}, {c}] x [{b}, {c}, {h*w}] -> [{b}, {n}, {h*w}]")
             
             # Step 4: Final Reshape from [b,n,h*w] to [b,n,h,w]
             final_shape = gs.Constant(name=f"{einsum_node.name}_final_shape", 
@@ -136,16 +151,22 @@ def tidl_replace_einsum_with_basic_ops(graph: gs.Graph, onnx_graph: onnx.GraphPr
                 inputs=[matmul_output, final_shape],
                 outputs=[output]  # Reuse the original output
             )
+            logging.debug(f"Created final Reshape node: {final_reshape_node.name} - shape [{b}, {n}, {h}, {w}]")
             
             # Add all the new nodes to the graph
             graph.nodes.extend([
                 reshape2_node,
                 matmul_node, final_reshape_node
             ])
+            logging.debug("Added new nodes to graph")
             
             # Disconnect the Einsum node
             einsum_node.outputs.clear()
+            logging.debug(f"Successfully replaced Einsum node: {einsum_node.name}")
             print(f"Replaced Einsum node: {einsum_node.name}")
             
         except Exception as e:
+            logging.debug(f"Exception occurred while replacing Einsum node {einsum_node.name}: {str(e)}")
             print(f"Error replacing Einsum node {einsum_node.name}: {str(e)}")
+    
+    logging.debug("Completed Einsum replacement with basic operations optimization")
