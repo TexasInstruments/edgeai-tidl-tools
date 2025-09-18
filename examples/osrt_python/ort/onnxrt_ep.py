@@ -124,6 +124,7 @@ def get_benchmark_output(interpreter):
     :return: Copy time
     :return: Processing time
     :return: Total time
+    :return: Total ddr bandwidth
     '''
     benchmark_dict = interpreter.get_TI_benchmark_data()
     proc_time = copy_time = 0
@@ -150,7 +151,13 @@ def get_benchmark_output(interpreter):
         copy_time += cp_in_time + cp_out_time
     copy_time = copy_time if len(subgraphIds) == 1 else 0
     totaltime = benchmark_dict["ts:run_end"] - benchmark_dict["ts:run_start"]
-    return copy_time, proc_time, totaltime
+
+    ddr_read_total = benchmark_dict['ddr:read_end'] - benchmark_dict['ddr:read_start']
+    ddr_write_total = benchmark_dict['ddr:write_end'] - benchmark_dict['ddr:write_start']
+
+    ddr_bw = ddr_read_total + ddr_write_total
+
+    return copy_time, proc_time, totaltime, ddr_bw
 
 
 def infer_image(sess, image_files, config):
@@ -209,10 +216,10 @@ def infer_image(sess, image_files, config):
     stop_time = time.time()
     infer_time = stop_time - start_time
 
-    copy_time, sub_graphs_proc_time, totaltime = get_benchmark_output(sess)
+    copy_time, sub_graphs_proc_time, totaltime, ddr_bw = get_benchmark_output(sess)
     proc_time = totaltime - copy_time
 
-    return imgs, output, proc_time, sub_graphs_proc_time, height, width
+    return imgs, output, proc_time, sub_graphs_proc_time, ddr_bw, height, width
 
 
 def run_model(model, mIdx):
@@ -378,6 +385,9 @@ def run_model(model, mIdx):
             formatter = getattr(formatter_transform, formatter_name)(**formatter)
         config["postprocess"]["formatter"] = formatter
 
+    total_proc_time = 0
+    sub_graphs_time = 0
+    ddr_bw_total = 0
     for i in range(numFrames):
         start_index = i % len(input_image)
         input_details = sess.get_inputs()
@@ -389,21 +399,20 @@ def run_model(model, mIdx):
             input_images.append(input_image[(start_index + j) % len(input_image)])
 
         # Invoke the session
-        imgs, output, proc_time, sub_graph_time, height, width = infer_image(sess, input_images, config)
+        imgs, output, proc_time, sub_graph_time, ddr_bw, height, width = infer_image(sess, input_images, config)
 
-        total_proc_time = (
-            total_proc_time + proc_time
-            if ("total_proc_time" in locals())
-            else proc_time
-        )
-        sub_graphs_time = (
-            sub_graphs_time + sub_graph_time
-            if ("sub_graphs_time" in locals())
-            else sub_graph_time
-        )
+        total_proc_time = total_proc_time + proc_time
+        sub_graphs_time = sub_graphs_time + sub_graph_time
+        ddr_bw_total = ddr_bw_total + ddr_bw
 
-    total_proc_time = total_proc_time / 1000000
-    sub_graphs_time = sub_graphs_time / 1000000
+    total_proc_time = total_proc_time / 1000000  # Conveting to miliseconds
+    sub_graphs_time = sub_graphs_time / 1000000  # Conveting to miliseconds
+    ddr_bw_total = ddr_bw_total / 1000000        # Conveting to MB/s
+
+    # Averaging out for number of frames
+    total_proc_time = total_proc_time / numFrames
+    sub_graphs_time = sub_graphs_time / numFrames
+    ddr_bw_total = int(ddr_bw_total / numFrames)
 
     # Post-Processing for inference
     output_image_file_name = "py_out_" + model + "_" + os.path.basename(input_image[i % len(input_image)])
@@ -466,7 +475,7 @@ def run_model(model, mIdx):
             delegate_options["artifacts_folder"], config, int(height), int(width)
         )
 
-    log = f"\n \nCompleted_Model : {mIdx+1:5d}, Name : {model:50s}, Total time : {total_proc_time/(i+1):10.2f}, Offload Time : {sub_graphs_time/(i+1):10.2f} , DDR RW MBs : 0, Output Image File : {output_image_file_name}, Output Bin File : {output_bin_file_name}\n \n "  # {classes} \n \n'
+    log = f"\n \nCompleted_Model : {mIdx+1:5d}, Name : {model:50s}, Total time : {total_proc_time:10.2f}, Offload Time : {sub_graphs_time:10.2f} , DDR RW MBs : {ddr_bw_total}, Output Image File : {output_image_file_name}, Output Bin File : {output_bin_file_name}\n \n "  # {classes} \n \n'
     print(log)
     if ncpus > 1:
         sem.release()
