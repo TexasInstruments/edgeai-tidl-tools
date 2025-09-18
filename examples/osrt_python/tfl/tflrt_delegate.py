@@ -125,12 +125,12 @@ def get_benchmark_output(interpreter):
         )
         copy_time += cp_in_time + cp_out_time
 
-    write_total = benchmark_dict["ddr:read_end"] - benchmark_dict["ddr:read_start"]
-    read_total = benchmark_dict["ddr:write_end"] - benchmark_dict["ddr:write_start"]
+    read_total = benchmark_dict["ddr:read_end"] - benchmark_dict["ddr:read_start"]
+    write_total = benchmark_dict["ddr:write_end"] - benchmark_dict["ddr:write_start"]
     totaltime = benchmark_dict["ts:run_end"] - benchmark_dict["ts:run_start"]
 
     copy_time = copy_time if len(subgraphIds) == 1 else 0
-    return copy_time, totaltime, proc_time, write_total / 1000000, read_total / 1000000
+    return copy_time, totaltime, proc_time, write_total, read_total
 
 
 def infer_image(interpreter, image_files, config):
@@ -343,6 +343,10 @@ def run_model(model, mIdx):
             formatter = getattr(formatter_transform, formatter_name)(**formatter)
         config["postprocess"]["formatter"] = formatter
 
+    total_proc_time = 0
+    sub_graphs_time = 0
+    ddr_bw_total = 0
+
     for i in range(numFrames):
         start_index = i % len(input_image)
         input_details = interpreter.get_input_details()
@@ -367,26 +371,18 @@ def run_model(model, mIdx):
             interpreter, input_images, config
         )
 
-        total_proc_time = (
-            total_proc_time + proc_time
-            if ("total_proc_time" in locals())
-            else proc_time
-        )
-        sub_graphs_time = (
-            sub_graphs_time + sub_graph_time
-            if ("sub_graphs_time" in locals())
-            else sub_graph_time
-        )
-        total_ddr_write = (
-            total_ddr_write + ddr_write
-            if ("total_ddr_write" in locals())
-            else ddr_write
-        )
-        total_ddr_read = (
-            total_ddr_read + ddr_read if ("total_ddr_read" in locals()) else ddr_read
-        )
+        total_proc_time = total_proc_time + proc_time
+        sub_graphs_time = sub_graphs_time + sub_graph_time
+        ddr_bw_total = ddr_bw_total + (ddr_read + ddr_write)
+
     total_proc_time = total_proc_time / 1000000
     sub_graphs_time = sub_graphs_time / 1000000
+    ddr_bw_total = ddr_bw_total / 1000000
+
+    # Averaging out for number of frames
+    total_proc_time = total_proc_time / numFrames
+    sub_graphs_time = sub_graphs_time / numFrames
+    ddr_bw_total = int(ddr_bw_total / numFrames)
 
     # Post-Processing for inference
     output_image_file_name = "py_out_" + model + "_" + os.path.basename(input_image[i % len(input_image)])
@@ -443,7 +439,7 @@ def run_model(model, mIdx):
             delegate_options["artifacts_folder"], config, int(new_height), int(new_width)
         )
 
-    log = f"\n \nCompleted_Model : {mIdx+1:5d}, Name : {model:50s}, Total time : {total_proc_time/(i+1):10.2f}, Offload Time : {sub_graphs_time/(i+1):10.2f} , DDR RW MBs : {(total_ddr_write+total_ddr_read)/(i+1):10.2f}, Output Image File : {output_image_file_name}, Output Bin File : {output_bin_file_name}\n \n "  # {classes} \n \n'
+    log = f"\n \nCompleted_Model : {mIdx+1:5d}, Name : {model:50s}, Total time : {total_proc_time:10.2f}, Offload Time : {sub_graphs_time:10.2f} , DDR RW MBs : {ddr_bw_total}, Output Image File : {output_image_file_name}, Output Bin File : {output_bin_file_name}\n \n "  # {classes} \n \n'
     print(log)
     if ncpus > 1:
         sem.release()
