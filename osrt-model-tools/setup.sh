@@ -34,13 +34,14 @@
 # upgrade pip
 pip install --no-input --upgrade pip setuptools
 
-
 echo 'Installing python packages...'
 while IFS= read -r line;
 do
 	echo "pip3 install --no-input $line";
 	pip3 install --no-input $line;
 done < requirements.txt
+
+pip install --no-input onnx-graphsurgeon==0.3.26 --extra-index-url https://pypi.ngc.nvidia.com
 
 echo 'installing the onnx graph optimization toolkit...'
 python3 ./setup.py develop
