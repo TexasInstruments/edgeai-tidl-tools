@@ -32,7 +32,7 @@
 SCRIPTDIR=`pwd`
 TARGET_FS_PATH=/
 
-REL="11_00_08_00"
+REL="11_01_06_00"
 SOC=${SOC:-'null'}
 TISDK_IMAGE=${TISDK_IMAGE:-'null'}
 SDK_VERSION=${SDK_VERSION:-'null'}
@@ -54,8 +54,8 @@ if [ `arch` != "aarch64" ]; then
 fi
 
 verify_env() {
-    if [ "$REL" != "11_00_08_00" ]; then
-        echo "Cannot invoke this script with version $REL. Please use version 11_00_08_00"
+    if [ "$REL" != "11_01_05_00" ]; then
+        echo "Cannot invoke this script with version $REL. This is not a backward compatible release."
     fi
 
     if [ "$SOC" != "am62" ] && [ "$SOC" != "am62a" ] &&
@@ -82,17 +82,11 @@ verify_env() {
         return 1
     fi
 
-    if [ "$SDK_VERSION" != "11_0" ]; then
+    if [ "$SDK_VERSION" != "11_0" ] && [ "$SDK_VERSION" != "10_1" ] && [ "$SDK_VERSION" != "10_0" ]; then
         echo
         echo "Incorrect SDK_VERSION defined: $SDK_VERSION"
-        echo "Allowed values for SDK_VERSION is 11_0"
+        echo "Allowed values for SDK_VERSION is 11_0 or 10_1 or 10_0"
         return 1
-    fi
-
-    if [ "$SOC" == "am62a" ]; then
-            echo
-            echo "AM62A SDK 11.0 does not exist."
-            return 1
     fi
 
     if [ "$SOC" == "am62a" ] && [ "$TISDK_IMAGE" == "adas" ]; then
@@ -148,13 +142,10 @@ update_osrt_components() {
     cd $TARGET_FS_PATH/$HOME/arago_j7_pywhl
 
     echo "==================== Updating onnxruntime wheel ===================="
-    if [ "$SDK_VERSION" == "9_2" ]; then
-        onnx_wheel=onnxruntime_tidl-1.15.0-cp310-cp310-linux_aarch64.whl
-        onnx_tar=onnx_1.15.0_aragoj7_cp310
-    else
-        onnx_wheel=onnxruntime_tidl-1.15.0-cp312-cp312-linux_aarch64.whl
-        onnx_tar=onnx_1.15.0_aragoj7
-    fi
+
+    onnx_wheel=onnxruntime_tidl-1.15.0-cp312-cp312-linux_aarch64.whl
+    onnx_tar=onnx_1.15.0_aragoj7
+    
     wget --proxy off https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/ARM_LINUX/ARAGO/$SDK_VERSION/$onnx_wheel
     pip3 install $onnx_wheel --disable-pip-version-check
 
@@ -187,11 +178,9 @@ update_osrt_components() {
     cd $TARGET_FS_PATH/$HOME/arago_j7_pywhl
 
     echo "==================== Updating tflite wheel ===================="
-    if [ "$SDK_VERSION" == "9_2" ]; then
-        tfl_wheel=tflite_runtime-2.12.0-cp310-cp310-linux_aarch64.whl
-    else
-        tfl_wheel=tflite_runtime-2.12.0-cp312-cp312-linux_aarch64.whl
-    fi
+
+    tfl_wheel=tflite_runtime-2.12.0-cp312-cp312-linux_aarch64.whl
+
     wget --proxy off https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/ARM_LINUX/ARAGO/$SDK_VERSION/$tfl_wheel
     pip3 install --upgrade --force-reinstall $tfl_wheel --disable-pip-version-check
 
