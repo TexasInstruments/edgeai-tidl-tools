@@ -111,7 +111,7 @@ def tidl_convert_conv_large_pad_to_smaller_kernel (graph: gs.Graph, onnx_graph: 
                           "out_channels will be accepted")
             continue
 
-        h, w = inp.shape[-1], inp.shape[-2]
+        h, w = inp.shape[-2], inp.shape[-1]
         if  (w < pad_l) or (w < pad_r) or \
             (h < pad_t) or (h < pad_b):
             logging.debug(f"{conv.name} has pads {conv.attrs['pads']} > feature sizes "
