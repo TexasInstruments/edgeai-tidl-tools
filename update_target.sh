@@ -32,7 +32,7 @@
 SCRIPTDIR=`pwd`
 TARGET_FS_PATH=/
 
-REL="11_01_06_00"
+REL="11_01_05_00"
 SOC=${SOC:-'null'}
 TISDK_IMAGE=${TISDK_IMAGE:-'null'}
 SDK_VERSION=${SDK_VERSION:-'null'}
@@ -82,10 +82,10 @@ verify_env() {
         return 1
     fi
 
-    if [ "$SDK_VERSION" != "11_0" ] && [ "$SDK_VERSION" != "10_1" ] && [ "$SDK_VERSION" != "10_0" ]; then
+    if [ "$SDK_VERSION" != "11_0" ]; then
         echo
         echo "Incorrect SDK_VERSION defined: $SDK_VERSION"
-        echo "Allowed values for SDK_VERSION is 11_0 or 10_1 or 10_0"
+        echo "Allowed values for SDK_VERSION is 11_0"
         return 1
     fi
 
