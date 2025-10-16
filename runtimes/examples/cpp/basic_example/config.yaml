@@ -1,0 +1,41 @@
+infer_options:
+  "debug_level" : 0
+
+models:
+  # ONNX Models
+  cl-ort-resnet18-v1:
+    path: ../../data/models/resnet18_opset9.onnx
+    inputs: ../../data/inputs/cl-ort-resnet18-v1.npz
+    runtime: onnxrt
+  
+  od-ort-ssd-lite_mobilenetv2_fpn:
+    path: ../../data/models/ssd-lite_mobilenetv2_fpn.onnx
+    inputs: ../../data/inputs/od-ort-ssd-lite_mobilenetv2_fpn.npz
+    runtime: onnxrt
+  
+  ss-ort-deeplabv3lite_mobilenetv2:
+    path: ../../data/models/deeplabv3lite_mobilenetv2.onnx
+    inputs: ../../data/inputs/ss-ort-deeplabv3lite_mobilenetv2.npz
+    runtime: onnxrt
+  
+  # TFLite Models
+  cl-tfl-mobilenet_v1_1.0_224:
+    path: ../../data/models/mobilenet_v1_1.0_224.tflite
+    inputs: ../../data/inputs/cl-tfl-mobilenet_v1_1.0_224.npz
+    runtime: tflitert
+
+  od-tfl-ssd_mobilenet_v2_300_float:
+    path: ../../data/models/ssd_mobilenet_v2_300_float.tflite
+    inputs: ../../data/inputs/od-tfl-ssd_mobilenet_v2_300_float.npz
+    runtime: tflitert
+
+  # TVM Models
+  cl-tvm-resnet18-v1_c7x:
+    path: ../../data/models/resnet18_opset9.onnx
+    inputs: ../../data/inputs/cl-ort-resnet18-v1.npz
+    runtime: tvmrt
+
+  ss-tvm-deeplabv3lite_mobilenetv2:
+    path: ../../data/models/deeplabv3lite_mobilenetv2.onnx
+    inputs: ../../data/inputs/ss-ort-deeplabv3lite_mobilenetv2.npz
+    runtime: tvmrt

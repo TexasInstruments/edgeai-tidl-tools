@@ -1,242 +1,470 @@
 # TIDL - TI Deep Learning Product
-TIDL is a comprehensive software product for acceleration of Deep Neural Networks (DNNs) on TI's embedded devices. It supports heterogeneous execution of DNNs across cortex-A based MPUs, TI’s latest generation C7x DSP and TI's DNN accelerator (MMA). TIDL is released as part of TI's Software Development Kit (SDK) along with additional computer vision functions and optimized libraries including OpenCV. TIDL is available on a variety of embedded devices from Texas Instruments.
+TIDL is a comprehensive software product for acceleration of Deep Neural Networks (DNNs) on TI's embedded devices. It supports heterogeneous execution of DNNs across cortex-A based MPUs, TI's latest generation C7x DSP and TI's DNN accelerator (MMA). TIDL is released as part of TI's Software Development Kit (SDK) along with additional computer vision functions and optimized libraries including OpenCV. TIDL is available on a variety of embedded devices from Texas Instruments.
 
-TIDL is a fundamental software component of [**TI’s Edge AI solution**](https://www.ti.com/edgeai).
-TI's Edge AI solution simplifies the whole product life cycle of DNN development and deployment by providing a rich set of tools and optimized libraries. DNN based product development requires two main streams of expertise:
+TIDL is a fundamental software component of [**TI's Edge AI solution**](https://www.ti.com/edgeai).
+TI's Edge AI solution simplifies the whole product life cycle of DNN development and deployment by providing a rich set of tools and optimized libraries. DNN-based product development requires two main streams of expertise:
 * **Data Scientists**, who can design and train DNNs for targeted applications
-* **Embedded System Engineers**, who can design and develop inference solutions for real time execution of DNNs on low power embedded device
-
+* **Embedded System Engineers**, who can design and develop inference solutions for real time execution of DNNs on low power embedded devices
 
 
 TI's Edge AI solution provides the right set of tools for both of these categories:
 
-* [**Edge AI Studio**](https://dev.ti.com/edgeai/): Integrated development environment for development of AI applications for edge processors, hosting tools like **Model Composer** to train, compile and deploy models with click of mouse button and **Model Analyzer** to let you evaluate and analyze deep learning model performance on TI devices from your browser in minutes
+* [**Edge AI Studio**](https://dev.ti.com/edgeai/): Integrated development environment for development of AI applications for edge processors, hosting tools like **Model Composer** to train, compile and deploy models with a click of a mouse button and **Model Analyzer** to let you evaluate and analyze deep learning model performance on TI devices from your browser in minutes
 * [**Model zoo**](https://github.com/TexasInstruments/edgeai-tensorlab/tree/main/edgeai-modelzoo): A large collection of pre-trained models for data scientists, which along with TI's Model Selection Tool enables picking the ideal model for TI's embedded devices
 * [**Training and quantization tools**](https://github.com/TexasInstruments/edgeai) for popular frameworks, allowing data scientists to make DNNs more suitable for TI devices
-* [**Edge AI Benchmark**](https://github.com/TexasInstruments/edgeai-tensorlab/tree/main/edgeai-benchmark): A python based framework which can allow you to  perform accuracy and performance benchmark. Accuracy benchmark can be performed without development board, but for  performance benchmark, a development board is needed.
-* [**Edge AI TIDL Tools**](#edgeai-tidl-tools): Edge AI TIDL Tools provided in this repository shall be used for model compilation on X86. Artifacts from compilation process can used for Model inference. Model inference can happen on X86 machine (host emulation mode) or on development board with TI SOC. This repository also provides examples to be directly used on X86 target and can be used on development board with TI SOC. For deployment and execution on the development board, one has to use this package.
+* [**Edge AI Benchmark**](https://github.com/TexasInstruments/edgeai-tensorlab/tree/main/edgeai-benchmark): A Python-based framework which allows you to perform accuracy and performance benchmarks. Accuracy benchmarks can be performed without a development board, but for performance benchmarks, a development board is needed.
+* [**Edge AI TIDL Tools**](#edgeai-tidl-tools): Edge AI TIDL Tools provided in this repository shall be used for model compilation on X86. Artifacts from the compilation process can be used for model inference. Model inference can happen on an X86 machine (host emulation mode) or on a development board with TI SOC. This repository provides simple-to-use runtime wrapper APIs and examples which are intended to serve as a ready-to-use tool for model compilation and inference as well as a reference for users to develop their own applications for TIDL. 
 
-The figure below illustrates the work flow of DNN development and deployment on TI devices:
-
-![TI EdgeAI Work Flow](docs/images/dnn-workflow.png)
+The figure below illustrates the workflow of DNN development and deployment on TI devices:
+<div align="center">
+<img src="./docs/assets/dnn-workflow.png" alt="TI'S Edge AI workflow">
+</div>
 
 # EdgeAI TIDL Tools
 
 <!-- TOC -->
-
-- [TIDL - TI Deep Learning Product](#tidl---ti-deep-learning-product)
-- [EdgeAI TIDL Tools](#edgeai-tidl-tools)
-  - [Introduction](#introduction)
-    - [What IS Supported](#what-is-supported)
-    - [What IS NOT Supported](#what-is-not-supported)
-    - [Supported Devices](#supported-devices)
-  - [Setup](#setup)
-    - [Pre-requisites to setup on x86\_PC](#pre-requisites-to-setup-on-x86_pc)
-    - [Setup on X86\_PC](#setup-on-x86_pc)
-  - [Validate and Benchmark out-of-box examples](#validate-and-benchmark-out-of-box-examples)
-    - [Compile and Validate on X86\_PC](#compile-and-validate-on-x86_pc)
-    - [Benchmark on TI SOC](#benchmark-on-ti-soc)
-  - [Compile and Benchmark Custom Model](#compile-and-benchmark-custom-model)
-  - [User Guide](#user-guide)
-  - [License](#license)
-
+   - [Introduction](#introduction)
+   - [What does edgeai-tidl-tools provide?](#what-does-edgeai-tidl-tools-provide)
+   - [Supported Devices and Compatibility](#supported-devices-and-compatibility)
+   - [Current Version Compatibility](#current-version-compatibility)
+   - [Workflow](#workflow)
+      - [Python Workflow](#python-workflow)
+      - [C++ Workflow](#c-workflow)
+      - [Cross-Language Workflow](#cross-language-workflow)
+   - [Runtime Wrapper APIs and Examples](#runtime-wrapper-apis-and-examples)
+   - [Getting Started](#getting-started)
+      - [Setup on X86 PC](#setup-on-x86-pc)
+      - [Running on X86 PC](#running-on-x86-pc)
+      - [Setup on TI SOC](#setup-on-ti-soc)
+      - [Running on TI SOC](#running-on-ti-soc)
+   - [User Guide](#user-guide)
+   - [Test Reports](#test-reports)
+   - [Additional Support](#additional-support)
+   - [License](#license)
 <!-- /TOC -->
 
+<br>
+<br>
+
+> **Note:** This repository features a completely redesigned structure from release `11_02_04_00` onwards compared to previous versions of edgeai-tidl-tools. For details on the structural changes, migration guidance, and how to still access the older repository structure, please refer to the [Repository Structure Changes](./docs/repository_structure_change.md) documentation.
+
 ## Introduction
-TIDL provides multiple deployment options with industry defined inference engines as listed below. These inference engines are being referred as Open Source Runtimes (OSRT) in this document.
-* **TFLite Runtime**: [TensorFlow Lite](https://www.tensorflow.org/lite/guide/inference) based inference with heterogeneous execution on cortex-A** + C7x-MMA, using TFlite Delegates [TFLite Delgate](https://www.tensorflow.org/lite/performance/delegates) API
-* **ONNX RunTime**: [ONNX Runtime]( https://www.onnxruntime.ai/) based inference with heterogeneous execution on cortex-A** + C7x-MMA.
-* **TVM RunTime**: [TVM](https://tvm.apache.org) based inference with heterogeneous execution on cortex-A** + C7x-MMA
+TIDL provides multiple deployment options with industry defined inference engines as well as TIDL's own native inference engine:
 
->** *AM68PA has cortex-A72 as its MPU, refer to the device TRM to know which cortex-A MPU* it contains.
+### Execution via Open Source Runtimes
 
-These heterogeneous execution enables:
-1. OSRT as the top level inference  for user applications
-2. Offloading subgraphs to C7x/MMA for accelerated execution with TIDL
-3. Runs optimized code on ARM core for layers that are not supported by TIDL
+* **ONNX Runtime**: ONNX Runtime based inference with execution on Cortex-A + C7x-MMA, using TIDL as execution provider.
+* **TFLite Runtime**: TensorFlow Lite based inference with execution on Cortex-A + C7x-MMA, using TIDL as delegate.
+* **TVM Runtime**: TVM based inference with execution on Cortex-A + C7x-MMA
+
+   These enable:
+   1. Open Source Runtime (OSRT) as the top level inference for user applications
+   2. Offloading subgraphs to C7x-MMA for accelerated execution with TIDL
+   3. Running optimized code on ARM core for layers that are not supported by TIDL
+
+### Native execution
+
+* **TIDL-RT / TIDL Runtime**: TIDL's native runtime provides direct execution on C7x-MMA without using any open source runtime.
+
+   TIDL Runtime offers:
+   1. Complete execution of all the layers on the C7x-MMA without ARM core involvement in the execution path
+   2. Optimized for maximum performance on TI's C7x DSP and MMA
+   3. Suitable for performance and safety critical applications
+
+> **Note on Terminology**: In the documentation and APIs, you may encounter both **"TIDL-RT"** and **"TIDLRUNTIME"** terms. TIDL-RT refers to the underlying C APIs that provide native runtime functionality. The open-source runtimes directly interface with these C APIs via execution provider / delegate mechanism. TIDLRUNTIME specifically refers to the Python bindings built on top of the TIDL-RT C APIs, providing a Python interface to the same functionality.
+
+For more information, check [TIDLRT](./docs/tidlrt.md)
+
+
+## What does edgeai-tidl-tools provide?
+
+This repository is meant to serve as a reference application allowing users to draw inspiration to create their own applications around TIDL.
+
+This repository provides:
+
+- Support for both x86 and TI SOC.
+- Tools for model compilation on x86 system. This will be downloaded under `tools` folder as a part of [Setup on X86 PC](#setup-on-x86-pc)
+- Ready-to-use [Python and C++ Wrapper APIs](./runtimes/tidl_wrapper/README.md) for easy integration
+- Ready-to-use [Python and C++ reference](./runtimes/examples/README.md) examples.
+- Comprehensive [userguide](#user-guide) including workflow, compilation and inference processes, supported operators, debugging etc.
+- Utility scripts for optimizing and modifying models using [osrt-model-tools](./osrt-model-tools/README.md)
+- Utility scripts for setup, build, docker and debugging.
+
+<div align="center">
+<img src="./docs/assets/edgeai_tidl_tools_components.png" width="800px">
+</div>
+
+This modular architecture allows for flexible usage patterns:
+1. Use the entire stack for end-to-end model compilation and inference
+2. Use only the wrapper APIs to build custom applications
+3. Mix and match Python and C++ components as needed
+
+## Supported Devices and Compatibility
+<div align="center">
+
+| Device Family (Product) | Hardware Acceleration | ONNX Runtime | TFLite Runtime | TVM Runtime | TIDL Runtime |
+|-------------------------|:--------------------:|:------------:|:-------------:|:-----------:|:------------:|
+| AM62A                   | :heavy_check_mark:   | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| J722S \| TDA4AEN \| AM67A | :heavy_check_mark:   | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| J721E \| TDA4VM         | :heavy_check_mark:   | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| J721S2 \| TDA4VL \| AM68A | :heavy_check_mark:   | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| J784S4 \| TDA4VH \| AM69A | :heavy_check_mark:   | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| AM62                    | :x:                  | :heavy_check_mark: | :heavy_check_mark: | :x: | :x: |
+</div>
+
+## Version Compatibility
+
+This section provides information about the compatibility between the **current branch/tag** of EdgeAI TIDL Tools and the SDK versions as well as the runtime versions
+
+<div align="center">
+
+| Device Family | SDK Version |
+|---------------|-------------|
+| AM62A         | N/A |
+| J722S \| TDA4AEN \| AM67A | N/A |
+| J721E \| TDA4VM | [Processor SDK RTOS 11.02.00.05](https://www.ti.com/tool/download/PROCESSOR-SDK-RTOS-J721E/11.02.00.05)<br>[Processor SDK LINUX 11.02.00.03](https://www.ti.com/tool/download/PROCESSOR-SDK-LINUX-J721E/11.02.00.03) |
+| J721S2 \| TDA4VL \| AM68A | [Processor SDK RTOS 11.02.00.05](https://www.ti.com/tool/download/PROCESSOR-SDK-RTOS-J721S2/11.02.00.05)<br>[Processor SDK LINUX 11.02.00.03](https://www.ti.com/tool/download/PROCESSOR-SDK-LINUX-J721S2/11.02.00.03) |
+| J784S4 \| TDA4VH \| AM69A | [Processor SDK RTOS 11.02.00.05](https://www.ti.com/tool/download/PROCESSOR-SDK-RTOS-J784S4/11.02.00.05)<br>[Processor SDK LINUX 11.02.00.03](https://www.ti.com/tool/download/PROCESSOR-SDK-LINUX-J784S4/11.02.00.03) |
+| AM62          | N/A |
+
+</div>
+<br>
+<br>
+<div align="center">
+
+| Runtime | Version | Supported Devices |
+|---------|---------|-------------------|
+| ONNX Runtime | 1.15.0 | All devices |
+| TFLite Runtime | 2.12.0 | All devices |
+| TVM Runtime | 0.18.0 | All devices |
+
+</div>
+
+
+### Notes:
+- For detailed compatibility information and backward compatibility notes, please refer to the [SDK Version Compatibility Table](docs/sdk_version_compatibility_table.md).
+- When using this branch/tag, make sure to compile your models with the appropriate settings for your target device.
+- Runtime versions are fixed for a given branch/tag of EdgeAI TIDL Tools.
+
+## Workflow
+The typical workflow involves two main steps:
+
+1. **Model Compilation** (Python)
+   - Convert and optimize models for TIDL acceleration
+   - Generate model artifacts that can be used for inference
+
+2. **Model Inference** (Python or C++)
+   - Load the compiled model artifacts
+   - Run inference with TIDL acceleration
+   - Process the model outputs
+
+<div align="center">
+
+<table>
+   <tr>
+      <td style="vertical-align: top; padding-right: 180px">
+
+| Operation | X86_PC | TI SOC |
+|-----------|:------:|:------:|
+| Model Compilation | :heavy_check_mark: | :x: |
+| Model Inference | :heavy_check_mark: | :heavy_check_mark: |
+   </td>
+
+   <td style="vertical-align: top;">
+
+| Operation | Python API | C++ API |
+|-----------|:------:|:------:|
+| Model Compilation | :heavy_check_mark: | :x: |
+| Model Inference | :heavy_check_mark: | :heavy_check_mark: |
+   </td>
+  </tr>
+</table>
+
+</div>
+
+
+<div align="center">
+<p float="left">
+  <img src="./docs/assets/onnxrt-workflow.png" width="650" />
+  <img src="./docs/assets/tflitert-workflow.png" width="650" /> 
+</p>
+</div>
+
+This workflow allows for flexible development and deployment scenarios:
+
+1. Use Python for model development, compilation, and prototyping
+2. Use C++ for production deployment with optimized performance
+3. Share the same compiled model artifacts between Python and C++ implementations
+
+> **Note on Runtime Compatibility**:
+> - For tidlrt, the artifacts are agnostic of the runtime used during compilation and can run any model artifacts as long as all nodes are offloaded.
+> - Models compiled via onnxrt can only be used for inference with onnxrt and tidlrt
+> - Models compiled via tflitert can only be used for inference with tflitert and tidlrt
+
+## Runtime Wrapper APIs and Examples
+
+The EdgeAI TIDL Tools are structured with two main components under [./runtimes](./runtimes/):
+
+1. [**Wrapper APIs**](./runtimes/tidl_wrapper/README.md): These provide an abstraction layer that encapsulates the intricacies of different runtimes (ONNX Runtime, TFLite, TVM, TIDL) and offer a common set of APIs for users.
+2. [**Examples**](./runtimes/examples/README.md): These serve two purposes, as reference applications demonstrating how to use the wrapper APIs and as ready-to-use applications for basic use cases.
+
+This architecture allows you to either use the provided examples application directly or develop your own applications using the wrapper APIs as a foundation.
+
+For more detailed information about the wrapper APIs and examples, refer to the documentation:
+- [Python Wrapper APIs](runtimes/tidl_wrapper/python/README.md)
+- [C++ Wrapper APIs](runtimes/tidl_wrapper/cpp/README.md)
+- [Python examples](runtimes/examples/python/README.md)
+- [C++ examples](runtimes/examples/cpp/README.md)
+
+## Getting Started
+
+This section provides instructions to get started with the EdgeAI TIDL Tools.
+
+### Setup on X86 PC
+
+1. **Install system dependencies**:
+   ```bash
+   sudo apt-get install libyaml-cpp-dev libglib2.0-dev python-setuptools
+   ```
+
+2. **Clone the repository**:
+   ```bash
+   git clone https://github.com/TexasInstruments/edgeai-tidl-tools.git
+   cd edgeai-tidl-tools
+   git checkout <TAG Compatible with SDK version>
+   ```
+3. **Setup development environment**
+
+   We recommend using either a virtual Python environment or Docker for a clean and isolated setup.
+
+   **Option 1: Virtual Python Environment** : Create and activate python 3.10 virtual environment
+
+   **Option 2: Docker** : For details, see the [Docker README](scripts/docker/README.md).
+
+3. **Download and install tools and dependencies**:
+   ```bash
+   ./scripts/setup/setup.sh
+   ```
+
+4. **Setup environment variables**:
+    ```bash
+    source ./scripts/setup/setup_env.sh <SOC> #Ex: J721S2 or AM62A or ... refer to Device Family in Supported Devices above
+    ```
+    For more details, see the [Setup README](scripts/setup/README.md).
+
+5. **Build C++ components** (Only if you want to use C++ APIs and example):
+   ```bash
+   ./scripts/build/build_cpp.sh --clean
+   ./scripts/build/build_cpp.sh
+   ```
+   For more details, see the [Build README](scripts/build/README.md).
+
+
+### Running on X86 PC
+
+> **Important:** Before running any examples, ensure that you have properly set up the environment variables by sourcing the `scripts/setup/setup_env.sh`. Missing environment variables are a common cause of errors.
+
+This repository provides out-of-box examples to validate your setup and demonstrate how to use the TIDL tools.
+
+1. **Running Python Examples**:
+
+   The Python examples demonstrate how to use the various runtime libraries for model compilation and inference with deep learning models.
+
+   ```bash
+   cd ./runtimes/examples/python/basic_example/
+
+   # Running onnxrt examples
+   python3 basic_example.py --config ./config.yaml -r onnxrt --compile
+   python3 basic_example.py --config ./config.yaml -r onnxrt --infer
+
+   # Running tflitert examples
+   python3 basic_example.py --config ./config.yaml -r tflitert --compile
+   python3 basic_example.py --config ./config.yaml -r tflitert --infer
+
+   # Running tvmrt examples
+   python3 basic_example.py --config ./config.yaml -r tvmrt --compile
+   python3 basic_example.py --config ./config.yaml -r tvmrt --infer
+
+   cd -
+   ```
+
+   - Model artifacts will be saved in `./runtimes/examples/model-artifacts/`
+   - Outputs will be saved in `./runtimes/examples/python/basic_example/outputs/{model_name}/offload/frame_{frame_num}/`
+
+2. **Running C++ Examples**:
+
+   The C++ examples demonstrate how to use the various runtime libraries for inference with deep learning models. C++ currently does not support model compilation.
+
+   ```bash
+   cd ./runtimes/examples/cpp/basic_example
+   ../bin/Release/basic_example --config ./config.yaml
+   cd -
+   ```
+
+   - Outputs will be saved in `./runtimes/examples/cpp/basic_example/outputs/{model_name}/offload/frame_{frame_num}/`
+
+Running these examples successfully validates that your setup is correct. If you encounter any issues running these examples, please refer to the [debugging guide](docs/debugging.md) for troubleshooting steps.
+
+
+### Setup on TI SOC
+
+All the libraries and dependencies needed for TI SOC should already be packaged as part of the SDK. 
+
+> [NOTE] Ensure that your TI SOC is supported as listed in the [Supported Devices and Runtimes](#supported-devices-and-runtimes) table above. Additionally, check [Current Version Compatibility](#current-version-compatibility) to check the supported SDK version.
+
+You have two options for setting up the EdgeAI TIDL Tools repository on your TI SOC:
+
+1. **Clone/Mount the repository on the SOC**:
+   You can either clone the repository or mount it from x86 PC.
+   ```bash
+   # Cloning
+   git clone https://github.com/TexasInstruments/edgeai-tidl-tools.git
+   cd edgeai-tidl-tools
+   git checkout <TAG Compatible with SDK version>
+
+   # OR
+
+   # Mount using nfs.
+   # Make sure /path/to/edgeai-tidl-tools on X86 PC is NFS mountable
+   mkdir -p /mnt/edgeai-tidl-tools
+   mount <X86_PC_IP>:/path/to/edgeai-tidl-tools /mnt/edgeai-tidl-tools
+   cd /mnt/edgeai-tidl-tools
+   ```
+
+   Check [FAQ](docs/faq.md#how-do-i-set-up-an-nfs-server-on-my-pc-for-mounting-to-a-ti-soc) for details on how to setup NFS server on x86 PC.
+2. **Setup environment variables**:
+   ```bash
+   export SOC=<SOC> #Ex: J721S2 or AM62A or ... refer to Device Family in Supported Devices above
+   ```
+
+3. **Build C++ components** (Only if you want to use C++ APIs and example):
    
-Edge AI TIDL Tools provided in this repository supports model compilation and model inference. The diagram below illustrates the TFLite based work flow as an example. ONNX Runtime and TVM/Neo-AI Runtime also follows similar work flow.
+   You have two options for building C++ components on TI SOC:
 
-<p align="center"> <img width = 500 src="./docs/images/osrt_user_workflow.png"> </p>
+   **Option 1: Native Compilation** (Building directly on the TI SOC):
+   ```bash
+   ./scripts/build/build_cpp.sh --clean
+   ./scripts/build/build_cpp.sh
+   ```
+   For more details, see the [Build Readme](scripts/build/README.md).
 
-The below table covers the supported operations with this repository on X86_PC and TI's development board.
-<div align="center">
+   **Option 2: Cross-Compilation** (Building on X86 PC for TI SOC):
+   ```bash
+   # Following steps are executed on x86 PC to cross-compile for aarch64 
+   export SDK_PATH=<path to sdk> # Ex: /home/user/ti-processor-sdk-rtos-j784s4-evm-11_02_00_05
+   export TARGET_CPU=aarch64
+   ./scripts/build/build_cpp.sh --clean
+   ./scripts/build/build_cpp.sh
+   ```
+   For more details, see the [Cross Compilation](scripts/build/README.md#cross-compilation).
 
-| Operation  | X86_PC | TI SOC |Python API |CPP API|
-| ------- |:-----------:|:-----------:|:-----------:|:-----------:|
-| Model Compilation  | :heavy_check_mark: |:x: | :heavy_check_mark: |:x:|
-| Model Inference  | :heavy_check_mark: | :heavy_check_mark: |:heavy_check_mark: |:heavy_check_mark:|
- 
-</div>
+### Running on TI SOC
 
-### What IS Supported
-- Benchmark latency and Memory bandwidth of out of box example models (10+)
-- Compile user / custom model for deployment with TIDL
-- Inference of compiled models on X86_PC or TI SOC using file base input and output
+> **Important:** Before running any examples, ensure that you have properly set up the \<SOC\> environment variables. Missing environment variables are a common cause of errors.
 
-### What IS NOT Supported
-- Camera , Display and DL runtime based end-to-end pipeline development or benchmarking. 
-  - Please refer [edgeai-gst-apps](https://github.com/TexasInstruments/edgeai-gst-apps) for end-to-end application flows through gstreamer. This is included in the Processor SDK Linux for Edge AI under /opt on the target device's filesystem
-  - Please refer [Processor SDK Linux for Edge AI](https://software-dl.ti.com/jacinto7/esd/processor-sdk-linux-am68a/latest/exports/edgeai-docs/common/sdk_overview.html) for general end-to-end application development information. This is for AM68A and similar information can be found for other devices
--  Benchmarking accuracy of models using TIDL acceleration with standard datasets, for e.g. - accuracy benchmarking using MS COCO dataset for object detection models. 
-   - Please refer  [edgeai-benchmark](https://github.com/TexasInstruments/edgeai-tensorlab/tree/main/edgeai-benchmark) for the same.
+**Model compilation cannot be performed on TI SOC, only inference is supported**.
 
-### Supported Devices
-- Following table shows the devices supported by this repository
-- Device with hardware acceleration have TI-DSP and MMA(Matrix Multiplier Accelerator) for faster execution. 
-<div align="center">
+1. **Transfer compiled model artifacts**:   
+   Models must be compiled on an X86 PC first, and then the model artifacts can be transferred to the TI SOC for inference.
 
-| Device Family(Product)	| Environment Variable	| Hardware Acceleration |
-| ------- |:------:|:------:|
-|AM62            |am62       |  :x:|
-|AM62A           |am62a      |  :heavy_check_mark:|
-|AM67A	         |am67a      |  :heavy_check_mark:|
-|AM68PA	         |am68pa     |  :heavy_check_mark:|
-|AM68A	         |am68a      |  :heavy_check_mark:|
-|AM69A	         |am69a      |  :heavy_check_mark:|
-|J721E (TDA4VM)  |am68pa     |  :heavy_check_mark:|
-|J721S2 (TDA4AL, TDA4VL) | am68a           |  :heavy_check_mark:|
-|J722S  | am67a           |  :heavy_check_mark:|
-|J784S4 (TDA4AP, TDA4VP,<br /> TDA4AH, TDA4VH)	| am69a     |  :heavy_check_mark:|
+   If using NFS mount, the artifacts will already be accessible, else follow the steps below to copy over the compiled artifacts
 
-</div>
+   ```bash
+   scp -r /path/to/edgeai-tidl-tools/runtimes/examples/model-artifacts root@soc:/path/to/edgeai-tidl-tools/runtimes/examples/
+   ```
 
-## Setup
+2. **Running Python Examples**:
 
-> **Note**
-> Please select / checkout to the tag compatible with the SDK version that you are using with the TI's Evaluation board before continuing on the below steps. Refer to [SDK Version compatibility Table](docs/version_compatibility_table.md) for the tag of your SDK version
+   ```bash
+   cd ./runtimes/examples/python/basic_example/
 
-<p align="center"> <kbd> <img src="./docs/images/git_tag.png" /> </kbd> </p>
+   # Running onnxrt examples
+   python3 basic_example.py --config ./config.yaml -r onnxrt --infer
 
+   # Running tflitert examples
+   python3 basic_example.py --config ./config.yaml -r tflitert --infer
 
-### Pre-requisites to setup on x86_PC
+   # Running tvmrt examples
+   python3 basic_example.py --config ./config.yaml -r tvmrt --infer
 
- - X86_PC mode for this repository is validated with below configuration:
-<div align="center">
+   cd -
+   ```
 
-| OS  | Python Version|
-|:-------:|:-----------:|
-|Ubuntu 22.04 |3.10|
+   - Outputs will be saved in `./runtimes/examples/python/basic_example/outputs/{model_name}/offload/frame_{frame_num}/`
 
-</div>
-  
-  - We recommend [Docker](docs/advanced_setup.md#docker-based-setup-for-x86_pc) based setup to avoid dependency issues <br>
-  
-  - Tools built with GPU acceleration need to be run inside the appropriate Docker container. Refer to relevant [steps](docs/advanced_setup.md#docker-based-setup-for-x86_pc) to build and run the container <br>
+2. **Running C++ Examples**:
 
-### Setup on X86_PC
-  - Run below one time setup for system level packages. This needs sudo permission, get it installed by your system administrator if required.
+   ```bash
+   cd ./runtimes/examples/cpp/basic_example
+   ../bin/Release/basic_example --config ./config.yaml
+   cd -
+   ```
 
-```
-  sudo apt-get install libyaml-cpp-dev libglib2.0-dev
-```
-
-  - Make sure you have all permission for the current directory before proceeding 
-  - Run the below commands to install the dependent components on your machine and set all the required environments
-
-> **Note**
-> **source** in the setup command is important as this script is exporting all required environment variables. Without this, user may encounter some compilation/runtime issues
-
- ```
- git clone https://github.com/TexasInstruments/edgeai-tidl-tools.git
- cd edgeai-tidl-tools
- git checkout <TAG Compatible with your SDK version>
- # Supported SOC name strings am62, am62a, (am68a or j721s2), (am68pa or j721e), (am69a or j784s4), (am67a or j722s)
- export SOC=<Your SOC name>
- source ./setup.sh
-```
-
-- While opening new terminal in a system where above setup is already done once for a given SDK version, run the 
-scripts below to set environment variables 
-
- ```
- cd edgeai-tidl-tools
- source ./setup_env.sh ${SOC}
-```
-
-
-## Validate and Benchmark out-of-box examples
-
-- We provide 10+ out-of-box examples for model compilation on X86_PC and Inference on X86_PC and  TI SOC in the below category of tasks. Refer  [**Model zoo**](https://github.com/TexasInstruments/edgeai-tensorlab/tree/main/edgeai-modelzoo) for complete set of validated models across multiple categories
-  - Image classification
-  - Object detection
-  - Pixel level semantic Segmentation
-
-### Compile and Validate on X86_PC
-- Execute below to compile and run inference of the model in  X86_PC 
-    - Inference is validated with both Python and CPP APIs
-
- ```
-mkdir build && cd build
-cmake ../examples && make -j2 && cd ..
-source ./scripts/run_python_examples.sh -o
-python3 ./scripts/gen_test_report.py
-```
-
-- You can find the models used and their corresponding inference parameters at ```./examples/osrt_python/model_configs.py```
-- The execution of above step will generate compiled-model artifacts at ```./edgeai-tidl-tools/model-artifacts```, output images at ```./edgeai-tidl-tools/output_images``` and output binary at ```./edgeai-tidl-tools/output_binaries```. 
-
-```
-model-artifacts/
-models/
-output_images/
-output_binaries/
-test_report_pc_${soc}.csv
-```
--  An output binary can be found for each model in the 'output_binaries' folder
--  An output image can be found for each model in the 'output_images' folder, similar to what's shown below
-
-| Image Classification  | Object detection| Semantic Segmentation |
-|:-------:|:-----------:|:---:|
-| <img  width="512" height="256" src="./docs/images/out_viz_cls.jpg"> |  <img width="512" height="256" src="./docs/images/out_viz_od.jpg"> | <img width="512" height="256" src="./docs/images/out_viz_ss.jpg"> |
-
-### Benchmark on TI SOC
-- Prepare the development board by following the below steps
-
-```
- git clone https://github.com/TexasInstruments/edgeai-tidl-tools.git
- cd edgeai-tidl-tools
- git checkout <TAG Compatible with your SDK version>
- export SOC=<Your SOC name>
- ```
-
-- Copy the compiled artifacts from X86_PC to Development boards file system at ./edgeai-tidl-tools/
-- Execute below to run inference on target development board with both Python and CPP APIs
-
-```
-# scp -r <pc>/edgeai-tidl-tools/model-artifacts/  <dev board>/edgeai-tidl-tool/
-# scp -r <pc>/edgeai-tidl-tools/models/  <dev board>/edgeai-tidl-tool/
-export SOC=<Your SOC name>
-rm -rf build bin lib
-mkdir build
-cd build
-cmake ../examples && make -j2
-cd ..
-python3 ./scripts/gen_test_report.py
-```
-- The execution of above step will generate output images at ```./edgeai-tidl-tools/output_images``` and output binary at ```./edgeai-tidl-tools/output_binaries```
-
-> **_NOTE:_** Instead of SCP you can use any method to transfer the afromentioned files from PC to target. You can even use NFS mount to mount the entire edgeai-tidl-tools repository on the target board.
-
-## Compile and Benchmark Custom Model
-
--  [**New Model Evaluation**](docs/custom_model_evaluation.md#new-model-evaluation) : Refer this if your model falls into one of supported out-of-box example tasks categories such as image classification, object detection or pixel level semantic Segmentation
-- [**Custom Model Evaluation**](docs/custom_model_evaluation.md#custom-model-evaluation) : Refer this section if your custom model doesn't fall in supported example task category or input and output format is different from the supported list of tasks
-- [**Reporting issues with Model deployment**](docs/custom_model_evaluation.md#reporting-issues-with-model-deployment) - Refer notes here for reporting issues in custom model deployment
+   - Outputs will be saved in `./runtimes/examples/cpp/basic_example/outputs/{model_name}/offload/frame_{frame_num}/`
 
 ## User Guide
-- [**Python API and examples**](examples/osrt_python/README.md) - Detailed documentation on all the compile and inference options for TIDL offload for each runtime sessions
-- [**CPP API and examples**](examples/osrt_cpp/README.md) - Detailed documentation on compiling the CPP examples on X86_PC as well as Development board.
-- [**Jupyter Notebooks**](examples/jupyter_notebooks/README.md) - Interactive step-by-step documented notebooks for pre-compiled models inference.
-- [**Supported Operators and Runtimes**](docs/supported_ops_rts_versions.md) - List of supported operators from TIDL offload and their limitations for each runtime. 
-- [**Advanced Setup Options**](docs/advanced_setup.md#advanced-setup-options) - Setup options for advanced users to optimize setup time
-- **Feature Specific Guides**
-  - [**Quantization specification**](docs/tidl_fsg_quantization.md)
-  - [**Object detection Meta architectures**](docs/tidl_fsg_od_meta_arch.md)
-  - [**Trouble Shooting Guide**](docs/tidl_osr_debug.md)
-  - [**Model Optimization**](scripts/README.md)  
-  - [**Multi-core inference for devices with multiple DSP cores**](docs/tidl_fsg_multi_c7x.md)
-  - [**Support for Vision Transformers**](docs/tidl_fsg_vtfr.md)
-  - [**TIDL-RT: Input and Output Tensor Format**](docs/tidl_fsg_io_tensors_format.md)
+
+This section provides a structured guide to help you navigate through the documentation based on your learning journey with EdgeAI TIDL Tools.
+
+### 1. Getting Started with TIDL
+
+Begin your journey by understanding the compatibility and basic concepts:
+
+- [SDK Version Compatibility](docs/sdk_version_compatibility_table.md): Ensure your SDK version is compatible with this version of EdgeAI TIDL Tools
+- [TIDLRT](docs/tidlrt.md): Learn about TIDL's native runtime, its benefits, and when to use it
+- [Model Compilation](docs/model_compilation.md): Understand the model compilation process, options, and artifacts
+- [Model Inference](docs/model_inference.md): Learn how to run inference with compiled models
+- [FAQ](docs/faq.md): Find answers to commonly asked questions to quickly resolve common issues
+
+### 2. Development APIs and Examples
+
+Once you understand the basics, explore how to integrate TIDL into your applications:
+
+- [Python Wrapper APIs](runtimes/tidl_wrapper/python/README.md): Learn how to use the Python APIs for both compilation and inference
+- [Python Examples](runtimes/examples/python/README.md): Study reference Python applications to understand implementation patterns
+- [C++ Wrapper APIs](runtimes/tidl_wrapper/cpp/README.md): Learn how to use the C++ APIs for inference
+- [C++ Examples](runtimes/examples/cpp/README.md): Study reference C++ applications to understand implementation patterns
+
+### 3. Advanced Features
+
+After mastering the basics, explore these topics to leverage advanced features:
+
+- [Supported Operators](docs/operators.md): Check which operators are supported by TIDL
+- [Quantization](docs/quantization.md): Learn about quantization methods (PTQ, QAT, mixed precision)
+- [Quantization Proto](docs/quantization_proto.md): Advanced quantization parameter configuration
+- [Vision Transformers](docs/vision_transformers.md): Learn about vision transformer support and limitations
+- [OD Meta Arch](docs/od_meta_arch.md): Understand optimized post-processing for object detection
+
+### 4. Model Optimizations
+
+- [OSRT Model Tools](osrt-model-tools/README.md): Utilities for optimizing ONNX and TFLite models offline
+
+### 5. Performance Optimization
+
+Explore these topics to maximize performance and understand some features in depth:
+
+- [Input/Output Tensors](docs/io_tensors.md): Understand how to handle input and output tensors with TIDL
+- [Multi C7x](docs/multi_c7x.md): Learn how to leverage multi-core execution for better performance
+- [Preemption](docs/preemption.md): Understand priority scheduling for real-time applications
+
+### 6. Debugging
+
+Finally explore how to troubleshoot.
+
+- [Debugging](docs/debugging.md): Learn how to identify and solve issues with setup, model compilation, inference, and performance
+
+
+## Test Reports
+
+The repository includes detailed unit test reports for various deep-learning operators across various TI devices in the [docs/reports](docs/reports/README.md) directory. These reports are generated for each release of edgeai-tidl-tools.
+
+These reports are valuable resources for:
+- Evaluating which operators and with what properties are supported and tested on specific devices
+- Troubleshooting compatibility issues
+- Making informed decisions about model selection and optimization
+
+## Additional Support
+For any additional queries or support, please visit the [TI E2E Forum](https://e2e.ti.com/).
+
 ## License
 Please see the license under which this repository is made available: [LICENSE](./LICENSE)

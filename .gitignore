@@ -1,10 +1,11 @@
 __pycache__
 *.egg-info
-examples/jupyter_notebooks/.ipynb_checkpoints/
+.vscode
 
+data
 build
 bin
 lib
 model-artifacts
-models
+outputs
 tools

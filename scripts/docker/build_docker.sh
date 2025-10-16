@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright (c) 2018-2023, Texas Instruments
+# Copyright (c) 2018-2026, Texas Instruments
 # All Rights Reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -29,14 +29,14 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ######################################################################
-script_dir=$(dirname -- ${BASH_SOURCE[0]})
+SCRIPTDIR=$(dirname $(realpath $0))
+CURRDIR=$(pwd)
 
-#Check if CPU or GPU tools
 if [ -z "$TIDL_TOOLS_TYPE" ];then
     echo "TIDL_TOOLS_TYPE unset, defaulting to CPU tools"
     tidl_gpu_tools=0
 else
-    if [ $TIDL_TOOLS_TYPE == GPU ];then
+    if [ "$TIDL_TOOLS_TYPE" == "GPU" ];then
         tidl_gpu_tools=1
     else
         tidl_gpu_tools=0
@@ -57,9 +57,11 @@ else
     echo "Using PROXY: $PROXY"
 fi
 
+cd $BASEDIR/scripts/setup
 if [ $tidl_gpu_tools -eq 1 ];then
-    sudo docker build --build-arg REPO_LOCATION=$REPO_LOCATION --build-arg PROXY=$PROXY  -f $script_dir/Dockerfile_GPU -t edgeai_tidl_tools_x86_ubuntu_22_gpu .
+    sudo docker build --build-arg REPO_LOCATION=$REPO_LOCATION --build-arg PROXY=$PROXY -f $SCRIPTDIR/Dockerfile_GPU -t edgeai_tidl_tools_x86_ubuntu_22_gpu .
 
 else
-    sudo docker build --build-arg REPO_LOCATION=$REPO_LOCATION --build-arg PROXY=$PROXY  -f $script_dir/Dockerfile -t edgeai_tidl_tools_x86_ubuntu_22 .
+    sudo docker build --build-arg REPO_LOCATION=$REPO_LOCATION --build-arg PROXY=$PROXY -f $SCRIPTDIR/Dockerfile -t edgeai_tidl_tools_x86_ubuntu_22 .
 fi
+cd $CURRDIR

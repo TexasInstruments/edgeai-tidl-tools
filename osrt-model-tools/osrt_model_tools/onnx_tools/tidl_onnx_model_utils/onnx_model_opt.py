@@ -62,9 +62,9 @@ import numpy as np
 
 onesList = [1.0,1.0,1.0]
 
-def tidlOnnxModelOptimize(in_model_path, out_model_path, scaleList=[0.0078125,0.0078125,0.0078125], meanList=[128.0, 128.0, 128.0]):
+def optimize_model_input(in_model_path, out_model_path, scale=[0.0078125,0.0078125,0.0078125], mean=[128.0, 128.0, 128.0]):
     #Read Model
-    meanList = [x * -1 for x in meanList]
+    mean = [x * -1 for x in mean]
     model = onnx.load_model(in_model_path)
     op = onnx.OperatorSetIdProto()
     #Track orginal opset:
@@ -86,8 +86,8 @@ def tidlOnnxModelOptimize(in_model_path, out_model_path, scaleList=[0.0078125,0.
     outDims = tuple([x.dim_value for x in originalGraph.output[0].type.tensor_type.shape.dim])
 
     #Construct bias & scale tensors
-    biasTensor = helper.make_tensor("TIDL_preProc_Bias",TensorProto.FLOAT,[1,nInCh, 1, 1],np.array(meanList,dtype=np.float32))
-    scaleTensor = helper.make_tensor("TIDL_preProc_Scale",TensorProto.FLOAT,[1, nInCh, 1, 1],np.array(scaleList,dtype=np.float32))
+    biasTensor = helper.make_tensor("TIDL_preProc_Bias",TensorProto.FLOAT,[1,nInCh, 1, 1],np.array(mean,dtype=np.float32))
+    scaleTensor = helper.make_tensor("TIDL_preProc_Scale",TensorProto.FLOAT,[1, nInCh, 1, 1],np.array(scale,dtype=np.float32))
 
     #Add these tensors to initList:
     initList.append(biasTensor)
@@ -137,6 +137,7 @@ def tidlOnnxModelOptimize(in_model_path, out_model_path, scaleList=[0.0078125,0.
     else:
         print('Converted model is valid!')
         onnx.save_model(model_def, out_model_path)
+        print(f"Converted model saved to {out_model_path}")
 
 
 def tidlIsNodeOutputNameUsedInGraph(originalGraph,name):
@@ -197,7 +198,7 @@ def tidlOnnxModelIntermediateNamesPruner(in_model_path, out_model_path, updateGr
     
     return
 
-def createBatchModel(in_model_path, out_model_path, batch_dim):
+def create_batch_model(in_model_path, out_model_path, batch_dim):
     # #Read ONNX Model
     model = onnx.load_model(in_model_path)
     inferred_model = shape_inference.infer_shapes(model)
@@ -218,4 +219,4 @@ if __name__ == "__main__":
     # Edit model to have batch size 4
     batch_dim = 4
     out_model_path = in_model_path.replace('.onnx', '_' + str(batch_dim) + 'batch.onnx')
-    createBatchModel(in_model_path, out_model_path, batch_dim)
+    create_batch_model(in_model_path, out_model_path, batch_dim)

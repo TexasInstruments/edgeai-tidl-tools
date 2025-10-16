@@ -1,2 +1,5 @@
 from .onnx_get_deny_list_nodes import get_all_node_names
-from .onnx_model_opt import tidlOnnxModelOptimize, createBatchModel, tidlOnnxModelIntermediateNamesPruner
+from .onnx_model_opt import optimize_model_input, create_batch_model, tidlOnnxModelIntermediateNamesPruner
+from .onnx_add_intermediate_outputs import add_intermediate_outputs
+from .onnx_extract_model import extract_model
+from .onnx_rgb_to_yuv_convertor import convert_image_to_yuv, convert_model_to_yuv

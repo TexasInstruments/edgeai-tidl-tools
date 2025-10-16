@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright (c) 2018-2023, Texas Instruments
+# Copyright (c) 2018-2026, Texas Instruments
 # All Rights Reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -29,6 +29,9 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ######################################################################
+SCRIPTDIR=$(dirname $(realpath $0))
+CURRDIR=$(pwd)
+BASEDIR=$SCRIPTDIR/../../
 
 # Check if CPU or GPU tools
 if [ -z "$TIDL_TOOLS_TYPE" ];then
@@ -43,7 +46,7 @@ else
 fi
 
 if [ $tidl_gpu_tools -eq 1 ];then
-    sudo docker run -w /home/root --gpus all -it --shm-size=4096m --mount source=$(pwd),target=/home/root,type=bind edgeai_tidl_tools_x86_ubuntu_22_gpu
+    sudo docker run -w /home/root --gpus all -it --shm-size=4096m --mount source=$BASEDIR,target=/home/root,type=bind edgeai_tidl_tools_x86_ubuntu_22_gpu
 else
-    sudo docker run -w /home/root  -it --shm-size=4096m --mount source=$(pwd),target=/home/root,type=bind edgeai_tidl_tools_x86_ubuntu_22
+    sudo docker run -w /home/root  -it --shm-size=4096m --mount source=$BASEDIR,target=/home/root,type=bind edgeai_tidl_tools_x86_ubuntu_22
 fi

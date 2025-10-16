@@ -1,0 +1,145 @@
+compile_options:
+  "debug_level" : 0
+  "tensor_bits": 8
+  "accuracy_level": 1
+  "advanced_options:calibration_frames": 2
+  "advanced_options:calibration_iterations": 5
+  "advanced_options:mixed_precision_factor": -1
+  "advanced_options:quantization_scale_type": 0
+  "advanced_options:high_resolution_optimization": 0
+  "advanced_options:pre_batchnorm_fold": 1
+  "ti_internal_nc_flag": 1601
+  "advanced_options:activation_clipping": 1
+  "advanced_options:weight_clipping": 1
+  "advanced_options:bias_calibration": 1
+  "advanced_options:channel_wise_quantization": 0
+  "advanced_options:add_data_convert_ops": 3
+  "advanced_options:inference_mode": 0
+  "advanced_options:num_cores": 1
+
+infer_options:
+  "debug_level" : 0
+
+models:
+  # ONNX Models
+  cl-ort-resnet18-v1:
+    path: ../../data/models/resnet18_opset9.onnx
+    inputs: ../../data/inputs/airshow.jpg
+    pre_process_info:
+      input_mean : [123.675, 116.28, 103.53]
+      input_scale : [0.017125, 0.017507, 0.017429]
+    post_process_info:
+      task_type: "classification"
+      labels: ../../data/inputs/labels.txt
+      label_offset: 1
+    runtime: onnxrt
+
+  od-ort-ssd-lite_mobilenetv2_fpn:
+    path: ../../data/models/ssd-lite_mobilenetv2_fpn.onnx
+    inputs: ../../data/inputs/parked_car.jpg
+    compile_options:
+      "object_detection:meta_layers_names_list" : ../../data/prototxt/mmdet/ssd-lite_mobilenetv2_fpn.prototxt
+      "object_detection:meta_arch_type" : 3
+    pre_process_info:
+      input_mean : [0, 0, 0]
+      input_scale : [0.003921568627, 0.003921568627, 0.003921568627]
+    post_process_info:
+      task_type: "detection"
+      framework: "MMDetection"
+    runtime: onnxrt
+
+  ss-ort-deeplabv3lite_mobilenetv2:
+    path: ../../data/models/deeplabv3lite_mobilenetv2.onnx
+    inputs: ../../data/inputs/parked_car.jpg
+    pre_process_info:
+      input_mean : [123.675, 116.28, 103.53]
+      input_scale : [0.017125, 0.017507, 0.017429]
+    post_process_info:
+      task_type: "segmentation"
+    runtime: onnxrt
+
+  # High throughput example model (only applicable for j784s4)
+  cl-ort-resnet18-v1_4batch:
+    soc: j784s4
+    path: ../../data/models/resnet18_opset9_4batch.onnx
+    inputs: ../../data/inputs/airshow.jpg
+    compile_options:
+      "advanced_options:inference_mode" : 1
+      "advanced_options:num_cores" : 4
+    pre_process_info:
+      input_mean : [123.675, 116.28, 103.53]
+      input_scale : [0.017125, 0.017507, 0.017429]
+    post_process_info:
+      task_type: "classification"
+      labels: ../../data/inputs/labels.txt
+      label_offset: 1
+    runtime: onnxrt
+  
+  #Low latency example model (only applicable for j784s4)
+  cl-ort-resnet18-v1_low_latency:
+    soc: j784s4
+    path: ../../data/models/resnet18_opset9.onnx
+    inputs: ../../data/inputs/airshow.jpg
+    compile_options:
+      "advanced_options:inference_mode" : 2
+      "advanced_options:num_cores" : 4
+    pre_process_info:
+      input_mean : [123.675, 116.28, 103.53]
+      input_scale : [0.017125, 0.017507, 0.017429]
+    post_process_info:
+      task_type: "classification"
+      labels: ../../data/inputs/labels.txt
+      label_offset: 1
+    runtime: onnxrt
+
+  #TFLite Models
+  cl-tfl-mobilenet_v1_1.0_224:
+    path: ../../data/models/mobilenet_v1_1.0_224.tflite
+    inputs: ../../data/inputs/airshow.jpg
+    pre_process_info:
+      input_mean : [127.5, 127.5, 127.5]
+      input_scale : [0.00784313725, 0.00784313725, 0.00784313725]
+    post_process_info:
+      task_type: "classification"
+      labels: ../../data/inputs/labels.txt
+      label_offset: 0
+    runtime: tflitert
+
+  od-tfl-ssd_mobilenet_v2_300_float:
+    path: ../../data/models/ssd_mobilenet_v2_300_float.tflite
+    inputs: ../../data/inputs/parked_car.jpg
+    pre_process_info:
+      input_mean : [127.5, 127.5, 127.5]
+      input_scale : [0.00784313725, 0.00784313725, 0.00784313725]
+    post_process_info:
+      task_type: "detection"
+      od_type: "HasDetectionPostProcLayer"
+    runtime: tflitert
+
+  # TVM Models
+  cl-tvm-resnet18-v1_c7x:
+    path: ../../data/models/resnet18_opset9.onnx
+    inputs: ../../data/inputs/airshow.jpg
+    pre_process_info:
+      input_mean : [123.675, 116.28, 103.53]
+      input_scale : [0.017125, 0.017507, 0.017429]
+    post_process_info:
+      task_type: "classification"
+      labels: ../../data/inputs/labels.txt
+      label_offset: 1
+    compile_options:
+      'deny_list': 'nn.global_avg_pool2d'
+      'advanced_options:c7x_codegen' : 1
+    runtime: tvmrt
+
+  ss-tvm-deeplabv3lite_mobilenetv2:
+    path: ../../data/models/deeplabv3lite_mobilenetv2.onnx
+    inputs: ../../data/inputs/parked_car.jpg
+    pre_process_info:
+      input_mean : [123.675, 116.28, 103.53]
+      input_scale : [0.017125, 0.017507, 0.017429]
+    post_process_info:
+      task_type: "segmentation"
+    compile_options:
+      'advanced_options:c7x_codegen' : 0
+    runtime: tvmrt
