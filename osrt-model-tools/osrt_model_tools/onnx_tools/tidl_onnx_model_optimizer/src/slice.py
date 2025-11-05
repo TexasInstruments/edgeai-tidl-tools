@@ -318,7 +318,8 @@ def tidl_eliminate_noop_slice(graph: gs.Graph, onnx_graph: onnx.GraphProto):
                         graph.outputs[idx] = input_var
             # Replace all consumers of this node's output with the input
             for out in node.outputs:
-                for consumer in out.outputs:
+                outs = list(out.outputs)
+                for consumer in outs:
                     for idx, inp in enumerate(consumer.inputs):
                         if inp is out:
                             logging.debug(f"Redirecting consumer '{consumer.name}' input from '{out.name}' to '{input_var.name}'.")

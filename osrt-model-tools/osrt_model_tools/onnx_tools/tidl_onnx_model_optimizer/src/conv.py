@@ -121,7 +121,7 @@ def tidl_convert_conv_large_pad_to_smaller_kernel (graph: gs.Graph, onnx_graph: 
             if 'kernel_shape' in conv.attrs.keys():
                 kernel_shape = conv.attrs['kernel_shape']
             else:
-                kernel_shape = [weights.shape[-2], weights.shape[-1]]
+                kernel_shape = weights.shape[2:]
 
             # calculate steps := how many times kernel can be placed on
             # the original data with pads
@@ -175,7 +175,7 @@ def tidl_convert_conv_7x7_stride4_to_stride1(graph: gs.Graph, onnx_graph: onnx.G
 
     for node in graph.nodes:
         if node.op == 'Conv':
-            if node.attrs['kernel_shape'] == [7, 7] and node.attrs['strides'] == [4, 4]:
+            if node.attrs.get('kernel_shape', node.inputs[1].shape[2:]) == [7, 7] and node.attrs['strides'] == [4, 4]:
                 node.attrs['strides'] = [1, 1]
                 node.outputs[0].shape = None
 
@@ -221,7 +221,7 @@ def tidl_convert_conv_even_filter_to_odd(graph: gs.Graph, onnx_graph: onnx.Graph
     conv_nodes = [node for node in graph.nodes if node.op == "Conv"]
 
     for conv in conv_nodes:
-        kernel_shape = conv.attrs['kernel_shape']
+        kernel_shape = conv.attrs.get('kernel_shape', conv.inputs[1].shape[2:])
         pads = conv.attrs['pads']
         weight_tensor = conv.inputs[1]
 
@@ -300,7 +300,7 @@ def tidl_convert_tr_conv_stride_n_tr_to_matmul(graph: gs.Graph, onnx_graph: onnx
                               skipping conversion of {node.name}")
                 continue
             strides = node.attrs['strides']
-            kernel_shape = node.attrs['kernel_shape']
+            kernel_shape = node.attrs.get('kernel_shape', node.inputs[1].shape[2:])
 
             if not (kernel_shape[0] == kernel_shape[1] == strides[0] == strides[0]):
                 logging.debug(f"Kernel shape should match the strides of the layer {node.name}, skipping")
