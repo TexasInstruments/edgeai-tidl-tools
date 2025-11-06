@@ -205,13 +205,7 @@ set(PC_INCLUDE_DIR
   ${PROJECT_SOURCE_DIR}/include
 
   /usr/local/include
-  /usr/local/dlr
-  /usr/include/gstreamer-1.0/
-  /usr/include/glib-2.0/
-  /usr/lib/aarch64-linux-gnu/glib-2.0/include
-  /usr/include/opencv4/
-  /usr/include/processor_sdk/vision_apps/
-
+  
   # opencv libraries
   ${OPENCV_INSTALL_DIR}/opencv-4.2.0/modules/core/
   ${OPENCV_INSTALL_DIR}/opencv-4.2.0/build
