@@ -251,6 +251,7 @@ def tidl_modify(model_path: str, out_model_path: str, args: dict):
 
     # post processing simplification
     out_model = gs.export_onnx(graph)
+    out_model.ir_version = model.ir_version
     if args['shape_inference_mode'] in ["all", "post"]:
         logging.info("Enabled post-processing shape inference")
         out_model = shape_inference.infer_shapes(out_model, check_type= True, strict_mode= True)

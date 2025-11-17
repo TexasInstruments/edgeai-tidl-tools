@@ -139,7 +139,7 @@ def find_attentions(graph: gs.Graph):
             i = (i+1)%3
         
         # dont optmize already optimized model
-        if all( branch[-2].op == 'Squeeze'  for branch in qkv_branches):
+        if all( len(branch)>=2 and branch[-2].op == 'Squeeze'  for branch in qkv_branches):
             is_attention = False
 
         if not is_attention:
