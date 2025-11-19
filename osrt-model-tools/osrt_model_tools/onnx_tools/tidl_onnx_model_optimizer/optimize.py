@@ -181,7 +181,7 @@ def run_optimizations(graph, onnx_graph, args, is_quantized_model, topo_sorted_k
         if key in already_run:
             continue
         disabled_op = True
-        if val and not is_quantized_model or (is_quantized_model and key in qdq_supported_ops):
+        if val and (not is_quantized_model or (is_quantized_model and key in qdq_supported_ops)):
             logging.info(f"[{curr_op}/{NUM_OPS}] {key.capitalize()} optimization (bucket: {bucket}) : Enabled")
             if isinstance(val, dict):
                 kwargs = val
