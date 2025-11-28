@@ -103,6 +103,7 @@ def tidl_convert_reducesum_to_matmul (graph: gs.Graph, onnx_graph: onnx.GraphPro
             dtype = getattr(node.inputs[0], 'dtype', np.float32)
             output_var = node.outputs[0]
             original_output_name = output_var.name  # Preserve original name
+            node.outputs.clear()
             
             # Validate
             if ndims < 2 or not axes:
@@ -244,7 +245,7 @@ def tidl_convert_reducesum_to_matmul (graph: gs.Graph, onnx_graph: onnx.GraphPro
                 if out is output_var:
                     graph.outputs[i] = final_out
             
-            logging.info(f"Converted {node.name} to MatMul")
+            logging.debug(f"Converted {node.name} to MatMul")
             
         except Exception as e:
             logging.warning(f"Failed to convert {node.name}: {e}")
