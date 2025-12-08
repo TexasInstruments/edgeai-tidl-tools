@@ -110,6 +110,8 @@ def find_attentions(graph: gs.Graph):
             continue
         if (node3 := softmax.outputs[0].outputs[0]).op != 'MatMul':
             continue
+        if any(isinstance(inp, gs.Constant) for inp in (node2.inputs + node3.inputs[1:])):
+            continue
         matmul1, matmul2 = node2, node3
         
         qkv = [inp.inputs[0] for inp in matmul1.inputs]+[matmul2.inputs[1].inputs[0]]

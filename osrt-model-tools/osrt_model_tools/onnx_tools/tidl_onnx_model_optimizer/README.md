@@ -101,7 +101,7 @@ The different optimizations performed are summarized here along with their defau
 | 23 | remove_quantize_initializer | Removes the Quantization node in initialisers (reduces the model size as input becomes 8-bit) - Use only for PT2E exported models (quantization=3) | True |
 | 24 | remove_duplicate_quantize_dequantize | Removes the duplicate sequential Q-DQ layers (keeps the first quant params) | False |
 | 25 | convert_neg_to_mul | Converts the Neg layer (from RoPE) to mul by -1 | True |
-| 26 | convert_expand_to_reshape_and_concat | Converts the expand layer to reshape and concat | True |
+| 26 | convert_expand_to_reshape_and_concat | Converts the expand layer to reshape and concat | False |
 | 27 | convert_single_concat_to_consecutive_concats | Convert a concat which works as expanding a dimension of a tensor (1x1x10 -> 1x5x10) to multiple consecutive concats which only takes 2 inputs at once, thus in the example, we would have 4 different concats.  | True |
 | 28 | convert_conv_7x7_stride4_to_stride1 | Few models(segformer) has a convolution layer with 7x7 kernel and 4 stride, converting the layer to the one with a stride of 1 using combination of maxpool and conv  | True |
 | 29  | convert_2_dimension_slice_to_maxpool | Slice if present in 2 axes, with same steps, it is converted to a corresponding maxpool with kernel size of 1, transpose also are inserted if channel not in 2nd dimension | False |

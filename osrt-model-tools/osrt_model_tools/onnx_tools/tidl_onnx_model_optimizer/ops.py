@@ -283,7 +283,7 @@ def get_optimizers(bucket_flags=None):
         'remove_quantize_initializer'               : True, 
         'remove_duplicate_quantize_dequantize'      : False, # not yet implemented 
         "convert_neg_to_mul"                        : True,
-        "convert_expand_to_reshape_and_concat"      : True,
+        "convert_expand_to_reshape_and_concat"      : False,
         "convert_single_concat_to_consecutive_concats" : True,
         'convert_conv_7x7_stride4_to_stride1'       : True,
         "convert_2_dimension_slice_to_maxpool"      : False,  # theoritically better than splitting in 2 axis
