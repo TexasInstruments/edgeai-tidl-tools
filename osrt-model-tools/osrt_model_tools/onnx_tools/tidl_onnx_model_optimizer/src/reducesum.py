@@ -152,7 +152,7 @@ def tidl_convert_reducesum_to_matmul (graph: gs.Graph, onnx_graph: onnx.GraphPro
                 var_outshape   = [gs.Variable(f"rs_transpose_out.{idx}",
                                               dtype=dtype, shape=shape_outshape)]
                 transpose1 = gs.Node(op="Transpose", name=f"rs_transpose.{idx}.1",
-                                     attrs={"perm": permidx}, inputs=input_tensor,
+                                     attrs={"perm": permidx}, inputs=input_tensor[:1],
                                      outputs=var_outshape)
                 graph.nodes.append(transpose1)
                 logging.debug(f"Adding Node {transpose1.name}")

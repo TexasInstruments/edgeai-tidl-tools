@@ -312,7 +312,7 @@ def tidl_detr_attention(graph: gs.Graph, onnx_graph: onnx.GraphProto):
             k_branch = []
             q_branch.append(att.matmul_qkt)
             k_branch.append(att.matmul_qkt)
-            while q_side_in_node != nodes[0] and kt_side_in_node != nodes[0]:
+            while q_side_in_node and q_side_in_node != nodes[0] and kt_side_in_node and kt_side_in_node != nodes[0]:
                 if(q_side_in_node == kt_side_in_node ):
                     # if(q_side_in_node.op == "Add"):
                     q_branch.append(find_node_idx(q_side_in_node, graph))

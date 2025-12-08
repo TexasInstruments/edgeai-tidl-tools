@@ -78,6 +78,8 @@ def tidl_convert_conv_large_pad_to_smaller_kernel (graph: gs.Graph, onnx_graph: 
     tensors = graph.tensors()
 
     for conv in conv_nodes:
+        if any(isinstance(inp, gs.Variable) for inp in conv.inputs[1:]):
+            continue
         # check if conversion is needed
         if 'pads' not in conv.attrs.keys(): # pads must be defined
             continue

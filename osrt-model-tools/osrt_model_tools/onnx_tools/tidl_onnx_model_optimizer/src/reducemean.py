@@ -166,7 +166,7 @@ def tidl_convert_reducemean_to_matmul (graph: gs.Graph, onnx_graph: onnx.GraphPr
                 var_outshape   = [gs.Variable(f"{reduce_mean.name}/transpose_out.{idx}",
                                               dtype=dtype, shape=shape_outshape)]
                 transpose1 = gs.Node(op="Transpose", name=f"{reduce_mean.name}/transpose.{idx}.1",
-                                     attrs={"perm": permidx}, inputs=input_tensor,
+                                     attrs={"perm": permidx}, inputs=input_tensor[:1],
                                      outputs=var_outshape)
                 graph.nodes.append(transpose1)
                 logging.debug(f"Adding Node {transpose1.name}")

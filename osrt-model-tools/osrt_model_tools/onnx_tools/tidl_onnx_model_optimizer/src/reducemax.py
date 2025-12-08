@@ -155,7 +155,7 @@ def tidl_convert_reducemax_width_to_height (graph: gs.Graph, onnx_graph: onnx.Gr
             var_outshape = [gs.Variable(f"rm_transpose_out.{idx}",
                                       dtype=dtype, shape=shape_outshape)]
             transpose1 = gs.Node(op="Transpose", name=f"rm_transpose.{idx}.1",
-                                attrs={"perm": permidx}, inputs=input_tensor,
+                                attrs={"perm": permidx}, inputs=input_tensor[:1],
                                 outputs=var_outshape)
             graph.nodes.append(transpose1)
             logging.debug(f"Adding Node {transpose1.name}")
@@ -163,10 +163,22 @@ def tidl_convert_reducemax_width_to_height (graph: gs.Graph, onnx_graph: onnx.Gr
             # 2. ReduceMax (now reducing along height which was originally width)
             var_outreduce = [gs.Variable(f"rm_reducemax_out.{idx}", 
                                         dtype=dtype, shape=shape_outreducemax)]
-            reduce_max_node = gs.Node(op="ReduceMax", name=f"rm_reducemax.{idx}",
-                                    attrs={'axes': [-2], 'keepdims': 1},
-                                    inputs=[var_outshape[0]],
-                                    outputs=var_outreduce)
+            if 'axes' in node.attrs:
+                reduce_max_node = gs.Node(op="ReduceMax", name=f"rm_reducemax.{idx}",
+                                        attrs={'axes': [-2], 'keepdims': 1},
+                                        inputs=[var_outshape[0]],
+                                        outputs=var_outreduce)
+            elif len(node.inputs)>1:
+                reduce_max_node = gs.Node(op="ReduceMax", name=f"rm_reducemax.{idx}",
+                                        attrs={ 'keepdims': 1},
+                                        inputs=[var_outshape[0], gs.Constant(f'rm_reducemax.{idx}_axes',np.array([-2], dtype=np.int64))],
+                                        outputs=var_outreduce)
+            else:
+                reduce_max_node = gs.Node(op="ReduceMax", name=f"rm_reducemax.{idx}",
+                                        attrs={'keepdims': 1},
+                                        inputs=[var_outshape[0]],
+                                        outputs=var_outreduce)
+                
             graph.nodes.append(reduce_max_node)
             logging.debug(f"Adding Node {reduce_max_node.name}")
             
