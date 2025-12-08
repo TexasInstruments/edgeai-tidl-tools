@@ -73,7 +73,7 @@ from .src.attention_hf import tidl_optimize_hf_attention
 from .src.batch import tidl_modify_batch_dim
 from .src.concat import tidl_convert_concat_axis_width_to_channel, tidl_convert_single_concat_to_consecutive_concats
 from .src.maxpool import tidl_convert_maxpool_to_cascaded_maxpool
-from .src.reducemean import tidl_convert_reducemean_to_matmul
+from .src.reducemean import tidl_expand_multiaxes_reducemean_to_single_axis_reducemeans
 from .src.gemm import tidl_convert_gemm_to_matmul_and_add
 from .src.matmul import tidl_convert_matmul_to_conv_1x1s1, tidl_push_matmul_channel_in_height
 from .src.global_avg_pool import tidl_convert_large_global_avg_pooling_to_matmul
@@ -90,7 +90,7 @@ from .src.unsqueeze import tidl_convert_unsqueeze_to_reshape, tidl_eliminate_uns
 from .src.qdq import tidl_add_bias_qdq, tidl_remove_quantize_initializer, tidl_remove_duplicate_quantize_dequantize
 from .src.neg import tidl_convert_neg_to_mul
 from .src.expand import tidl_convert_expand_to_reshape_and_concat
-from .src.reducesum import tidl_convert_reducesum_to_matmul
+from .src.reducesum import tidl_expand_multiaxes_reducesum_to_single_axis_reducesums
 from .src.eltwise import tidl_replace_mean_with_eltwise, tidl_replace_sub_with_neg_add, tidl_support_broadcast_ops_constant_input
 from .src.depthtospace import tidl_insert_1x1_conv_before_depthtospace, tidl_convert_depth2space_to_reshp_tr_reshp
 from .src.spacetodepth import tidl_convert_space2depth_to_reshp_tr_reshp
@@ -114,7 +114,7 @@ opt_ops = {
         'convert_concat_axis_width_to_channel'      : tidl_convert_concat_axis_width_to_channel,
         'split_batch_dim_to_parallel_input_branches': tidl_modify_batch_dim,
         'convert_maxpool_to_cascaded_maxpool'       : tidl_convert_maxpool_to_cascaded_maxpool,
-        'convert_reducemean_to_matmul'              : tidl_convert_reducemean_to_matmul,
+        'expand_multiaxes_reducemean_to_single_axis_reducemeans'              : tidl_expand_multiaxes_reducemean_to_single_axis_reducemeans,
         'convert_gemm_to_matmul_and_add'            : tidl_convert_gemm_to_matmul_and_add,
         'convert_matmul_to_conv_1x1s1'              : tidl_convert_matmul_to_conv_1x1s1,
         'convert_large_global_avg_pooling_to_matmul': tidl_convert_large_global_avg_pooling_to_matmul,
@@ -138,7 +138,7 @@ opt_ops = {
         "convert_single_concat_to_consecutive_concats" : tidl_convert_single_concat_to_consecutive_concats, 
         "change_argmax_keepdims_to_1"               : tidl_change_argmax_keepdims_to_1,
         "convert_2_dimension_slice_to_maxpool"      : tidl_convert_2_dimension_slice_to_maxpool,
-        "convert_reducesum_to_matmul"               : tidl_convert_reducesum_to_matmul,
+        "expand_multiaxes_reducesum_to_single_axis_reducesums"               : tidl_expand_multiaxes_reducesum_to_single_axis_reducesums,
         'convert_resize_params_size_to_scale_dynamic_batch' : tidl_convert_resize_params_size_to_scale_dynamic_batch,
         'replace_mean_with_eltwise'                 : tidl_replace_mean_with_eltwise,
         'replace_sub_with_neg_add'                  : tidl_replace_sub_with_neg_add,
@@ -205,7 +205,7 @@ adj_list = {
         'convert_concat_axis_width_to_channel'      : [],
         'split_batch_dim_to_parallel_input_branches': [],
         'convert_maxpool_to_cascaded_maxpool'       : [],
-        'convert_reducemean_to_matmul'              : ['expand_layernorm_to_component_ops'],
+        'expand_multiaxes_reducemean_to_single_axis_reducemeans'              : ['expand_layernorm_to_component_ops'],
         'convert_gemm_to_matmul_and_add'            : ['convert_large_global_avg_pooling_to_matmul'],
         'convert_matmul_to_conv_1x1s1'              : ['convert_gemm_to_matmul_and_add'],     # don't want the matmul from gemm to change                                          
         'convert_large_global_avg_pooling_to_matmul': ['push_matmul_channel_in_height'],
@@ -229,7 +229,7 @@ adj_list = {
         "convert_single_concat_to_consecutive_concats" : [],
         "change_argmax_keepdims_to_1"               : [],
         "convert_2_dimension_slice_to_maxpool"      : ['expand_slice_across_multiple_axis', 'convert_maxpool_to_cascaded_maxpool'],
-        "convert_reducesum_to_matmul"               : [],
+        "expand_multiaxes_reducesum_to_single_axis_reducesums"               : [],
         'convert_resize_params_size_to_scale_dynamic_batch' : ['convert_resize_params_size_to_scale'],
         'replace_mean_with_eltwise'                 : [],
         'replace_sub_with_neg_add'                  : ['support_broadcast_ops_constant_input'],
@@ -261,8 +261,8 @@ def get_optimizers(bucket_flags=None):
         'add_input_normalization'                   : False,
         'convert_resize_params_size_to_scale'       : False,
         'convert_concat_axis_width_to_channel'      : False,
-        'convert_maxpool_to_cascaded_maxpool'       : True,
-        'convert_reducemean_to_matmul'              : True,
+        'convert_maxpool_to_cascaded_maxpool'       : True, #True
+        'expand_multiaxes_reducemean_to_single_axis_reducemeans'              : True, #True
         'convert_gemm_to_matmul_and_add'            : False,
         'convert_matmul_to_conv_1x1s1'              : False,
         'convert_large_global_avg_pooling_to_matmul': True,
@@ -288,8 +288,8 @@ def get_optimizers(bucket_flags=None):
         'convert_conv_7x7_stride4_to_stride1'       : True,
         "convert_2_dimension_slice_to_maxpool"      : False,  # theoritically better than splitting in 2 axis
         "change_argmax_keepdims_to_1"               : False,
-        'hf_attention_block_optimization'           : True,
-        "convert_reducesum_to_matmul"               : True,
+        'hf_attention_block_optimization'           : True, #True
+        "expand_multiaxes_reducesum_to_single_axis_reducesums"               : True, #True
         'convert_resize_params_size_to_scale_dynamic_batch' : False, 
         'replace_mean_with_eltwise'                 : False, 
         'replace_sub_with_neg_add'                  : False, 
@@ -307,7 +307,7 @@ def get_optimizers(bucket_flags=None):
         'break_gelu_to_components'                  : True, 
         'convert_tr_conv_stride_n_tr_to_matmul'     : True,
         'optimize_reshp_tr_reshp'                   : True,
-        'hf_detr_attention_block_optimization'      : True,
+        'hf_detr_attention_block_optimization'      : True, #True
         'convert_reducemax_width_to_height'         : False,
         'replace_tile_gatherelements_with_reshape_gather' : False,
         'replace_einsum_with_basic_ops'             : False, 
@@ -338,11 +338,11 @@ def test_optimizers():
     """
     return {
         # operation specific to be specified here
-        'hf_detr_attention_block_optimization' : True,
+        'break_gelu_to_components' : True,
 
         # utilities specific
         'shape_inference_mode'      : 'all',
-        'simplify_mode'             : 'pre',
+        'simplify_mode'             : None,
         'simplify_kwargs'           : None
     }
 

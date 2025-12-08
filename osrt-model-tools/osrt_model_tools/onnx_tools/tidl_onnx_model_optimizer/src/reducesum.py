@@ -63,29 +63,25 @@ import onnx_graphsurgeon as gs
 import onnx
 import numpy as np
 
-
-
-def tidl_convert_reducesum_to_matmul (graph: gs.Graph, onnx_graph: onnx.GraphProto):
+def tidl_expand_multiaxes_reducesum_to_single_axis_reducesums(graph: gs.Graph, onnx_graph: onnx.GraphProto):
     """
-    Converts ReduceSum operations to equivalent implementations using MatMul and other operations.
-
-    Transforms ReduceSum nodes into combinations of Transpose, MatMul, Reshape, and/or Squeeze
-    operations for better hardware acceleration. Handles:
-    - Input tensors of any dimension (2D and higher)
-    - Reduction across one or two axes (with positive or negative indices)
-    - keepdims=0 and keepdims=1 configurations
-    - Different ONNX opset versions
-    - Axes specified as attributes, inputs, or defaults
-
-    Each transformation is tailored to the specific input dimensions and reduction pattern.
+    Converts multi-axis ReduceSum to single-axis ReduceSum operations.
+    
+    Strategy:
+    1. Find contiguous groups of axes
+    2. Process groups in reverse order (to avoid index shifting)
+    3. Use keepdims=0 for intermediate operations
+    4. Add final Reshape only if original keepdims=1
     """
-
+    
     reduce_sums = [node for node in graph.nodes if node.op == "ReduceSum"]
     
     for idx, node in enumerate(reduce_sums):
         try:
             input_shape = node.inputs[0].shape
             ndims = len(input_shape)
+            
+            axes_in_attrs = 'axes' in node.attrs
             
             # Get axes
             if 'axes' in node.attrs:
@@ -94,145 +90,131 @@ def tidl_convert_reducesum_to_matmul (graph: gs.Graph, onnx_graph: onnx.GraphPro
                 axes = node.inputs[1].values
             else:
                 axes = list(range(ndims))
+                axes_in_attrs = True
             
             # Normalize axes
             axes = [ax if ax >= 0 else ndims + ax for ax in axes]
             axes = sorted(axes)
             
+            # Skip single-axis
+            if len(axes) <= 1:
+                logging.debug(f"Skipping {node.name}: single axis")
+                continue
+            
             keepdims = node.attrs.get('keepdims', 1)
             dtype = getattr(node.inputs[0], 'dtype', np.float32)
             output_var = node.outputs[0]
-            original_output_name = output_var.name  # Preserve original name
+            original_output_name = output_var.name
             node.outputs.clear()
             
             # Validate
             if ndims < 2 or not axes:
-                logging.info(f"Skipping {node.name}: invalid dimensions")
+                logging.debug(f"Skipping {node.name}: invalid dimensions")
                 continue
             
-            # Check for dynamic shapes
             if None in input_shape:
-                logging.warning(f"Skipping {node.name}: dynamic shape")
+                logging.debug(f"Skipping {node.name}: dynamic shape")
                 continue
             
-            # ===== SINGLE AXIS =====
-            if len(axes) == 1:
-                axis = axes[0]
-                reduce_dim = input_shape[axis]
-                ones = gs.Constant(f"{node.name}_ones_{idx}", np.ones((reduce_dim, 1), dtype=dtype))
-                
-                # If last axis - direct MatMul
-                if axis == ndims - 1:
-                    matmul_out = gs.Variable(f"{node.name}_matmul_out_{idx}", dtype=dtype)
-                    graph.nodes.append(gs.Node("MatMul", f"{node.name}_matmul_{idx}",
-                                               inputs=[node.inputs[0], ones],
-                                               outputs=[matmul_out]))
-                    
-                    if keepdims:
-                        matmul_out.name = original_output_name  # Use original name
-                        final_out = matmul_out
-                    else:
-                        axes_const = gs.Constant(f"{node.name}_axes_{idx}", np.array([-1], dtype=np.int64))
-                        final_out = gs.Variable(original_output_name, dtype=dtype)  # Use original name
-                        graph.nodes.append(gs.Node("Squeeze", f"{node.name}_squeeze_{idx}",
-                                                   inputs=[matmul_out, axes_const],
-                                                   outputs=[final_out]))
-                
-                # Other axis - use transpose
+            # Find contiguous groups
+            groups = []
+            current_group = [axes[0]]
+            for i in range(1, len(axes)):
+                if axes[i] == axes[i-1] + 1:
+                    current_group.append(axes[i])
                 else:
-                    perm = list(range(ndims))
-                    perm[axis], perm[-1] = perm[-1], perm[axis]
-                    
-                    trans1_out = gs.Variable(f"{node.name}_trans1_out_{idx}", dtype=dtype)
-                    graph.nodes.append(gs.Node("Transpose", f"{node.name}_trans1_{idx}",
-                                               attrs={"perm": perm},
-                                               inputs=[node.inputs[0]],
-                                               outputs=[trans1_out]))
-                    
-                    matmul_out = gs.Variable(f"{node.name}_matmul_out_{idx}", dtype=dtype)
-                    graph.nodes.append(gs.Node("MatMul", f"{node.name}_matmul_{idx}",
-                                               inputs=[trans1_out, ones],
-                                               outputs=[matmul_out]))
-                    
-                    trans2_out = gs.Variable(f"{node.name}_trans2_out_{idx}", dtype=dtype)
-                    graph.nodes.append(gs.Node("Transpose", f"{node.name}_trans2_{idx}",
-                                               attrs={"perm": perm},
-                                               inputs=[matmul_out],
-                                               outputs=[trans2_out]))
-                    
-                    if keepdims:
-                        trans2_out.name = original_output_name  # Use original name
-                        final_out = trans2_out
-                    else:
-                        axes_const = gs.Constant(f"{node.name}_axes_{idx}", np.array([axis], dtype=np.int64))
-                        final_out = gs.Variable(original_output_name, dtype=dtype)  # Use original name
-                        graph.nodes.append(gs.Node("Squeeze", f"{node.name}_squeeze_{idx}",
-                                                   inputs=[trans2_out, axes_const],
-                                                   outputs=[final_out]))
+                    groups.append(current_group)
+                    current_group = [axes[i]]
+            groups.append(current_group)
             
-            # ===== MULTIPLE AXES =====
-            else:
-                axes_set = set(axes)
-                keep_axes = [i for i in range(ndims) if i not in axes_set]
-                reduce_axes = list(axes)
-                perm = keep_axes + reduce_axes
+            logging.debug(f"Converting {node.name}: axes={axes}, groups={groups}")
+            
+            # ===== OPTIMIZATION: Single Reshape to merge all groups =====
+            
+            # Build new shape with all groups merged
+            merged_shape = [] # New Shape
+            new_reduce_axes = [] # New ReduceSum axes
+            new_pos = 0
+            
+            i = 0
+            while i < ndims:
+                # Check if this position starts a group
+                in_group = False
+                for group in groups:
+                    if i == min(group):
+                        # Merge this entire group
+                        merge_size = 1
+                        for ax in group:
+                            merge_size *= input_shape[ax]
+                        merged_shape.append(merge_size)
+                        new_reduce_axes.append(new_pos)
+                        new_pos += 1
+                        i = max(group) + 1
+                        in_group = True
+                        break
                 
-                # Step 1: Transpose
-                trans1_out = gs.Variable(f"{node.name}_trans1_out_{idx}", dtype=dtype)
-                graph.nodes.append(gs.Node("Transpose", f"{node.name}_trans1_{idx}",
-                                           attrs={"perm": perm},
-                                           inputs=[node.inputs[0]],
-                                           outputs=[trans1_out]))
-                
-                # Step 2: Reshape
-                transposed_shape = [input_shape[i] for i in perm]
-                num_keep = len(keep_axes)
-                batch_shape = tuple(transposed_shape[:num_keep]) if num_keep > 0 else ()
-                reduce_size = int(np.prod([input_shape[i] for i in axes]))
-                
-                reshape1_shape = batch_shape + (reduce_size,)
-                if len(reshape1_shape) == 1:
-                    reshape1_shape = (1,) + reshape1_shape
-                
-                shape1_const = gs.Constant(f"{node.name}_shape1_{idx}", np.array(reshape1_shape, dtype=np.int64))
-                reshape1_out = gs.Variable(f"{node.name}_reshape1_out_{idx}", dtype=dtype)
-                graph.nodes.append(gs.Node("Reshape", f"{node.name}_reshape1_{idx}",
-                                           inputs=[trans1_out, shape1_const],
-                                           outputs=[reshape1_out]))
-                
-                # Step 3: MatMul
-                ones = gs.Constant(f"{node.name}_ones_{idx}", np.ones((reduce_size, 1), dtype=dtype))
-                matmul_out = gs.Variable(f"{node.name}_matmul_out_{idx}", dtype=dtype)
-                graph.nodes.append(gs.Node("MatMul", f"{node.name}_matmul_{idx}",
-                                           inputs=[reshape1_out, ones],
-                                           outputs=[matmul_out]))
-                
-                # Step 4: Reshape after MatMul
-                if keepdims:
-                    reshape2_shape = batch_shape + (1,) * len(axes)
-                else:
-                    reshape2_shape = batch_shape if batch_shape else (1,)
-                
-                shape2_const = gs.Constant(f"{node.name}_shape2_{idx}", np.array(reshape2_shape, dtype=np.int64))
-                reshape2_out = gs.Variable(f"{node.name}_reshape2_out_{idx}", dtype=dtype)
-                graph.nodes.append(gs.Node("Reshape", f"{node.name}_reshape2_{idx}",
-                                           inputs=[matmul_out, shape2_const],
-                                           outputs=[reshape2_out]))
-                
-                # Step 5: Transpose back (if keepdims)
-                if keepdims:
-                    perm_back = [0] * ndims
-                    for i, p in enumerate(perm):
-                        perm_back[p] = i
+                if not in_group:
+                    # Check if in middle of a group (skip)
+                    skip = False
+                    for group in groups:
+                        if i in group and i != min(group):
+                            skip = True
+                            break
                     
-                    final_out = gs.Variable(original_output_name, dtype=dtype)  # Use original name
-                    graph.nodes.append(gs.Node("Transpose", f"{node.name}_trans2_{idx}",
-                                               attrs={"perm": perm_back},
-                                               inputs=[reshape2_out],
-                                               outputs=[final_out]))
+                    if not skip:
+                        # Keep this dimension as-is
+                        merged_shape.append(input_shape[i])
+                        new_pos += 1
+                    i += 1
+            
+            logging.debug(f"  Merged shape: {merged_shape}")
+            logging.debug(f"  New reduce axes: {new_reduce_axes}")
+            
+            # Step 1: Single Reshape (merge all contiguous groups)
+            shape1_const = gs.Constant(f"{node.name}_shape_merged", 
+                                      np.array(merged_shape, dtype=np.int64))
+            reshape1_out = gs.Variable(f"{node.name}_reshape_merged", dtype=dtype)
+            graph.nodes.append(gs.Node("Reshape", f"{node.name}_reshape1",
+                                       inputs=[node.inputs[0], shape1_const],
+                                       outputs=[reshape1_out]))
+            
+            # Step 2: ReduceSum on each merged dimension (reverse order)
+            current_input = reshape1_out
+            
+            for reduce_idx, axis in enumerate(reversed(new_reduce_axes)):
+                temp_out = gs.Variable(f"{node.name}_reduce_{reduce_idx}", dtype=dtype)
+                if axes_in_attrs:
+                    graph.nodes.append(gs.Node("ReduceSum", f"{node.name}_rs_{reduce_idx}",
+                                            attrs={"keepdims": 0, "axes": [axis]},
+                                            inputs=[current_input],
+                                            outputs=[temp_out]))
+                    
                 else:
-                    reshape2_out.name = original_output_name  # Use original name
-                    final_out = reshape2_out
+                    axes_const = gs.Constant(f"{node.name}_axes_{reduce_idx}", 
+                                            np.array([axis], dtype=np.int64))
+                    
+                    
+                    graph.nodes.append(gs.Node("ReduceSum", f"{node.name}_rs_{reduce_idx}",
+                                            attrs={"keepdims": 0},
+                                            inputs=[current_input, axes_const],
+                                            outputs=[temp_out]))
+                current_input = temp_out
+            
+            # Step 3: Final Reshape (only if keepdims=1)
+            if keepdims == 1:
+                final_shape = list(input_shape)
+                for ax in axes:
+                    final_shape[ax] = 1
+                
+                shape_final_const = gs.Constant(f"{node.name}_shape_final", 
+                                               np.array(final_shape, dtype=np.int64))
+                final_out = gs.Variable(original_output_name, dtype=dtype)
+                graph.nodes.append(gs.Node("Reshape", f"{node.name}_reshape_final",
+                                           inputs=[current_input, shape_final_const],
+                                           outputs=[final_out]))
+            else:
+                current_input.name = original_output_name
+                final_out = current_input
             
             # Reconnect consumers
             for consumer in output_var.outputs:
@@ -240,14 +222,14 @@ def tidl_convert_reducesum_to_matmul (graph: gs.Graph, onnx_graph: onnx.GraphPro
                     if inp is output_var:
                         consumer.inputs[i] = final_out
             
-            # Update graph outputs if needed
+            # Update graph outputs
             for i, out in enumerate(graph.outputs):
                 if out is output_var:
                     graph.outputs[i] = final_out
             
-            logging.debug(f"Converted {node.name} to MatMul")
+            logging.debug(f"Converted {node.name}: {len(groups)} group(s), {len(new_reduce_axes)} ReduceSum ops")
             
         except Exception as e:
-            logging.warning(f"Failed to convert {node.name}: {e}")
+            logging.info(f"Failed to convert {node.name}: {e}")
             import traceback
             traceback.print_exc()

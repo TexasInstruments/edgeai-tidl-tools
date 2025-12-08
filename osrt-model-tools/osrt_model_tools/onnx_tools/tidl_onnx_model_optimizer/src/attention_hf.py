@@ -250,8 +250,8 @@ def tidl_optimize_hf_attention(graph:gs.Graph, onnx_graph:onnx.GraphProto):
     for q_branch, k_branch, v_branch, matmul1, softmax, matmul2 in attentions:
         if q_branch[0].op == 'Split':
             split = q_branch[0]
-            split.outputs.clear()
             split_inp = split.inputs[0]
+            # split.outputs.clear()
             q_split, k_split, v_split =  split.inputs[1].values
             branches_upto_transposes = []
             for branch in  (q_branch, k_branch, v_branch):
