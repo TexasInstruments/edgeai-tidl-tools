@@ -124,6 +124,7 @@ def tidl_convert_softmax_axis_channel_to_width(graph: gs.Graph, onnx_graph: onnx
                                         outputs=old_softmax_outputs)
                 graph.nodes.append(transpose2)
                 logging.debug(f"Adding transpose layer {transpose2.name} with perm {perm}")
+                softmax.attrs['axis']=-1
         else:
             logging.critical(f"{softmax.inputs[0].name} input to {softmax.name} has no channel dim"
                                          "Unable to convert axis to channel")
@@ -188,6 +189,7 @@ def tidl_convert_softmax_axis_height_to_width(graph: gs.Graph, onnx_graph: onnx.
                                         outputs=old_softmax_outputs)
                 graph.nodes.append(transpose2)
                 logging.debug(f"Adding transpose layer {transpose1.name} with perm {perm}")
+                softmax.attrs['axis']=-1
         else:
             logging.critical(f"{softmax.inputs[0].name} input to {softmax.name} has no height dim"
                                          "Unable to convert axis to height")

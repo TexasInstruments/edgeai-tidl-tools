@@ -9,9 +9,9 @@ logging.basicConfig(level=logging.INFO)
 
 model_name = "" # add the path to your onnx file here
 
-optimizers = test_optimizers() # need to modify this to debug your transformation
+# optimizers = test_optimizers() # need to modify this to debug your transformation
 # optimizers = get_optimizers(bucket_flags=['LAYOUT_ALL']) # need to modify this to debug bucket transformations
-# optimizers = get_optimizers() # need to modify this to debug all transformations
+optimizers = get_optimizers() # need to modify this to debug all transformations
 # optimizers = None # checks the default setting
 directory, file = os.path.split(model_name)
 optimized_model_path = os.path.join(directory, 'optimized_'+file)
