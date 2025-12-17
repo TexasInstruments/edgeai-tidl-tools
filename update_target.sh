@@ -32,7 +32,7 @@
 SCRIPTDIR=`pwd`
 TARGET_FS_PATH=/
 
-REL="11_01_07_00"
+REL="11_02_04_00"
 SOC=${SOC:-'null'}
 TISDK_IMAGE=${TISDK_IMAGE:-'null'}
 SDK_VERSION=${SDK_VERSION:-'null'}
@@ -54,7 +54,7 @@ if [ `arch` != "aarch64" ]; then
 fi
 
 verify_env() {
-    if [ "$REL" != "11_01_07_00" ]; then
+    if [ "$REL" != "11_02_03_00" ]; then
         echo "Cannot invoke this script with version $REL. This is not a backward compatible release."
     fi
 

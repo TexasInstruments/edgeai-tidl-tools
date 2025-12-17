@@ -75,7 +75,7 @@ cp_osrt_lib()
 
 
 SCRIPTDIR=`pwd`
-REL=11_01_07_00
+REL=11_02_04_00
 skip_cpp_deps=0
 skip_arm_gcc_download=0
 skip_x86_python_install=0
@@ -216,14 +216,10 @@ if [[ $arch == x86_64 ]]; then
     pip3 install pybind11[global]
     if [[ $use_local == 1 ]];then
         echo 'Installing python osrt packages from local...'
-        pip_install_local dlr-1.13.0-py3-none-any.whl
-        pip_install_local tvm-0.12.0-cp310-cp310-linux_x86_64.whl
         pip_install_local onnxruntime_tidl-1.15.0-cp310-cp310-linux_x86_64.whl
         pip_install_local tflite_runtime-2.12.0-cp310-cp310-linux_x86_64.whl
     else
         echo 'Installing python osrt packages...'
-        pip3 install --quiet https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/dlr-1.13.0-py3-none-any.whl
-        pip3 install --quiet https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/tvm-0.12.0-cp310-cp310-linux_x86_64.whl
         pip3 install --quiet https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/onnxruntime_tidl-1.15.0-cp310-cp310-linux_x86_64.whl
         pip3 install --quiet https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/tflite_runtime-2.12.0-cp310-cp310-linux_x86_64.whl
     fi
@@ -376,27 +372,6 @@ if [ $skip_cpp_deps -eq 0 ]; then
         mkdir opencv_4.2.0_x86_u22 && tar xf opencv_4.2.0_x86_u22.tar.gz -C opencv_4.2.0_x86_u22 --strip-components 1
         rm opencv_4.2.0_x86_u22.tar.gz
 
-        # dlr
-        echo "Installing:dlr"
-        if [ -f dlr_1.10.0_x86_u22.tar.gz ];then
-            rm dlr_1.10.0_x86_u22.tar.gz
-        fi
-        if [[ $use_local == 1 ]];then
-            cp_osrt_lib dlr_1.10.0_x86_u22.tar.gz
-        else
-            wget --quiet   https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/dlr_1.10.0_x86_u22.tar.gz
-        fi
-        mkdir dlr_1.10.0_x86_u22 && tar xf dlr_1.10.0_x86_u22.tar.gz -C dlr_1.10.0_x86_u22 --strip-components 1
-        rm dlr_1.10.0_x86_u22.tar.gz   -r
-
-dlr_loc=$(python3  << EOF
-import dlr
-print(dlr.__file__)
-EOF
-)
-        suffix="__init__.py"
-        dlr_loc=${dlr_loc%"$suffix"}
-        cp $dlr_loc/libdlr.so .
 
     fi
 

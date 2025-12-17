@@ -487,8 +487,7 @@ else:
     models = ["cl-ort-resnet18-v1", "od-ort-ssd-lite_mobilenetv2_fpn"]
     if SOC == "am69a":
         # Model to demonstrate multi core parallel batch processing
-        # Masking due known bug: TIDL-12510
-        # models.append("cl-ort-resnet18-v1_4batch")
+        models.append("cl-ort-resnet18-v1_4batch")
         # Model to demonstrate multi core low latency inference
         models.append("cl-ort-resnet18-v1_low_latency")
     if SOC not in ("am62a", "am67a"):

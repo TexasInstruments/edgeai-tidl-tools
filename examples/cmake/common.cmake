@@ -288,7 +288,7 @@ if(${TARGET_DEVICE} STREQUAL  "am62" AND  (${TARGET_CPU} STREQUAL  "x86" AND ${H
                       IlmImf
                       zlib
                       libjasper
-                      dlr
+                      #dlr
                       tensorflow-lite
                       onnxruntime
                       vx_tidl_rt
@@ -385,7 +385,7 @@ if(NOT ${TARGET_DEVICE} STREQUAL  "am62" AND  (${TARGET_CPU} STREQUAL  "x86" AND
     # IlmImf
     # zlib
     # libjasper
-    dlr
+    #dlr
     tensorflow-lite
     onnxruntime
     vx_tidl_rt
@@ -470,7 +470,7 @@ if((${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" AND ${
                   tiff
                   onnxruntime
                   dl
-                  dlr
+                  #dlr
                   yaml-cpp
                   fft2d_fftsg2d
                   fft2d_fftsg
@@ -567,7 +567,7 @@ if((NOT ${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" AN
     tiff
     onnxruntime
     dl
-    dlr
+    #dlr
     yaml-cpp
     tivision_apps
     GLESv2
@@ -685,7 +685,7 @@ if( ((NOT ${TARGET_DEVICE} STREQUAL  "am62") AND (${TARGET_CPU} STREQUAL  "arm" 
                   opencv_imgproc
                   opencv_imgcodecs
                   opencv_core
-                  dlr
+                  #dlr
                   tensorflow-lite
                   onnxruntime
                   vx_tidl_rt

@@ -12,6 +12,7 @@ return
 fi
 
 run_model=1
+ncpus=1
 
 POSITIONAL=()
 while [[ $# -gt 0 ]]
@@ -23,7 +24,6 @@ case $key in
     ;;
     -n=*|--ncpus=*)
     ncpus="${key#*=}"
-    ncpus="--ncpus=${ncpus}"
     ;;
     -h|--help)
     echo Usage: $0 [options]
@@ -53,164 +53,164 @@ fi
 if [[ $SOC == am68pa ]]; then
     cd $CURDIR/examples/osrt_python/tfl
     if [[ $arch == x86_64 ]]; then
-    python3 tflrt_delegate.py -c $ncpus
+    python3 tflrt_delegate.py -c --ncpus=$ncpus
     fi
     if [ $run_model != 0 ];then
         echo "run python3 tflrt_delegate.py"
-        python3 tflrt_delegate.py $ncpus
+        python3 tflrt_delegate.py --ncpus=$ncpus
     fi    
     cd $CURDIR/examples/osrt_python/ort
     if [[ $arch == x86_64 ]]; then
-    python3 onnxrt_ep.py -c $ncpus
+    python3 onnxrt_ep.py -c --ncpus=$ncpus
     fi
     if [ $run_model != 0 ];then
         echo "run python3 onnxrt_ep.py"
-        python3 onnxrt_ep.py $ncpus
+        python3 onnxrt_ep.py --ncpus=$ncpus
     fi    
-    cd $CURDIR/examples/osrt_python/tvm_dlr
-    if [[ $arch == x86_64 ]]; then
-    python3  tvm_compilation_onnx_example.py --pc-inference
-    python3  tvm_compilation_tflite_example.py --pc-inference
-    python3  tvm_compilation_onnx_example.py
-    python3  tvm_compilation_tflite_example.py
-    python3  tvm_compilation_timm_example.py
-    fi
-    if [ $run_model != 0 ];then
-        echo "run python3  dlr_inference_example.py "
-        python3  dlr_inference_example.py 
-    fi    
+    # cd $CURDIR/examples/osrt_python/tvm_dlr
+    # if [[ $arch == x86_64 ]]; then
+    # python3  tvm_compilation_onnx_example.py --pc-inference
+    # python3  tvm_compilation_tflite_example.py --pc-inference
+    # python3  tvm_compilation_onnx_example.py
+    # python3  tvm_compilation_tflite_example.py
+    # python3  tvm_compilation_timm_example.py
+    # fi
+    # if [ $run_model != 0 ];then
+    #     echo "run python3  dlr_inference_example.py "
+    #     python3  dlr_inference_example.py 
+    # fi    
     cd $CURDIR
 elif [[ $SOC == am68a ]]; then
     cd $CURDIR/examples/osrt_python/tfl
     if [[ $arch == x86_64 ]]; then
-    python3 tflrt_delegate.py -c $ncpus
+    python3 tflrt_delegate.py -c --ncpus=$ncpus
     fi
     if [ $run_model != 0 ];then
         echo "run python3 tflrt_delegate.py"
-        python3 tflrt_delegate.py $ncpus
+        python3 tflrt_delegate.py --ncpus=$ncpus
     fi
     cd $CURDIR/examples/osrt_python/ort
     if [[ $arch == x86_64 ]]; then
-    python3 onnxrt_ep.py -c $ncpus
+    python3 onnxrt_ep.py -c --ncpus=$ncpus
     fi
     if [ $run_model != 0 ];then
         echo "run python3 onnxrt_ep.py"
-        python3 onnxrt_ep.py $ncpus
+        python3 onnxrt_ep.py --ncpus=$ncpus
     fi        
-    cd $CURDIR/examples/osrt_python/tvm_dlr
-    if [[ $arch == x86_64 ]]; then
-    python3  tvm_compilation_onnx_example.py --pc-inference
-    python3  tvm_compilation_tflite_example.py --pc-inference
-    python3  tvm_compilation_onnx_example.py
-    python3  tvm_compilation_tflite_example.py
-    python3  tvm_compilation_timm_example.py
-    fi
-    if [ $run_model != 0 ];then
-        echo "run python3  dlr_inference_example.py "
-        python3  dlr_inference_example.py 
-    fi    
+    # cd $CURDIR/examples/osrt_python/tvm_dlr
+    # if [[ $arch == x86_64 ]]; then
+    # python3  tvm_compilation_onnx_example.py --pc-inference
+    # python3  tvm_compilation_tflite_example.py --pc-inference
+    # python3  tvm_compilation_onnx_example.py
+    # python3  tvm_compilation_tflite_example.py
+    # python3  tvm_compilation_timm_example.py
+    # fi
+    # if [ $run_model != 0 ];then
+    #     echo "run python3  dlr_inference_example.py "
+    #     python3  dlr_inference_example.py 
+    # fi    
     cd $CURDIR
 elif [[ $SOC == am69a ]]; then
     cd $CURDIR/examples/osrt_python/tfl
     if [[ $arch == x86_64 ]]; then
-    python3 tflrt_delegate.py -c $ncpus
+    python3 tflrt_delegate.py -c --ncpus=$ncpus
     fi
     if [ $run_model != 0 ];then
         echo "run python3 tflrt_delegate.py"
-        python3 tflrt_delegate.py $ncpus
+        python3 tflrt_delegate.py --ncpus=$ncpus
     fi    
     cd $CURDIR/examples/osrt_python/ort
     if [[ $arch == x86_64 ]]; then
-    python3 onnxrt_ep.py -c $ncpus
+    python3 onnxrt_ep.py -c --ncpus=$ncpus
     fi
     if [ $run_model != 0 ];then
         echo "run python3 onnxrt_ep.py"
-        python3 onnxrt_ep.py $ncpus
+        python3 onnxrt_ep.py --ncpus=$ncpus
     fi 
-    cd $CURDIR/examples/osrt_python/tvm_dlr
-    if [[ $arch == x86_64 ]]; then
-    python3  tvm_compilation_onnx_example.py --pc-inference
-    python3  tvm_compilation_tflite_example.py --pc-inference
-    python3  tvm_compilation_onnx_example.py
-    python3  tvm_compilation_tflite_example.py
-    python3  tvm_compilation_timm_example.py
-    fi
-    if [ $run_model != 0 ];then
-        echo "run python3  dlr_inference_example.py "
-        python3  dlr_inference_example.py 
-    fi 
+    # cd $CURDIR/examples/osrt_python/tvm_dlr
+    # if [[ $arch == x86_64 ]]; then
+    # python3  tvm_compilation_onnx_example.py --pc-inference
+    # python3  tvm_compilation_tflite_example.py --pc-inference
+    # python3  tvm_compilation_onnx_example.py
+    # python3  tvm_compilation_tflite_example.py
+    # python3  tvm_compilation_timm_example.py
+    # fi
+    # if [ $run_model != 0 ];then
+    #     echo "run python3  dlr_inference_example.py "
+    #     python3  dlr_inference_example.py 
+    # fi 
     cd $CURDIR    
 elif [[ $SOC == am62 ]]; then
     cd $CURDIR/examples/osrt_python/tfl
     if [ $run_model != 0 ];then
         echo "run python3 tflrt_delegate.py"
-        python3 tflrt_delegate.py $ncpus
+        python3 tflrt_delegate.py --ncpus=$ncpus
     fi 
     cd $CURDIR/examples/osrt_python/ort
     if [ $run_model != 0 ];then
         echo "run python3 onnxrt_ep.py"
-        python3 onnxrt_ep.py $ncpus
+        python3 onnxrt_ep.py --ncpus=$ncpus
     fi 
     cd $CURDIR
 elif [[ $SOC == am62a ]]; then
     cd $CURDIR/examples/osrt_python/tfl
     if [[ $arch == x86_64 ]]; then
-    python3 tflrt_delegate.py -c $ncpus
+    python3 tflrt_delegate.py -c --ncpus=$ncpus
     fi
     if [ $run_model != 0 ];then
         echo "run python3 tflrt_delegate.py"
-        python3 tflrt_delegate.py $ncpus
+        python3 tflrt_delegate.py --ncpus=$ncpus
     fi 
     cd $CURDIR/examples/osrt_python/ort
     if [[ $arch == x86_64 ]]; then
-    python3 onnxrt_ep.py -c $ncpus
+    python3 onnxrt_ep.py -c --ncpus=$ncpus
     fi
     if [ $run_model != 0 ];then
         echo "run python3 onnxrt_ep.py"
-        python3 onnxrt_ep.py $ncpus
+        python3 onnxrt_ep.py --ncpus=$ncpus
     fi 
-    cd $CURDIR/examples/osrt_python/tvm_dlr
-    if [[ $arch == x86_64 ]]; then
-    python3  tvm_compilation_onnx_example.py --pc-inference
-    python3  tvm_compilation_tflite_example.py --pc-inference
-    python3  tvm_compilation_onnx_example.py
-    python3  tvm_compilation_tflite_example.py
-    python3  tvm_compilation_timm_example.py
-    fi
-    if [ $run_model != 0 ];then
-        echo "run python3  dlr_inference_example.py "
-        python3  dlr_inference_example.py 
-    fi
+    # cd $CURDIR/examples/osrt_python/tvm_dlr
+    # if [[ $arch == x86_64 ]]; then
+    # python3  tvm_compilation_onnx_example.py --pc-inference
+    # python3  tvm_compilation_tflite_example.py --pc-inference
+    # python3  tvm_compilation_onnx_example.py
+    # python3  tvm_compilation_tflite_example.py
+    # python3  tvm_compilation_timm_example.py
+    # fi
+    # if [ $run_model != 0 ];then
+    #     echo "run python3  dlr_inference_example.py "
+    #     python3  dlr_inference_example.py 
+    # fi
     cd $CURDIR    
 elif [[ $SOC == am67a ]]; then
     cd $CURDIR/examples/osrt_python/tfl
     if [[ $arch == x86_64 ]]; then
-    python3 tflrt_delegate.py -c $ncpus
+    python3 tflrt_delegate.py -c --ncpus=$ncpus
     fi
     if [ $run_model != 0 ];then
         echo "run python3 tflrt_delegate.py"
-        python3 tflrt_delegate.py $ncpus
+        python3 tflrt_delegate.py --ncpus=$ncpus
     fi 
     cd $CURDIR/examples/osrt_python/ort
     if [[ $arch == x86_64 ]]; then
-    python3 onnxrt_ep.py -c $ncpus
+    python3 onnxrt_ep.py -c --ncpus=$ncpus
     fi
     if [ $run_model != 0 ];then
         echo "run python3 onnxrt_ep.py"
-        python3 onnxrt_ep.py $ncpus
+        python3 onnxrt_ep.py --ncpus=$ncpus
     fi
-    cd $CURDIR/examples/osrt_python/tvm_dlr
-    if [[ $arch == x86_64 ]]; then
-    python3  tvm_compilation_onnx_example.py --pc-inference
-    python3  tvm_compilation_tflite_example.py --pc-inference
-    python3  tvm_compilation_onnx_example.py
-    python3  tvm_compilation_tflite_example.py
-    python3  tvm_compilation_timm_example.py
-    fi
-    if [ $run_model != 0 ];then
-        echo "run python3  dlr_inference_example.py "
-        python3  dlr_inference_example.py 
-    fi
+    # cd $CURDIR/examples/osrt_python/tvm_dlr
+    # if [[ $arch == x86_64 ]]; then
+    # python3  tvm_compilation_onnx_example.py --pc-inference
+    # python3  tvm_compilation_tflite_example.py --pc-inference
+    # python3  tvm_compilation_onnx_example.py
+    # python3  tvm_compilation_tflite_example.py
+    # python3  tvm_compilation_timm_example.py
+    # fi
+    # if [ $run_model != 0 ];then
+    #     echo "run python3  dlr_inference_example.py "
+    #     python3  dlr_inference_example.py 
+    # fi
     cd $CURDIR 
 fi
 
