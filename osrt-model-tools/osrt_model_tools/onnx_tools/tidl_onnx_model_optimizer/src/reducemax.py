@@ -63,160 +63,333 @@ import onnx_graphsurgeon as gs
 import onnx
 import numpy as np
 
-
-
-def tidl_convert_reducemax_width_to_height (graph: gs.Graph, onnx_graph: onnx.GraphProto):
+def tidl_convert_reducemax_for_height_axis(graph: gs.Graph, onnx_graph: onnx.GraphProto):
     """
-    The ReduceMax layer is replaced with the cascaded multiple layers, e.g.,
-    "Transpose + ReduceMax + Transpose + Squeeze".
+    Convert general ReduceMax operations to TIDL-compatible format:
+    - Only supports reduction along height axis (rank-2 position)
+    - Only keepdims=1 is supported
+    
+    Optimization strategy:
+    1. Groups continuous axes together
+    2. Processes groups in reverse order (high to low indices)
+    3. Skips reshape if axis already at height position and shape ≤4D
+    4. If keepdim=0 then add squeeze to remove dimension
     """
-    logging.debug("Starting tidl_convert_reducemax_width_to_height optimization")
-    count = 0
-    for node in graph.nodes:
-        if node.op == 'ReduceMax':
+    
+    # Find all ReduceMax nodes in graph
+    reducemax_nodes = [node for node in graph.nodes if node.op == "ReduceMax"]
+    if len(reducemax_nodes) == 0:
+        return
+    
+    logging.debug(f"Found {len(reducemax_nodes)} ReduceMax node(s) to process")
+    processed_count = 0
+    
+    for node in reducemax_nodes:
+        try:
             logging.debug(f"Processing ReduceMax node: {node.name}")
             
-            # Input and output tensors
-            input_tensor = node.inputs
-            if not input_tensor:
-                logging.debug(f"No input tensors found for node {node.name}, skipping")
-                continue
-                
-            # Get shape and dtype information first to determine numdims
-            dtype = input_tensor[0].dtype
-            shape = input_tensor[0].shape
+            # Get input shape and dtype information
+            input_tensor = node.inputs[0]
+            dtype = input_tensor.dtype
+            shape = input_tensor.shape
+            
             if shape is None:
-                logging.debug(f"Shape is None for node {node.name}, skipping")
+                logging.warning(f"Shape is None for node {node.name}, skipping")
                 continue
-                
-            numdims = len(shape)
-            logging.debug(f"Input tensor shape: {shape}, dtype: {dtype}, numdims: {numdims}")
             
-            # Get attributes
-            if 'axes' in node.attrs:
-                axes = node.attrs['axes']
-                logging.debug(f"Found axes in node attributes: {axes}")
-            elif len(input_tensor) > 1:
-                axes = input_tensor[1].values
-                logging.debug(f"Found axes in input tensor: {axes}")
+            rank = len(shape)
+            logging.debug(f"Input shape: {shape}, dtype: {dtype}, rank: {rank}")
+            
+            # Extract axes parameter
+            axes = None
+            if len(node.inputs) > 1 and isinstance(node.inputs[1], gs.Constant):
+                axes = node.inputs[1].values
+                if isinstance(axes, np.ndarray):
+                    axes = axes.tolist()
+                if not isinstance(axes, list):
+                    axes = [axes]
+                logging.debug(f"Found axes in input: {axes}")
+            elif "axes" in node.attrs:
+                axes = node.attrs["axes"]
+                if not isinstance(axes, list):
+                    axes = [axes]
+                logging.debug(f"Found axes in attributes: {axes}")
             else:
-                axes = np.arange(0, numdims, 1)
-                logging.debug(f"Using default axes: {axes}")
-
-            try:
-                keepdims = node.attrs['keepdims']
-            except:
-                logging.debug(f"keepdims for {node.name} node does not exist. Set keepdims to 1")
-                keepdims = 1
-            # keepdims = node.attrs.get('keepdims', 1)
+                axes = list(range(rank))
+                logging.debug(f"Using default axes (all dimensions): {axes}")
             
-            if axes is None:
-                logging.debug(f"axes for {node.name} is none, skipping node")
-                continue
-                
-            # Convert to list if it's not already
-            if isinstance(axes, int):
-                axes = [axes]
-                logging.debug(f"Converted axes to list: {axes}")
+            # Extract keepdims parameter (default = 1)
+            keepdims = node.attrs.get("keepdims", 1)
+            logging.debug(f"keepdims: {keepdims}")
             
-            # Only handle specific cases where width reduction is being performed
-            if not ((numdims == 4 and axes[0] == 3) or 
-                   (numdims == 3 and axes[0] == 2) or
-                   (numdims == 2 and axes[0] == 1) or
-                   axes[0] == -1):
-                logging.debug(f"Node {node.name} does not match width reduction criteria (numdims={numdims}, axes={axes}), skipping")
-                continue
-                
-            # Define permutation for transpose
-            if numdims == 4:
-                # NCHW -> NCWH (swap H and W)
-                permidx = [0, 1, 3, 2]
-                shape_outshape = (shape[0], shape[1], shape[3], shape[2])
-                shape_outreducemax = (shape[0], shape[1], shape[3], 1)
-                logging.debug(f"4D case: permidx={permidx}, shape_outshape={shape_outshape}")
-            elif numdims == 3:
-                # CHW -> CWH
-                permidx = [0, 2, 1]
-                shape_outshape = (shape[0], shape[2], shape[1])
-                shape_outreducemax = (shape[0], 1, shape[1])
-                logging.debug(f"3D case: permidx={permidx}, shape_outshape={shape_outshape}")
-            elif numdims == 2:
-                # HW -> WH
-                permidx = [1, 0]
-                shape_outshape = (shape[1], shape[0])
-                shape_outreducemax = (shape[1], 1)
-                logging.debug(f"2D case: permidx={permidx}, shape_outshape={shape_outshape}")
+            # Normalize negative axes to positive indices
+            axes = [ax if ax >= 0 else rank + ax for ax in axes]
+            logging.debug(f"Normalized axes: {axes}")
             
-            idx = count
-            count += 1
-            logging.debug(f"Starting transformation for node {node.name} with index {idx}")
+            # Group continuous axes together
+            axes_sorted = sorted(axes)
+            axis_groups = []
+            current_group = [axes_sorted[0]]
             
-            # 1. Transpose
-            var_outshape = [gs.Variable(f"rm_transpose_out.{idx}",
-                                      dtype=dtype, shape=shape_outshape)]
-            transpose1 = gs.Node(op="Transpose", name=f"rm_transpose.{idx}.1",
-                                attrs={"perm": permidx}, inputs=input_tensor[:1],
-                                outputs=var_outshape)
-            graph.nodes.append(transpose1)
-            logging.debug(f"Adding Node {transpose1.name}")
-            
-            # 2. ReduceMax (now reducing along height which was originally width)
-            var_outreduce = [gs.Variable(f"rm_reducemax_out.{idx}", 
-                                        dtype=dtype, shape=shape_outreducemax)]
-            if 'axes' in node.attrs:
-                reduce_max_node = gs.Node(op="ReduceMax", name=f"rm_reducemax.{idx}",
-                                        attrs={'axes': [-2], 'keepdims': 1},
-                                        inputs=[var_outshape[0]],
-                                        outputs=var_outreduce)
-            elif len(node.inputs)>1:
-                reduce_max_node = gs.Node(op="ReduceMax", name=f"rm_reducemax.{idx}",
-                                        attrs={ 'keepdims': 1},
-                                        inputs=[var_outshape[0], gs.Constant(f'rm_reducemax.{idx}_axes',np.array([-2], dtype=np.int64))],
-                                        outputs=var_outreduce)
-            else:
-                reduce_max_node = gs.Node(op="ReduceMax", name=f"rm_reducemax.{idx}",
-                                        attrs={'keepdims': 1},
-                                        inputs=[var_outshape[0]],
-                                        outputs=var_outreduce)
-                
-            graph.nodes.append(reduce_max_node)
-            logging.debug(f"Adding Node {reduce_max_node.name}")
-            
-            # 3. Transpose back
-            var_out_tr2 = [gs.Variable(f"rm_transpose_out2.{idx}", dtype=dtype)]
-            transpose2 = gs.Node(op="Transpose", name=f"rm_transpose.{idx}.2",
-                                attrs={"perm": permidx}, 
-                                inputs=var_outreduce,
-                                outputs=var_out_tr2)
-            graph.nodes.append(transpose2)
-            logging.debug(f"Adding Node {transpose2.name}")
-            
-            # 4. Squeeze if keepdims is 0
-            if keepdims == 0:
-                logging.debug(f"keepdims=0, adding Squeeze node for {node.name}")
-                # Create a constant for the axes to squeeze
-                if graph.opset < 13:
-                    squeeze_node = gs.Node(op="Squeeze", name=f"rm_squeeze.{idx}",
-                                          attrs={"axes": axes},
-                                          inputs=[var_out_tr2[0]],
-                                          outputs=node.outputs)
-                    logging.debug(f"Using opset < 13, squeeze with axes attribute")
+            for i in range(1, len(axes_sorted)):
+                if axes_sorted[i] == axes_sorted[i-1] + 1:
+                    current_group.append(axes_sorted[i])
                 else:
-                    squeeze_axes = gs.Constant(f"squeeze_axes.{idx}", 
-                                             values=np.array(axes, dtype=np.int64))
-                    squeeze_node = gs.Node(op="Squeeze", name=f"rm_squeeze.{idx}",
-                                          inputs=[var_out_tr2[0], squeeze_axes],
-                                          outputs=node.outputs)
-                    logging.debug(f"Using opset >= 13, squeeze with axes input")
-                graph.nodes.append(squeeze_node)
-                logging.debug(f"Adding Node {squeeze_node.name}")
-            else:
-                # Connect transpose output directly to original outputs
-                logging.debug(f"keepdims=1, connecting transpose output directly to original outputs")
-                transpose2.outputs = node.outputs
+                    axis_groups.append(current_group)
+                    current_group = [axes_sorted[i]]
+            axis_groups.append(current_group)
+            
+            logging.debug(f"Grouped continuous axes: {axis_groups}")
+            
+            # Save original input and output names
+            original_input_name = input_tensor.name
+            original_output_names = [out.name for out in node.outputs]
+            
+            # Process each axis group in REVERSE order
+            current_tensor = input_tensor
+            current_shape = list(shape)
+            final_output_tensor = None  # Will be set to the last operation's output
+            
+            for group_idx, axis_group in enumerate(reversed(axis_groups)):
+                is_last_group = (group_idx == len(axis_groups) - 1)
                 
-            # Remove the original ReduceMax node
-            logging.debug(f"Removing original ReduceMax node {node.name}")
+                logging.debug(f"Processing axis group {axis_group}")
+                
+                current_rank = len(current_shape)
+                height_axis = current_rank - 2
+                
+                # Determine if reshape is needed
+                needs_reshape = (
+                    len(axis_group) > 1 or
+                    axis_group[0] != height_axis or
+                    current_rank > 4
+                )
+                
+                logging.debug(f"Current shape: {current_shape}, height axis: {height_axis}, needs_reshape: {needs_reshape}")
+                
+                if needs_reshape:
+                    #-------------------------------------------------------
+                    # Reshape Node 1
+                    #-------------------------------------------------------
+
+                    # Calculate reshape dimensions
+                    min_axis = min(axis_group)
+                    max_axis = max(axis_group)
+                    
+                    before_dims = list(range(min_axis))
+                    middle_dims = list(range(min_axis, max_axis + 1))
+                    after_dims = list(range(max_axis + 1, current_rank))
+                    
+                    before_size = int(np.prod([current_shape[i] for i in before_dims])) if before_dims else 1
+                    middle_size = int(np.prod([current_shape[i] for i in middle_dims]))
+                    after_size = int(np.prod([current_shape[i] for i in after_dims])) if after_dims else 1
+                    
+                    # Build reshaped tensor
+                    # Skip singleton dimensions (size=1) to minimize rank
+                    reshaped = []
+                    has_before = before_size > 1
+                    has_after = after_size > 1
+
+                    if has_before:
+                        reshaped.append(before_size)
+                    reshaped.append(middle_size)
+                    if has_after:
+                        reshaped.append(after_size)
+
+                    # Calculate where middle dimension is positioned
+                    middle_position = 1 if has_before else 0
+
+                    # Ensure middle is at height position (rank-2)
+                    target_rank = middle_position + 2
+
+                    # Pad to reach target rank (padding at end)
+                    while len(reshaped) < target_rank:
+                        reshaped.append(1)
+
+                    reshaped_rank = len(reshaped)
+                    height_axis_reshaped = reshaped_rank - 2
+
+                    logging.debug(f"Reshaped dimensions: {reshaped}, middle at position: {middle_position}, height at position: {height_axis_reshaped}")
+                           
+                    reshape_pre_output = gs.Variable(
+                        name=f"{node.name}_reshape_pre_out.{processed_count}.{group_idx}",
+                        dtype=dtype
+                    )
+                    
+                    reshape_pre_shape_const = gs.Constant(
+                        f"{node.name}_reshape_pre_shape.{processed_count}.{group_idx}",
+                        values=np.array(reshaped, dtype=np.int64)
+                    )
+                    
+                    reshape_pre_node = gs.Node(
+                        op="Reshape",
+                        name=f"{node.name}_reshape_pre.{processed_count}.{group_idx}",
+                        inputs=[current_tensor, reshape_pre_shape_const],
+                        outputs=[reshape_pre_output]
+                    )
+                    
+                    graph.nodes.append(reshape_pre_node)
+                    logging.debug(f"Added Reshape node (pre): {reshape_pre_node.name}")
+                    
+                    current_tensor = reshape_pre_output
+                    reduce_axis = height_axis_reshaped
+                else:
+                    logging.debug(f"Skipping reshape - axis already at height and shape ≤4D")
+                    reduce_axis = height_axis
+                
+                #--------------------------------------------------------------------
+                # ReduceMax Node
+                #-----------------------------------------------------------------
+                reducemax_output = gs.Variable(
+                    name=f"{node.name}_reduce_out.{processed_count}.{group_idx}",
+                    dtype=dtype
+                )
+                
+                if len(node.inputs) > 1:
+                    axes_const = gs.Constant(
+                        f"{node.name}_axes.{processed_count}.{group_idx}",
+                        values=np.array([reduce_axis], dtype=np.int64)
+                    )
+                    reducemax_node = gs.Node(
+                        op="ReduceMax",
+                        name=f"{node.name}_reduce.{processed_count}.{group_idx}",
+                        inputs=[current_tensor, axes_const],
+                        outputs=[reducemax_output],
+                        attrs={"keepdims": 1}
+                    )
+                else:
+                    reducemax_node = gs.Node(
+                        op="ReduceMax",
+                        name=f"{node.name}_reduce.{processed_count}.{group_idx}",
+                        inputs=[current_tensor],
+                        outputs=[reducemax_output],
+                        attrs={"axes": [reduce_axis], "keepdims": 1}
+                    )
+                
+                graph.nodes.append(reducemax_node)
+                logging.debug(f"Added ReduceMax node: {reducemax_node.name}")
+                
+                current_tensor = reducemax_output
+                
+                if needs_reshape:
+                    #-----------------------------------------------------
+                    # Reshape Node 2
+                    #-----------------------------------------------------
+
+                    # Calculate output shape (restore original structure)
+                    output_shape = []
+                    axis_group_set = set(axis_group)
+                    for i in range(len(current_shape)):
+                        if i in axis_group_set:
+                            output_shape.append(1)
+                        else:
+                            output_shape.append(current_shape[i])
+                    
+                    logging.debug(f"Restoring shape to: {output_shape}")
+                    
+                    reshape_post_output = gs.Variable(
+                        name=f"{node.name}_reshape_post_out.{processed_count}.{group_idx}",
+                        dtype=dtype
+                    )
+                    
+                    reshape_post_shape_const = gs.Constant(
+                        f"{node.name}_reshape_post_shape.{processed_count}.{group_idx}",
+                        values=np.array(output_shape, dtype=np.int64)
+                    )
+                    
+                    reshape_post_node = gs.Node(
+                        op="Reshape",
+                        name=f"{node.name}_reshape_post.{processed_count}.{group_idx}",
+                        inputs=[current_tensor, reshape_post_shape_const],
+                        outputs=[reshape_post_output]
+                    )
+                    
+                    graph.nodes.append(reshape_post_node)
+                    logging.debug(f"Added Reshape node (post): {reshape_post_node.name}")
+                    
+                    current_tensor = reshape_post_output
+                    current_shape = output_shape
+                else:
+                    # Update shape directly (no reshape needed)
+                    current_shape[axis_group[0]] = 1
+                    logging.debug(f"Updated shape to: {current_shape}")
+                
+                # Track the final output tensor
+                if is_last_group and keepdims == 1:
+                    final_output_tensor = current_tensor
+            
+            # Add squeeze if keepdims=0
+            if keepdims == 0:
+                logging.debug(f"keepdims=0 detected, adding Squeeze")
+                
+                #------------------------------------------------------------------
+                # Squeeze Node
+                #----------------------------------------------------------------
+                squeeze_output = gs.Variable(
+                    name=f"{node.name}_squeeze_out.{processed_count}",
+                    dtype=dtype
+                )
+                
+                if graph.opset < 13:
+                    squeeze_node = gs.Node(
+                        op="Squeeze",
+                        name=f"{node.name}_squeeze.{processed_count}",
+                        inputs=[current_tensor],
+                        outputs=[squeeze_output],
+                        attrs={"axes": axes}
+                    )
+                else:
+                    squeeze_axes_const = gs.Constant(
+                        f"{node.name}_squeeze_axes.{processed_count}",
+                        values=np.array(axes, dtype=np.int64)
+                    )
+                    squeeze_node = gs.Node(
+                        op="Squeeze",
+                        name=f"{node.name}_squeeze.{processed_count}",
+                        inputs=[current_tensor, squeeze_axes_const],
+                        outputs=[squeeze_output]
+                    )
+                
+                graph.nodes.append(squeeze_node)
+                logging.debug(f"Added Squeeze node: {squeeze_node.name}")
+                final_output_tensor = squeeze_output
+            else:
+                final_output_tensor = current_tensor
+            
+            # Preserve original output names by renaming final output tensor
+            if len(node.outputs) > 0:
+                original_output = node.outputs[0]
+                final_output_tensor.name = original_output.name
+                logging.debug(f"Preserved output name: {final_output_tensor.name}")
+            
+            # Replace original node's outputs
+            original_outputs = node.outputs.copy()
+            
+            for original_output in original_outputs:
+                # Update all consumers
+                for consumer_node in original_output.outputs:
+                    for i, inp in enumerate(consumer_node.inputs):
+                        if inp == original_output:
+                            consumer_node.inputs[i] = final_output_tensor
+                
+                # Update graph outputs
+                if original_output in graph.outputs:
+                    output_idx = graph.outputs.index(original_output)
+                    graph.outputs[output_idx] = final_output_tensor
+                    logging.debug(f"Updated graph output to use tensor: {final_output_tensor.name}")
+            
+            # Clear original node outputs
             node.outputs.clear()
+            logging.debug(f"Successfully removed original ReduceMax node: {node.name}")
+            
+            processed_count += 1
+            
+        except Exception as e:
+            logging.debug(f"Error processing node {node.name}: {str(e)}")
+            import traceback
+            logging.debug(traceback.format_exc())
+            continue
     
-    logging.debug(f"Completed tidl_convert_reducemax_width_to_height optimization. Processed {count} ReduceMax nodes")
+    # Cleanup graph
+    graph.cleanup().toposort()
+    logging.debug(f"Successfully processed {processed_count} ReduceMax node(s)")
