@@ -382,3 +382,58 @@ def find_matmul_bias (matmul: gs.Node, graph: gs.Graph) -> gs.Node|None:
         #endfor
     #endif
     return None
+
+
+def tidl_convert_matmul_with_1d_weight_to_2d_weight_and_reshape(graph:gs.Graph, onnx_graph:onnx.GraphProto):
+    """
+    Converts MatMul operations with 1D weight constants to use 2D weights with appropriate reshaping.
+    
+    This function identifies MatMul nodes in the graph that have a 1D constant weight tensor as one
+    of their inputs. It then reshapes these 1D weights to 2D format:
+    - If the weight is the first input: reshapes to (1, N)
+    - If the weight is the second input: reshapes to (N, 1)
+    
+    After reshaping the weight, a Reshape node is added after the MatMul to ensure the output
+    shape is preserved to maintain the original graph's behavior.
+    
+    Args:
+        graph (gs.Graph): The graph to be modified, using ONNX GraphSurgeon representation
+        onnx_graph (onnx.GraphProto): The original ONNX graph
+        
+    Returns:
+        None: The function modifies the input graph in-place
+
+    """
+    matmul_nodes = [node for node in graph.nodes if node.op == 'MatMul']
+    for node in matmul_nodes:
+        weight = [inp for inp in node.inputs if isinstance(inp, gs.Constant)]
+        var = [inp for inp in node.inputs if isinstance(inp, gs.Variable)]
+        if not weight or not var: 
+            logging.debug(f"{node.name} must have a constant and a variable as inputs")
+            continue
+        weight = weight[0]
+        var = var[0]
+        if weight.values.ndim != 1:
+            logging.debug(f"{node.name}'s weight must be a vector")
+            continue
+        out= node.outputs[0]
+        if not out.shape:
+            logging.debug(f'{node.name}\'s output must have shape')
+            continue
+        logging.debug(f'Processing MatMul Node { node.name}')
+        if len(weight.outputs) > 1:
+            temp = gs.Constant(f'{node.name}_weights', weight.values.copy())
+        else:
+            temp = None
+        if weight is node.inputs[0]:
+            weight = node.inputs[0] = temp or weight
+            weight.values = weight.values.reshape(1,-1)
+        else:
+            weight = node.inputs[1] = temp or weight
+            weight.values = weight.values.reshape(-1,1)
+        
+        reshape_in = gs.Variable(f'{node.name}_reshape_in', var.dtype)
+        node.outputs[0] = reshape_in
+        shape =  gs.Constant(f'{node.name}_shape', np.array(out.shape))
+        reshape = gs.Node(f'Reshape', f'{node.name}_reshape',{}, [reshape_in,shape], [out])
+        graph.nodes.append(reshape)

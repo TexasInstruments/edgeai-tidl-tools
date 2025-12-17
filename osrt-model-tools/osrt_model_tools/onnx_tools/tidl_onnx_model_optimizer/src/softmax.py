@@ -65,69 +65,144 @@ import onnx
 import numpy as np
 
 
-def tidl_convert_softmax_axis_channel_to_width(graph: gs.Graph, onnx_graph: onnx.GraphProto):
+def tidl_convert_softmax_unsupported_axis_to_width(graph: gs.Graph, onnx_graph: onnx.GraphProto):
     """
-    The SoftMax layer with operation in the channel dimension is replaced with
-    Transpose -> SoftMax -> Transpose to satisfy constraint of SoftMax layer only
-    occuring in width dimension
+    Convert Softmax operations to TIDL-supported dimensions (width=-1, height=-2).
+    Unsupported axes are transformed to width using Transpose→Softmax→Transpose pattern.
     """
+    opset_version= graph.opset
+
+    if opset_version is None:
+        logging.warning("Cannot determine the Opset version")
+        default_axis= -1
+    
+    if opset_version >= 13:
+        default_axis= -1
+        logging.debug(f"Detected ONNX Opset {opset_version}: Softmax default axis = -1")
+    else:
+        default_axis = 1
+        logging.debug(f"Detected ONNX Opset {opset_version}: Softmax default axis = 1")
+
+    SUPPORTED_AXES = [-1,-2]
+    TARGET_AXIS = -1
+
     softmaxes = [node for node in graph.nodes if node.op == "Softmax"]
 
+    converted_count=0
+    skipped_count=0
+    already_supported_count=0
+
     for idx, softmax in enumerate(softmaxes):
-        # Dimension in which Softmax should occur
-        softmax_dimension = softmax.attrs["axis"] if 'axis' in softmax.attrs else -1
-        if softmax.inputs[0].shape is not None:
-            inp_shape = softmax.inputs[0].shape
-            #TODO modify code to use this instead and check
-        else:
-            logging.info(f"{softmax.inputs[0].name} softmax layer does not have input shape, disabling the onnx optimization.")
+
+        softmax_axis = softmax.attrs.get("axis", default_axis)
+
+        if softmax.inputs[0].shape is None:
+            logging.warning(f"Softmax '{softmax.name}' input has no shape information. Skipping.")
+            skipped_count+=1
             continue
 
-        # Assumes tensor with channel axis, NxCxHxW or CxHxW order
-        if len(softmax.inputs[0].shape) >= 3:
+        inp_shape=softmax.inputs[0].shape
+        num_dims = len(inp_shape)
 
-            # If softmax op occurs across channel axis
-            if softmax_dimension == (len(softmax.inputs[0].shape) - 3):
-                logging.debug(f"Converting axis for layer {softmax.name} from dimension {softmax_dimension} to {len(softmax.inputs[0].shape) - 1}")
+        # Check minimum dimensions
+        if num_dims < 2 :
+            logging.warning(f"Softmax '{softmax.name}' input has only {num_dims} dimension(s).")
+            skipped_count+=1
+            continue
 
-                # Permutation array
-                perm = list(range(len(softmax.inputs[0].shape)))
-                temp = perm[-1]
-                perm[-1] = perm[-3]
-                perm[-3] = temp
-
-                # New output shape from transpose1
-                new_shape = copy.copy(softmax.inputs[0].shape)
-                temp = new_shape[-1]
-                new_shape[-1] = new_shape[-3]
-                new_shape[-3] = temp
-
-                var_outshape   = [gs.Variable(f"sf_transpose_out.1.{idx}",
-                                                dtype=np.float32, shape=new_shape)]
-
-                # Create transpose node to swap channel to width
-                transpose1 = gs.Node(op="Transpose", name=f"sf_transpose_1.{idx}",
-                                        attrs={"perm": perm}, inputs=softmax.inputs,
-                                        outputs=var_outshape)
-                graph.nodes.append(transpose1)
-                logging.debug(f"Adding transpose layer {transpose1.name} with perm {perm}")
-
-                # Modify softmax layer
-                softmax.inputs = transpose1.outputs
-                old_softmax_outputs = copy.copy(softmax.outputs)
-                softmax.outputs  = [gs.Variable(f"sf_softmax_out.{idx}",
-                                                dtype=np.float32, shape=new_shape)]
-
-                # Create transpose node to swap width to channel
-                transpose2 = gs.Node(op="Transpose", name=f"sf_transpose_2.{idx}",
-                                        attrs={"perm": perm}, inputs=softmax.outputs,
-                                        outputs=old_softmax_outputs)
-                graph.nodes.append(transpose2)
-                logging.debug(f"Adding transpose layer {transpose2.name} with perm {perm}")
-                softmax.attrs['axis']=-1
+        # Normalize axis to positive
+        if softmax_axis < 0:
+            normalized_axis = num_dims + softmax_axis
         else:
-            logging.critical(f"{softmax.inputs[0].name} input to {softmax.name} has no channel dim"
-                                         "Unable to convert axis to channel")
+            normalized_axis = softmax_axis
+        
+        # Validate range
+        if normalized_axis < 0 or normalized_axis >= num_dims:
+            logging.error(
+                f"Softmax '{softmax.name}' has invalid axis {softmax_axis} "
+                f"for {num_dims}D input. Valid range: [{-num_dims}, {num_dims-1}]. Skipping."
+            )
+            skipped_count += 1
+            continue
+        
+        normalized_supported =[]
+        for ax in SUPPORTED_AXES:
+            if ax < 0: 
+                norm_ax = num_dims +ax
+            else:
+                norm_ax = ax
+            
+            normalized_supported.append(norm_ax)
+        
+        # Check if already supported
+        if normalized_axis in normalized_supported:
+            already_supported_count += 1
+            continue
+
+        #convert to target axis
+        target_axis_normalized = num_dims + TARGET_AXIS
+
+        # swapping dimension
+        perm = list(range(num_dims))
+        perm[normalized_axis], perm[target_axis_normalized] = perm[target_axis_normalized], perm[normalized_axis] 
+
+        # new shape
+        new_shape = list(inp_shape)
+        new_shape[normalized_axis], new_shape[target_axis_normalized] = new_shape[target_axis_normalized], new_shape[normalized_axis]
+
+        logging.debug(f"  → Permutation: {perm}")
+        logging.debug(f"  → Shape: {inp_shape} → {new_shape} → {inp_shape}")
+        
+        #---------------------------------------------------------------
+        # Create Transpose 1 (Move axis to width)
+        #---------------------------------------------------------------
+        transpose1_output= gs.Variable( 
+                                    name=f"sf_transpose_out.1.{idx}",
+                                    dtype=np.float32,
+                                    shape=new_shape
+        )
+
+        transpose1 = gs.Node(
+            op="Transpose",
+            name=f"{softmax.name}_transpose_1.{idx}",
+            attrs={"perm": perm},
+            inputs=softmax.inputs,
+            outputs=[transpose1_output]
+        )
+        graph.nodes.append(transpose1)
+        logging.debug(f"  → Added Transpose1 '{transpose1.name}'")
+        
+        #---------------------------------------------------------------
+        # Modify Softmax to use width axis
+        #---------------------------------------------------------------
+        old_softmax_outputs = copy.copy(softmax.outputs)
+
+        softmax_output = gs.Variable(
+            name=f"{softmax.name}_out.{idx}",
+            dtype=np.float32,
+            shape=new_shape
+        )
+
+        softmax.inputs = [transpose1_output]
+        softmax.outputs = [softmax_output]
+        softmax.attrs['axis'] = TARGET_AXIS
+
+        logging.debug(f"  → Modified Softmax to use axis={TARGET_AXIS}")
+
+        #---------------------------------------------------------------
+        # Create Transpose2 (restore original layout)
+        #---------------------------------------------------------------
+        transpose2 = gs.Node(
+            op="Transpose",
+            name=f"sf_transpose_2.{idx}",
+            attrs={"perm": perm},  # Same perm reverses the operation
+            inputs=[softmax_output],
+            outputs=old_softmax_outputs
+        )
+        graph.nodes.append(transpose2)
+        logging.debug(f"  → Added Transpose2 '{transpose2.name}'")
+        
+        converted_count += 1
 
 
 def tidl_convert_softmax_axis_height_to_width(graph: gs.Graph, onnx_graph: onnx.GraphProto):
@@ -137,6 +212,7 @@ def tidl_convert_softmax_axis_height_to_width(graph: gs.Graph, onnx_graph: onnx.
     occuring in width dimension
     """
     softmaxes = [node for node in graph.nodes if node.op == "Softmax"]
+    logging.warning("This optimization is deprecated and will be removed in a future.")
 
     for idx, softmax in enumerate(softmaxes):
         # Dimension in which Softmax should occur
