@@ -69,9 +69,9 @@ def tidl_expand_slice_across_multiple_axis (graph: gs.Graph, onnx_graph: onnx.Gr
     Convert the Slice across multiple axis to multiple slices in series
     """
     nodes = graph.nodes
-    node_iter = 0
+    # node_iter = 0
     
-    for node in nodes:
+    for node_iter, node in enumerate(nodes):
         if (node.op == "Slice"):
             if len(node.inputs)<2:
                 # Slice-1 implementation (old opset)
@@ -121,7 +121,7 @@ def tidl_expand_slice_across_multiple_axis (graph: gs.Graph, onnx_graph: onnx.Gr
                     prev_slice_node = slice_node 
                     
                 node.outputs.clear()
-                node_iter += 1
+                # node_iter += 1
 
 
 def tidl_convert_2_dimension_slice_to_maxpool (graph: gs.Graph, onnx_graph: onnx.GraphProto):

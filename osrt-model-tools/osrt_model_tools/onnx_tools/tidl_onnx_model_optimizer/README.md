@@ -79,7 +79,7 @@ The different optimizations performed are summarized here along with their defau
 | 1 | add_input_normalization| Add input normalization for uint8 inputs to the model, needs a dictiorary containing "input_mean" and "input_scale", <br> - if none of the two are provided, the normalization is skipped <br> - if only one is provided, the other is set to default values | False |
 | 2 | convert_resize_params_size_to_scale | Resize operator can specify either size of scale parameter in input, but TIDL does not support size input params. This function converts size to corresposding scale. For e.g, with input [3, 256, 256] and size input [3, 128, 128], it will convert to scales [1, 2, 2]| False |
 | 3 | convert_concat_axis_width_to_channel | TIDL only supports concat on channel axis. This function converts Concat layer with width axis to Concat layer with channel axis adjusting the input and output accordingly with Reshapes | False |
-| 4 | convert_maxpool_to_cascaded_maxpool | The MaxPool layer with large kernel (> 3x3) is replaced with cascaded MaxPool layers with 3x3 kernel. Assume that the kernel size is NxN where N is odd. Arbitrary stride supported | True |
+| 4 | convert_maxpool_to_cascaded_maxpool | Convert large MaxPool kernels (>3x3) to cascaded 3x3 and 2x2 layers with exact receptive field matching. Supports odd kernels (5x5, 7x7, ...) with stride 1 or 2, and even kernels (4x4, 6x6, ...) with stride 2 only. | True |
 | 5 | expand_multiaxes_reducemean_to_single_axis_reducemeans | The ReduceSum layer with multi-axis is replaced with cascaded multiple layers, e.g., "Reshape + ReduceSum + ReduceSum + ... + Reshape (if keepdims=1)". Contiguous axes are merged via Reshape, then each merged dimension is reduced with single-axis ReduceSum operations. | True |
 | 6 | convert_gemm_to_matmul_and_add | Gemm layer with constant B input in converted to Matmul and Gemm bias (if exists) is converted to a following Add layer | False |
 | 7 | convert_matmul_to_conv_1x1s1 | Function to convert MatMul layer to Convolution with kernel 1x1, stride 1x1. Only works for MatMuls with input dimensions not equal to 3 (i.e., 2 or >= 4 works) | False |
@@ -125,8 +125,13 @@ The different optimizations performed are summarized here along with their defau
 | 47 | break_gelu_to_components | Breaks the GELU activation into its primitive operations using the erf-based formula | True |
 | 48 | convert_tr_conv_stride_n_tr_to_matmul | Models having transpose -> conv(stride n) -> transpose need to be converted to reshape -> transpose -> reshape -> matmul -> add -> reshape | True | 
 | 49 | optimize_reshp_tr_reshp | Optimize the reshape transpose reshape layers such that if transpose exists in consecutive axis, then it can be clubbed together such that the number of dimension are reduced. | True | 
-| 50 | hf_detr_attention_block_optimization | Attention block optimization function for Hugging Face DETR, identifies attention blocks and performs TIDL specific optimizations on the attention blocks as a whole | False |
+| 50 | hf_detr_attention_block_optimization | Attention block optimization function for Hugging Face DETR, identifies attention blocks and performs TIDL specific optimizations on the attention blocks as a whole | True |
 | 51 | convert_reducemax_for_height_axis | Converts ReduceMax operations to TIDL-compatible format by transforming arbitrary axis reductions into height-axis (rank = -2 position) reductions.  | True |
+| 52 | replace_tile_gatherelements_with_reshape_gather | Replace Tile+GatherElements patterns with Reshape+Gather operations for better performance optimization  | True |
+| 53 | replace_einsum_with_basic_ops | Replaces Einsum operations with equation 'bnc,bchw->bnhw' with a simplified combination of Reshape, Transpose, and MatMul operations.  | False |
+| 54 | convert_matmul_with_1d_weight_to_2d_weight_and_reshape | Converts MatMul operations with 1D weight constants to use 2D weights with appropriate reshaping.  | True |
+| 55 | convert_global_pooling_to_reduce_ops | Convert MaxPool/AveragePool with kernel==stride==input_size to ReduceMax/ReduceMean  | True |
+| 56 | convert_tile_to_expand_for_size1_dims | Convert Tile to Expand only when repeating size-1 dimensions. | True|
 <!-- TODO add for the rest conversion rules-->
 
 ### NOTE

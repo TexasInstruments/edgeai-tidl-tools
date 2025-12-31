@@ -62,85 +62,278 @@ import logging
 import onnx_graphsurgeon as gs
 import onnx
 import numpy as np
-from .common import find_in_layer, find_out_layer
 
 def tidl_convert_tanhgelu_to_erfgelu(graph: gs.Graph, onnx_graph: onnx.GraphProto):
     """
-    Convert the tanh gelu 0.5*(x*(1 + tanh(0.7978845834732056*(x + 0.044714998453855515*x^3)))) to a gelu layer
-    """
-    nodes = graph.nodes
+    Convert TanhGELU approximation to ErfGELU (exact form).
     
-    for node in nodes:
-        if (node.op == "Tanh"):
-            # checking whether tanh gelu structure is satisfied
-            if len(node.inputs) != 1:
-                continue
-            tanh_node = node
-            add_node = find_in_layer(find_in_layer(tanh_node, 0), 0)
-            if add_node.op != "Add":
-                logging.debug(f"tanh node {node.name} not a part of gelu, skipping the conversion")
-                continue
-            mul_node_1 = find_in_layer(add_node, 0)
-            mul_node_2 = find_in_layer(add_node, 1)
+    Converts: 0.5 × x × (1 + tanh(√(2/π) × (x + 0.044715 × x³)))
+    To:       0.5 × x × (1 + erf(x / √2))
 
-            if not (isinstance(mul_node_1, gs.Node) and isinstance(mul_node_2, gs.Node)):
-                logging.debug(f"Either {mul_node_1.name} or {mul_node_2.name} is not a node, skipping the conversion")
-                continue
+    SUPPORTED PATTERNS:
 
-            const_mul_node = mul_node_1
-            inp_gelu_branch_node = mul_node_2
-            if mul_node_1.op != "Mul":
-                inp_gelu_branch_node = mul_node_1
-                const_mul_node = mul_node_2
-                if mul_node_2.op != "Mul":
-                    logging.debug(f"Neither input of add node {add_node.name} is a mul node , skipping the conversion")
-                    continue
+    1. STANDARD TANH-GELU WITH POW NODE
+       Pattern: Uses Pow(x, 3) for cubic term calculation
+    
+    2. MUL-CHAIN CUBIC APPROXIMATION
+       Pattern: Uses x * x * x multiplication chain
+    
+    3. FUSED COEFFICIENT OPTIMIZATION
+       Pattern: Pre-multiplied constant (0.044715 × 0.7978 = 0.0356774)
+    
+    4. SIMPLIFIED NO-CUBIC VARIANT
+       Pattern: Omits x³ term for faster approximation
+    
+    5. REORDERED OPERATION SEQUENCE
+       Pattern: Mul(0.5) applied before or after Add(1)
+    
+    6. CUSTOM COEFFICIENT VARIATIONS
+       Pattern: Slightly different constants within tolerance (GELU with 0.045 instead of 0.044715)
+    """
+    # Constants
+    SQRT_2 = 1.4142135381698608
+    GELU_CONSTANTS = [0.044715, 0.0356774, 0.7978845, 3.0]  # Signatures / Constants
+    TOLERANCE = 0.01
+    
+    converted = 0
+    
+    # =========================================================================
+    # HELPER FUNCTIONS
+    # =========================================================================
+    
+    def get_constant_value(tensor):
+        """Extract scalar from constant tensor"""
+        if not isinstance(tensor, gs.Constant):
+            return None
+        val = tensor.values
+        
+        return float(val.flatten()[0]) if hasattr(val, 'flatten') else float(val)
+    
+    def has_value(node, target, tol=TOLERANCE):
+        """Check if node has input matching target value"""
+        return any(abs(get_constant_value(inp) - target) < tol 
+                   for inp in node.inputs if get_constant_value(inp) is not None)
+    
+    def is_gelu_constant(value):
+        """Check if value matches any GELU signature"""
+        return any(abs(value - const) < TOLERANCE for const in GELU_CONSTANTS)
+    
+    def get_nodes_in_direction(start, direction, max_depth=10):
+        """Get connected nodes (direction: 'up' or 'down')"""
+        visited, result = set(), []
+        
+        def traverse(node, depth):
+            if depth > max_depth or node.name in visited:
+                return
+            visited.add(node.name)
+            result.append(node)
+            
+            if direction == 'down':
+                for out in node.outputs:
+                    for consumer in out.outputs:
+                        if isinstance(consumer, gs.Node):
+                            traverse(consumer, depth + 1)
+            else:  # up
+                for inp in node.inputs:
+                    if isinstance(inp, gs.Variable):
+                        for producer in inp.inputs:
+                            if isinstance(producer, gs.Node):
+                                traverse(producer, depth + 1)
+        
+        # Start traversal
+        if direction == 'down':
+            for out in start.outputs:
+                for consumer in out.outputs:
+                    if isinstance(consumer, gs.Node):
+                        traverse(consumer, 1)
+        else:
+            for inp in start.inputs:
+                if isinstance(inp, gs.Variable):
+                    for producer in inp.inputs:
+                        if isinstance(producer, gs.Node):
+                            traverse(producer, 1)
+        
+        return result
+    
+    # PATTERN DETECTION (Simplified)
+    
+    def detect_gelu(tanh_node):
+        """Detect if Tanh is part of GELU pattern"""
+        
+        # Step 1: Check ancestors for GELU signatures
+        ancestors = get_nodes_in_direction(tanh_node, 'up', max_depth=8)
+        has_gelu_sig = False
+        
+        for node in ancestors:
+            constant_values = []
+            for inp in node.inputs:
+                val = get_constant_value(inp)
+                if val is not None:
+                    constant_values.append(val)
+            
+            for constant in constant_values:
+                if is_gelu_constant(constant):
+                    has_gelu_sig = True
+                    break
+            
+            if has_gelu_sig:
+                break
+        
+        if not has_gelu_sig:
+            return None
+        
+        # Step 2: Find Add(+1) after Tanh
+        descendants = get_nodes_in_direction(tanh_node, 'down', max_depth=5)
+        add_node = next((n for n in descendants if n.op == 'Add' and has_value(n, 1.0)), None)
+        
+        if not add_node:
+            return None
+        
+        # Step 3: Find final Mul - just get all Muls after Add
+        add_idx = descendants.index(add_node)
+        mul_nodes = [n for n in descendants[add_idx:] if n.op == 'Mul']
+        
+        if not mul_nodes:
+            return None
+        
+        # Take up to 2 Muls (covers standard and reordered GELU)
+        if len(mul_nodes) >= 2:
+            final_mul = mul_nodes[1]  # Second Mul (covers both orderings)
+        else:
+            final_mul = mul_nodes[0]  # Only one Mul 
 
-            if find_in_layer(const_mul_node, 0).op != "Mul":
-               logging.debug(f"Input of mul node {const_mul_node.name} is not a mul or pow node , skipping the conversion")
-               continue 
+        # Step 4: Find input variable (most frequently used)
+        pattern_nodes = ancestors + [tanh_node] + descendants[:descendants.index(final_mul) + 1]
+        var_count = {}
+        
+        for node in pattern_nodes:
+            for inp in node.inputs:
+                if isinstance(inp, gs.Variable):
+                    var_count[inp.name] = var_count.get(inp.name, 0) + 1
+        
+        if not var_count:
+            return None
+        
+        input_name = max(var_count, key=var_count.get)
+        input_var = next((out for n in graph.nodes for out in n.outputs 
+                        if out.name == input_name), None)
+        
+        if not input_var:
+            return None
+        
+        # Step 5: Collect nodes to remove
+        nodes_to_remove = [tanh_node, add_node, final_mul]
+        
+        # Add intermediate Muls between Add and final_mul
+        add_idx = descendants.index(add_node)
+        final_idx = descendants.index(final_mul)
+        nodes_to_remove.extend([n for n in descendants[add_idx:final_idx] 
+                            if n.op == 'Mul' and n not in nodes_to_remove])
+        
+        # Add GELU constant nodes
+        for node in ancestors:
+            constant_values = []
+            for inp in node.inputs:
+                val = get_constant_value(inp)
+                if val is not None:
+                    constant_values.append(val)
+            
+            has_gelu_const = False
+            for constant in constant_values:
+                if is_gelu_constant(constant):
+                    has_gelu_const = True
+                    break
+            
+            if has_gelu_const:
+                produces_input = any(out == input_var for out in node.outputs)
+                if not produces_input and node not in nodes_to_remove:
+                    nodes_to_remove.append(node)
+        
+        return input_var, final_mul.outputs[0], nodes_to_remove
+    
+    # REPLACEMENT
+    def create_erfgelu(input_var, output_var, nodes_to_remove, idx):
+        """Create ErfGELU: 0.5 * x * (1 + erf(x / sqrt(2)))"""
+        
+        prefix = f"erfgelu_{idx}"
+        
+        # Constants
+        c_sqrt2 = gs.Constant(f"{prefix}_sqrt2", np.array(SQRT_2, dtype=np.float32))
+        c_one = gs.Constant(f"{prefix}_one", np.array(1.0, dtype=np.float32))
+        c_half = gs.Constant(f"{prefix}_half", np.array(0.5, dtype=np.float32))
+        
+        # Variables
+        v_div = gs.Variable(f"{prefix}_div", dtype=np.float32)
+        v_erf = gs.Variable(f"{prefix}_erf", dtype=np.float32)
+        v_add = gs.Variable(f"{prefix}_add", dtype=np.float32)
+        v_mul1 = gs.Variable(f"{prefix}_mul1", dtype=np.float32)
+        
+        # Output variable
+        is_output = output_var in graph.outputs
+        v_out = gs.Variable(output_var.name, dtype=output_var.dtype, shape=output_var.shape) if is_output \
+                else gs.Variable(f"{prefix}_out", dtype=np.float32)
+        
+        # Create nodes
+        nodes = [
+            gs.Node('Div', f"{prefix}_div", {}, [input_var, c_sqrt2], [v_div]),
+            gs.Node('Erf', f"{prefix}_erf", {}, [v_div], [v_erf]),
+            gs.Node('Add', f"{prefix}_add", {}, [v_erf, c_one], [v_add]),
+            gs.Node('Mul', f"{prefix}_mul1", {}, [input_var, v_add], [v_mul1]),
+            gs.Node('Mul', f"{prefix}_mul2", {}, [v_mul1, c_half], [v_out])
+        ]
+        
+        # Insert at position of first removed node
+        insert_pos = min((graph.nodes.index(n) for n in nodes_to_remove if n in graph.nodes), 
+                        default=len(graph.nodes))
+        
+        for i, node in enumerate(nodes):
+            graph.nodes.insert(insert_pos + i, node)
+        
+        # Redirect consumers
+        if is_output:
+            graph.outputs = [v_out if o == output_var else o for o in graph.outputs]
+        else:
+            for consumer in list(output_var.outputs):
+                if isinstance(consumer, gs.Node):
+                    consumer.inputs = [v_out if inp == output_var else inp 
+                                      for inp in consumer.inputs]
+        
+        # Remove old nodes
+        for node in nodes_to_remove:
+            if node in graph.nodes:
+                graph.nodes.remove(node)
+        
+        return True
+    
+    # MAIN LOOP
+    for iteration in range(50):
+        tanh_nodes = [n for n in graph.nodes if n.op == 'Tanh']
+        
+        if not tanh_nodes:
+            return
+        
+        converted_any = False
+        
+        for tanh in tanh_nodes:
+            result = detect_gelu(tanh)
+            
+            if result:
+                input_var, output_var, nodes_to_remove = result
+                if create_erfgelu(input_var, output_var, nodes_to_remove, converted):
+                    converted += 1
+                    converted_any = True
+                    logging.debug(f"Converted GELU #{converted}")
+                    break
+        
+        if not converted_any:
+            break
+    graph.cleanup()
+    graph.toposort()
+    
+    logging.debug(f"Total converted: {converted}")
 
-            const_add_node = find_out_layer(tanh_node, 0)
-            for inp in const_add_node.inputs:
-                if isinstance(inp, gs.Constant):
-                    if not np.isclose(inp.values, 1):
-                        logging.debug(f"Node {inp.name} does not have value of 1, skipping the conversion")
-                    #
-                elif not isinstance(inp, gs.Variable):
-                    logging.debug(f"Node {inp.name} is not a variable, skipping the conversion")
-                #
-            #
 
-            logging.debug(f"The gelu has been identified for the layer starting from {inp_gelu_branch_node.name}.")
-
-            inpt_erf_node = gs.Variable(name = tanh_node.name + "_erf_inpt", dtype= np.float32)
-            erf_node = gs.Node(name = tanh_node.name + "_erf", op = "Erf",
-                               inputs = [inpt_erf_node], outputs = [tanh_node.outputs[0]])
-            logging.debug(f"Adding Node {erf_node.name}")
-            graph.nodes.append(erf_node)
-            tanh_node.outputs.clear()
-
-            div_const_inpt = gs.Constant(name = tanh_node.name + "_div_inpt", values = np.array(1.4142135381698608, dtype=np.float32))
-            div_node = gs.Node(name = tanh_node.name + "_div", op = "Div",
-                               inputs = [inp_gelu_branch_node.outputs[0] ,div_const_inpt], outputs = [inpt_erf_node])
-            logging.debug(f"Adding Node {div_node.name}")
-            graph.nodes.append(div_node)
-
-            logging.debug("Removing the following nodes fromn the graph: ")    
-            logging.debug(find_in_layer(tanh_node, 0).name)
-            find_in_layer(tanh_node, 0).outputs.clear() # constant mul node 2
-            logging.debug(const_mul_node.name)
-            const_mul_node.outputs.clear()
-            logging.debug(add_node.name)
-            add_node.outputs.clear()
-            logging.debug(find_in_layer(find_in_layer(const_mul_node, 0), 1).name)
-            find_in_layer(find_in_layer(const_mul_node, 0), 1).outputs.clear() # x^2 mul node
-            logging.debug(find_in_layer(const_mul_node, 0).name)
-            find_in_layer(const_mul_node, 0).outputs.clear() # x^3 mul node
-
-            logging.info(f"The gelu conversion for layer starting from {inp_gelu_branch_node.name} would induce slight error in \
-                         output bit-wise comparision, however, the accuracy should not be impacted.")
-
+    
 
 def tidl_break_gelu_to_components(graph: gs.Graph, onnx_graph: onnx.GraphProto):
     """

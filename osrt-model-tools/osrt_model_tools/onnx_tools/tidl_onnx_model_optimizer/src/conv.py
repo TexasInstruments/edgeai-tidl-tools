@@ -224,7 +224,7 @@ def tidl_convert_conv_even_filter_to_odd(graph: gs.Graph, onnx_graph: onnx.Graph
 
     for conv in conv_nodes:
         kernel_shape = conv.attrs.get('kernel_shape', conv.inputs[1].shape[2:])
-        pads = conv.attrs['pads']
+        pads = conv.attrs.get('pads', [0 for _ in range(2*len(kernel_shape))])
         weight_tensor = conv.inputs[1]
 
         conv_input = conv.inputs[0]

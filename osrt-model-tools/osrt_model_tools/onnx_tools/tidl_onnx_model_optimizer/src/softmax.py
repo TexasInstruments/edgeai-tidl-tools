@@ -157,7 +157,7 @@ def tidl_convert_softmax_unsupported_axis_to_width(graph: gs.Graph, onnx_graph: 
         # Create Transpose 1 (Move axis to width)
         #---------------------------------------------------------------
         transpose1_output= gs.Variable( 
-                                    name=f"sf_transpose_out.1.{idx}",
+                                    name=f"{softmax.name}_transpose_out.1.{idx}",
                                     dtype=np.float32,
                                     shape=new_shape
         )
@@ -194,7 +194,7 @@ def tidl_convert_softmax_unsupported_axis_to_width(graph: gs.Graph, onnx_graph: 
         #---------------------------------------------------------------
         transpose2 = gs.Node(
             op="Transpose",
-            name=f"sf_transpose_2.{idx}",
+            name=f"{softmax.name}_transpose_2.{idx}",
             attrs={"perm": perm},  # Same perm reverses the operation
             inputs=[softmax_output],
             outputs=old_softmax_outputs
@@ -243,11 +243,11 @@ def tidl_convert_softmax_axis_height_to_width(graph: gs.Graph, onnx_graph: onnx.
                 new_shape[-1] = new_shape[-2]
                 new_shape[-2] = temp
 
-                var_outshape   = [gs.Variable(f"sf_transpose_out.1.{idx}",
+                var_outshape   = [gs.Variable(f"{softmax.name}_transpose_out.1.{idx}",
                                                 dtype=np.float32, shape=new_shape)]
 
                 # Create transpose node to swap height to width
-                transpose1 = gs.Node(op="Transpose", name=f"sf_transpose_1.{idx}",
+                transpose1 = gs.Node(op="Transpose", name=f"{softmax.name}_transpose_1.{idx}",
                                         attrs={"perm": perm}, inputs=softmax.inputs,
                                         outputs=var_outshape)
                 graph.nodes.append(transpose1)
@@ -260,7 +260,7 @@ def tidl_convert_softmax_axis_height_to_width(graph: gs.Graph, onnx_graph: onnx.
                                                 dtype=np.float32, shape=new_shape)]
 
                 # Create transpose node to swap width to height
-                transpose2 = gs.Node(op="Transpose", name=f"sf_transpose_2.{idx}",
+                transpose2 = gs.Node(op="Transpose", name=f"{softmax.name}_transpose_2.{idx}",
                                         attrs={"perm": perm}, inputs=softmax.outputs,
                                         outputs=old_softmax_outputs)
                 graph.nodes.append(transpose2)

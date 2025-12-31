@@ -60,304 +60,1067 @@ import onnx_graphsurgeon as gs
 import numpy as np
 import onnx
 import logging
+from typing import List, Tuple, Optional, Dict
 
+def find_qk_matmul(softmax: gs.Node) -> Optional[gs.Node]:
+    """Find Q·K^T MatMul before Softmax"""
+    current = softmax
+    for _ in range(10):
+        var_inputs = [inp for inp in current.inputs if isinstance(inp, gs.Variable)]
+        if not var_inputs or not var_inputs[0].inputs:
+            return None
+        prev = var_inputs[0].inputs[0]
+        if prev.op == 'MatMul':
+            return prev
+        if prev.op not in ('Div', 'Mul', 'Add', 'Reshape', 'Transpose'):
+            return None
+        current = prev
+    return None
 
-def find_attentions(graph: gs.Graph):
-    r'''
-    finds the hf attention blocks in the graph 
-                        input(split)
-                        / | \
-                       /  |  \
-                      q   k   v   - branches
-                      |   |   |
-                      \   /   |
-                      matmul  |
-                        |     |
-                     process  |
-                        |     |
-                     softmax  |
-                          \   /
-                          matmul
-                            |
-    this function assumes that q,k,v and process are straight chain of operations their is no dependencies on nodes outside of the block.
-    # TODO detr and segformer type structure is skipped currently. 
-    '''
+def find_attention_matmul(softmax: gs.Node) -> Optional[gs.Node]:
+    """Find Attention·V MatMul after Softmax"""
+    if not softmax.outputs or not softmax.outputs[0].outputs:
+        return None
+    if len(softmax.outputs[0].outputs) != 1:
+        return None
+    next_node = softmax.outputs[0].outputs[0]
+    return next_node if next_node.op == 'MatMul' else None
+
+def get_const(var) -> Optional[np.ndarray]:
+    """Get constant value from variable or constant."""
+    if isinstance(var, gs.Constant):
+        return var.values
+    if isinstance(var, gs.Variable) and var.inputs and isinstance(var.inputs[0], gs.Constant):
+        return var.inputs[0].values
+    return None
+
+def extract_gather_debug(gathers: List[gs.Node]) -> Optional[List[Dict]]:
+    """
+    Extract indices and axis debug from Gather nodes.
+    """
+    debug = []
     
-    attentions = []
-    for node in graph.nodes:
-        if node.op != 'Softmax' or len(node.outputs[0].outputs) > 1:
-            continue
-        softmax = node
-        is_attention = False
-        while True:
-            if len(node.inputs[0].inputs) == 0 :
-                break
-            prev_node = [inp for inp in node.inputs if isinstance(inp, gs.Variable)][0].inputs[0]
-            if prev_node.op == 'MatMul':
-                node1 = node
-                is_attention = True
-                break
-            if len([inp for inp in prev_node.inputs if isinstance(inp, gs.Variable)]) != 1:
-                is_attention = False
-                break
-            node = prev_node
-        if not is_attention:
-            continue
+    for gather in gathers:
+        # Find indices constant
+        indices = next((inp.values for inp in gather.inputs if isinstance(inp, gs.Constant)), None)
+        if indices is None:
+            logging.debug(f"    Gather {gather.name} has no constant indices")
+            return None
         
-        if len(node1.inputs[0].inputs) == 0  or (node2 := node1.inputs[0].inputs[0]).op != 'MatMul':
-            continue
-        if not all(isinstance(inp, gs.Variable) for inp in node2.inputs):
-            continue
-        if (node3 := softmax.outputs[0].outputs[0]).op != 'MatMul':
-            continue
-        if any(isinstance(inp, gs.Constant) for inp in (node2.inputs + node3.inputs[1:])):
-            continue
-        matmul1, matmul2 = node2, node3
+        axis = gather.attrs.get('axis', 0)
         
-        qkv = [inp.inputs[0] for inp in matmul1.inputs]+[matmul2.inputs[1].inputs[0]]
-        qkv_branches = [[node] for node in qkv ]
-        i=0 
-        branch_progress = [True for _ in qkv_branches]
-        while True:
-            curr_branch = qkv_branches[i]
-            rest_branches = [(i,branch) for i,branch in enumerate(qkv_branches) if branch is not curr_branch]
-            if all(curr_branch[-1] is branch[1][-1] for branch in rest_branches):
-                break
-            for j,branch in rest_branches:
-                if branch[-1] is curr_branch[-1]:
-                    branch_progress[i] = False
-                    branch_progress[j] = False
-            if all(not branch_pgs for branch_pgs in branch_progress):
-                break 
-            if not branch_progress[i]:
-                i = (i+1)%3
-                continue
-            curr_node = curr_branch[-1]
-            var_inputs = [inp for inp in curr_node.inputs if isinstance(inp, gs.Variable)]
-            if len(var_inputs) != 1 or len(var_inputs[0].inputs)<1:
-                is_attention = False
-                break
-            curr_branch.append(var_inputs[0].inputs[0])
-            i = (i+1)%3
-        
-        # dont optmize already optimized model
-        if all( len(branch)>=2 and branch[-2].op == 'Squeeze'  for branch in qkv_branches):
-            is_attention = False
-
-        if not is_attention:
-            continue
-        
-        for i in range(len(qkv_branches)):
-            qkv_branches[i].reverse()
-        attentions.append((*qkv_branches, matmul1, softmax, matmul2))
-        
-    return attentions
-
-
-def tidl_merge_adds_between_matmul_and_softmax(graph:gs.Graph, onnx_graph:onnx.GraphProto, attentions=None):
-    '''
-    this function takes care of ADD -> Reshape -> ADD -> Reshape pattern observed in attention blocks in swin models from Hugging Face
-    it merges the two ADD nodes into one and updates the shape of the constant node accordingly, if possible 
+        # Determine if scalar or array
+        if indices.size == 1:  # Scalar index: [0], [1], or [2]
+            debug.append({
+                'gather': gather,
+                'type': 'scalar',
+                'index': int(indices.flat[0]),
+                'axis': axis
+            })
+        else:  # Array of indices: [0, 1, 2, ...]
+            debug.append({
+                'gather': gather,
+                'type': 'array',
+                'indices': indices,
+                'axis': axis,
+                'start': int(indices[0]),
+                'end': int(indices[-1]) + 1,
+                'size': len(indices)
+            })
     
-    This function assumes those ADD nodes between the matmul and softmax nodes in the attention block do not take more than one variable inputs, 
-    i.e. it's a straight chain. 
-    '''
+    # Verify all use same axis
+    axes = [g['axis'] for g in debug]
+    if len(set(axes)) != 1:
+        logging.debug(f"    Gathers use different axes: {axes}")
+        return None
     
-    attentions = attentions or find_attentions(graph)
-    for q_branch, k_branch, v_branch, matmul1, softmax, matmul2 in attentions:
-        node = softmax
-        intermediate_nodes = []
-        while True:
-            if len(node.inputs[0].inputs) == 0 :
-                break
-            prev_node = [inp for inp in node.inputs if isinstance(inp, gs.Variable)][0].inputs[0]
-            intermediate_nodes.append(prev_node)
-            if prev_node.op == 'MatMul':
-                node1 = node
-                break
-            if len([inp for inp in prev_node.inputs if isinstance(inp, gs.Variable)]) != 1:
-                break
-            node = prev_node
-        intermediate_ops = [node.op  for node in intermediate_nodes]
-        pattern = ['Reshape', 'Add', 'Reshape', 'Add']
-        start_index = None
-        for i in range(len(intermediate_ops) - len(pattern) + 1):
-            if intermediate_ops[i:i+len(pattern)] == pattern:
-                start_index = i
-                break
-        if start_index is  None:
-            continue
-        add2 = intermediate_nodes[start_index+1]
-        add1 = intermediate_nodes[start_index+3]
-        index, const1 = [(i,inp) for i,inp in enumerate(add1.inputs) if isinstance(inp, gs.Constant)][0]
-        const2 = [inp for inp in add2.inputs if isinstance(inp, gs.Constant)][0]
-        if const1.shape[-2:] != const2.shape[-2:]:
-            continue
-        old_shape = list(const1.shape)
-        if len(const1.shape) > len(const2.shape):
-            const1, const2 = const2, const1
-        new__shape_const1 = list(const1.shape).copy()
-        while len(new__shape_const1) < len(const2.shape):
-            new__shape_const1 = [1] + new__shape_const1
-        
-        const1.values = np.reshape(const1.values, new__shape_const1)
-        for axis in range(len(new__shape_const1)-2):
-            if new__shape_const1[axis] == const2.shape[axis]:
-                continue
-            if new__shape_const1[axis] == 1:
-                const1.values = np.concatenate([const1.values for _ in range((const2.shape[axis]))], axis=axis)
-            if const2.shape[axis] == 1:
-                const2.values = np.concatenate([const2.values for _ in range((new__shape_const1[axis]))], axis=axis)
-        const1.values = const1.values + const2.values
-        const1.values = np.reshape(const1.values, const1.shape[-len(old_shape):])
-        add1.inputs[index] = const1
-        output_node = intermediate_nodes[start_index-1] if start_index > 0 else softmax
-        input_index = [i for i in range(len(output_node.inputs)) if isinstance(output_node.inputs[i], gs.Variable) ][0]
-        output_node.inputs[input_index] =add1.outputs[0]
+    return debug
 
-def tidl_move_mul_or_div_to_q_branch(graph:gs.Graph, onnx_graph:onnx.GraphProto, attentions=None):
+def handle_scalar_gather_pattern(graph: gs.Graph, common_node: gs.Node, debug: List[Dict], path: List[gs.Node]) -> Optional[gs.Node]:
+    """
+    Handle pattern: Gather with scalar indices [0], [1], [2] if Input shape is  [B, S, 3, D] and creates equal Split along the axis and needed then add the reshape to remove extra dimensions.
+    """
+    axis = debug[0]['axis']
+    num_outputs = len(debug)
     
-    attentions = attentions or find_attentions(graph)
-    for q_branch, k_brach, v_branch, matmul1, softmax, matmul2 in attentions:
-        q_branch_out = matmul1.inputs[0]
-        q_branch_out_node = q_branch_out.inputs[0]
-        out_ind =q_branch_out_node
-        matmul_out = matmul1.outputs[0]
-        if (node := matmul_out.outputs[0]).op not in ('Mul', 'Div') and len(matmul_out.outputs) !=1:
-            continue
-        index, consant_inp = [(i,inp) for i,inp in enumerate(node.inputs) if isinstance(inp, gs.Constant)][0]
-        if len(consant_inp.values.shape) != 0:
-            continue
-        index = (index + 1 ) % 2
-        node_out = node.outputs[0]
-        out_nodes = list(node_out.outputs)
-        out_nodes = [(node.inputs.index(node_out),node) for node in out_nodes ]
-        node.inputs[index] = q_branch_out
-        matmul1.inputs[0] = node.outputs[0]
-        node.outputs[0].shape = None
-        for index, node in out_nodes:
-            node.inputs[index] = matmul_out
-
-
-def tidl_optimize_hf_attention(graph:gs.Graph, onnx_graph:onnx.GraphProto):
-    r'''
-    finds attention blocks and optimizes them
-    '''
-    attentions = find_attentions(graph)    
-    cntr = 0
-    tidl_merge_adds_between_matmul_and_softmax(graph, onnx_graph, attentions)
+    # Get input shape
+    input_tensor = common_node.outputs[0]
+    if not hasattr(input_tensor, 'shape') or input_tensor.shape is None:
+        logging.warning("Cannot get input shape for Gather pattern")
+        return None
     
-    for q_branch, k_branch, v_branch, matmul1, softmax, matmul2 in attentions:
-        if q_branch[0].op == 'Split':
-            split = q_branch[0]
-            split_inp = split.inputs[0]
-            # split.outputs.clear()
-            q_split, k_split, v_split =  split.inputs[1].values
-            branches_upto_transposes = []
-            for branch in  (q_branch, k_branch, v_branch):
-                new_branch = []
-                for node in branch:
-                    if node is split:
-                        continue
-                    new_branch.append(node)
-                    if node.op == 'Transpose':
-                        break
-                branches_upto_transposes.append(new_branch)
-            q_branch, k_branch, v_branch = branches_upto_transposes
-
-            if (len(q_branch) != len(k_branch)) or (len(k_branch) != len(v_branch)):
-                logging.info(f"The len of q, k and v do not match for {cntr} q branch. Skipping.") 
-                continue
-
-            new_input = split.inputs[0]
-            change_split_axis = False
+    input_shape = list(input_tensor.shape)
+    rank = len(input_shape)
+    
+    # Convert negative axis
+    if axis < 0:
+        axis = rank + axis
+    
+    if axis >= rank:
+        logging.warning(f"Axis {axis} out of bounds for rank {rank}")
+        return None
+    
+    dimension = input_shape[axis]
+    
+    # Validate dimension
+    if not isinstance(dimension, (int, np.integer)) or dimension <= 0:
+        logging.warning(f"Dimension at axis {axis} is dynamic: {dimension}")
+        return None
+    
+    # Determine if Reshape is needed
+    needs_reshape = (dimension == num_outputs)
+    
+    split_outs = [g['gather'].outputs[0] for g in debug]
+    split_input = input_tensor
+    
+    # Add Reshape to merge dimensions
+    if needs_reshape:
+        if axis == rank - 1:
+            # Last axis: merge with previous
+            if axis == 0:
+                logging.warning("Cannot merge single dimension")
+                return None
             
-            if all( branch[0].op == 'Add'  for branch in (q_branch, k_branch, v_branch)):
-                add_nodes = [branch[0] for branch in (q_branch, k_branch, v_branch)]
-                for i in (0,1,2):
-                    add_nodes[i].outputs[0].inputs[0] = split
-                add_node = add_nodes[0]
-                add_node.inputs[1] = split.inputs[0]
-                add_node.inputs[0].values = np.concatenate([node.inputs[0].values for node in add_nodes])
-                add_out = gs.Variable(f'{add_node.name}_out',dtype=add_node.inputs[1].dtype, shape = add_node.inputs[1].shape)
-                add_node.outputs.append(add_out)
-                split.inputs[0] = add_out
-                for branch in (q_branch, k_branch, v_branch):
-                    branch.pop(0)
-                new_input = add_out               
-                
-            if all( branch[0].op == 'Reshape'  for branch in (q_branch, k_branch, v_branch)):
-                reshape_nodes = [branch[0] for branch in (q_branch, k_branch, v_branch)]
-                split.outputs.clear()
-                for i in (0,1,2):
-                    reshape_nodes[i].outputs[0].inputs[0] = split
-                reshape_node = reshape_nodes[0]
-                change_split_axis = (q_split==k_split==v_split)
-                output_shape = split.outputs[0].shape
-                if change_split_axis:
-                    output_shape = output_shape[0:2] + [3] + output_shape[2:]
-                    split_dim = output_shape[-3]
+            dim_prev = input_shape[axis - 1]
+            if not isinstance(dim_prev, (int, np.integer)) or dim_prev <= 0:
+                logging.warning(f"Previous dimension is dynamic: {dim_prev}")
+                return None
+            
+            merged_dim = dim_prev * dimension
+            new_shape = input_shape[:-2] + [merged_dim]
+            split_axis = axis - 1
+            split_size = dim_prev
+            
+        else:
+            # Not last: merge with next
+            if axis + 1 >= rank:
+                logging.warning("Cannot merge with next dimension")
+                return None
+            
+            dim_next = input_shape[axis + 1]
+            if not isinstance(dim_next, (int, np.integer)) or dim_next <= 0:
+                logging.warning(f"Next dimension is dynamic: {dim_next}")
+                return None
+            
+            merged_dim = dimension * dim_next
+            new_shape = input_shape[:axis] + [merged_dim] + input_shape[axis+2:]
+            split_axis = axis
+            split_size = dim_next
+        
+        # Create Reshape node
+        reshaped_var = gs.Variable(name=f"{common_node.name}_gather_reshape_out")
+        reshape_node = gs.Node(
+            op='Reshape',
+            name=f'{common_node.name}_gather_reshape',
+            inputs=[
+                input_tensor,
+                gs.Constant(
+                    name=f'{common_node.name}_reshape_shape',
+                    values=np.array(new_shape, dtype=np.int64)
+                )
+            ],
+            outputs=[reshaped_var]
+        )
+        graph.nodes.append(reshape_node)
+        
+        # Update split input to use reshaped tensor
+        split_input = reshaped_var
+        split_sizes = [int(split_size)] * num_outputs
+        
+        logging.debug(f"Added Reshape: {input_shape} → {new_shape}")
+    
+    # No Reshape needed
+    else:
+        split_axis = axis
+        split_size = dimension // num_outputs
+        split_sizes = [int(split_size)] * num_outputs
+        
+        logging.debug(f"No Reshape needed (dimension {dimension} > {num_outputs})")
+    
+    #---------------------------------------------------------------------------
+    # Create Split Node (always created)
+    #---------------------------------------------------------------------------
+    if graph.opset >= 13:
+        split_node = gs.Node(
+            op='Split',
+            name=f'{common_node.name}_gather_to_split',
+            inputs=[
+                split_input,
+                gs.Constant(
+                    name=f'{common_node.name}_split_sizes',
+                    values=np.array(split_sizes, dtype=np.int64)
+                )
+            ],
+            outputs=split_outs,
+            attrs={'axis': split_axis}
+        )
+    else:
+        split_node = gs.Node(
+            op='Split',
+            name=f'{common_node.name}_gather_to_split',
+            inputs=[
+                split_input,
+            ],
+            outputs=split_outs,
+            attrs={'axis': split_axis,
+                   'split': split_sizes }
+        )
+
+    graph.nodes.append(split_node)
+    
+    logging.debug(f"Created Split: axis={split_axis}, sizes={split_sizes}")
+    
+    # Clear old Gathers
+    for g_debug in debug:
+        g_debug['gather'].inputs.clear()
+        g_debug['gather'].outputs.clear()
+    
+    path[-1] = split_node
+    return split_node
+
+def handle_array_gather_pattern(graph: gs.Graph, common_node: gs.Node,debug: List[Dict], path: List[gs.Node]) -> Optional[gs.Node]:
+    """
+    Handle pattern: Gather with contiguous array indices
+    """
+    # Sort by start index
+    debug.sort(key=lambda x: x['start'])
+    
+    # Verify contiguous (no gaps)
+    for i in range(len(debug) - 1):
+        if debug[i]['end'] != debug[i+1]['start']:
+            return None
+    #----------------------------------------------------------------------------
+    # Create the Split Node 
+    #----------------------------------------------------------------------------
+    axis = debug[0]['axis']
+    sizes = [g['size'] for g in debug]
+    
+    split_outs = [g['gather'].outputs[0] for g in debug]
+    
+    if graph.opset >=13:
+        split_node = gs.Node(
+            op='Split',
+            name=f'{common_node.name}_gather_to_split',
+            inputs=[
+                common_node.outputs[0],
+                gs.Constant(
+                    name=f'{common_node.name}_split_sizes',
+                    values=np.array(sizes, dtype=np.int64)
+                )
+            ],
+            outputs=split_outs,
+            attrs={'axis': axis}
+        )
+    else :
+        split_node = gs.Node(
+            op='Split',
+            name=f'{common_node.name}_gather_to_split',
+            inputs=[common_node.outputs[0]],
+            outputs=split_outs,
+            attrs={'axis': axis, 'split': sizes}
+        )
+    
+    graph.nodes.append(split_node)
+    
+    for g_debug in debug:
+        g_debug['gather'].inputs.clear()
+        g_debug['gather'].outputs.clear()
+    
+    # Update path
+    path[-1] = split_node
+    return split_node
+
+def replace_gathers_with_split(graph: gs.Graph, common_node: gs.Node, gathers: List[gs.Node], path: List[gs.Node]) -> Optional[gs.Node]:
+    """
+    Replace 3 Gather nodes with a Split node.
+    """
+    # Extract indices debug
+    debug = extract_gather_debug(gathers)
+    if not debug:
+        return None
+    
+    # Detect pattern type
+    if all(g['type'] == 'scalar' for g in debug):
+        return handle_scalar_gather_pattern(graph, common_node, debug, path)
+    
+    elif all(g['type'] == 'array' for g in debug):
+        return handle_array_gather_pattern(graph, common_node, debug, path)
+    
+    else:
+        logging.debug(f"Gather types - cannot fuse")
+        return None
+
+def replace_slices_with_split(graph: gs.Graph, common_node: gs.Node, slices: List[gs.Node], path: List[gs.Node]) -> Optional[gs.Node]:
+    """
+    Replace 3 Slice nodes with a Split node.
+    """
+    # Extract slice debug
+    debug = []
+    
+    for s in slices:
+        if len(s.inputs) >= 3: # For opset 10+
+            starts = get_const(s.inputs[1])
+            ends = get_const(s.inputs[2])
+            axes = get_const(s.inputs[3]) if len(s.inputs) > 3 else np.array([0])
+            steps = get_const(s.inputs[4]) if len(s.inputs) > 4 else np.array([1])
+
+        elif 'starts' in s.attrs and 'ends' in s.attrs: # for opset 1-9
+            starts = np.array(s.attrs['starts'])
+            ends = np.array(s.attrs['ends'])
+            axes = np.array(s.attrs.get('axes', [0]))
+            steps = np.array([1])
+        
+        else:
+            return None
+        
+        # Validate
+        if starts is None or ends is None or len(starts) != 1 or steps[0] != 1:
+            return None
+        
+        debug.append({
+            'slice': s,
+            'start': int(starts[0]),
+            'end': int(ends[0]),
+            'axis': int(axes[0])
+        })
+    
+    # Validate all same axis
+    if len(set(i['axis'] for i in debug)) != 1:
+        return None
+    
+    # Sort by start
+    debug.sort(key=lambda x: x['start'])
+    for i in range(len(debug) - 1):
+        if debug[i]['end'] != debug[i+1]['start']:
+            logging.debug(f"Slices not contiguous: {debug[i]['end']} != {debug[i+1]['start']}")
+            return None
+    
+    #----------------------------------------------------------------------------
+    # Create the Split Node 
+    #----------------------------------------------------------------------------
+    axis = debug[0]['axis']
+    sizes = [i['end'] - i['start'] for i in debug]
+    split_outs = [i['slice'].outputs[0] for i in debug]
+    
+    if graph.opset>=13:
+        split = gs.Node(
+            op='Split',
+            name=f'{common_node.name}_slice_to_split',
+            inputs=[
+                common_node.outputs[0],
+                gs.Constant(
+                    name=f'{common_node.name}_split_sizes',
+                    values=np.array(sizes, dtype=np.int64)
+                )
+            ],
+            outputs=split_outs,
+            attrs={'axis': axis}
+        )
+    else:
+        split = gs.Node(
+            op='Split',
+            name=f'{common_node.name}_slice_to_split',
+            inputs=[common_node.outputs[0]],
+            outputs=split_outs,
+            attrs={'axis': axis, 'split': sizes}
+        )
+    graph.nodes.append(split)
+    
+    # Clear Slice nodes
+    for i in debug:
+        i['slice'].inputs.clear()
+        i['slice'].outputs.clear()
+    
+    path[-1]=split
+    
+    return split
+
+
+def trace_to_split_or_common_source(graph: gs.Graph, start_var: gs.Variable) -> Tuple[List[gs.Node], Optional[gs.Node], int, str]:
+    """
+    Trace backward to Split OR common source node 
+    Returns: (path, source_node, output_index, source_type)
+    """
+    if not isinstance(start_var, gs.Variable) or not start_var.inputs:
+        return [], None, None
+    
+    path = []
+    current = start_var
+    
+    for _ in range(20):
+        if not current.inputs :
+            return path, None, 'common'
+        
+        node = current.inputs[0]
+        path.append(node)
+        
+        # Check for existing Split
+        if node.op == 'Split':
+            return path, node, 'split'
+        
+        # Check for common source (node with 3 outputs)
+        if len(node.outputs) > 0 and len(node.outputs[0].outputs) == 3:
+            consumers = list(node.outputs[0].outputs)
+            path = path [:-1]
+            # Pattern 1: Common -> 3 Gathers (replace with Split)
+            if all(c.op == 'Gather' for c in consumers):
+                if not all(c.outputs and c.outputs[0].shape is not None and list(c.outputs[0].shape) == list(consumers[0].outputs[0].shape) for c in consumers):
+                    return path, None, None
                 else:
-                    split_axis = split.attrs['axis']
-                    output_shape[split_axis] = sum([out.shape[split_axis] for out in split.outputs])
-                reshape_node.inputs[0] =  new_input
-
-                reshape_node.inputs[1].values = np.array(output_shape, reshape_node.inputs[1].values.dtype)
-                reshape_out = gs.Variable(f'{reshape_node.name}_out',dtype=reshape_node.inputs[0].dtype, shape=output_shape)
-                reshape_node.outputs.append(reshape_out)
-                split.inputs[0] = reshape_out
-                for branch in (q_branch, k_branch, v_branch):
-                    branch.pop(0)
-                if change_split_axis:
-                    split.attrs['axis'] = -3
-                    split.inputs[1].values = np.array([int(split_dim/3),int(split_dim/3),int(split_dim/3)], split.inputs[1].values.dtype)
-                new_input = reshape_out
-                
-            if all( branch[0].op == 'Transpose'  for branch in (q_branch, k_branch, v_branch)):
-                transpose_nodes = [branch[0] for branch in (q_branch, k_branch, v_branch)]
-                split.outputs.clear()
-                for i in (0,1,2):
-                    if i == 1:
-                        split.outputs.append(transpose_nodes[i].inputs[0])
-                        perm = list(range(len(transpose_nodes[i].outputs[0].shape)))
-                        perm[-2:] = perm[-2:][::-1]
-                        transpose_nodes[i].attrs['perm'] = perm
+                    split_node = replace_gathers_with_split(graph, node, consumers, path)
+                    if split_node:
+                        return path, split_node, 'split'
                     else:
-                        # add unsqueeze here
-                        transpose_nodes[i].outputs[0].inputs[0] = split
-                transpose_node = transpose_nodes[0]
-                if change_split_axis: # NOT levit
-                    transpose_node.attrs['perm'] = [2, 0, 3, 1, 4]
-                transpose_node.inputs[0] =  new_input
-                transpose_out = gs.Variable(f'{transpose_node.name}_out',dtype=transpose_node.inputs[0].dtype, shape=None)
-                transpose_node.outputs.append(transpose_out)
-                split.inputs[0] = transpose_out
-                for branch in (q_branch, k_branch, v_branch):
-                    branch.pop(0)
-                if change_split_axis:
-                    split.attrs['axis'] = 0
-                elif split.attrs['axis'] in (-2, len(transpose_node.inputs[0].shape)-2):
-                    split.attrs['axis'] = -3
-                elif split.attrs['axis'] in (-3, len(transpose_node.inputs[0].shape)-3):
-                    split.attrs['axis'] = -2
+                        return path, None, None
+            
+            # Pattern 2: Common -> 3 Slice (replace with Split)
+            if all(c.op == 'Slice' for c in consumers):
+                if not all(c.outputs and c.outputs[0].shape is not None and list(c.outputs[0].shape) == list(consumers[0].outputs[0].shape) for c in consumers):
+                    return path, None, None
+                else:
+                    split_node = replace_slices_with_split(graph, node, consumers, path)
+                    if split_node:
+                        return path, split_node, 'split'
+                    else:
+                        return path, None, None
 
-            if change_split_axis:
-                split_outputs = list(split.outputs)
-                split.outputs.clear()
+            # Pattern 3: Common → 3 common operation
+            elif all(c.op == consumers[0].op for c in consumers):
+                    return path, node, 'common'
+            
+        # Continue tracing
+        if node.op not in ('Add', 'Reshape', 'Transpose', 'Mul', 'Div', 'MatMul', 'Gather', 'Slice'):
+            return path, None , None
+        
+        var_inputs = [inp for inp in node.inputs if isinstance(inp, gs.Variable)]
+        if len(var_inputs) != 1:
+            return path, None, None
+        
+        current = var_inputs[0]
 
-                squeeze_nodes = []
-                for i, split_out in enumerate(split_outputs):
-                    squeeze_node = gs.Node(op='Squeeze', name=f'{cntr}_squeeze_{i}')
-                    squeeze_in = gs.Variable(f'{cntr}_{squeeze_node.name}_in', dtype=split_out.dtype, shape=None)
-                    squeeze_node.inputs.append(squeeze_in)
-                    squeeze_node.inputs.append(gs.Constant(name=f'{cntr}_squeeze_{i}_axes', values=np.array([0], dtype=np.int64)))
-                    squeeze_node.outputs.append(split_out)
-                    split.outputs.append(squeeze_in)
-                    graph.nodes.append(squeeze_node)
-                    split_out.shape = None
+        if not current.inputs and current.outputs and path:
+            return path, current, 'common'
+    
+    return path, None, None
 
-            for out in split.outputs:
-                out.shape = None
+def find_attention_patterns(graph: gs.Graph) -> List[Dict]:
+    """Find attention patterns - handles both Split and non-Split patterns"""
+    patterns = []
+    
+    for softmax in graph.nodes:
+        if softmax.op != 'Softmax':
+            continue
+        
+        qk_matmul = find_qk_matmul(softmax)
+        if not qk_matmul:
+            continue
+        
+        attn_matmul = find_attention_matmul(softmax)
+        if not attn_matmul:
+            continue
+        
+        # Trace COMPLETE branches
+        q_path, q_source, q_type = trace_to_split_or_common_source(graph, qk_matmul.inputs[0])
+        k_path, k_source, k_type = trace_to_split_or_common_source(graph, qk_matmul.inputs[1])
+        
+        v_input = attn_matmul.inputs[1] if (attn_matmul.inputs[0].inputs and 
+                  attn_matmul.inputs[0].inputs[0] is softmax) else attn_matmul.inputs[0]
+        v_path, v_source, v_type = trace_to_split_or_common_source(graph, v_input)
+        
+        # Check if all branches come from same source
+        if not (q_source and k_source and v_source and q_source is k_source is v_source):
+            continue
+        
+        source_node = q_source
+        source_type = q_type
+        
+        # Remove source node from paths and reverse to get forward direction
+        q_ops = [n for n in reversed(q_path) if n is not source_node]
+        k_ops = [n for n in reversed(k_path) if n is not source_node]
+        v_ops = [n for n in reversed(v_path) if n is not source_node]
+        
+        if source_type == 'common':
+            consumers = list(source_node.outputs[0].outputs)
+            
+            patterns.append({
+                'source': source_node,
+                'source_type': 'common',
+                'consumers': consumers,
+                'q_ops': q_ops,
+                'k_ops': k_ops,
+                'v_ops': v_ops,
+                'qk_matmul': qk_matmul,
+                'softmax': softmax
+            })
+        
+        elif source_type == 'split':
+            # Find common operations to merge
+            min_len = min(len(q_ops), len(k_ops), len(v_ops))
+            num_common = 0
+            for i in range(min_len):
+                q_op = q_ops[i].op
+                k_op = k_ops[i].op
+                v_op = v_ops[i].op
+                
+                if q_op == k_op == v_op and q_op in ('Add', 'Reshape', 'Transpose'):
+                    num_common += 1
+                else:
+                    break
+            
+            if num_common == 0:
+                continue
+            
+            patterns.append({
+                'source': source_node,
+                'source_type': 'split',
+                'q_ops': q_ops,
+                'k_ops': k_ops,
+                'v_ops': v_ops,
+                'qk_matmul': qk_matmul,
+                'softmax': softmax
+            })
+    
+    return patterns
 
-            cntr +=1
-    tidl_move_mul_or_div_to_q_branch(graph, onnx_graph, attentions)
+def fuse_matmul(graph: gs.Graph, pattern: Dict, idx: int) -> bool:
+    """
+    Fuse MatMul at position idx.
+    """
+    q_matmul = pattern['q_ops'][idx]
+    k_matmul = pattern['k_ops'][idx]
+    v_matmul = pattern['v_ops'][idx]
+
+    # Check if all MatMul input shapes are the same
+    matmul_inputs = [m.inputs[0] for m in [q_matmul, k_matmul, v_matmul]]
+    if not all(inp.shape is not None and list(inp.shape) == list(matmul_inputs[0].shape) for inp in matmul_inputs):
+        logging.debug(f"    MatMul input shapes are different or undefined")
+        return False
+    
+    # Extract weights
+    weights = []
+    matmul_outs=[]
+    for m in [q_matmul, k_matmul, v_matmul]:
+        weight = next((inp.values for inp in m.inputs if isinstance(inp, gs.Constant)), None)
+        weights.append(weight)
+        matmul_outs.append(m.outputs[0])
+    
+    # Validate
+    if not all(w.shape[0] == weights[0].shape[0] for w in weights):
+        logging.debug(f"    MatMul weights have different input dims")
+        return False
+    
+    # Concatenate weights
+    fused_weight = np.concatenate(weights, axis=-1)
+    head_dims = [w.shape[-1] for w in weights]
+    #--------------------------------------------------------------------------
+    # Create new Fused Matmul 
+    #--------------------------------------------------------------------------
+    if pattern['source_type'] == 'common':
+        if(type(pattern['source'])==gs.Variable):
+            current_input = pattern['source']
+        else:
+            current_input = pattern['source'].outputs[0]
+    else:
+        current_input = pattern['source'].inputs[0]
+    fused_out = gs.Variable(f'{q_matmul.name}_fused_out')
+    
+    fused_matmul = gs.Node(
+                        op = 'MatMul', 
+                        name = f'{q_matmul.name}_fused',
+                        inputs = [current_input, gs.Constant(f'{q_matmul.name}_w', fused_weight)],
+                        outputs =  [fused_out]
+                    )
+    graph.nodes.append(fused_matmul)
+    if(pattern['source_type']=='common'):
+        #--------------------------------------------------------------------------
+        # Create new Split Node
+        #--------------------------------------------------------------------------
+        if graph.opset>=13:
+            split = gs.Node(
+                        op = 'Split', 
+                        name = f'new_{fused_matmul.name}_split',
+                        inputs= [fused_out, gs.Constant(f'new_{fused_matmul.name}_sz', np.array(head_dims, np.int64))],
+                        outputs = matmul_outs, 
+                        attrs={'axis': -1}
+                    )
+        else:
+            split = gs.Node(
+                        op = 'Split', 
+                        name = f'new_{fused_matmul.name}_split',
+                        inputs= [fused_out],
+                        outputs = matmul_outs, 
+                        attrs={'axis': -1, 'split': head_dims}
+                    )
+        
+        pattern['source_type']='split'
+        pattern['source']= split
+        graph.nodes.append(split)
+
+    else:
+        pattern['source'].inputs[0]=fused_out
+        pattern['source'].outputs = matmul_outs
+
+    # Clear old MatMuls
+    for m in [q_matmul, k_matmul, v_matmul]:
+        m.inputs.clear()
+        m.outputs.clear()
+
+    return True
+
+def fuse_add(graph: gs.Graph, pattern: Dict, idx: int) -> bool:
+    """
+    Fuse Add Operation
+    """
+    q_add = pattern['q_ops'][idx]
+    k_add = pattern['k_ops'][idx]
+    v_add = pattern['v_ops'][idx]
+    
+    # Check if all Add input shapes are the same
+    add_inputs = [m.inputs[0] for m in [q_add, k_add, v_add]]
+    if not all(inp.shape is not None and list(inp.shape) == list(add_inputs[0].shape) for inp in add_inputs):
+        logging.debug(f"    Add input shapes are different or undefined")
+        return False
+
+    # Extract biases and outputs
+    biases = []
+    add_outs = []
+    for a in [q_add, k_add, v_add]:
+        bias = next((inp.values for inp in a.inputs if isinstance(inp, gs.Constant)), None)
+        biases.append(bias)
+        add_outs.append(a.outputs[0])
+    
+    # Concatenate biases
+    fused_bias = np.concatenate(biases, axis=-1)
+    bias_dims = [b.shape[-1] for b in biases]
+
+    # Determine input for fused Add
+    if pattern['source_type'] == 'common':
+        if(type(pattern['source'])==gs.Variable):
+            current_input = pattern['source']
+        else:
+            current_input = pattern['source'].outputs[0]
+    else:
+        current_input = pattern['source'].inputs[0]
+    
+    #--------------------------------------------------------------------------
+    # Create New fused ADD Node
+    #--------------------------------------------------------------------------
+    fused_out = gs.Variable(f'{q_add.name}_fused_out')
+    fused_add = gs.Node(
+        op='Add',
+        name=f'{q_add.name}_fused',
+        inputs=[current_input, gs.Constant(f'{q_add.name}_bias', fused_bias)],
+        outputs=[fused_out]
+    )
+    
+    graph.nodes.append(fused_add)
+    if pattern['source_type'] == 'common':
+        #----------------------------------------------------------------------
+        # Create NEW Split node
+        #----------------------------------------------------------------------
+        if graph.opset >=13 :
+            split = gs.Node(
+                op='Split',
+                name=f'{fused_add.name}_split',
+                inputs=[fused_out, gs.Constant(f'{fused_add.name}_sz', np.array(bias_dims, np.int64))],
+                outputs=add_outs,
+                attrs={'axis': -1}
+            )
+        else:
+            split = gs.Node(
+                op='Split',
+                name=f'{fused_add.name}_split',
+                inputs=[fused_out],
+                outputs=add_outs,
+                attrs={'axis': -1, 'split' : bias_dims}
+            )
+        
+        graph.nodes.append(split)
+        
+        # Update pattern to 'split' type
+        pattern['source'] = split
+        pattern['source_type'] = 'split'
+    
+    else:
+        # Update the split input and output connection
+        pattern['source'].inputs[0] = fused_out
+        pattern['source'].outputs = add_outs
+        
+    # Clear old Adds
+    for a in [q_add, k_add, v_add]:
+        a.inputs.clear()
+        a.outputs.clear()
+    
+    return True
+
+def fuse_reshape(graph: gs.Graph, pattern: Dict, idx: int) -> bool:
+    """
+    Fuse Reshape at position idx.
+    """
+    q_reshape = pattern['q_ops'][idx]
+    k_reshape = pattern['k_ops'][idx]
+    v_reshape = pattern['v_ops'][idx]
+
+    # Check if all Add input shapes are the same
+    reshape_inputs = [m.inputs[0] for m in [q_reshape, k_reshape, v_reshape]]
+    if not all(inp.shape is not None and list(inp.shape) == list(reshape_inputs[0].shape) for inp in reshape_inputs):
+        logging.debug(f"Reshape input shapes are different or undefined")
+        return False
+    
+    # Extract target shapes
+    q_shape = get_const(q_reshape.inputs[1]) if len(q_reshape.inputs) > 1 else None
+    k_shape = get_const(k_reshape.inputs[1]) if len(k_reshape.inputs) > 1 else None
+    v_shape = get_const(v_reshape.inputs[1]) if len(v_reshape.inputs) > 1 else None
+    
+    if q_shape is None or k_shape is None or v_shape is None:
+        logging.warning("Cannot get reshape target shapes")
+        return False
+    
+    # Validate all shapes are identical
+    if not (np.array_equal(q_shape, k_shape) and np.array_equal(k_shape, v_shape)):
+        logging.warning(f"Reshape shapes are not identical")
+        return False
+    
+    reshape_outs = [q_reshape.outputs[0], k_reshape.outputs[0], v_reshape.outputs[0]]
+    target_shape = list(q_shape.copy())
+    
+    # Determine input for fused Reshape and Shape
+    if pattern['source_type'] == 'common':
+        if isinstance(pattern['source'], gs.Variable):
+            current_input = pattern['source']
+        else:
+            current_input = pattern['source'].outputs[0]
+        fused_shape = target_shape
+        
+    else:  # source_type == 'split'
+        current_input = pattern['source'].inputs[0]
+        
+        # Get old split axis
+        old_split_axis = pattern['source'].attrs.get('axis', -1)
+
+        input_shape = q_reshape.inputs[0].shape
+        
+        # Convert negative axis to positive
+        if old_split_axis < 0:
+            old_split_axis = len(input_shape) + old_split_axis 
+        
+        # Multiply the dimension at split axis by 3
+        fused_shape = target_shape.copy()
+        fused_shape[old_split_axis] = target_shape[old_split_axis] * 3
+        
+        # Split sizes: divide the fused dimension back into 3 equal parts
+        split_size = target_shape[old_split_axis]
+        split_sizes = [split_size] * 3
+    
+    #--------------------------------------------------------------------------
+    # Create fused Reshape
+    #--------------------------------------------------------------------------
+    fused_out = gs.Variable(f'{q_reshape.name}_fused_out')
+    fused_reshape = gs.Node(
+        op='Reshape',
+        name=f'{q_reshape.name}_fused',
+        inputs=[current_input, gs.Constant(f'{q_reshape.name}_shape', np.array(fused_shape, dtype=np.int64))],
+        outputs=[fused_out]
+    )
+    graph.nodes.append(fused_reshape)
+    
+    # Update pattern based on source type
+    if pattern['source_type'] == 'common':
+        # Fused Reshape outputs directly to each branch
+        fused_reshape.outputs = reshape_outs
+        pattern['source'] = fused_reshape
+        logging.debug(f"Fused Reshapes (common): shape={fused_shape}")
+        
+    else:  # source_type == 'split'
+        # Update existing Split
+        pattern['source'].inputs[0] = fused_out
+        pattern['source'].outputs = reshape_outs
+        pattern['source'].attrs['axis'] = old_split_axis  # Same axis in new shape
+        
+        # Update split sizes
+        if len(pattern['source'].inputs) > 1:
+            if graph.opset >=13:
+                pattern['source'].inputs[1].values = np.array(split_sizes, dtype=np.int64)
+            else:
+                pattern['source'].attrs['split'] = split_sizes
+        else:
+            if graph.opset >= 13:
+                pattern['source'].inputs.append(gs.Constant(f'{pattern["source"].name}_sizes', np.array(split_sizes, dtype=np.int64)))
+            else:
+                pattern['source'].attrs['split'] = split_sizes
+        
+        logging.debug(f"Fused Reshapes (split): fused_shape={fused_shape}, split_axis={old_split_axis}, split_sizes={split_sizes}")
+    
+    #--------------------------------------------------------------------------
+    # Clear old Reshapes
+    #--------------------------------------------------------------------------
+    for r in [q_reshape, k_reshape, v_reshape]:
+        r.inputs.clear()
+        r.outputs.clear()
+    
+    return True
+
+def fuse_transpose(graph: gs.Graph, pattern: Dict, idx: int) -> bool:
+    """
+    Fuse Transpose at position idx.
+    """
+    if pattern['source_type']=='common':
+        logging.warning("Not fused the Transposed because source is not Split")
+        return False
+
+    q_transpose = pattern['q_ops'][idx]
+    k_transpose = pattern['k_ops'][idx]
+    v_transpose = pattern['v_ops'][idx]
+
+    # Check if all Add input shapes are the same
+    transpose_inputs = [m.inputs[0] for m in [q_transpose, k_transpose, v_transpose]]
+    if not all(inp.shape is not None and list(inp.shape) == list(transpose_inputs[0].shape) for inp in transpose_inputs):
+        logging.debug(f"    Tranpose input shapes are different or undefined")
+        return False
+    
+    # Extract permutations and outputs
+    q_perm = q_transpose.attrs.get('perm', None)
+    v_perm = v_transpose.attrs.get('perm', None)
+    
+    # Validate: Q and V must have same perm (K can be different for K^T)
+    if not (q_perm and v_perm and list(q_perm) == list(v_perm)):
+        logging.debug(f"Transpose Q/V perms don't match")
+        return False
+    
+    # Determine input for fused Transpose
+    current_input = pattern['source'].inputs[0]
+    
+    #--------------------------------------------------------------------------
+    # Create fused Transpose
+    #--------------------------------------------------------------------------
+    fused_out = gs.Variable(f'{q_transpose.name}_fused_out')
+    fused_transpose = gs.Node(
+        op='Transpose',
+        name=f'{q_transpose.name}_fused',
+        inputs=[current_input],
+        outputs=[fused_out],
+        attrs={'perm': q_perm}
+    )
+    graph.nodes.append(fused_transpose)
+
+    # Update the source if the split
+    for i,output in enumerate(pattern['source'].outputs):
+        if output == q_transpose.inputs[0]:
+            pattern['source'].outputs[i]=q_transpose.outputs[0]
+            continue
+        if output == k_transpose.inputs[0]:
+            pattern['source'].outputs[i]=k_transpose.inputs[0]
+            k_transpose.inputs[0].shape = None
+            continue
+        if output == v_transpose.inputs[0]:
+            pattern['source'].outputs[i]=v_transpose.outputs[0]
+            continue
+    pattern['source'].inputs[0] = fused_out
+    
+    # Update Split axis after transpose
+    old_axis = pattern['source'].attrs.get('axis', -1)
+    if old_axis < 0:
+        old_axis = len(q_perm) + old_axis
+    new_axis = q_perm.index(old_axis) if old_axis in q_perm else old_axis
+    pattern['source'].attrs['axis'] = new_axis
+
+    # Update the split attribute
+    q_shape = q_transpose.inputs[0].shape
+    new_split = [q_shape[old_axis]]*3
+    if graph.opset>=13:
+        pattern['source'].inputs[1].values=np.array(new_split).astype(np.int64)
+    else:
+        pattern['source'].attrs['split']=new_split
+
+    # Clear old Transposes
+    for t in [q_transpose, v_transpose]:
+        t.inputs.clear()
+        t.outputs.clear()
+    
+    # Update the k transpose attribute by exchanging the last 2 dimensions
+    original_k_perm = k_transpose.attrs.get('perm')
+    new_perm = list(range(len(original_k_perm)))
+    new_perm[-1], new_perm[-2] = new_perm[-2], new_perm[-1]
+    k_transpose.attrs['perm'] = new_perm
+
+    return True
+
+def fuse_mul_or_div(graph: gs.Graph, pattern: Dict, idx: int) -> bool:
+    """
+    Fuse Mul/Div at position idx - ONLY if all scalars are identical.
+    """
+    OP= 'Mul' if pattern['k_ops'][idx].op == 'Mul' else 'Div' 
+    q_op = pattern['q_ops'][idx]
+    k_op = pattern['k_ops'][idx]
+    v_op = pattern['v_ops'][idx]
+    all_nodes = [q_op, k_op, v_op]
+
+    # Check if all MUL/DIV input shapes are the same
+    op_inputs = [m.inputs[0] for m in [q_op, k_op, v_op]]
+    if not all(inp.shape is not None and list(inp.shape) == list(op_inputs[0].shape) for inp in op_inputs):
+        logging.debug(f"    MUL/DIV input shapes are different or undefined")
+        return False
+
+    # Extract scalar, output, and input variable
+    scalars = []
+    old_outputs = []
+    data_inputs = []
+    for node in all_nodes:
+        scalar = next((inp.values for inp in node.inputs if isinstance(inp, gs.Constant)),None)
+        if scalar is None:
+            return False
+
+        scalars.append(scalar)
+        old_outputs.append(node.outputs[0])
+        data_in = next((inp for inp in node.inputs if isinstance(inp, gs.Variable)),None)
+        if data_in is None:
+            return False
+        data_inputs.append(data_in)
+
+    # All scalars must be identical
+    if not (np.array_equal(scalars[0], scalars[1]) and np.array_equal(scalars[1], scalars[2])):
+        return False
+
+    fused_scalar = scalars[0]
+
+    # Decide fused Mul input
+    if pattern['source_type'] == 'common':
+        if(type(pattern['source'])==gs.Variable):
+            current_input = pattern['source']
+        else:
+            current_input = pattern['source'].outputs[0]
+    else:
+        current_input = pattern['source'].inputs[0]
+
+    # ---------------------------------------------------------------------
+    # Fused Mul/Div Node
+    # ---------------------------------------------------------------------
+    fused_output = gs.Variable(f'{q_op.name}_fused_out')
+    fused_node = gs.Node(
+        op=OP,
+        name=f'{q_op.name}_fused_{OP}',
+        inputs=[current_input,gs.Constant(f'{q_op.name}_scalar', fused_scalar)],
+        outputs=[fused_output]
+    )
+    graph.nodes.append(fused_node)
+
+    # CASE 1: COMMON
+    if pattern['source_type'] == 'common':
+        fused_node.outputs = old_outputs
+        pattern['source'] = fused_node
+
+        # Clear the input and out put of the Mul/Div
+        for node in all_nodes:
+            node.outputs.clear()
+            node.inputs.clear()
+
+        return True
+
+    # CASE 2: SPLIT
+    else:
+        pattern['source'].inputs[0] = fused_output
+
+        for node in all_nodes:
+            out_var=node.outputs[0]
+            data_in = next ((inp for inp in node.inputs if isinstance(inp, gs.Variable)), None)
+            
+            if data_in is None:
+                return False
+            
+            producer = data_in.inputs[0]
+
+            if len(data_in.outputs)==1 and data_in.outputs[0] is node:
+                replaced = False
+                for i, ov in enumerate(producer.outputs):
+                    if ov is data_in:
+                        producer.outputs[i] = out_var
+                        replaced = True
+                        break
+                
+                if not replaced:
+                    return False
+            else:
+                for consumer in list(out_var.outputs):
+                    for i ,inp in enumerate(consumer.inputs):
+                        if inp is out_var:
+                            consumer.inputs[i]= data_in
+                
+                out_var.outputs.clear()
+            
+            node.inputs.clear()
+            node.outputs.clear()
+        
+        return True
+
+def optimize_attention_pattern(graph: gs.Graph, pattern: Dict) -> bool:
+    """Optimize attention pattern by iterating through operations."""
+    q_ops = pattern['q_ops']
+    k_ops = pattern['k_ops']
+    v_ops = pattern['v_ops']
+    
+    # Track current position and input
+    current_idx = 0
+    
+    # Iterate through operations
+    max_ops = min(len(q_ops), len(k_ops), len(v_ops))
+    
+    for i in range(max_ops):
+        # Check if all three branches have same operation at position i
+        if not (q_ops[i].op == k_ops[i].op == v_ops[i].op):
+            logging.debug(f"  Position {i}: ops don't match, stopping")
+            continue
+        
+        op_type = q_ops[i].op
+        
+        # Call appropriate fusion function
+        if op_type == 'MatMul':
+            if not fuse_matmul(graph, pattern, i):
+                break
+        elif op_type == 'Add':
+            if not fuse_add(graph, pattern, i):
+                break
+        elif op_type == 'Reshape':
+            if not fuse_reshape(graph, pattern, i):
+                break
+        elif op_type == 'Transpose':
+            if not fuse_transpose(graph, pattern, i):
+                break
+        elif op_type == 'Mul':
+            if not fuse_mul_or_div(graph, pattern, i):
+                break
+        elif op_type == 'Div':
+            if not fuse_mul_or_div(graph, pattern, i):
+                break
+        else:
+            # Unsupported operation, stop merging
+            logging.debug(f"  Position {i}: unsupported op {op_type}, stopping")
+            break
+        
+        current_idx = i + 1
+    return current_idx > 0
+
+
+def tidl_optimize_hf_attention(graph: gs.Graph, onnx_graph: onnx.GraphProto):
+    """Main entry point - handles both Split and non-Split patterns"""
+    
+    patterns = find_attention_patterns(graph)
+    
+    if not patterns:
+        logging.debug("No attention patterns found")
+        return
+    
+    optimized = 0
+    
+    for i, pattern in enumerate(patterns):
+        try:
+            if optimize_attention_pattern(graph, pattern):
+                optimized +=1 
+        
+        except Exception as e:
+            logging.warning(f"Optimization failed for pattern {i+1}: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    graph.cleanup().toposort()
+    
+    logging.debug(f"Successfully optimized {optimized}/{len(patterns)} patterns")
