@@ -122,9 +122,9 @@ This section provides information about the compatibility between the **current 
 |---------------|-------------|
 | AM62A         | N/A |
 | J722S \| TDA4AEN \| AM67A | N/A |
-| J721E \| TDA4VM | [Processor SDK RTOS 11.02.00.05](https://www.ti.com/tool/download/PROCESSOR-SDK-RTOS-J721E/11.02.00.05)<br>[Processor SDK LINUX 11.02.00.03](https://www.ti.com/tool/download/PROCESSOR-SDK-LINUX-J721E/11.02.00.03) |
-| J721S2 \| TDA4VL \| AM68A | [Processor SDK RTOS 11.02.00.05](https://www.ti.com/tool/download/PROCESSOR-SDK-RTOS-J721S2/11.02.00.05)<br>[Processor SDK LINUX 11.02.00.03](https://www.ti.com/tool/download/PROCESSOR-SDK-LINUX-J721S2/11.02.00.03) |
-| J784S4 \| TDA4VH \| AM69A | [Processor SDK RTOS 11.02.00.05](https://www.ti.com/tool/download/PROCESSOR-SDK-RTOS-J784S4/11.02.00.05)<br>[Processor SDK LINUX 11.02.00.03](https://www.ti.com/tool/download/PROCESSOR-SDK-LINUX-J784S4/11.02.00.03) |
+| J721E \| TDA4VM | [Processor SDK RTOS 11.02.00.06](https://www.ti.com/tool/download/PROCESSOR-SDK-RTOS-J721E/11.02.00.06)<br>[Processor SDK LINUX 11.02.00.04](https://www.ti.com/tool/download/PROCESSOR-SDK-LINUX-J721E/11.02.00.04) |
+| J721S2 \| TDA4VL \| AM68A | [Processor SDK RTOS 11.02.00.06](https://www.ti.com/tool/download/PROCESSOR-SDK-RTOS-J721S2/11.02.00.06)<br>[Processor SDK LINUX 11.02.00.04](https://www.ti.com/tool/download/PROCESSOR-SDK-LINUX-J721S2/11.02.00.04) |
+| J784S4 \| TDA4VH \| AM69A | [Processor SDK RTOS 11.02.00.06](https://www.ti.com/tool/download/PROCESSOR-SDK-RTOS-J784S4/11.02.00.06)<br>[Processor SDK LINUX 11.02.00.04](https://www.ti.com/tool/download/PROCESSOR-SDK-LINUX-J784S4/11.02.00.04) |
 | AM62          | N/A |
 
 </div>
@@ -341,8 +341,23 @@ You have two options for setting up the EdgeAI TIDL Tools repository on your TI 
    
    You have two options for building C++ components on TI SOC:
 
+   > **Important Note for SDK 11.2:** The yaml-cpp library is not packaged in SDK 11.2. This will be fixed in future SDK releases. As a result:
+   > - Cross-compilation with 11.2 SDK will not work for compiling the C++ examples
+   > - For native compilation, you must first clone, build, and install yaml-cpp on the SoC as a prerequisite
+
    **Option 1: Native Compilation** (Building directly on the TI SOC):
    ```bash
+   # For SDK 11.2, first install yaml-cpp
+   git clone -b 0.8.0 https://github.com/jbeder/yaml-cpp.git
+   cd yaml-cpp
+   mkdir build && cd build
+   cmake .. -DYAML_BUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX=/usr
+   make -j2
+   make install
+   cd ../../
+   rm -rf yaml-cpp
+
+   # Then build the C++ components
    ./scripts/build/build_cpp.sh --clean
    ./scripts/build/build_cpp.sh
    ```
@@ -351,6 +366,7 @@ You have two options for setting up the EdgeAI TIDL Tools repository on your TI 
    **Option 2: Cross-Compilation** (Building on X86 PC for TI SOC):
    ```bash
    # Following steps are executed on x86 PC to cross-compile for aarch64 
+   # Note: This will not work with SDK 11.2 due to missing yaml-cpp package
    export SDK_PATH=<path to sdk> # Ex: /home/user/ti-processor-sdk-rtos-j784s4-evm-11_02_00_05
    export TARGET_CPU=aarch64
    ./scripts/build/build_cpp.sh --clean
