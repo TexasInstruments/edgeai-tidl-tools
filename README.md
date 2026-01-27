@@ -37,8 +37,10 @@ The figure below illustrates the workflow of DNN development and deployment on T
       - [Running on X86 PC](#running-on-x86-pc)
       - [Setup on TI SOC](#setup-on-ti-soc)
       - [Running on TI SOC](#running-on-ti-soc)
+   - [Testing](#testing)
+      - [TIDL Unit Test Framework](#tidl-unit-test-framework)
+      - [Test Reports](#test-reports)
    - [User Guide](#user-guide)
-   - [Test Reports](#test-reports)
    - [Additional Support](#additional-support)
    - [License](#license)
 <!-- /TOC -->
@@ -89,6 +91,8 @@ This repository provides:
 - Comprehensive [userguide](#user-guide) including workflow, compilation and inference processes, supported operators, debugging etc.
 - Utility scripts for optimizing and modifying models using [osrt-model-tools](./osrt-model-tools/README.md)
 - Utility scripts for setup, build, docker and debugging.
+- Pytest based [TIDL Unit Test Framework](./test/tidl_unit/README.md) for validating models across different runtimes and devices
+- Detailed [test reports](./test/reports/README.md) for various deep-learning operators across TI devices
 
 <div align="center">
 <img src="./docs/assets/edgeai_tidl_tools_components.png" width="800px">
@@ -422,6 +426,27 @@ You have two options for setting up the EdgeAI TIDL Tools repository on your TI 
 
    - Outputs will be saved in `./runtimes/examples/cpp/basic_example/outputs/{model_name}/offload/frame_{frame_num}/`
 
+## Testing
+
+### TIDL Unit Test Framework
+The [TIDL Unit Test Framework](test/tidl_unit/README.md) provides a structured approach to testing models and enables systematic validation across different runtimes and devices. This framework is particularly useful for:
+
+- Validating model compatibility with TIDL acceleration
+- Ensuring consistent results between reference and accelerated implementations
+- Benchmarking performance across different configurations
+- Regression testing when updating to new SDK versions
+
+For detailed usage instructions and options, refer to the [TIDL Unit Test Framework documentation](test/tidl_unit/README.md).
+
+### Test Reports
+
+The repository includes detailed test reports for various deep-learning operators across TI devices in the [test/reports](test/reports/README.md) directory. These reports are generated using the pytest-based TIDL Unit Test for each release of edgeai-tidl-tools.
+
+These reports provide valuable information for:
+- Evaluating which operators and with what properties are supported and tested on specific devices
+- Troubleshooting compatibility issues
+- Making informed decisions about model selection and optimization
+
 ## User Guide
 
 This section provides a structured guide to help you navigate through the documentation based on your learning journey with EdgeAI TIDL Tools.
@@ -467,21 +492,20 @@ Explore these topics to maximize performance and understand some features in dep
 - [Multi C7x](docs/multi_c7x.md): Learn how to leverage multi-core execution for better performance
 - [Preemption](docs/preemption.md): Understand priority scheduling for real-time applications
 
-### 6. Debugging
+### 6. Testing and Validation
+
+Explore tools and resources for testing and validating your models:
+
+- [TIDL Unit Test Framework](test/tidl_unit/README.md): Learn how to use the pytest-based framework to validate models across different runtimes and devices
+- [Test Reports](test/reports/README.md): Review detailed test reports for various deep-learning operators across TI devices
+- [Model Validation Best Practices](docs/debugging.md#validating-model-outputs): Understand how to validate model outputs and troubleshoot accuracy issues
+
+### 7. Debugging
 
 Finally explore how to troubleshoot.
 
 - [Debugging](docs/debugging.md): Learn how to identify and solve issues with setup, model compilation, inference, and performance
 
-
-## Test Reports
-
-The repository includes detailed unit test reports for various deep-learning operators across various TI devices in the [docs/reports](docs/reports/README.md) directory. These reports are generated for each release of edgeai-tidl-tools.
-
-These reports are valuable resources for:
-- Evaluating which operators and with what properties are supported and tested on specific devices
-- Troubleshooting compatibility issues
-- Making informed decisions about model selection and optimization
 
 ## Additional Support
 For any additional queries or support, please visit the [TI E2E Forum](https://e2e.ti.com/).

@@ -70,7 +70,7 @@ class PostProcessDetection():
                     if conf > 0.3:
                         color = post_process_utils.COLORS_LIST[label % len(post_process_utils.COLORS_LIST)]
                         draw.rectangle(((xmin, ymin), (xmax, ymax)), outline=color, width=2)
-                        detections += f"{conf:.3f} - [{xmin, ymin, xmax, ymax}]\n"
+                        detections += f"{conf:.3f} - {xmin, ymin, xmax, ymax} - {label}\n"
 
             elif len(outputs[0].shape) == 1:
                 num_boxes = 1
@@ -84,7 +84,7 @@ class PostProcessDetection():
                     if conf > 0.3:
                         color = post_process_utils.COLORS_LIST[label % len(post_process_utils.COLORS_LIST)]
                         draw.rectangle(((xmin, ymin), (xmax, ymax)), outline=color, width=2)
-                        detections += f"{conf:.3f} - [{xmin, ymin, xmax, ymax}]\n"
+                        detections += f"{conf:.3f} - {xmin, ymin, xmax, ymax} - {label}\n"
         
         # SSD
         elif self.od_type == "SSD":
@@ -100,7 +100,7 @@ class PostProcessDetection():
                 if conf > 0.3:
                     color = post_process_utils.COLORS_LIST[label % len(post_process_utils.COLORS_LIST)]
                     draw.rectangle(((xmin, ymin), (xmax, ymax)), outline=color, width=2)
-                    detections += f"{conf:.3f} - [{xmin, ymin, xmax, ymax}]\n"
+                    detections += f"{conf:.3f} - {xmin, ymin, xmax, ymax} - {label}\n"
         # YoloV5
         elif self.od_type == "YoloV5":
             outputs = [np.squeeze(output_i) for output_i in outputs]
@@ -115,7 +115,7 @@ class PostProcessDetection():
                 if conf > 0.3:
                     color = post_process_utils.COLORS_LIST[label % len(post_process_utils.COLORS_LIST)]
                     draw.rectangle(((xmin, ymin), (xmax, ymax)), outline=color, width=2)
-                    detections += f"{conf:.3f} - [{xmin, ymin, xmax, ymax}]\n"
+                    detections += f"{conf:.3f} - {xmin, ymin, xmax, ymax} - {label}\n"
 
         # Model has detection post processing layer
         elif self.od_type == "HasDetectionPostProcLayer":
@@ -129,7 +129,7 @@ class PostProcessDetection():
                 if conf > 0.3:
                     color = post_process_utils.COLORS_LIST[label % len(post_process_utils.COLORS_LIST)]
                     draw.rectangle(((xmin,ymin), (xmax,ymax)), outline=color, width=2)
-                    detections += f"{conf:.3f} - [{xmin, ymin, xmax, ymax}]\n"
+                    detections += f"{conf:.3f} - {xmin, ymin, xmax, ymax} - {label}\n"
 
         # Model does not have detection post processing layer
         elif self.od_type == "EfficientDetLite":
@@ -143,7 +143,7 @@ class PostProcessDetection():
                 if conf > 0.3:
                     color = post_process_utils.COLORS_LIST[label % len(post_process_utils.COLORS_LIST)]
                     draw.rectangle(((xmin, ymin), (xmax, ymax)), outline=color, width=2)
-                    detections += f"{conf:.3f} - [{xmin, ymin, xmax, ymax}]\n"
+                    detections += f"{conf:.3f} - {xmin, ymin, xmax, ymax} - {label}\n"
 
         img = img.convert("RGB")
         return detections, img

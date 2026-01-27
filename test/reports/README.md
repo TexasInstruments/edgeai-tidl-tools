@@ -1,6 +1,6 @@
 # Test Reports
 
-This directory contains comprehensive operator test reports for various TI SoC. These reports are published for each release of edgeai-tidl-tools.
+This directory contains comprehensive operator test reports for various TI SoC. These reports are generated using the pytest-based [TIDL Unit Test Framework](../tidl_unit/README.md) and are published for each release of edgeai-tidl-tools.
 
 ## Available Reports
 
@@ -23,4 +23,5 @@ Each excel report includes the following sheets:
 - **\<Operators\>** - Each operator has a dedicated sheet highlighting its attributes, shapes, pass/fail and TIDL offload information
 
 ## Additional Resources
-- [Supported Operators](../operators.md): List of operators supported by TIDL
+- [Supported Operators](../../docs/operators.md): List of operators supported by TIDL
+- [TIDL Unit Test Framework](../tidl_unit/README.md): Learn about the pytest-based framework used to generate these reports

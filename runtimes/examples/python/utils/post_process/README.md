@@ -12,6 +12,10 @@ The Post Process module provides a unified interface for post-processing inferen
 
 This module is particularly useful for machine learning workflows where you need to visualize or extract meaningful information from raw model outputs.
 
+Each post-processor returns two outputs:
+1. **Metadata**: A string containing structured information about the processed output (e.g., class labels, detection coordinates)
+2. **Processed Image**: A visualization of the results overlaid on the input image
+
 ## Components
 
 ### PostProcess Factory
@@ -48,7 +52,7 @@ processor = PostProcess.create_post_process('classification', params={
 })
 
 # Process model outputs
-classes, output_image = processor.process(input_image, model_outputs)
+metadata, output_image = processor.process(input_image, model_outputs)
 ```
 
 Key features:
@@ -56,6 +60,7 @@ Key features:
 - Displays top-5 predictions with confidence scores
 - Overlays results on the input image
 - Handles label index offsets if needed
+- Returns metadata string with top predictions in format: "confidence - class_label"
 
 #### PostProcessDetection
 
@@ -68,7 +73,7 @@ processor = PostProcess.create_post_process('detection', params={
 })
 
 # Process model outputs
-detections, output_image = processor.process(input_image, model_outputs)
+metadata, output_image = processor.process(input_image, model_outputs)
 ```
 
 Key features:
@@ -80,7 +85,7 @@ Key features:
   - EfficientDet Lite models
 - Visualizes bounding boxes with different colors for each class
 - Filters detections based on confidence threshold (default: 0.3)
-- Returns detection information in a structured format
+- Returns metadata string with detection information in format: "confidence - [xmin, ymin, xmax, ymax] - class_label"
 
 #### PostProcessSegmentation
 
@@ -91,7 +96,7 @@ Processes outputs from semantic segmentation models, creating color-coded segmen
 processor = PostProcess.create_post_process('segmentation')
 
 # Process model outputs
-mask, output_image = processor.process(input_image, model_outputs)
+metadata, output_image = processor.process(input_image, model_outputs)
 ```
 
 Key features:
@@ -99,6 +104,7 @@ Key features:
 - Automatically resizes the segmentation mask to match input dimensions
 - Creates color-coded visualization using a predefined color palette
 - Blends the segmentation mask with the original image for better visualization
+- Returns metadata string containing class IDs for each pixel in the segmentation mask
 
 ## Utility Functions
 

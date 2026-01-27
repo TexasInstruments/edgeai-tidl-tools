@@ -160,12 +160,37 @@ def parse_and_validate_config(file : str,
                 elif not os.path.isabs(info["inputs"][i][j]):
                     info["inputs"][i][j] = os.path.abspath(os.path.join(os.path.dirname(file),info["inputs"][i][j]))
 
+    # Extra validation for any other potential relative paths
+    for model, info in config["models"].items():
+        # Process compile options and resolve relative paths for applicable compilation options
+        if "compile_options" in info:
+            # Resolve relative path for meta_layers_names_list
+            if "object_detection:meta_layers_names_list" in info["compile_options"]:
+                meta_layers_path = info["compile_options"]["object_detection:meta_layers_names_list"]
+                if not os.path.isabs(meta_layers_path):
+                    meta_layers_path = os.path.abspath(os.path.join(os.path.dirname(file), meta_layers_path))
+                info["compile_options"]["object_detection:meta_layers_names_list"] = meta_layers_path
+        
+        if "post_process_info" in info:
+            # Resolve relative path for labels file for post-processing
+            if "labels" in info["post_process_info"]:
+                labels_path = info["post_process_info"]["labels"]
+                if not os.path.isabs(labels_path):
+                    labels_path = os.path.abspath(os.path.join(os.path.dirname(file), labels_path))
+                info["post_process_info"]["labels"] = labels_path
+        
+    # Check global compile options and resolve relative paths for applicable compilation options
+    if "compile_options" in config:
+        if "object_detection:meta_layers_names_list" in config["compile_options"]:
+            meta_layers_path = config["compile_options"]["object_detection:meta_layers_names_list"]
+            if not os.path.isabs(meta_layers_path):
+                meta_layers_path = os.path.abspath(os.path.join(os.path.dirname(file), meta_layers_path))
+            config["compile_options"]["object_detection:meta_layers_names_list"] = meta_layers_path
+
     return config
 
-def run(config_file,
+def run(config,
         soc,
-        model_filter : Tuple = None,
-        runtime_filter : Tuple = None,
         compile : bool = False,
         tidl_tools_path : str = None,
         artifacts_base_path : str = None,
@@ -174,14 +199,12 @@ def run(config_file,
     """
     Run models based on the provided configuration.
     
-    This function processes the configuration file, sets up the environment for model execution,
+    This function processes the configuration, sets up the environment for model execution,
     and runs the specified models either in compilation or inference mode.
     
     Args:
-        config_file (str): Path to the configuration YAML file
+        config (dict): Run configuration dictionary
         soc (str): System-on-Chip (SoC) identifier
-        model_filter (Tuple, optional): Tuple of model names to filter from the config
-        runtime_filter (Tuple, optional): Tuple of runtime types to filter from the config
         compile (bool, optional): Whether to run in model compilation mode. Defaults to False.
         tidl_tools_path (str, optional): Path to TIDL tools, required for compilation
         artifacts_base_path (str, optional): Base path for model artifacts
@@ -189,20 +212,15 @@ def run(config_file,
         verbose (bool, optional): Whether to enable verbose output. Defaults to False.
     
     Returns:
-        dict: Dictionary containing output data for each model, or None if execution fails
+        tuple: (status, outputs) where status is 0 for success and outputs is a dictionary containing output data for each model
     """
-    # Parse and validate config file
-    print(f"Using config file: {config_file}")
-
-    config = parse_and_validate_config(config_file, soc, model_filter, runtime_filter)
-    if config == None:
-        return None
+    status = 0
 
     # Validate tidl_tools_path in case of model compilation
     if (not disable_tidl_offload) and (compile == True):
         if (tidl_tools_path == None):
             print("[ERROR] Please provide tidl_tools_path for model compilation.")
-            return None
+            return -1, None
         else:
             print(f"\nTIDL_TOOLS_PATH={tidl_tools_path}")
     
@@ -210,7 +228,7 @@ def run(config_file,
     if (not disable_tidl_offload):
         if (artifacts_base_path == None):
             print("[ERROR] Please provide artifacts_base_path.")
-            return None
+            return -1, None
 
     disable_tidl_offload_orig = disable_tidl_offload
 
@@ -253,14 +271,6 @@ def run(config_file,
             options["tidl_tools_path"] = tidl_tools_path
             options.update(config.get("compile_options", {}))
             options.update(info.get("compile_options", {}))
-            
-            # Resolve relative path for meta_layers_names_list
-            if "object_detection:meta_layers_names_list" in options:
-                meta_layers_path = options["object_detection:meta_layers_names_list"]
-                if not os.path.isabs(meta_layers_path):
-                    meta_layers_path = os.path.abspath(os.path.join(os.path.dirname(config_file), meta_layers_path))
-                options["object_detection:meta_layers_names_list"] = meta_layers_path
-
         else:
             common_infer_options = config.get("infer_options", {})
             model_specific_infer_options = info.get("infer_options", {})
@@ -353,8 +363,16 @@ def run(config_file,
 
         elif (len(info["inputs"]) < num_frames):
             print(f"[ERROR] {model} : No. of inputs({len(info['inputs'])}) is less than no of. frames({num_frames}).")
-            status = -1
             continue
+            
+        # Print session information if verbose mode is enabled
+        if (verbose == True) and (not disable_tidl_offload):
+            if (compile == True):
+                print(f"\n[INFO][{model}] Compilation Options:")
+            else:
+                print(f"\n[INFO][{model}] Inference Options:")
+            print(options)
+            print()
         
         # Initialize import/infer
         if (compile == True):
@@ -408,7 +426,7 @@ def run(config_file,
                     elif ('task_type' not in info['post_process_info']):
                         print("[WARN] task_type not defined in model config's post_process_info. Skipping post-processing.")
                     else:
-                        task_type = info['post_process_info']['task_type']
+                        task_type = info['post_process_info']['task_type'].strip().lower()
                         post_process = PostProcess.create_post_process(task_type, params = info['post_process_info'])
 
             # Fill input data dictionary for session run
@@ -544,26 +562,26 @@ def run(config_file,
                         else:
                             sum_performance[perf_key] = [perf_val, perf_unit]
 
-            # Store output binary and output images
-            if (compile == False):
-                frame_output_binary = {}
+            # Store output binaries
+            frame_output_binary = {}
+            try:
                 for output_name, output_data in output.items():
                     output_data = np.array(output_data, dtype=np.float32)
                     frame_output_binary[output_name] = output_data
-                
-                # Post processing if applicable
-                frame_post_proc_output = {}
-                if post_process:
-                    for j in range(len(input_images)):
-                        task_type = info['post_process_info']['task_type']
-                        metadata, post_processed_image = post_process.process(input_images[j][1], list(output.values()), j)
-                        image_name = os.path.basename(input_images[j][0]).strip().split('.')[0]
-                        frame_post_proc_output[image_name] = (metadata, post_processed_image)
+            except:
+                pass
 
-                if model not in outputs:
-                    outputs[model] = []
+            # Post process and store output images
+            frame_post_proc_output = {}
+            if (compile == False) and (post_process):
+                for j in range(len(input_images)):
+                    metadata, post_processed_image = post_process.process(input_images[j][1], list(output.values()), j)
+                    image_name = os.path.basename(input_images[j][0]).strip().split('.')[0]
+                    frame_post_proc_output[image_name] = (metadata, post_processed_image)
 
-                outputs[model].append((frame_output_binary, frame_post_proc_output))
+            if model not in outputs:
+                outputs[model] = []
+            outputs[model].append((frame_output_binary, frame_post_proc_output))
 
         # Print average performance metrics after processing all frames
         if len(sum_performance) > 0:
@@ -577,7 +595,7 @@ def run(config_file,
             print("="*80 + "\n")
 
 
-    return outputs
+    return status, outputs
 
 def main():
     """
@@ -634,18 +652,32 @@ def main():
     if not args.infer and not args.compile:
         args.infer = True
 
-    outputs = run(config_file = CONFIG_FILE,
-                  soc = SOC,
-                  model_filter = args.models,
-                  runtime_filter = args.runtimes,
-                  compile = args.compile,
-                  tidl_tools_path = TIDL_TOOLS_PATH,
-                  artifacts_base_path = ARTIFACTS_BASE,
-                  disable_tidl_offload = args.disable_tidl_offload,
-                  verbose = args.verbose)
+    # Parse and validate config file
+    config = parse_and_validate_config(
+        file=CONFIG_FILE,
+        soc=SOC,
+        model_filter=args.models,
+        runtime_filter=args.runtimes
+    )
+    
+    if config is None:
+        sys.exit(-1)
+        
+    status, outputs = run(
+        config=config,
+        soc=SOC,
+        compile=args.compile,
+        tidl_tools_path=TIDL_TOOLS_PATH,
+        artifacts_base_path=ARTIFACTS_BASE,
+        disable_tidl_offload=args.disable_tidl_offload,
+        verbose=args.verbose
+    )
+
+    if (status != 0):
+        sys.exit(status)
 
     # Save outputs
-    if outputs != None:
+    if outputs != None and args.compile == False:
         for model, output_data in outputs.items():
             if args.disable_tidl_offload:
                 output_path = os.path.join(OUTPUT_BASE, model, "no_offload")

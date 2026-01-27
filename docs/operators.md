@@ -2,7 +2,7 @@
 
 TIDL-RT supports acceleration of the operators listed below and any unsupported operator will execute on cortex-A Core as part of the corresponding runtime.
 
-> **Note:** Test reports for various operator with varying attributes and shapes is published foe every release of edgeai-tidl-tools, please find the reports at [./reports](./reports).
+> **Note:** Test reports for various operator with varying attributes and shapes is published foe every release of edgeai-tidl-tools, please find the reports [here](../test/reports/).
 
 <!-- TOC -->
    - [ONNX](#onnx)
