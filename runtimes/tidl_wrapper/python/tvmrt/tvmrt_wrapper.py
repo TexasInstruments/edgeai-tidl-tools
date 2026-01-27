@@ -2,11 +2,28 @@ import os
 import sys
 import numpy as np
 import platform
+import platform
 
 # set the environment variable before importing TVM so that
 # it takes effect while loading and initializing the c++ library.
 os.environ["TIDL_RT_PERFSTATS"] = "1"
-import tvm
+
+try:
+    import tvm
+except ModuleNotFoundError as e:
+    print("\n" + "="*80)
+    print("ERROR: TVMRT Dependencies Missing")
+    print("="*80)
+    if platform.machine() != "aarch64":
+        print("Please follow the setup steps before running the application.")
+    else:
+        print(f"Failed to import required module: {e.name if hasattr(e, 'name') else 'tvm dependencies'}")
+        print("\nTVMRT requires additional Python packages to function properly.")
+        print("Please install the missing dependencies using the following command:")
+        print("\n  pip3 install psutil typing_extensions")
+        print("\nAfter installation, please re-run your application.")
+    print("="*80 + "\n")
+    sys.exit(1)
 
 class TVMRT:
     """
@@ -131,6 +148,7 @@ class TVMRT:
         'subgraph_time': Total TIDL Subgraphs processing time (ms)
         'read_total': Total DDR Read bytes [X for x86 runs]
         'write_total': Total DDR Write bytes [X for x86 runs]
+        'num_subgraphs': Total Detected subgraphs
 
         Returns:
             dict: performance_name : (performance_value, unit)
@@ -169,7 +187,8 @@ class TVMRT:
                  'core_time':       (core_time,"ms"),
                  'subgraph_time':   (subgraph_time,"ms"),
                  'read_total':      (read_total, "bytes"),
-                 'write_total':     (write_total, "bytes")
+                 'write_total':     (write_total, "bytes"),
+                 'num_subgraphs':   (len(subgraphIds), "")
                 }
 
         return stats

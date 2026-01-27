@@ -401,7 +401,11 @@ You have two options for setting up the EdgeAI TIDL Tools repository on your TI 
    python3 basic_example.py --config ./config.yaml -r tflitert --infer
 
    # Running tvmrt examples
-   python3 basic_example.py --config ./config.yaml -r tvmrt --infer
+   # Note: The TVM python wheel requires additional dependencies that are 
+   # currently not provided in SDK 11.2. Please run
+   # `pip install psutil typing_extensions` on SoC to enable tvm inference
+   # 
+   #python3 basic_example.py --config ./config.yaml -r tvmrt --infer
 
    cd -
    ```

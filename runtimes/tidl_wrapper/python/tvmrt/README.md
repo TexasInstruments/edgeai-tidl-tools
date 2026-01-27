@@ -23,6 +23,13 @@ This module is designed to simplify the process of using TVM Runtime with TIDL a
 - NumPy
 - TIDL Tools (for model compilation)
 
+## Note
+
+For inference on target machine, user needs to manually install additional dependencies using the below command:
+``` python
+pip3 install psutil typing_extensions
+```
+
 ## API Documentation
 
 ### TVMRT Class
@@ -126,6 +133,7 @@ def get_performance(self):
               'subgraph_time': (value, "ms") - Total TIDL Subgraphs processing time
               'read_total': (value, "bytes") - Total DDR Read bytes [X for x86 runs]
               'write_total': (value, "bytes") - Total DDR Write bytes [X for x86 runs]
+              'num_subgraphs': (value, "") - Total Detected subgraphs
     """
 ```
 
@@ -270,6 +278,7 @@ The `get_performance()` method returns a dictionary with the following metrics, 
 | `subgraph_time` | Time spent in all TIDL subgraph execution | milliseconds (ms) |
 | `read_total` | Total DDR read bytes | bytes |
 | `write_total` | Total DDR write bytes | bytes |
+| `num_subgraphs` | Total Subgraphs detected | |
 
 ## Model Information
 
