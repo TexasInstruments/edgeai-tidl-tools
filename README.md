@@ -116,16 +116,19 @@ This modular architecture allows for flexible usage patterns:
 
 This section provides information about the compatibility between the **current branch/tag** of EdgeAI TIDL Tools and the SDK versions as well as the runtime versions
 
+> **Note:** This is a backward compatible branch/tag that is compatible with 11.0 and 11.1 SDK versions. Please follow the steps in the "TARGET Setup Scripts Overview" section of [scripts/setup/README.md](./scripts/setup/README.md#target-setup-scripts-overview) to update the firmware, libraries and other components on the target SoC to enable the compatibility.
+
+
 <div align="center">
 
 | Device Family | SDK Version |
 |---------------|-------------|
-| AM62A         | N/A |
-| J722S \| TDA4AEN \| AM67A | N/A |
-| J721E \| TDA4VM | [Processor SDK RTOS 11.02.00.06](https://www.ti.com/tool/download/PROCESSOR-SDK-RTOS-J721E/11.02.00.06)<br>[Processor SDK LINUX 11.02.00.04](https://www.ti.com/tool/download/PROCESSOR-SDK-LINUX-J721E/11.02.00.04) |
-| J721S2 \| TDA4VL \| AM68A | [Processor SDK RTOS 11.02.00.06](https://www.ti.com/tool/download/PROCESSOR-SDK-RTOS-J721S2/11.02.00.06)<br>[Processor SDK LINUX 11.02.00.04](https://www.ti.com/tool/download/PROCESSOR-SDK-LINUX-J721S2/11.02.00.04) |
-| J784S4 \| TDA4VH \| AM69A | [Processor SDK RTOS 11.02.00.06](https://www.ti.com/tool/download/PROCESSOR-SDK-RTOS-J784S4/11.02.00.06)<br>[Processor SDK LINUX 11.02.00.04](https://www.ti.com/tool/download/PROCESSOR-SDK-LINUX-J784S4/11.02.00.04) |
-| AM62          | N/A |
+| AM62A         | [Processor SDK LINUX 11.01.07.05](https://www.ti.com/tool/download/PROCESSOR-SDK-LINUX-AM62A/11.01.07.05) |
+| J722S \| TDA4AEN \| AM67A | [Processor SDK RTOS 11.01.00.04](https://www.ti.com/tool/download/PROCESSOR-SDK-RTOS-J722S/11.01.00.04)<br>[Processor SDK LINUX 11.01.00.03](https://www.ti.com/tool/download/PROCESSOR-SDK-LINUX-J722S/11.01.00.03) <br><br>   [Processor SDK RTOS 11.00.00.06](https://www.ti.com/tool/download/PROCESSOR-SDK-RTOS-J722S/11.00.00.06)<br>[Processor SDK LINUX 11.00.00.08](https://www.ti.com/tool/download/PROCESSOR-SDK-LINUX-J722S/11.00.00.08)|
+| J721E \| TDA4VM | [Processor SDK RTOS 11.01.00.04](https://www.ti.com/tool/download/PROCESSOR-SDK-RTOS-J721E/11.01.00.04)<br>[Processor SDK LINUX 11.01.00.03](https://www.ti.com/tool/download/PROCESSOR-SDK-LINUX-J721E/11.01.00.03) <br><br>   [Processor SDK RTOS 11.00.00.06](https://www.ti.com/tool/download/PROCESSOR-SDK-RTOS-J721E/11.00.00.06)<br>[Processor SDK LINUX 11.00.00.08](https://www.ti.com/tool/download/PROCESSOR-SDK-LINUX-J721E/11.00.00.08)|
+| J721S2 \| TDA4VL \| AM68A | [Processor SDK RTOS 11.01.00.04](https://www.ti.com/tool/download/PROCESSOR-SDK-RTOS-J721S2/11.01.00.04)<br>[Processor SDK LINUX 11.01.00.03](https://www.ti.com/tool/download/PROCESSOR-SDK-LINUX-J721S2/11.01.00.03) <br><br>  [Processor SDK RTOS 11.00.00.06](https://www.ti.com/tool/download/PROCESSOR-SDK-RTOS-J721S2/11.00.00.06)<br>[Processor SDK LINUX 11.00.00.08](https://www.ti.com/tool/download/PROCESSOR-SDK-LINUX-J721S2/11.00.00.08)|
+| J784S4 \| TDA4VH \| AM69A | [Processor SDK RTOS 11.01.00.04](https://www.ti.com/tool/download/PROCESSOR-SDK-RTOS-J784S4/11.01.00.04)<br>[Processor SDK LINUX 11.01.00.03](https://www.ti.com/tool/download/PROCESSOR-SDK-LINUX-J784S4/11.01.00.03) <br><br>  [Processor SDK RTOS 11.00.00.06](https://www.ti.com/tool/download/PROCESSOR-SDK-RTOS-J784S4/11.00.00.06)<br>[Processor SDK LINUX 11.00.00.08](https://www.ti.com/tool/download/PROCESSOR-SDK-LINUX-J784S4/11.00.00.08)|
+| AM62          | [Processor SDK LINUX 11.01.05.03](https://www.ti.com/tool/download/PROCESSOR-SDK-LINUX-AM62X/11.01.05.03) |
 
 </div>
 <br>

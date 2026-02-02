@@ -73,12 +73,15 @@ A typical workflow for using these scripts on x86 machine:
 
 ## TARGET Setup Scripts Overview
 
-> **_NOTE for TI Network Users:_**
-> If you are running these scripts from within the TI network, you need to set proxy environment variables before running the scripts
-
 ### update_target.sh
 
-`update_target.sh` is used to update a target device with firmware, components, and libraries from a **newer TIDL tools version while using a previous SDK version** (enabling backward compatibility). The tools version will clearly call out that if this is possible in the [SDK Version Compatibility](../../docs/sdk_version_compatibility_table.md)
+`update_target.sh` is used to update a target device with firmware, components, and libraries from a **newer TIDL tools version while using a previous SDK version** (enabling backward compatibility). The tools version will clearly call out that if this is possible in the [SDK Version Compatibility](../../docs/sdk_version_compatibility_table.md).
+
+> **_NOTE:_**
+> - This script is meant to be invoked on the **target device only**.
+> - Make sure you have a **stable internet connection** on the target device to run this script.
+> - Make sure you **reboot** the device after the update for the new firmware to be loaded.
+> - If you are running these scripts from within the **TI network**, you need to set proxy environment variables before running the scripts
 
 #### Key Features:
 - Updates TIDL headers
@@ -93,7 +96,6 @@ A typical workflow for using these scripts on x86 machine:
  - onnxruntime, tflite_runtime, tvm, and tidlruntime wheels, headers and libraries. This can be controlled by `UPDATE_OSRT_COMPONENTS` flag
  - Build and install cnpy if not present
 
-
 #### Environment Variables
 
 The `update_target.sh` script uses several environment variables to control its behavior:
@@ -103,8 +105,6 @@ The `update_target.sh` script uses several environment variables to control its 
 - `SDK_VERSION`: Specifies the SDK version on the target device
 - `UPDATE_OSRT_COMPONENTS`: Controls whether to update OSRT components
 - `UPDATE_FIRMWARE_AND_LIB`: Controls whether to update firmware and libraries
-
-> **Note:** Make sure you have a stable internet connection on the target device to run this script. Reboot the device after the update for the new firmware to be loaded.
 
 #### <u>SDK 11.0 and 11.1</u>
 
@@ -134,4 +134,4 @@ export UPDATE_FIRMWARE_AND_LIB=1
 ```
 
 > **_NOTE:_**
-> Make sure you reboot the EVM after the update for the new firmware to be loaded.
+> Make sure you **reboot** the device after the update for the new firmware to be loaded.
