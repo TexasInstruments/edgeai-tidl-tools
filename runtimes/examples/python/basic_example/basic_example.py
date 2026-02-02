@@ -246,8 +246,9 @@ def run(config_file,
                 print(f"[ERROR][{model}] : Cannot find model-artifacts folder {artifacts_path}")
                 continue
 
+        options = {"soc" : soc, "artifacts_folder" : artifacts_path}
+
         # Parse compile/infer options from config.yaml
-        options = {"artifacts_folder" : artifacts_path}
         if compile == True:
             options["tidl_tools_path"] = tidl_tools_path
             options.update(config.get("compile_options", {}))

@@ -54,6 +54,12 @@ class TVMRT:
         if not model_path.endswith("onnx"):
            raise Exception(f"[ERROR]: Invalid Model Type: {model_path.split('.')[-1]}. Only Onnx model type is supported with TVMRT!!")
 
+        self.soc_map = {'am62a'  : ['am62a','am62ax'],
+                        'am67a'  : ['j722s','am67a','tda4aen'],
+                        'am68pa' : ['j721e','am68pa','tda4vm'],
+                        'am68a'  : ['j721s2','am68a','tda4vl'],
+                        'am69a'  : ['j784s4','am69a','tda4vh']}
+
     def create_import(self, options : dict = None):
         """
         Create import session
@@ -310,8 +316,17 @@ class TVMRT:
                 os.remove(config_file)
             else:
                 ## TVM - compile_model call does compilation and stores artifacts in artifacts_folder
+                soc  = self.options.get("soc",None)
+                if soc == None:
+                    raise Exception("[ERROR]: 'soc' not provided in the runtime options")
+
+                soc = soc.strip().lower()
+                for key,val in self.soc_map.items():
+                    if soc in val:
+                        soc = key.strip().lower()
+
                 status = tidl.compile_model(
-                    platform = os.environ["SOC"],
+                    platform = soc,
                     compile_for_device = (True if (target_machine == 'evm') else False),
                     enable_tidl_offload = self.tidl_offload,
                     delegate_options = self.options,
