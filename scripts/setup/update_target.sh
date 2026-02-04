@@ -58,26 +58,26 @@ echo "========================================================================="
 
 
 verify_env() {
-    if [ "$REL" != "11_02_03_00" ]; then
+    if [ "$REL" != "11_02_05_00" ]; then
         echo "Cannot invoke this script with version $REL. This is not a backward compatible release."
         return 1
     fi
 
     case "$SOC" in
       AM62|AM62A|J721E|J721S2|J784S4|J722S)
-        ALL_SOCS=("$SOC")
+        SOC=$SOC
         ;;
       AM68PA|TDA4VM)
-        ALL_SOCS=("J721E")
+        SOC="J721E"
         ;;
       AM68A|TDA4VL)
-        ALL_SOCS=("J721S2")
+        SOC="J721S2"
         ;; 
       AM69A|TDA4VH)
-        ALL_SOCS=("J784S4")
+        SOC="J784S4"
         ;;
       AM67A|TDA4AEN)
-        ALL_SOCS=("J722S")
+        SOC="J722S"
         ;;
       *)
         echo "Invalid SOC $SOC defined. Allowed values are:"
@@ -111,7 +111,15 @@ verify_env() {
         fi
         if [ "$TISDK_IMAGE" == "adas" ]; then
             echo
-            echo "AM62A does not have ADAS Image. Use EDGEAI"
+            echo "AM62A does not have ADAS SDK. Use EDGEAI"
+            return 1
+        fi
+    fi
+
+    if [ "$TISDK_IMAGE" == "edgeai" ] && [ "$SDK_VERSION" == "11_1" ]; then
+        if [ "$SOC" == "J721S2" ] || [ "$SOC" == "J784S4" ] || [ "$SOC" == "J722S" ] || [ "$SOC" == "J721E" ]; then
+            echo
+            echo "$SOC does not have 11_1 EDGEAI SDK"
             return 1
         fi
     fi
