@@ -52,10 +52,10 @@ class NPZloader():
         data_shape = list(data.shape)
         x_shape = list(shape)
 
-        while data_shape[0] == 1:
+        while len(data_shape) > 1 and data_shape[0] == 1:
             data_shape.pop(0)
 
-        while x_shape[0] == 1:
+        while len(x_shape) > 1 and x_shape[0] == 1:
             x_shape.pop(0)
 
         # if data_shape != x_shape:
