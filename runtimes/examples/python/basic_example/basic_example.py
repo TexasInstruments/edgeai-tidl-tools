@@ -279,6 +279,7 @@ def run(config_file,
         # ONNXRT
         if info["runtime"] == "onnxrt":
             from onnxrt.onnxrt_wrapper import ONNXRT
+            import onnxruntime
             session = ONNXRT(model_path=info["path"], tidl_offload=not disable_tidl_offload)
 
             '''
