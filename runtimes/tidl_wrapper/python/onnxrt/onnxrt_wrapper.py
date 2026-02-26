@@ -42,6 +42,7 @@ class ONNXRT:
         self.input_details = None
         self.output_details = None
         self.session_options = onnxruntime.SessionOptions()
+        self._set_default_session_options()
 
     def create_import(self, options : dict = None):
         """
@@ -194,8 +195,6 @@ class ONNXRT:
         self.session_options.graph_optimization_level = onnxruntime.GraphOptimizationLevel.ORT_DISABLE_ALL
 
     def _create_interpreter(self, options):
-        self._set_default_session_options()
-
         if self.tidl_offload == True:
             if self.is_import:
                 executioner_provider = ['TIDLCompilationProvider', 'CPUExecutionProvider']

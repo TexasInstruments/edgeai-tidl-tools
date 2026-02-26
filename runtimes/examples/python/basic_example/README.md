@@ -276,6 +276,9 @@ models:
     
     # Multiple input files as a list
     inputs: ["../../../data/inputs/image.jpg", "../../../data/inputs/image2.jpg"]
+    
+    # Control ONNX Runtime optimizations (for ONNX models only)
+    disable_onnx_optimizer: true  # Disables ONNX Runtime internal optimizations
 ```
 
 The example supports both relative and absolute paths for input files. Relative paths are resolved relative to the location of the config.yaml file.
@@ -395,7 +398,12 @@ Where:
 
 ## Verbose Mode
 
-The `--verbose` or `-v` option enables detailed output about the model and its tensors. When this option is enabled, the script will call the `dump_info()` method of the runtime session after creating it, which displays:
+The `--verbose` or `-v` option enables detailed output about the model configuration and its tensors. When this option is enabled, the script will:
+
+1. Display compilation or inference options being used
+2. Call the `dump_info()` method of the runtime session after creating it
+
+The `dump_info()` method provides comprehensive information about the model structure:
 
 - Model path
 - Number of input tensors
@@ -417,6 +425,7 @@ This information is particularly useful for:
 - Debugging model loading issues
 - Understanding the expected input and output formats
 - Verifying tensor shapes and types
+- Analyzing model complexity and memory requirements
 
 ## Runtime-Specific Handling
 
@@ -428,6 +437,10 @@ The example handles runtime-specific differences transparently:
 - Uses ONNX-specific tensor details format
 - Uses TIDLCompilationProvider/TIDLExecutionProvider for TIDL acceleration
 - Supports disabling ONNX Runtime's internal optimization with the `disable_onnx_optimizer`. This option is particularly useful for vision transformer models where the default optimizations might not be beneficial.
+- Provides access to ONNX Runtime session options through the public `session_options` property, with defaults for:
+  - `log_severity_level = 3` (Warning level logging)
+  - `intra_op_num_threads = 1` (Single-threaded execution)
+- Session options can be customized before creating import/inference sessions
 
 ### TFLite Runtime:
 - Uses TFLiteRT class for model handling

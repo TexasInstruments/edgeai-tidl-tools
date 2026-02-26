@@ -32,6 +32,19 @@ class ONNXRT:
     """
 ```
 
+#### Public Properties
+
+```python
+session_options  # Public ONNX Runtime SessionOptions object that can be modified before creating import/inference sessions
+```
+
+The `session_options` property provides direct access to the ONNX Runtime SessionOptions object, allowing you to customize session behavior. By default, the following options are set:
+
+- `log_severity_level = 3` (Warning level logging)
+- `intra_op_num_threads = 1` (Single-threaded execution)
+
+You can modify these and other session options directly before creating a session
+
 #### Constructor
 
 ```python
@@ -180,6 +193,9 @@ tidl_tools_path = os.environ.get("TIDL_TOOLS_PATH")
 
 # Create session for compilation
 session = ONNXRT(model_path=model_path, tidl_offload=True)
+
+# Optional: Customize session options if needed
+# session.session_options.intra_op_num_threads = 4
 
 # Define compilation options
 compile_options = {

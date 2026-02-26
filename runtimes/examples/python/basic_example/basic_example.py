@@ -286,7 +286,7 @@ def run(config_file,
             For vision transformers models set disable_onnx_optimizer to true in config.yaml
             '''
             if ('disable_onnx_optimizer' in info) and (info['disable_onnx_optimizer'] == 1 or info['disable_onnx_optimizer'] == True):
-                session.disable_onnxruntime_optimization()
+                session.session_options.graph_optimization_level = onnxruntime.GraphOptimizationLevel.ORT_DISABLE_ALL
 
             #In case of not TIDL offload, force to only inference
             if (disable_tidl_offload):
