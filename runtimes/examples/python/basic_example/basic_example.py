@@ -536,9 +536,14 @@ def run(config_file,
                     output[name] = output[name][tuple(slices)]
             
             # Collect performance data for inference
-            if (compile == False) and (not disable_tidl_offload):
+            if (compile == False):
                     performance = session.get_performance()
                     for perf_key, (perf_val, perf_unit) in performance.items():
+
+                        # For no-offload, only log total time
+                        if disable_tidl_offload and perf_key != "total_time":
+                            continue
+
                         if perf_key in sum_performance:
                             sum_performance[perf_key][0] += perf_val
                         else:
