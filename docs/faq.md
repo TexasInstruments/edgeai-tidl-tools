@@ -23,7 +23,9 @@ This document provides answers to frequently asked questions about using the Edg
 - [Backward Compatibility](#backward-compatibility)
   - [How do I check SDK version compatibility?](#how-do-i-check-sdk-version-compatibility)
   - [What is the update_target script?](#what-is-the-update_target-script)
-- [Basic Debugging](#basic-debugging)
+- [Basic Issues and Debugging](#basic-issues-and-debugging)
+  - [Linker Failure](#linker-failure)
+  - [Debugging](#debugging)
 
 ## General Questions
 
@@ -217,6 +219,26 @@ The `update_target.sh` script updates two main component groups:
 The `update_target.sh` script is a simple bash script that serves as a reference for manually updating components.
 
 ## Basic Issues and Debugging
+
+### Linker Failure
+
+`libvx_tidl_rt` library is used as a bridge between the TIDL runtime firmware and the user applications. It provides APIs which can be called in ARM applications, which internally takes care of the delegation to C7x core for inference.
+This is part of the 'edgeai-tidl-tools' offering.
+
+Users might want to directly load this shared library to use in their application.
+When building a basic application with `libvx_tidl_rt`, user may encounter a linker failure such as:
+
+```
+lib/libvx_tidl_rt.so: undefined reference to `process_hwaop_imm(int)'
+```
+
+This symbol exists but is undefined within `libvx_tidl_rt.so`. This can be avoided by including the following LD flag during linking:
+
+```
+-Wl,-unresolved-symbols=ignore-in-shared-libs
+```
+
+### Debugging
 
 [Debugging](./debugging.md) provides information on some common and frequently run into issues and errors and also basic debugging of model compilation. We highly recomment you check out this page for more detailed. Few points that debugging page covers are
 
