@@ -292,8 +292,16 @@ private:
 
         // Create infer session
         pthread_mutex_lock(&gPriorityLock);
-        status = session.createInfer(runConfig.inferOptions);
+        try
+        {
+            status = session.createInfer(runConfig.inferOptions);
+        }
+        catch(const std::exception& e)
+        {
+            status = -1;
+        }
         pthread_mutex_unlock(&gPriorityLock);
+
         if (status != 0)
         {
             printf("[ERROR][%s] Could not create infer session\n", modelName.c_str());
@@ -794,6 +802,9 @@ int main(int argc, char *argv[])
     for (int32_t i = 0; i < numTests; i++)
     {
         printf("\n==================== RUNNING TEST %d ====================\n", (i+1));
+
+        bool skip = false;
+
         auto& test = gModelsMap[i];
         int32_t numThreads = test.size();
         TestResult testResult;
@@ -810,7 +821,21 @@ int main(int argc, char *argv[])
         for(int32_t j = 0; j < numThreads; j++)
         {
             ModelInfo &modelInfo =  test[j];
-            preemptionClasses.push_back(PreemptionExample(modelInfo));
+            try
+            {
+                preemptionClasses.push_back(PreemptionExample(modelInfo));
+            }
+            catch(const std::exception& e)
+            {
+                printf("[ERROR] Could not create PreemptionExample class for %s. Skipping TEST %d.\n", modelInfo.model.c_str(), (i+1));
+                skip = true;
+                break;
+            }
+        }
+
+        if (skip)
+        {
+            continue;
         }
 
         for(int32_t j = 0; j < numThreads; j++)
@@ -881,11 +906,17 @@ int main(int argc, char *argv[])
     }
 
     // Print the reference results table
-    printf("\nTEST PERFORMANCE WITHOUT PARALLEL PROCESSING");
-    printResultsTable(referenceTestResult);
+    if (referenceTestResult.size() > 0)
+    {
+        printf("\nTEST PERFORMANCE WITHOUT PARALLEL PROCESSING");
+        printResultsTable(referenceTestResult);
+    }
 
-    printf("\nTEST PERFORMANCE WITH PARALLEL PROCESSING");
-    printResultsTable(preemptionTestResult);
+    if (preemptionTestResult.size() > 0)
+    {
+        printf("\nTEST PERFORMANCE WITH PARALLEL PROCESSING");
+        printResultsTable(preemptionTestResult);
+    }
 
     return 0;
 }

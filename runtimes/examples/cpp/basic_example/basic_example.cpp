@@ -500,7 +500,15 @@ private:
         std::map<std::string, std::pair<float, std::string>> sumPerformance;
 
         // Create infer session
-        status = session.createInfer(runConfig.inferOptions);
+        try
+        {
+            status = session.createInfer(runConfig.inferOptions);
+        }
+        catch (const std::exception& e)
+        {
+            status = -1;
+        }
+
         if (status != 0)
         {
             printf("[ERROR][%s] Could not create infer session\n", modelName.c_str());
@@ -780,7 +788,15 @@ private:
             for (i = 0; i < inputsPtr.size(); i++)
             {
                 // Fill input tensor (only valid portion)
-                loader->load(inputsPtr[i]->data, inputsPtr[i]->validSize);
+                try
+                {
+                    loader->load(inputsPtr[i]->data, inputsPtr[i]->validSize);
+                }
+                catch (const std::exception& e)
+                {
+                    status = -1;
+                    break;
+                }
             }
         }
         else if (endsWith(input, ".npz"))
@@ -790,7 +806,15 @@ private:
             for (i = 0; i < inputsPtr.size(); i++)
             {
                 // Fill input tensor (only valid portion)
-                loader->load(inputsPtr[i]->data, inputsPtr[i]->validSize, inputsPtr[i]->padT, inputsPtr[i]->padB, inputsPtr[i]->padL, inputsPtr[i]->padR);
+                try
+                {
+                    loader->load(inputsPtr[i]->data, inputsPtr[i]->validSize, inputsPtr[i]->padT, inputsPtr[i]->padB, inputsPtr[i]->padL, inputsPtr[i]->padR);
+                }
+                catch (const std::exception& e)
+                {
+                    status = -1;
+                    break;
+                }
             }
         }
         else
@@ -977,8 +1001,15 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    BasicExample example = BasicExample(disableTIDLOffload, verbose, configPath, modelsFilter, runtimesFilter);
-    status = example.run();
+    try
+    {
+        BasicExample example = BasicExample(disableTIDLOffload, verbose, configPath, modelsFilter, runtimesFilter);
+        status = example.run();
+    }
+    catch(const std::exception& e)
+    {
+        return -1;
+    }
 
     return 0;
 }
