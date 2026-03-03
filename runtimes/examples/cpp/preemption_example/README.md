@@ -91,18 +91,35 @@ For each test configuration, the example:
 
 ### Building the Example
 
+Before building the example, make sure you have the required environment variables set using `scripts/setup_setup.env` script.
+
+Then build the example:
+
 ```bash
-cd runtimes
-mkdir build && cd build
-cmake ..
+cd runtimes/examples/cpp
+mkdir -p build
+cd build
+cmake ../
 make
 ```
 
 ### Running the Example
 
+After building, the executable will be available in the bin directory:
+
 ```bash
-./examples/cpp/preemption_example/preemption_example
+cd runtimes/examples/cpp/preemption_example
+../bin/Release/preemption_example
 ```
+
+### Default Models
+
+The example uses the following models by default:
+
+1. `ss-ort-deeplabv3lite_mobilenetv2` - A semantic segmentation model using ONNX Runtime
+2. `cl-ort-resnet18-v1` - A classification model using ONNX Runtime
+
+These models need to be compiled before running the preemption example. You can compile them using the Python basic example.
 
 ## Output
 
