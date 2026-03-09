@@ -384,11 +384,12 @@ You have two options for setting up the EdgeAI TIDL Tools repository on your TI 
 **Model compilation cannot be performed on TI SOC, only inference is supported**.
 
 1. **Transfer compiled model artifacts**:   
-   Models must be compiled on an X86 PC first, and then the model artifacts can be transferred to the TI SOC for inference.
+   Models must be compiled on an X86 PC first, and then the models and model-artifacts can be transferred to the TI SOC for inference.
 
-   If using NFS mount, the artifacts will already be accessible, else follow the steps below to copy over the compiled artifacts
+   If using NFS mount, the model and model-artifacts will already be accessible, else follow the steps below to copy over the compiled artifacts
 
    ```bash
+   scp -r /path/to/edgeai-tidl-tools/runtimes/examples/data root@soc:/path/to/edgeai-tidl-tools/runtimes/examples/
    scp -r /path/to/edgeai-tidl-tools/runtimes/examples/model-artifacts root@soc:/path/to/edgeai-tidl-tools/runtimes/examples/
    ```
 
