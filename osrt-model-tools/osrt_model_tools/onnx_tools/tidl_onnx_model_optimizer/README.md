@@ -106,7 +106,7 @@ The different optimizations performed are summarized here along with their defau
 | 28 | convert_conv_7x7_stride4_to_stride1 | Few models(segformer) has a convolution layer with 7x7 kernel and 4 stride, converting the layer to the one with a stride of 1 using combination of maxpool and conv  | True |
 | 29  | convert_2_dimension_slice_to_maxpool | Slice if present in 2 axes, with same steps, it is converted to a corresponding maxpool with kernel size of 1, transpose also are inserted if channel not in 2nd dimension | False |
 | 30 | convert_unsupported_argmax_to_supported | Converts ArgMax nodes to TIDL-compatible format by ensuring keepdims=1, moving axis to -3 position (for 3D/4D), and handling select_last_index via data reversal. | True |
-| 31 | Hf_attention_block_optimization | Attention block optimization function, identifies attention blocks and performs TIDL specific optimizations on the attention blocks as a whole | True |
+| 31 | hf_attention_block_optimization | Attention block optimization function, identifies attention blocks and performs TIDL specific optimizations on the attention blocks as a whole | True |
 | 32 | expand_multiaxes_reducesum_to_single_axis_reducesums | The ReduceSum layer with multi-axis is replaced with cascaded multiple layers, e.g., "Reshape + ReduceSum + ReduceSum + ... + Reshape (if keepdims=1)". Contiguous axes are merged via Reshape, then each merged dimension is reduced with single-axis ReduceSum operations. | True |
 | 33 | convert_resize_params_size_to_scale_dynamic_batch | Finds Resize nodes that use a sequence of nodes that dynamically determine output sizes, which are added during export. The rule determines the static 'scales', and removes the dynamic nodes such that the Reize node is supported | False |
 | 34 | replace_mean_with_eltwise | Replaced Mean of 2 tensors with Add + Multiply by 0.5 (since Div is also not supported). >2 inputs is not supported, but could be implemented without much difficulty | False |
@@ -128,10 +128,18 @@ The different optimizations performed are summarized here along with their defau
 | 50 | hf_detr_attention_block_optimization | Attention block optimization function for Hugging Face DETR, identifies attention blocks and performs TIDL specific optimizations on the attention blocks as a whole | True |
 | 51 | convert_reducemax_for_height_axis | Converts ReduceMax operations to TIDL-compatible format by transforming arbitrary axis reductions into height-axis (rank = -2 position) reductions.  | True |
 | 52 | replace_tile_gatherelements_with_reshape_gather | Replace Tile+GatherElements patterns with Reshape+Gather operations for better performance optimization  | True |
-| 53 | replace_einsum_with_basic_ops | Replaces Einsum operations with equation 'bnc,bchw->bnhw' with a simplified combination of Reshape, Transpose, and MatMul operations.  | False |
+| 53 | replace_einsum_with_matmul_and_basic_ops | Replaces Einsum operations with equation 'bnc,bchw->bnhw' with a simplified combination of Reshape, Transpose, and MatMul operations.  | True |
 | 54 | convert_matmul_with_1d_weight_to_2d_weight_and_reshape | Converts MatMul operations with 1D weight constants to use 2D weights with appropriate reshaping.  | True |
 | 55 | convert_global_pooling_to_reduce_ops | Convert MaxPool/AveragePool with kernel==stride==input_size to ReduceMax/ReduceMean  | True |
 | 56 | convert_tile_to_expand_for_size1_dims | Convert Tile to Expand only when repeating size-1 dimensions. | True|
+| 57 | replace_expand_gatherelements_with_reshape_gather | Replace Expand+GatherElements patterns with Reshape+Gather operations for better performance optimization  | True |
+| 58 | convert_non_singular_strided_slice_to_gather | Convert Non singular strided Slice to Gather operation. | True | 
+| 59 | convert_patch_merging_to_reshp_tr_reshp | Converts patch merging operations to reshape-transpose-reshape sequence for better performance. | True |
+| 60 | convert_reducel2_to_mul_reducesum_sqrt | Converts ReduceL2 operations to a sequence of Mul, ReduceSum, and Sqrt operations for improved compatibility. | True |
+| 61 | adjust_clip_minval_maxval | Adjusts Clip operation's min and max values to ensure compatibility with TIDL. | True |
+| 62 | convert_pad_above_height_axis_to_height_axis | Converts padding operations above height axis to operations on the height axis directly. | True |
+| 63 | convert_single_axis_gethernd_to_gather | Converts single-axis GatherND operations to regular Gather operations for better compatibility. | True |
+| 64 | break_transpose_of_width_to_dim1_dim2_of_input_more_than_4d | Breaks down transpose operations of width to dim1/dim2 when input has more than 4 dimensions. | True |
 <!-- TODO add for the rest conversion rules-->
 
 ### NOTE

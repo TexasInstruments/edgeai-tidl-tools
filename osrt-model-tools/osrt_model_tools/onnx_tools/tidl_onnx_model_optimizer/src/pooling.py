@@ -111,8 +111,8 @@ def tidl_convert_global_pooling_to_reduce_ops( graph : gs.Graph, onnx_graph:onnx
         pool_node.name = f"{pool_node.name}_{reduce_op}"
         pool_node.attrs.clear()
         
-        if opset >= 13:
-            # Opset 13+: axes as INPUT (Constant)
+        if opset >= 18:
+            # Opset 18+: axes as INPUT (Constant)
             axes_constant = gs.Constant(
                 name=f"{pool_node.name}_axes",
                 values=np.array([-2, -1], dtype=np.int64)
@@ -120,7 +120,7 @@ def tidl_convert_global_pooling_to_reduce_ops( graph : gs.Graph, onnx_graph:onnx
             pool_node.inputs.append(axes_constant)
             pool_node.attrs["keepdims"] = 1
         else:
-            # Opset 1-12: axes as ATTRIBUTE
+            # Opset 1-17: axes as ATTRIBUTE
             pool_node.attrs["axes"] = [-2, -1]
             pool_node.attrs["keepdims"] = 1
         

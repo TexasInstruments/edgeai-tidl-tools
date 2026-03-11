@@ -265,9 +265,6 @@ def tidl_detr_attention(graph: gs.Graph, onnx_graph: onnx.GraphProto):
                 logging.debug("MatMul after Softmax :: Not found")
                 continue
 
-
-
-
             ### extract number of heads and dimension of head
             k = nodes[att.matmul_qkt].outputs[0].shape[-1]  # last dim of MatMul(Q, K^t) output
             for inp in nodes[att.matmul_qkt].inputs:
@@ -288,9 +285,6 @@ def tidl_detr_attention(graph: gs.Graph, onnx_graph: onnx.GraphProto):
                             att.window = inp.shape[-4]
                             logging.debug(f"{att.att_idx} Window like dimension found in attention "
                                           f"{att.att_idx} block:: W = {att.window}")
-                        
-
-
 
             logging.debug("Searching for common node(mostly Add node)")
             

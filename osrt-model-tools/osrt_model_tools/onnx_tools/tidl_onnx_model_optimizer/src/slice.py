@@ -62,6 +62,254 @@ import logging
 import onnx_graphsurgeon as gs
 import onnx
 import numpy as np
+from .common import get_all_deformal_convolution_nodes
+
+def tidl_convert_patch_merging_to_reshp_tr_reshp(graph: gs.Graph, onnx_graph: onnx.GraphProto):
+    '''
+                        inp (NCHW)
+                         |
+    --------------------------------------------
+    |              |             |             |
+ Slice(1,2)   Slice(1,2)     Slice(1,2)   Slice(1,2)
+    |              |             |             |
+    --------------------------------------------
+                         |
+                     Concat(3)
+                         |
+                        out
+    Note the numbers inside () are axes, Each Slice has step 2 and their starts are (0,0), (0,1), (1,0), (1,1)
+    
+    '''
+    
+    start_end = []
+    for inp in graph.tensors().values():
+        if isinstance(inp, gs.Constant):
+            continue
+        if inp.shape is None:
+            continue
+        if len(inp.shape) != 4:
+            continue
+        if len(inp.outputs)!=4 or any(o.op != 'Slice' for o in inp.outputs):
+            continue
+        slices = list(inp.outputs)
+        for ind, slice in enumerate(slices):
+            nodes = []
+            node = slice
+            while node.op == 'Slice':
+                if len(node.inputs)!= 5:
+                    break
+                if any(not isinstance(i , gs.Constant) for i in node.inputs[1:]):
+                    break
+                step  = node.inputs[-1].values 
+                if step!=2:
+                    break
+                if len(node.outputs[0].outputs) != 1:
+                    break
+                nodes.append(node)
+                node = node.outputs[0].outputs[0]
+            slices[ind] = nodes+[node] if node.op == 'Concat'  and len(nodes) == 2 else []
+        if any(slice_list[-1] is not slices[0][-1] for slice_list in slices[1:]):
+            continue
+        if slices[0][-1].attrs['axis'] not in (-1, len(inp.shape)-1):
+            continue
+        starts = [[s.inputs[1].values[0] for s in slice_list[:-1]] for slice_list in slices]
+        if any(start_list not in starts for start_list in ([[0, 0], [1, 0], [0, 1], [1, 1]])):
+            continue
+        # ends = [[s.inputs[2] for s in slice_list] for slice_list in slices]
+        axes = [[s.inputs[3].values[0] for s in slice_list[:-1]] for slice_list in slices]
+        if not all(1 in axes_list and 2 in axes_list for axes_list in axes):
+            continue
+        start_end.append((inp,slices[0][-1].outputs[0]))
+        
+    for inp, out in start_end:
+        inp.outputs.clear()
+        out.inputs.clear()
+        N,C,H,W = inp.shape
+        if C%2 or H%2:
+            continue
+        shape1 = [N,C//2,2,H,W]
+        reshape1_out = gs.Variable(f'{inp.name}_reshape1_out', inp.dtype, shape1)
+        shape1 = gs.Constant(f'{inp.name}_shape1', values=np.array(shape1).astype(np.int64))
+        reshape1 = gs.Node('Reshape', f'{inp.name}_reshape1', {}, [inp, shape1], [reshape1_out])
+        graph.nodes.append(reshape1)
+        transout = gs.Variable(f'{inp.name}_transpose_out', inp.dtype, [N,C//2,H,2,W])
+        tranpose = gs.Node('Transpose',f'{inp.name}_transpose',{'perm' :[0,1,3,2,4]},[reshape1_out], [transout])
+        graph.nodes.append(tranpose)        
+        shape2 = [N,C//2,H//2,W*4]
+        shape2 = gs.Constant(f'{inp.name}_shape2', values=np.array(shape2).astype(np.int64))
+        reshape2 = gs.Node('Reshape', f'{inp.name}_reshape2', {}, [transout, shape2], [out])
+        graph.nodes.append(reshape2)
+        
+def tidl_convert_nonsingular_strided_slice_to_gather(graph: gs.Graph, onnx_graph: onnx.GraphProto):
+    """
+    Replace Slice nodes with stride > 1 with Gather nodes.
+    Adds transpose operations when needed to satisfy hardware constraints.
+    """
+    
+    deform_convs = get_all_deformal_convolution_nodes(graph)
+    
+    for node in graph.nodes:
+        # Only process Slice nodes with strides
+        if node.op != "Slice" or len(node.inputs) < 5:
+            continue
+        
+        # Skip deformable convolution slices
+        if any(node in dc for dc in deform_convs):
+            continue
+        
+        # STEP 1: Extract slice parameters
+        steps_tensor = node.inputs[4]
+        if not isinstance(steps_tensor, gs.Constant):
+            continue
+        
+        step = steps_tensor.values
+        step = int(step.flat[0]) if isinstance(step, np.ndarray) else int(step)
+        
+        # # Only optimize if stride > 1
+        if step == 1 or step == 0:
+            continue
+        
+        # Get axis
+        axis = 0
+        if len(node.inputs) > 3 and isinstance(node.inputs[3], gs.Constant):
+            axis_val = node.inputs[3].values
+            axis = int(axis_val.flat[0]) if isinstance(axis_val, np.ndarray) else int(axis_val)
+        
+        # Get start and end
+        if not isinstance(node.inputs[1], gs.Constant) or not isinstance(node.inputs[2], gs.Constant):
+            continue
+        
+        start = node.inputs[1].values
+        start = int(start.flat[0]) if isinstance(start, np.ndarray) else int(start)
+        
+        end = node.inputs[2].values
+        end = int(end.flat[0]) if isinstance(end, np.ndarray) else int(end)
+        
+        # Get input shape
+        input_shape = node.inputs[0].shape
+        if not input_shape:
+            continue
+        
+        # Handle negative axis
+        if axis < 0:
+            axis += len(input_shape)
+        
+        # Handle negative start/end
+        dim_size = input_shape[axis]
+        if start < 0:
+            start += dim_size
+        if end < 0:
+            end += dim_size
+        
+        start = max(0, min(start, dim_size))
+        end = max(0, min(end, dim_size))
+
+        # Get the indices 
+        if start <= end and step > 0:
+            indice_list = list(range(start, end, step))
+        elif start > end and step < 0:
+            indice_list = list(range(start, end-1, step))
+        else:
+            continue
+
+        # STEP 2: Create gather indices
+        indices = gs.Constant(
+            name=f"{node.name}_indices",
+            values=np.array(indice_list, dtype=np.int64)
+        )
+        
+        # STEP 3: Find valid gather position
+        # Find last consecutive dimension=1 from start, target is next position
+        last_consecutive_one = -1
+        for i in range(axis):
+            if input_shape[i] == 1:
+                last_consecutive_one = i
+            else:
+                break  # Stop at first non-1
+        
+        # Determine target position
+        if all(input_shape[i] == 1 for i in range(axis)):
+            # All dimensions before axis are 1 - no transpose needed
+            target_pos = axis
+        elif last_consecutive_one >= 0:
+            # Found consecutive 1s - place after them
+            target_pos = last_consecutive_one + 1
+        else:
+            # No consecutive 1s - move to position 0
+            target_pos = 0
+        
+        # ============================================================
+        # STEP 4: Create gather or transpose-gather-transpose pattern
+        # ============================================================
+        if target_pos == axis:
+            # Case A: Direct gather (no transpose needed)
+            gather = gs.Node(
+                op="Gather",
+                name=f"{node.name}_gather",
+                attrs={"axis": axis},
+                inputs=[node.inputs[0], indices],
+                outputs=node.outputs
+            )
+            graph.nodes.append(gather)
+        else:
+            # Case B: Need transpose -> gather -> transpose back
+            ndim = len(input_shape)
+            
+            # Create permutation: move axis to target_pos
+            perm = list(range(ndim))
+            perm.insert(target_pos, perm.pop(axis))
+            
+            # Inverse permutation to restore original layout
+            inv_perm = [perm.index(i) for i in range(ndim)]
+            
+            # Create intermediate variables
+            trans1_out = gs.Variable(
+                name=f"{node.name}_t1",
+                dtype=node.inputs[0].dtype
+            )
+            gather_out = gs.Variable(
+                name=f"{node.name}_g",
+                dtype=node.inputs[0].dtype
+            )
+            
+            # Transpose 1: Move gather axis to valid position
+            trans1 = gs.Node(
+                op="Transpose",
+                name=f"{node.name}_transpose1",
+                attrs={"perm": perm},
+                inputs=[node.inputs[0]],
+                outputs=[trans1_out]
+            )
+            
+            # Gather at target position
+            gather = gs.Node(
+                op="Gather",
+                name=f"{node.name}_gather",
+                attrs={"axis": target_pos},
+                inputs=[trans1_out, indices],
+                outputs=[gather_out]
+            )
+            
+            # Transpose 2: Restore original dimension order
+            trans2 = gs.Node(
+                op="Transpose",
+                name=f"{node.name}_transpose2",
+                attrs={"perm": inv_perm},
+                inputs=[gather_out],
+                outputs=node.outputs
+            )
+            
+            # Add all three nodes
+            graph.nodes.extend([trans1, gather, trans2])
+        
+        # ============================================================
+        # STEP 5: Remove original slice node
+        # ============================================================
+        node.inputs.clear()
+        node.outputs.clear()
+    
+    # Cleanup disconnected nodes
+    graph.cleanup().toposort()
 
 
 def tidl_expand_slice_across_multiple_axis (graph: gs.Graph, onnx_graph: onnx.GraphProto):
@@ -303,10 +551,13 @@ def tidl_eliminate_noop_slice(graph: gs.Graph, onnx_graph: onnx.GraphProto):
                 logging.debug(f"Slice node '{node.name}' is not a no-op: start[{i}]={start} != 0.")
                 is_noop = False
                 break
-            if dim is not None and end != dim:
-                logging.debug(f"Slice node '{node.name}' is not a no-op: end[{i}]={end} != dim[{axis}]={dim}.")
-                is_noop = False
-                break
+            if dim is not None:
+                if end<0:
+                    end += dim
+                if end < dim:
+                    logging.debug(f"Slice node '{node.name}' is not a no-op: end[{i}]={end} != dim[{axis}]={dim}.")
+                    is_noop = False
+                    break
 
         if is_noop:
             logging.info(f"Eliminating no-op Slice node: {node.name}")

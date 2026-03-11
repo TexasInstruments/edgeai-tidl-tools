@@ -78,33 +78,42 @@ from .src.gemm import tidl_convert_gemm_to_matmul_and_add
 from .src.matmul import tidl_convert_matmul_to_conv_1x1s1, tidl_push_matmul_channel_in_height, tidl_convert_matmul_with_1d_weight_to_2d_weight_and_reshape
 from .src.global_avg_pool import tidl_convert_large_global_avg_pooling_to_matmul
 from .src.gather import tidl_convert_gather_scalar_to_1d
+from .src.gathernd import tidl_convert_single_axis_gethernd_to_gather
 from .src.batchnorm import tidl_convert_batchnorm_input_to_4D
 from .src.softmax import tidl_convert_softmax_unsupported_axis_to_width, tidl_convert_softmax_axis_height_to_width
 from .src.softmax import tidl_push_large_channel_dim_to_height_for_width_wise_softmax
 from .src.conv import tidl_convert_conv_large_pad_to_smaller_kernel, tidl_convert_conv_7x7_stride4_to_stride1, tidl_convert_conv_even_filter_to_odd, \
     tidl_convert_tr_conv_stride_n_tr_to_matmul
 from .src.layernorm import tidl_expand_layernorm_to_component_ops
-from .src.slice import tidl_expand_slice_across_multiple_axis, tidl_convert_2_dimension_slice_to_maxpool, tidl_eliminate_noop_slice
+from .src.slice import (
+    tidl_expand_slice_across_multiple_axis, tidl_convert_2_dimension_slice_to_maxpool, 
+    tidl_eliminate_noop_slice, tidl_convert_nonsingular_strided_slice_to_gather,
+    tidl_convert_patch_merging_to_reshp_tr_reshp
+    )
 from .src.instancenorm import tidl_convert_instancenorm_to_layernorm
 from .src.unsqueeze import tidl_convert_unsqueeze_to_reshape, tidl_eliminate_unsqueeze
 from .src.qdq import tidl_add_bias_qdq, tidl_remove_quantize_initializer, tidl_remove_duplicate_quantize_dequantize
 from .src.neg import tidl_convert_neg_to_mul
 from .src.expand import tidl_convert_expand_to_reshape_and_concat
+from .src.pad import tidl_convert_pad_above_height_axis_to_height_axis
 from .src.reducesum import tidl_expand_multiaxes_reducesum_to_single_axis_reducesums
+from .src.reducel2 import tidl_convert_reducel2_to_mul_reducesum_sqrt
 from .src.eltwise import tidl_replace_mean_with_eltwise, tidl_replace_sub_with_neg_add, tidl_support_broadcast_ops_constant_input
 from .src.depthtospace import tidl_insert_1x1_conv_before_depthtospace, tidl_convert_depth2space_to_reshp_tr_reshp
 from .src.spacetodepth import tidl_convert_space2depth_to_reshp_tr_reshp
 from .src.common import tidl_remove_duplicates
 from .src.gelu import tidl_convert_tanhgelu_to_erfgelu, tidl_break_gelu_to_components
+from .src.clip import tidl_adjust_clip_minval_maxval
 from .src.where import tidl_remove_where_layer
 from .src.reshp_tr_reshp import tidl_optimize_reshp_tr_reshp
 from .src.attention_detr import tidl_detr_attention
 from .src.reducemax import tidl_convert_reducemax_for_height_axis
 from .src.gather_elements import tidl_replace_tile_gatherelements_with_reshape_gather, tidl_replace_expand_gatherelements_with_reshape_gather
-from .src.einsum import tidl_replace_einsum_with_basic_ops
+from .src.einsum import tidl_replace_einsum_with_matmul_and_basic_ops
 from .src.input_optimization import tidl_add_input_normalization
 from .src.pooling import tidl_convert_global_pooling_to_reduce_ops
 from .src.tile import tidl_convert_tile_to_expand_for_size1_dims
+from .src.transpose import tidl_break_transpose_of_width_to_dim1_dim2_of_input_more_than_4d
 
 ### function dict to execute
 opt_ops = {
@@ -160,11 +169,18 @@ opt_ops = {
         "break_gelu_to_components"                  : tidl_break_gelu_to_components,
         "convert_reducemax_for_height_axis"          : tidl_convert_reducemax_for_height_axis,
         "replace_tile_gatherelements_with_reshape_gather" : tidl_replace_tile_gatherelements_with_reshape_gather,
-        "replace_einsum_with_basic_ops"             : tidl_replace_einsum_with_basic_ops,  
+        "replace_einsum_with_matmul_and_basic_ops"             : tidl_replace_einsum_with_matmul_and_basic_ops,  
         'convert_matmul_with_1d_weight_to_2d_weight_and_reshape': tidl_convert_matmul_with_1d_weight_to_2d_weight_and_reshape,
-        "convert_global_pooling_to_reduce_ops"       : tidl_convert_global_pooling_to_reduce_ops,
+        "convert_global_pooling_to_reduce_ops"      : tidl_convert_global_pooling_to_reduce_ops,
         "convert_tile_to_expand_for_size1_dims"     : tidl_convert_tile_to_expand_for_size1_dims,
         "replace_expand_gatherelements_with_reshape_gather": tidl_replace_expand_gatherelements_with_reshape_gather,
+        "convert_non_singular_strided_slice_to_gather" : tidl_convert_nonsingular_strided_slice_to_gather,
+        'convert_patch_merging_to_reshp_tr_reshp'   : tidl_convert_patch_merging_to_reshp_tr_reshp,
+        'convert_reducel2_to_mul_reducesum_sqrt'    : tidl_convert_reducel2_to_mul_reducesum_sqrt,
+        'adjust_clip_minval_maxval'                 : tidl_adjust_clip_minval_maxval,
+        'convert_pad_above_height_axis_to_height_axis': tidl_convert_pad_above_height_axis_to_height_axis,
+        'convert_single_axis_gethernd_to_gather'    : tidl_convert_single_axis_gethernd_to_gather,
+        'break_transpose_of_width_to_dim1_dim2_of_input_more_than_4d' : tidl_break_transpose_of_width_to_dim1_dim2_of_input_more_than_4d
 }
 
 # Bucket definitions
@@ -224,7 +240,7 @@ adj_list = {
         'convert_conv_7x7_stride4_to_stride1'       : [],
         'expand_layernorm_to_component_ops'         : ['attention_block_optimization', 'hf_attention_block_optimization'],
         'push_matmul_channel_in_height'             : [],
-        'expand_slice_across_multiple_axis'         : ['expand_slice_across_multiple_axis'],
+        'expand_slice_across_multiple_axis'         : ['eliminate_noop_slice'],
         'convert_instancenorm_to_layernorm'         : ['expand_layernorm_to_component_ops'],
         'convert_unsqueeze_to_reshape'              : [],
         'add_bias_qdq'                              : [],
@@ -250,16 +266,23 @@ adj_list = {
         'remove_where_layer'                        : [],
         'convert_tr_conv_stride_n_tr_to_matmul'     : [],
         'optimize_reshp_tr_reshp'                   : [], 
-        'eliminate_noop_slice'                      : [],
+        'eliminate_noop_slice'                      : ['convert_patch_merging_to_reshp_tr_reshp'],
         'eliminate_unsqueeze'                       : [],
         'break_gelu_to_components'                  : [],
         'convert_reducemax_for_height_axis'         : [],
         'replace_tile_gatherelements_with_reshape_gather' : ['convert_tile_to_expand_for_size1_dims'],
-        'replace_einsum_with_basic_ops'             : [],
+        'replace_einsum_with_matmul_and_basic_ops'             : ['convert_matmul_with_1d_weight_to_2d_weight_and_reshape','push_matmul_channel_in_height','convert_matmul_to_conv_1x1s1', 'break_transpose_of_width_to_dim1_dim2_of_input_more_than_4d' ],
         'convert_matmul_with_1d_weight_to_2d_weight_and_reshape':[],
         'convert_global_pooling_to_reduce_ops'      : ['expand_multiaxes_reducesum_to_single_axis_reducesums', 'expand_multiaxes_reducemean_to_single_axis_reducemeans', 'convert_maxpool_to_cascaded_maxpool'],
         'convert_tile_to_expand_for_size1_dims'     : ['convert_expand_to_reshape_and_concat'],
         'replace_expand_gatherelements_with_reshape_gather': ['convert_tile_to_expand_for_size1_dims'],
+        'convert_non_singular_strided_slice_to_gather': [],
+        'convert_patch_merging_to_reshp_tr_reshp'   : ['convert_non_singular_strided_slice_to_gather'],
+        'convert_reducel2_to_mul_reducesum_sqrt'    : ['expand_multiaxes_reducesum_to_single_axis_reducesums'],
+        'adjust_clip_minval_maxval'                 : [],
+        'convert_pad_above_height_axis_to_height_axis': [],
+        'convert_single_axis_gethernd_to_gather'    : [],
+        'break_transpose_of_width_to_dim1_dim2_of_input_more_than_4d' : []
 }
 
 def get_optimizers(bucket_flags=None):
@@ -320,11 +343,18 @@ def get_optimizers(bucket_flags=None):
         'hf_detr_attention_block_optimization'      : True,
         'convert_reducemax_for_height_axis'         : True,
         'replace_tile_gatherelements_with_reshape_gather' : True,
-        'replace_einsum_with_basic_ops'             : False, 
+        'replace_einsum_with_matmul_and_basic_ops'  : True, 
         'convert_matmul_with_1d_weight_to_2d_weight_and_reshape' : True, 
         "convert_global_pooling_to_reduce_ops"      : True,
         "convert_tile_to_expand_for_size1_dims"     : True,
         "replace_expand_gatherelements_with_reshape_gather": True,
+        "convert_non_singular_strided_slice_to_gather" : True,
+        'convert_patch_merging_to_reshp_tr_reshp'   :True,
+        'convert_reducel2_to_mul_reducesum_sqrt'    : True,
+        'adjust_clip_minval_maxval'                 : True,
+        'convert_pad_above_height_axis_to_height_axis': True,
+        'convert_single_axis_gethernd_to_gather'    : True,
+        'break_transpose_of_width_to_dim1_dim2_of_input_more_than_4d':True,
         
         # utilities specific
         'shape_inference_mode'      : 'all',
@@ -352,7 +382,7 @@ def test_optimizers():
     """
     return {
         # operation specific to be specified here
-        'convert_matmul_with_1d_weight_to_2d_weight_and_reshape' : True,
+        'replace_einsum_with_matmul_and_basic_ops' : True,
 
         # utilities specific
         'shape_inference_mode'      : 'all',
