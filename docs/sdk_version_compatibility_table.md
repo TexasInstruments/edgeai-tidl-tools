@@ -56,6 +56,7 @@ In the edgeai-tidl-tools version format `MAJOR_MINOR_PATCH_BUILD`:
 
 ## SDK Version 11.01.xx.xx
 
+- **`11_02_07_00`** - [Patch with backward compatibility](#patch-with-backward-compatibility)
 - **`11_02_05_00`** - [Patch with backward compatibility](#patch-with-backward-compatibility)
 - **`11_01_06_00`** - [Default](#default)
 
@@ -69,6 +70,7 @@ In the edgeai-tidl-tools version format `MAJOR_MINOR_PATCH_BUILD`:
 
 ## SDK Version 11.00.xx.xx
 
+- **`11_02_07_00`** - [Patch with backward compatibility](#patch-with-backward-compatibility)
 - **`11_02_05_00`** - [Patch with backward compatibility](#patch-with-backward-compatibility)
 - **`11_01_07_00`** - [Patch with backward compatibility](#patch-with-backward-compatibility)
 - **`11_01_05_00`** - [Patch with backward compatibility](#patch-with-backward-compatibility)
