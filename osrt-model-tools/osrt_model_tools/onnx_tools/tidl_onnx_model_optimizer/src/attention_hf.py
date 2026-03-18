@@ -794,23 +794,45 @@ def fuse_reshape(graph: gs.Graph, pattern: Dict, idx: int) -> bool:
         
     else:  # source_type == 'split'
         current_input = pattern['source'].inputs[0]
-        
+
         # Get old split axis
         old_split_axis = pattern['source'].attrs.get('axis', -1)
 
-        input_shape = q_reshape.inputs[0].shape
-        
+        input_shape = list(q_reshape.inputs[0].shape)
+
         # Convert negative axis to positive
         if old_split_axis < 0:
-            old_split_axis = len(input_shape) + old_split_axis 
-        
-        # Multiply the dimension at split axis by 3
+            old_split_axis = len(input_shape) + old_split_axis
+
+        split_dim_value = input_shape[old_split_axis]
+
+        # Find where the split-axis dimension lands in the target shape.
+        # The reshape may add/remove dims (e.g. [12,197,64] → [1,12,197,64]).
+        # We locate the split dim by matching prefix/suffix element products.
+        prefix_prod = int(np.prod(input_shape[:old_split_axis])) if old_split_axis > 0 else 1
+        suffix_prod = int(np.prod(input_shape[old_split_axis + 1:])) if old_split_axis + 1 < len(input_shape) else 1
+
+        new_split_axis = None
+        for pos in range(len(target_shape)):
+            t_pre = int(np.prod(target_shape[:pos])) if pos > 0 else 1
+            t_suf = int(np.prod(target_shape[pos + 1:])) if pos + 1 < len(target_shape) else 1
+            if (target_shape[pos] == split_dim_value and
+                    t_pre == prefix_prod and t_suf == suffix_prod):
+                new_split_axis = pos
+                break
+
+        if new_split_axis is None:
+            logging.debug(f"Cannot map split-axis dim {split_dim_value} from {input_shape} to {target_shape}, skipping fuse")
+            return False
+
+        # Build fused shape: multiply the split-axis dim by 3
         fused_shape = target_shape.copy()
-        fused_shape[old_split_axis] = target_shape[old_split_axis] * 3
-        
-        # Split sizes: divide the fused dimension back into 3 equal parts
-        split_size = target_shape[old_split_axis]
+        fused_shape[new_split_axis] = target_shape[new_split_axis] * 3
+
+        # Split sizes and update axis to new position
+        split_size = target_shape[new_split_axis]
         split_sizes = [split_size] * 3
+        old_split_axis = new_split_axis
     
     #--------------------------------------------------------------------------
     # Create fused Reshape
@@ -878,20 +900,24 @@ def fuse_transpose(graph: gs.Graph, pattern: Dict, idx: int) -> bool:
         logging.debug(f"    Tranpose input shapes are different or undefined")
         return False
     
-    # Extract permutations and outputs
-    q_perm = q_transpose.attrs.get('perm', None)
-    v_perm = v_transpose.attrs.get('perm', None)
-    
-    # Validate: Q and V must have same perm (K can be different for K^T)
-    if not (q_perm and v_perm and list(q_perm) == list(v_perm)):
-        logging.debug(f"Transpose Q/V perms don't match")
+    # Extract permutations
+    q_perm = list(q_transpose.attrs.get('perm', []))
+    k_perm = list(k_transpose.attrs.get('perm', []))
+    v_perm = list(v_transpose.attrs.get('perm', []))
+
+    # Validate: Q and V must have same perm
+    if not (q_perm and v_perm and q_perm == v_perm):
+        logging.debug(f"Transpose Q/V perms don't match: Q={q_perm}, V={v_perm}")
         return False
-    
+
+    # Check if all 3 perms are identical or K is different
+    all_same = (q_perm == k_perm)
+
     # Determine input for fused Transpose
     current_input = pattern['source'].inputs[0]
-    
+
     #--------------------------------------------------------------------------
-    # Create fused Transpose
+    # Create fused Transpose (using Q/V perm)
     #--------------------------------------------------------------------------
     fused_out = gs.Variable(f'{q_transpose.name}_fused_out')
     fused_transpose = gs.Node(
@@ -903,20 +929,23 @@ def fuse_transpose(graph: gs.Graph, pattern: Dict, idx: int) -> bool:
     )
     graph.nodes.append(fused_transpose)
 
-    # Update the source if the split
-    for i,output in enumerate(pattern['source'].outputs):
+    # Update Split outputs — bypass Q and V transposes always
+    for i, output in enumerate(pattern['source'].outputs):
         if output == q_transpose.inputs[0]:
-            pattern['source'].outputs[i]=q_transpose.outputs[0]
-            continue
-        if output == k_transpose.inputs[0]:
-            pattern['source'].outputs[i]=k_transpose.inputs[0]
-            k_transpose.inputs[0].shape = None
-            continue
-        if output == v_transpose.inputs[0]:
-            pattern['source'].outputs[i]=v_transpose.outputs[0]
-            continue
+            pattern['source'].outputs[i] = q_transpose.outputs[0]
+        elif output == v_transpose.inputs[0]:
+            pattern['source'].outputs[i] = v_transpose.outputs[0]
+        elif output == k_transpose.inputs[0]:
+            if all_same:
+                # K perm == Q perm: bypass K transpose too
+                pattern['source'].outputs[i] = k_transpose.outputs[0]
+            else:
+                # K perm != Q perm: keep K transpose, change perm to swap last 2 dims
+                pattern['source'].outputs[i] = k_transpose.inputs[0]
+                k_transpose.inputs[0].shape = None
+
     pattern['source'].inputs[0] = fused_out
-    
+
     # Update Split axis after transpose
     old_axis = pattern['source'].attrs.get('axis', -1)
     if old_axis < 0:
@@ -924,24 +953,29 @@ def fuse_transpose(graph: gs.Graph, pattern: Dict, idx: int) -> bool:
     new_axis = q_perm.index(old_axis) if old_axis in q_perm else old_axis
     pattern['source'].attrs['axis'] = new_axis
 
-    # Update the split attribute
+    # Update the split sizes
     q_shape = q_transpose.inputs[0].shape
-    new_split = [q_shape[old_axis]]*3
-    if graph.opset>=13:
-        pattern['source'].inputs[1].values=np.array(new_split).astype(np.int64)
+    new_split = [q_shape[old_axis]] * 3
+    if graph.opset >= 13:
+        pattern['source'].inputs[1].values = np.array(new_split).astype(np.int64)
     else:
-        pattern['source'].attrs['split']=new_split
+        pattern['source'].attrs['split'] = new_split
 
-    # Clear old Transposes
-    for t in [q_transpose, v_transpose]:
-        t.inputs.clear()
-        t.outputs.clear()
-    
-    # Update the k transpose attribute by exchanging the last 2 dimensions
-    original_k_perm = k_transpose.attrs.get('perm')
-    new_perm = list(range(len(original_k_perm)))
-    new_perm[-1], new_perm[-2] = new_perm[-2], new_perm[-1]
-    k_transpose.attrs['perm'] = new_perm
+    if all_same:
+        # All 3 perms identical — remove all transposes
+        for t in [q_transpose, k_transpose, v_transpose]:
+            t.inputs.clear()
+            t.outputs.clear()
+        logging.debug(f"Fused Transpose: all perms identical {q_perm}, removed all 3")
+    else:
+        # Q/V removed, K kept with last-2-dims swap
+        for t in [q_transpose, v_transpose]:
+            t.inputs.clear()
+            t.outputs.clear()
+        new_k_perm = list(range(len(k_perm)))
+        new_k_perm[-1], new_k_perm[-2] = new_k_perm[-2], new_k_perm[-1]
+        k_transpose.attrs['perm'] = new_k_perm
+        logging.debug(f"Fused Transpose: Q/V perm={q_perm} removed, K perm changed {k_perm} → {new_k_perm}")
 
     return True
 

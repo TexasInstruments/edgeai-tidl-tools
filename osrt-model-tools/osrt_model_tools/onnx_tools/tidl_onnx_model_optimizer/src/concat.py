@@ -60,7 +60,7 @@ Module containing Concat layer specific functions and optimizations.
 
 This module provides optimizations for Concat operations in ONNX graphs to make them
 more efficient for TIDL hardware. It includes functions to:
-1. Convert width-axis concatenation to channel-axis concatenation
+1. Convert unsupported-axis concatenation to channel-axis concatenation
 2. Break down large Concat operations into smaller consecutive operations
 """
 
@@ -72,130 +72,175 @@ import numpy as np
 
 
 
-def tidl_convert_concat_axis_width_to_channel (graph: gs.Graph, onnx_graph: onnx.GraphProto):
+def tidl_convert_concat_unsupported_axis_to_channel(graph: gs.Graph, onnx_graph: onnx.GraphProto):
     """
-    Convert axis of a Concat layer from width to channel,
-    adding proper Transposes before and after for retaining
-    functionality.
-    
-    TIDL hardware is optimized for channel-wise operations, so this function
-    transforms width-axis concatenations to operate on the channel dimension instead.
-    The transformation preserves functional equivalence by adding appropriate
-    transpose operations before and after the concat operation.
-    
+    Convert axis of a Concat layer from unsupported axis to supported axis,
+    using Reshape operations to flatten and restore dimensions.
+
+    TIDL hardware supports Concat only on specific axes (channel, height, width).
+    This function transforms concatenations on unsupported axes (like batch dimension)
+    by using Reshape operations to temporarily flatten the tensor, concatenate on a
+    supported axis, and then reshape back to the original structure.
+
+    The transformation uses Reshape (not Transpose) for efficiency:
+    1. Reshape each input to flatten dimensions after the unsupported axis
+    2. Concat on the unsupported axis (now valid for flattened 2D tensor)
+    3. Reshape back to restore original dimensionality
+
+    Example for axis 0 (batch) concat:
+      Input: [1, 1, 64, 320, 320] x 6 tensors
+      Reshape: [1, 6553600] x 6
+      Concat on axis 0: [6, 6553600]
+      Reshape back: [6, 1, 64, 320, 320]
+
+    Supported axes for TIDL (for 4D tensors NCHW):
+      - Axis 1: Channel (C)
+      - Axis 2: Height (H)
+      - Axis 3: Width (W)
+
+    Unsupported axes that will be converted:
+      - Axis 0: Batch (N)
+      - Any other axis not in [1, 2, 3]
+
     Args:
         graph (gs.Graph): The ONNX GraphSurgeon graph to modify
         onnx_graph (onnx.GraphProto): The original ONNX graph (for reference)
     """
-    logging.debug("Starting conversion of width-axis Concat operations to channel-axis")
+    logging.debug("Starting conversion of unsupported-axis Concat operations using Reshape approach")
     tensors = graph.tensors()
-    
+
     # Find all Concat nodes in the graph
     concat_nodes = [node for node in graph.nodes if node.op == "Concat"]
     logging.debug(f"Found {len(concat_nodes)} Concat nodes to examine")
-    
+
     for node in concat_nodes:
-        # Check if this is a concat operating on the width axis (last dimension)
-        if (node.attrs['axis'] == -1) or (node.attrs['axis'] == (len(node.inputs[0].shape) -1)):
-            logging.debug(f"Found width-axis Concat node: {node.name} with axis {node.attrs['axis']}")
+        # Get the concat axis (handle negative indices)
+        concat_axis = node.attrs['axis']
+        if concat_axis < 0:
+            concat_axis = len(node.inputs[0].shape) + concat_axis
 
-            # Validate all inputs have at least 3 dimensions (required for channel dimension)
+        # TIDL supports Concat on axes 1, 2, 3 (Channel, Height, Width) for 4D tensors
+        # Any other axis (like 0 for batch) needs to be converted
+        supported_axes = [1, 2, 3]  # C, H, W in NCHW format
+
+        if concat_axis not in supported_axes:
+            logging.debug(f"Found unsupported-axis Concat node: {node.name} with axis {concat_axis}")
+
+            # Validate all inputs have consistent shapes
             valid_input = True
-            for inp in node.inputs:
-                # Need at least channel dimension (assumes NCHW or similar format)
-                if len(inp.shape) < 3:
-                    logging.critical(f"{inp.name} input to {node.name} has no channel dim "
-                                        f"(shape: {inp.shape}). Unable to convert axis to channel")
-                    valid_input = False
+            first_shape = node.inputs[0].shape
 
-            # Skip this node if any input doesn't have the required dimensions
+            for inp in node.inputs:
+                if inp.shape is None or len(inp.shape) < 2:
+                    logging.warning(f"{inp.name} input to {node.name} has invalid shape {inp.shape}. Skipping this Concat.")
+                    valid_input = False
+                    break
+
+            # Skip this node if any input doesn't have valid dimensions
             if not valid_input:
                 logging.debug(f"Skipping node {node.name} due to invalid input dimensions")
                 continue
 
-            # Change the concatenation axis from width to channel
-            # ASSUMES: all inputs have the same shape, using first one as reference
-            original_axis = node.attrs['axis']
-            node.attrs['axis'] = len(node.inputs[0].shape) - 3  # -3 index typically refers to channel in NCHW
-            logging.debug(f"Changed concat axis for {node.name} from {original_axis} to {node.attrs['axis']} (channel dimension)")
+            original_axis = concat_axis
 
-            ## Modify inputs to the concat node - need to transpose all inputs
-            ## so that the data previously concatenated along width is now along channels
+            # Calculate flattened shape: keep dimensions up to concat_axis, flatten rest
+            # For example: [1, 1, 64, 320, 320] with axis=0 → [1, 1*64*320*320] = [1, 6553600]
+            original_shape = list(first_shape)
+            num_dims = len(original_shape)
+
+            # Calculate the product of all dimensions after the concat axis
+            flat_size = 1
+            for i in range(original_axis + 1, num_dims):
+                flat_size *= original_shape[i]
+
+            # New shape is [dim0, dim1, ..., dim_concat_axis, flat_size]
+            # Then we keep up to and including concat_axis, and flatten everything after
+            reshaped_dims = original_shape[:original_axis + 1] + [flat_size]
+
+            logging.debug(f"Converting Concat axis for {node.name}: axis {original_axis}")
+            logging.debug(f"Original shape: {original_shape}, Reshaped to: {reshaped_dims}")
+
+            ## Modify inputs to the concat node - reshape all inputs to flatten dimensions
             logging.debug(f"Modifying {len(node.inputs)} inputs to Concat node {node.name}")
             for idx, inp in enumerate(node.inputs):
-                ## Handle constant inputs differently - transpose the actual data
+                ## Handle constant inputs differently - reshape the actual data
                 if isinstance(inp, gs.Constant):
                     concat_const_tensor = np.array(tensors[inp.name].values, dtype=np.float32)
-                    # Create permutation indices to swap channel and width dimensions
-                    perm = list(range(len(concat_const_tensor.shape)))
-                    
-                    # Swap channel (-3) and width (-1) dimensions
-                    # For example, in NCHW format, this swaps C and W dimensions
-                    # This transformation is critical as it allows TIDL to perform concatenation 
-                    # more efficiently in the channel dimension rather than width
-                    temp = perm[-1]
-                    perm[-1] = perm[-3]  # Width becomes channel
-                    perm[-3] = temp      # Channel becomes width
-                    # transpose const input
-                    logging.debug(f"Transposing constant input {inp.name} to {node.name}:"
-                                    f"perm= {tuple(perm)}")
-                    tr_concat_const_tensor = np.transpose(concat_const_tensor, tuple(perm))
-                    node.inputs[idx] = gs.Constant(name=f'{inp.name}_transposed',
-                                                    values=tr_concat_const_tensor)
 
-                ## Handle variable inputs by creating transpose nodes
+                    # Reshape const input
+                    logging.debug(f"Reshaping constant input {inp.name}: {concat_const_tensor.shape} → {reshaped_dims}")
+                    reshaped_const_tensor = concat_const_tensor.reshape(reshaped_dims)
+                    node.inputs[idx] = gs.Constant(name=f'{inp.name}_reshaped_ax{original_axis}_flattened',
+                                                    values=reshaped_const_tensor)
+
+                ## Handle variable inputs by creating reshape nodes
                 else:
-                    # Create permutation indices to swap channel and width dimensions
-                    perm = list(range(len(inp.shape)))
-                    
-                    # Swap channel (-3) and width (-1) dimensions
-                    # For example, in NCHW format, this swaps C and W dimensions
-                    temp = perm[-1]
-                    perm[-1] = perm[-3]
-                    perm[-3] = temp
+                    # Create shape constant for Reshape operation
+                    reshape_shape_name = f'{inp.name}_reshape_shape_flatten'
+                    reshape_shape_constant = gs.Constant(name=reshape_shape_name,
+                                                        values=np.array(reshaped_dims, dtype=np.int64))
 
-                    # create transpose layer with this permutation
-                    transpose_out = gs.Variable(name=f'{inp.name}_transposed', dtype= np.float32)
-                    transpose_node = gs.Node(name=f'transpose_{inp.name}', op= 'Transpose',
-                                                attrs= {"perm":perm}, inputs=[inp],
-                                                outputs=[transpose_out])
-                    logging.debug(f"Adding node {transpose_node.name} with:"
-                                    f"perm= {tuple(perm)}")
-                    graph.nodes.append(transpose_node)
+                    # Create reshape layer
+                    reshape_out = gs.Variable(name=f'{inp.name}_reshaped_ax{original_axis}_flattened',
+                                             dtype=np.float32,
+                                             shape=reshaped_dims)
+                    reshape_node = gs.Node(name=f'reshape_{inp.name}_ax{original_axis}_flatten',
+                                          op='Reshape',
+                                          inputs=[inp, reshape_shape_constant],
+                                          outputs=[reshape_out])
+                    logging.debug(f"Adding reshape node {reshape_node.name}: {inp.shape} → {reshaped_dims}")
+                    graph.nodes.append(reshape_node)
 
                     # feed new input to concat
-                    node.inputs[idx] = transpose_out
+                    node.inputs[idx] = reshape_out
 
-            ## Modify outputs from concat - need to transpose back to restore original dimension order
+            # Concat axis remains the same (it's valid for the flattened shape)
+            # No need to change node.attrs['axis']
+
+            ## Modify outputs from concat - need to reshape back to restore original dimensionality
             logging.debug(f"Modifying {len(node.outputs)} outputs from Concat node {node.name}")
             for idx, outp in enumerate(node.outputs):
-                # Create inverse permutation to restore original dimension order
-                perm = list(range(len(outp.shape)))
-                
-                # Swap channel and width dimensions back
-                # This undoes the transpose we applied to the inputs
-                temp = perm[-1]
-                perm[-1] = perm[-3]
-                perm[-3] = temp
+                # Calculate the output shape after concat
+                # The concat happens on original_axis, so sum all input sizes on that axis
+                concat_flat_shape = reshaped_dims.copy()
+                total_size_on_concat_axis = sum(inp.shape[original_axis] for inp in node.inputs)
+                concat_flat_shape[original_axis] = total_size_on_concat_axis
 
-                # create transpose layer with this permutation
-                transpose_in = gs.Variable(name=f'{outp.name}_transposed', dtype= np.float32)
-                transpose_node = gs.Node(name=f'transpose_{outp.name}', op= 'Transpose',
-                                            attrs= {"perm":perm}, inputs=[transpose_in],
-                                            outputs=[outp])
-                logging.debug(f"Adding node {transpose_node.name} with:"
-                                f"perm= {tuple(perm)}")
-                graph.nodes.append(transpose_node)
+                # Calculate the final output shape after reshaping back
+                # Restore original dimensions, but with concatenated size on the concat_axis
+                final_shape = original_shape.copy()
+                final_shape[original_axis] = total_size_on_concat_axis
 
-                # Replace original output with the input to our new transpose node
+                logging.debug(f"Concat output shape (flattened): {concat_flat_shape}, target shape: {final_shape}")
+
+                # Create shape constant for Reshape operation
+                reshape_back_shape_name = f'{outp.name}_reshape_shape_restore'
+                reshape_back_shape_constant = gs.Constant(name=reshape_back_shape_name,
+                                                         values=np.array(final_shape, dtype=np.int64))
+
+                # Create reshape layer to restore original dimensionality
+                reshape_in = gs.Variable(name=f'{outp.name}_reshaped_ax{original_axis}_restored',
+                                        dtype=np.float32,
+                                        shape=concat_flat_shape)
+                reshape_node = gs.Node(name=f'reshape_{outp.name}_ax{original_axis}_restore',
+                                      op='Reshape',
+                                      inputs=[reshape_in, reshape_back_shape_constant],
+                                      outputs=[outp])
+                logging.debug(f"Adding reshape node {reshape_node.name}: {concat_flat_shape} → {final_shape}")
+                graph.nodes.append(reshape_node)
+
+                # Update output variable shape
+                outp.shape = final_shape
+
+                # Replace original output with the input to our new reshape node
                 # This completes the transformation chain:
-                # 1. Original input tensors → Transpose nodes (swap C and W)
-                # 2. Transposed inputs → Channel-axis Concat operation
-                # 3. Concat output → Final Transpose (swap C and W back)
-                # 4. Final output has same data arrangement as if width-concat was performed
-                node.outputs[idx] = transpose_in
-            
-            logging.debug(f"Successfully converted Concat node {node.name} from width-axis to channel-axis")
+                # 1. Original input tensors → Reshape nodes (flatten dimensions after concat_axis)
+                # 2. Flattened inputs → Concat operation on original axis
+                # 3. Concat output → Final Reshape (restore original dimensionality)
+                # 4. Final output has same data arrangement as if concat on original axis was performed
+                node.outputs[idx] = reshape_in
+
+            logging.debug(f"Successfully converted Concat node {node.name} on axis {original_axis} using Reshape approach")
 
 
 def tidl_convert_single_concat_to_consecutive_concats (graph: gs.Graph, onnx_graph: onnx.GraphProto, base:int=None):

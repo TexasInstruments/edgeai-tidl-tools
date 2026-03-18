@@ -108,6 +108,8 @@ def tidl_convert_patch_merging_to_reshp_tr_reshp(graph: gs.Graph, onnx_graph: on
                 nodes.append(node)
                 node = node.outputs[0].outputs[0]
             slices[ind] = nodes+[node] if node.op == 'Concat'  and len(nodes) == 2 else []
+        if any(len(slice_list) == 0 for slice_list in slices):
+            continue
         if any(slice_list[-1] is not slices[0][-1] for slice_list in slices[1:]):
             continue
         if slices[0][-1].attrs['axis'] not in (-1, len(inp.shape)-1):

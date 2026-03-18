@@ -148,7 +148,7 @@ def tidl_convert_reducemax_for_height_axis(graph: gs.Graph, onnx_graph: onnx.Gra
             # Process each axis group in REVERSE order
             current_tensor = input_tensor
             current_shape = list(shape)
-            final_output_tensor = None  # Will be set to the last operation's output
+            final_output_node = None  # Will be set to the last operation's output
             
             for group_idx, axis_group in enumerate(reversed(axis_groups)):
                 is_last_group = (group_idx == len(axis_groups) - 1)
@@ -245,7 +245,8 @@ def tidl_convert_reducemax_for_height_axis(graph: gs.Graph, onnx_graph: onnx.Gra
                     dtype=dtype
                 )
                 
-                if len(node.inputs) > 1:
+                if graph.opset >= 18:
+                    # opset >= 18: axes is an input tensor, not an attribute
                     axes_const = gs.Constant(
                         f"{node.name}_axes.{processed_count}.{group_idx}",
                         values=np.array([reduce_axis], dtype=np.int64)
@@ -258,6 +259,7 @@ def tidl_convert_reducemax_for_height_axis(graph: gs.Graph, onnx_graph: onnx.Gra
                         attrs={"keepdims": 1}
                     )
                 else:
+                    # opset < 18: axes is an attribute
                     reducemax_node = gs.Node(
                         op="ReduceMax",
                         name=f"{node.name}_reduce.{processed_count}.{group_idx}",
@@ -314,9 +316,9 @@ def tidl_convert_reducemax_for_height_axis(graph: gs.Graph, onnx_graph: onnx.Gra
                     current_shape[axis_group[0]] = 1
                     logging.debug(f"Updated shape to: {current_shape}")
                 
-                # Track the final output tensor
+                # Track the final node in the replacement chain
                 if is_last_group and keepdims == 1:
-                    final_output_tensor = current_tensor
+                    final_output_node = reshape_post_node if needs_reshape else reducemax_node
             
             # Add squeeze if keepdims=0
             if keepdims == 0:
@@ -352,35 +354,16 @@ def tidl_convert_reducemax_for_height_axis(graph: gs.Graph, onnx_graph: onnx.Gra
                 
                 graph.nodes.append(squeeze_node)
                 logging.debug(f"Added Squeeze node: {squeeze_node.name}")
-                final_output_tensor = squeeze_output
-            else:
-                final_output_tensor = current_tensor
+                final_output_node = squeeze_node
+            # else: final_output_node was already set inside the loop at line 319
             
-            # Preserve original output names by renaming final output tensor
-            if len(node.outputs) > 0:
-                original_output = node.outputs[0]
-                final_output_tensor.name = original_output.name
-                logging.debug(f"Preserved output name: {final_output_tensor.name}")
-            
-            # Replace original node's outputs
-            original_outputs = node.outputs.copy()
-            
-            for original_output in original_outputs:
-                # Update all consumers
-                for consumer_node in original_output.outputs:
-                    for i, inp in enumerate(consumer_node.inputs):
-                        if inp == original_output:
-                            consumer_node.inputs[i] = final_output_tensor
-                
-                # Update graph outputs
-                if original_output in graph.outputs:
-                    output_idx = graph.outputs.index(original_output)
-                    graph.outputs[output_idx] = final_output_tensor
-                    logging.debug(f"Updated graph output to use tensor: {final_output_tensor.name}")
-            
-            # Clear original node outputs
+            # Save original outputs, disconnect old node, assign to final node
+            original_output = node.outputs.copy()
             node.outputs.clear()
-            logging.debug(f"Successfully removed original ReduceMax node: {node.name}")
+            node.inputs.clear()
+            final_output_node.outputs = original_output
+
+            logging.debug(f"Successfully replaced original ReduceMax node: {node.name}")
             
             processed_count += 1
             

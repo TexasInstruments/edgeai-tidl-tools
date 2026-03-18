@@ -158,37 +158,51 @@ def tidl_convert_tanhgelu_to_erfgelu(graph: gs.Graph, onnx_graph: onnx.GraphProt
     # PATTERN DETECTION (Simplified)
     
     def detect_gelu(tanh_node):
-        """Detect if Tanh is part of GELU pattern"""
-        
-        # Step 1: Check ancestors for GELU signatures
+        """Detect if Tanh is part of GELU pattern with mathematical verification"""
+
+        # Step 1: Get ancestors and check for GELU-specific operations
         ancestors = get_nodes_in_direction(tanh_node, 'up', max_depth=8)
-        has_gelu_sig = False
-        
-        for node in ancestors:
-            constant_values = []
-            for inp in node.inputs:
-                val = get_constant_value(inp)
-                if val is not None:
-                    constant_values.append(val)
-            
-            for constant in constant_values:
-                if is_gelu_constant(constant):
-                    has_gelu_sig = True
-                    break
-            
-            if has_gelu_sig:
-                break
-        
-        if not has_gelu_sig:
+
+        # Check for Mish-specific operations (MUST NOT have these)
+        has_log = any(n.op == 'Log' for n in ancestors)
+        has_exp = any(n.op == 'Exp' for n in ancestors)
+
+        # If pattern has Log and Exp before Tanh, it's Mish, not GELU
+        if has_log and has_exp:
+            logging.debug(f"Tanh node {tanh_node.name} is part of Mish activation (has Log+Exp), skipping")
+            return None
+
+        # Check for GELU-specific operations (MUST have these)
+        has_pow_3 = any(n.op == 'Pow' and has_value(n, 3.0) for n in ancestors)
+        has_cubic_mul = False  # Check for x * x * x pattern
+        if not has_pow_3:
+            # Look for cubic multiplication pattern
+            mul_chains = [n for n in ancestors if n.op == 'Mul']
+            # Simple heuristic: if there are multiple Mul nodes, might be x*x*x
+            has_cubic_mul = len(mul_chains) >= 2
+
+        # Check for GELU signature constants
+        has_gelu_coeff = any(has_value(n, 0.044715) for n in ancestors)
+        has_tanh_coeff = any(has_value(n, 0.7978845) or has_value(n, 0.7978) for n in ancestors)
+
+        # Must have either Pow(3) or cubic multiplication, AND GELU coefficients
+        if not (has_pow_3 or has_cubic_mul) or not (has_gelu_coeff or has_tanh_coeff):
+            logging.debug(f"Tanh node {tanh_node.name} missing GELU-specific operations or constants, skipping")
             return None
         
         # Step 2: Find Add(+1) after Tanh
         descendants = get_nodes_in_direction(tanh_node, 'down', max_depth=5)
         add_node = next((n for n in descendants if n.op == 'Add' and has_value(n, 1.0)), None)
-        
+
         if not add_node:
             return None
-        
+
+        # Step 2.5: Verify 0.5 multiplication exists (GELU-specific, Mish doesn't have this)
+        has_half_mul = any(has_value(n, 0.5) for n in descendants)
+        if not has_half_mul:
+            logging.debug(f"Tanh node {tanh_node.name} missing 0.5 multiplication (not GELU), skipping")
+            return None
+
         # Step 3: Find final Mul - just get all Muls after Add
         add_idx = descendants.index(add_node)
         mul_nodes = [n for n in descendants[add_idx:] if n.op == 'Mul']
@@ -230,24 +244,26 @@ def tidl_convert_tanhgelu_to_erfgelu(graph: gs.Graph, onnx_graph: onnx.GraphProt
         nodes_to_remove.extend([n for n in descendants[add_idx:final_idx] 
                             if n.op == 'Mul' and n not in nodes_to_remove])
         
-        # Add GELU constant nodes
+        # Add GELU constant nodes - ONLY remove Constant nodes, not computation nodes
         for node in ancestors:
+            # Skip computation nodes - only remove pure Constant nodes
+            if node.op not in ['Constant', 'ConstantOfShape']:
+                continue
+
             constant_values = []
             for inp in node.inputs:
                 val = get_constant_value(inp)
                 if val is not None:
                     constant_values.append(val)
-            
+
             has_gelu_const = False
             for constant in constant_values:
                 if is_gelu_constant(constant):
                     has_gelu_const = True
                     break
-            
-            if has_gelu_const:
-                produces_input = any(out == input_var for out in node.outputs)
-                if not produces_input and node not in nodes_to_remove:
-                    nodes_to_remove.append(node)
+
+            if has_gelu_const and node not in nodes_to_remove:
+                nodes_to_remove.append(node)
         
         return input_var, final_mul.outputs[0], nodes_to_remove
     
@@ -308,15 +324,15 @@ def tidl_convert_tanhgelu_to_erfgelu(graph: gs.Graph, onnx_graph: onnx.GraphProt
     # MAIN LOOP
     for iteration in range(50):
         tanh_nodes = [n for n in graph.nodes if n.op == 'Tanh']
-        
+
         if not tanh_nodes:
-            return
-        
+            break
+
         converted_any = False
-        
+
         for tanh in tanh_nodes:
             result = detect_gelu(tanh)
-            
+
             if result:
                 input_var, output_var, nodes_to_remove = result
                 if create_erfgelu(input_var, output_var, nodes_to_remove, converted):
@@ -324,12 +340,13 @@ def tidl_convert_tanhgelu_to_erfgelu(graph: gs.Graph, onnx_graph: onnx.GraphProt
                     converted_any = True
                     logging.debug(f"Converted GELU #{converted}")
                     break
-        
+
         if not converted_any:
             break
+
     graph.cleanup()
     graph.toposort()
-    
+
     logging.debug(f"Total converted: {converted}")
 
 

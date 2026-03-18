@@ -81,11 +81,13 @@ def tidl_convert_gemm_to_matmul_and_add (graph: gs.Graph, onnx_graph: onnx.Graph
                 value = inp_node.attrs.get('value', None)
                 if value: 
                     return gs.Constant(name = tensor.name, values = np.transpose(value,(-2,-1))) 
-            shape = A.shape
+            shape = tensor.shape
             shape[-2:] = shape[-2:][::-1]
             perm = list(range(len(shape)))
             perm[-2:]= perm[-2:][::-1]
             t_out = gs.Variable(name = f"{tensor.name}_t_out",dtype=tensor.dtype,shape=shape)
+            if t_out.name in graph.tensors():
+                return graph.tensors()[t_out.name]
             trans_node = gs.Node('Transpose',name=f"{tensor.name}_t",inputs=[tensor],outputs=[t_out], attrs=dict(perm=perm))
             graph.nodes.append(trans_node)
             logging.debug(f"Added transpose for {tensor.name}")
@@ -104,11 +106,20 @@ def tidl_convert_gemm_to_matmul_and_add (graph: gs.Graph, onnx_graph: onnx.Graph
         transA = node.attrs.get('transA',0)
         transB = node.attrs.get('transB',0)
         
+        failed = False
         if transA:
-            A = add_transpose_for(A)
+            if A.shape and len(A.shape)>=2:
+                A = add_transpose_for(A)
+            else:
+                failed = True
         
         if transB:
-            B = add_transpose_for(B)
+            if B.shape and len(B.shape)>=2:
+                B = add_transpose_for(B)
+            else:
+                failed =True
+        if failed :
+            continue
         
         if alpha == 0:
             logging.critical(f"alpha == 0 not supported for changing at node {node.name}")
@@ -126,7 +137,7 @@ def tidl_convert_gemm_to_matmul_and_add (graph: gs.Graph, onnx_graph: onnx.Graph
                 A = mul_out
                 graph.nodes.append(mul_node)
                 logging.debug(f"Added mul node {mul_node.name} for node {node.name} and alpha {alpha}")
-        shape = list(A.shape[:-1])+list(B.shape[-1:])
+        shape = list(A.shape[:-1])+list(B.shape[-1:]) if A.shape and B.shape else None
         matmul_out = gs.Variable(name = f"{node.name}_matmul_out",dtype=A.dtype,shape=shape) if beta!=0 and C is not None else node.outputs[0]
         matmul_node = gs.Node('MatMul',name=f"{node.name}_matmul",inputs=[A,B],outputs=[matmul_out],)
         graph.nodes.append(matmul_node)
@@ -147,4 +158,5 @@ def tidl_convert_gemm_to_matmul_and_add (graph: gs.Graph, onnx_graph: onnx.Graph
             graph.nodes.append(add_node)
             logging.debug(f"Added Add node {add_node.name} for node {node.name}")
         node.outputs.clear()
+        graph.nodes.remove(node)
         

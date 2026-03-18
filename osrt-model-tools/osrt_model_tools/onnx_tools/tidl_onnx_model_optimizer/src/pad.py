@@ -312,3 +312,79 @@ def tidl_convert_pad_above_height_axis_to_height_axis(graph: gs.Graph, onnx_grap
                 # For axes >= height_axis, we can use the original node
                 logging.info(f"Pad node {node.name} operates on axis {axis} which is >= height axis ({height_axis}), keeping as is")
                 # Keep the original node as is
+
+
+def tidl_convert_nonzero_constant_pad_to_zero_pad_add(graph: gs.Graph, onnx_graph: onnx.GraphProto):
+    pads = [node for node in graph.nodes if node.op == 'Pad']
+    for pad in pads:
+        if pad.attrs.get('mode','constant') != 'constant':
+            continue
+        if pad.outputs[0].shape is None:
+            continue
+        if graph.opset>=11:
+            if len(pad.inputs)<3 :
+                continue
+            if not isinstance(pad.inputs[1], gs.Constant):
+                continue
+            pads = pad.inputs[1].values.tolist()
+            const = pad.inputs[2]
+            if isinstance(const, gs.Constant):
+                if const.values == 0:
+                    continue
+                const_val = np.copy(const.values)
+                pad.inputs[2] = gs.Constant(f'{pad.name}_const_val', np.copy(const_val))
+                const = pad.inputs[2]
+                const.values *= 0
+            else:
+                if len(const.inputs) == 0:
+                    continue
+                const_node = const.inputs[0] 
+                if const_node.op != 'Constant':
+                    continue
+                if 'value' in const_node.attrs:
+                    const = const_node.attrs['value']
+                    if not isinstance(const , gs.Constant):
+                        continue
+                    const_node.attrs['value'] = gs.Constant(f'{pad.name}_const_val', np.copy(const.values))
+                    const_val = np.copy(const.values)
+                    const_node.attrs['value'].values *= 0
+                if 'value_float' in const_node.attrs:
+                    const_val = np.copy(const_node.attrs['value_float'])
+                    const_node.attrs['value_float'] *= 0
+                if 'value_int' in const_node.attrs:
+                    const_val = np.copy(const_node.attrs['value_int'])
+                    const_node.attrs['value_int'] *= 0
+        else:
+            pads = pad.attrs['pads']
+            const_val = pad.attrs.get('value', 0)
+            if  const_val == 0:
+                continue
+            pads.attrs['value'] = 0
+        
+        pad_out = pad.outputs[0]
+        const_val = np.array(const_val) if not isinstance(const_val, np.ndarray) else const_val
+        add_in = gs.Variable(f'{pad.name}_add_in', pad_out.dtype, pad_out.shape)
+        pad_const = np.zeros(pad_out.shape, const_val.dtype)
+        d = len(pad_out.shape)
+        for i in range (d):
+            start_pad = pads[i]
+            end_pad = pads[i+d]
+            if start_pad == 0 and end_pad == 0:
+                continue
+            # Build slice objects dynamically
+            slices = [slice(None)] * d  # Start with [:, :, :, ...]
+            
+            # Fill start padding
+            if start_pad > 0:
+                slices[i] = slice(0, start_pad)
+                pad_const[tuple(slices)] = const_val
+            
+            # Fill end padding
+            if end_pad > 0:
+                slices[i] = slice(-end_pad, None)
+                pad_const[tuple(slices)] = const_val
+        pad_const = gs.Constant(f'{pad.name}_pad_const', pad_const)
+        pad.outputs[0] = add_in
+        add = gs.Node('Add', f'{pad.name}_add', {}, [add_in, pad_const], [pad_out])
+        graph.nodes.append(add)
+        

@@ -63,316 +63,592 @@ through Einstein summation notation. This module provides transformations to rep
 Einsum operations with more basic operations like MatMul, Transpose, and Reshape
 for better compatibility with TIDL.
 """
+
 import logging
 import onnx_graphsurgeon as gs
 import onnx
 import numpy as np
+from typing import List, Optional, Dict, Tuple
 
-def tidl_replace_einsum_with_matmul_and_basic_ops(graph: gs.Graph, onnx_graph: onnx.GraphProto):
+
+def parse_operand(operand_str: str) -> Tuple[bool, List[str]]:
     """
-    Replaces Einsum operations with a simplified combination of Reshape, Transpose, 
-    and MatMul operations to improve compatibility with TIDL.
-    
-    This function specifically targets Einsum operations and attempts to decompose them
-    into simpler operations that can be more easily mapped to hardware accelerators.
-    
+    Parse an operand string into tokens.
+    Treats '...' as a SINGLE ellipsis token, not 3 dot chars.
+
     Args:
-        graph: The ONNX GraphSurgeon graph to be modified
-        onnx_graph: The original ONNX graph (for reference)
-        
+        operand_str: e.g. "...pd" or "pq..." or "p...q" or "pqd"
+
     Returns:
-        None: The function modifies the graph in-place
+        (has_ellipsis, explicit_chars)
+        e.g. ("...pd") -> (True, ['p', 'd'])
+        e.g. ("pqd")   -> (False, ['p', 'q', 'd'])
     """
-    logging.debug("Starting Einsum replacement with basic operations optimization")
-    
-    # Find all Einsum nodes in the graph
+    has_ellipsis = '...' in operand_str
+
+    if has_ellipsis:
+        # Remove the ellipsis and get remaining explicit chars
+        explicit_str   = operand_str.replace('...', '')
+        explicit_chars = list(explicit_str)
+
+        # Validate: no stray dots left
+        if '.' in explicit_chars:
+            logging.warning(
+                f"Operand '{operand_str}' has scattered dots — not supported."
+            )
+            return None, None
+    else:
+        # No ellipsis: every char is explicit
+        if '.' in operand_str:
+            logging.warning(
+                f"Operand '{operand_str}' has stray dots — not supported."
+            )
+            return None, None
+        explicit_chars = list(operand_str)
+
+    return has_ellipsis, explicit_chars
+
+
+def get_ellipsis_position(operand_str: str) -> Optional[str]:
+    """
+    Returns where the ellipsis sits in the operand string.
+
+    Returns:
+        'start'  for "...pq"
+        'end'    for "pq..."
+        'middle' for "p...q"
+        'none'   for "pqd"
+        None     if invalid (scattered dots)
+    """
+    if '...' not in operand_str:
+        return 'none'
+
+    pos = operand_str.index('...')
+    explicit_before = operand_str[:pos]
+    explicit_after  = operand_str[pos + 3:]
+
+    if '.' in explicit_before or '.' in explicit_after:
+        return None  # Scattered dots
+
+    if pos == 0:
+        return 'start'
+    elif pos == len(operand_str) - 3:
+        return 'end'
+    else:
+        return 'middle'
+
+
+def build_dim_map(
+    operand_str: str,
+    inp_shape: List[int]
+) -> Optional[Dict[str, int]]:
+    """
+    Build a mapping from explicit dimension label -> shape size.
+
+    '...' covers 0 or more batch dimensions.
+    Explicit chars map to the remaining dimensions.
+
+    Args:
+        operand_str: e.g. "...pd"
+        inp_shape:   e.g. [1, 3600, 512]
+
+    Returns:
+        dict like {'p': 3600, 'd': 512} or None on error
+
+    Visual:
+        "...pd" + [1, 3600, 512]
+         ^^^         ^
+          |          └── batch dim (covered by ...)
+          └── ellipsis covers shape[0..0]
+
+        p -> shape[-2] = 3600
+        d -> shape[-1] = 512
+    """
+    has_ellipsis, explicit_chars = parse_operand(operand_str)
+
+    if explicit_chars is None:
+        return None
+
+    if not inp_shape:
+        return {ch: None for ch in explicit_chars}
+
+    num_explicit      = len(explicit_chars)
+    num_ellipsis_dims = len(inp_shape) - num_explicit
+
+    if num_ellipsis_dims < 0:
+        logging.warning(
+            f"Operand '{operand_str}' needs {num_explicit} explicit dims "
+            f"but shape {inp_shape} only has {len(inp_shape)} dims."
+        )
+        return None
+
+    if not has_ellipsis:
+        # Direct 1-to-1 mapping
+        return {ch: inp_shape[i] for i, ch in enumerate(explicit_chars)}
+
+    ellipsis_pos = get_ellipsis_position(operand_str)
+    dim_map      = {}
+
+    if ellipsis_pos == 'start':
+        # "...pd": explicit chars at END of shape
+        # p -> shape[num_ellipsis_dims + 0]
+        # d -> shape[num_ellipsis_dims + 1]
+        for rank, ch in enumerate(explicit_chars):
+            dim_map[ch] = inp_shape[num_ellipsis_dims + rank]
+
+    elif ellipsis_pos == 'end':
+        # "pd...": explicit chars at START of shape
+        # p -> shape[0]
+        # d -> shape[1]
+        for rank, ch in enumerate(explicit_chars):
+            dim_map[ch] = inp_shape[rank]
+
+    elif ellipsis_pos == 'middle':
+        # "p...d": before from START, after from END
+        pos          = operand_str.index('...')
+        before_chars = list(operand_str[:pos])
+        after_chars  = list(operand_str[pos + 3:])
+
+        for rank, ch in enumerate(before_chars):
+            dim_map[ch] = inp_shape[rank]
+
+        for rank, ch in enumerate(after_chars):
+            dim_map[ch] = inp_shape[len(inp_shape) - len(after_chars) + rank]
+
+    logging.debug(f"dim_map for '{operand_str}' {inp_shape}: {dim_map}")
+    return dim_map
+
+
+def get_batch_dims(operand_str: str, inp_shape: List[int]) -> List[int]:
+    """
+    Returns the actual batch dimension sizes covered by '...'.
+
+    Args:
+        operand_str: e.g. "...pd"
+        inp_shape:   e.g. [1, 3600, 512]
+
+    Returns:
+        list of batch dim sizes, e.g. [1]
+        or [] if ellipsis covers 0 dims
+        or [] if no ellipsis
+
+    Visual:
+        "...pd" + [1, 3600, 512] -> [1]         (1 batch dim)
+        "...pd" + [2, 8, 3600, 512] -> [2, 8]   (2 batch dims)
+        "...pd" + [3600, 512]    -> []           (0 batch dims)
+        "pqd"   + [3600, 2, 512] -> []           (no ellipsis)
+    """
+    if '...' not in operand_str:
+        return []
+
+    has_ellipsis, explicit_chars = parse_operand(operand_str)
+    if explicit_chars is None:
+        return []
+
+    num_explicit      = len(explicit_chars)
+    num_ellipsis_dims = len(inp_shape) - num_explicit
+
+    if num_ellipsis_dims <= 0:
+        return []  # Ellipsis covers 0 dims
+
+    ellipsis_pos = get_ellipsis_position(operand_str)
+
+    if ellipsis_pos == 'start':
+        return list(inp_shape[:num_ellipsis_dims])
+    elif ellipsis_pos == 'end':
+        return list(inp_shape[num_explicit:])
+    elif ellipsis_pos == 'middle':
+        pos    = operand_str.index('...')
+        before = list(operand_str[:pos])
+        after  = list(operand_str[pos + 3:])
+        return list(inp_shape[len(before): len(inp_shape) - len(after)])
+
+    return []
+
+
+def build_transpose_perm(
+    operand_str: str,
+    inp_shape: List[int],
+    target_explicit_order: List[str]
+) -> Optional[List[int]]:
+    """
+    Build a transpose permutation to reorder explicit dims,
+    keeping batch (ellipsis) dims at front.
+
+    Args:
+        operand_str:          e.g. "...pd"
+        inp_shape:            e.g. [1, 3600, 512]
+        target_explicit_order: e.g. ['d', 'p']  (desired order)
+
+    Returns:
+        perm as shape-level indices, e.g. [0, 2, 1]
+
+    Visual:
+        "...pd" shape=[1, 3600, 512]
+         batch dims at shape[0]     -> keep at front
+         p at shape[1]
+         d at shape[2]
+
+        target=['d','p'] means we want [batch, d, p]
+        perm = [0, 2, 1]
+    """
+    has_ellipsis, explicit_chars = parse_operand(operand_str)
+    if explicit_chars is None:
+        return None
+
+    num_explicit      = len(explicit_chars)
+    num_ellipsis_dims = len(inp_shape) - num_explicit if inp_shape else 0
+    ellipsis_pos      = get_ellipsis_position(operand_str)
+
+    # Build shape_index for each explicit char
+    char_to_shape_idx: Dict[str, int] = {}
+
+    if ellipsis_pos == 'start' or not has_ellipsis:
+        # explicit chars start at shape[num_ellipsis_dims]
+        for rank, ch in enumerate(explicit_chars):
+            char_to_shape_idx[ch] = num_ellipsis_dims + rank
+
+    elif ellipsis_pos == 'end':
+        # explicit chars start at shape[0]
+        for rank, ch in enumerate(explicit_chars):
+            char_to_shape_idx[ch] = rank
+
+    elif ellipsis_pos == 'middle':
+        pos          = operand_str.index('...')
+        before_chars = list(operand_str[:pos])
+        after_chars  = list(operand_str[pos + 3:])
+        for rank, ch in enumerate(before_chars):
+            char_to_shape_idx[ch] = rank
+        for rank, ch in enumerate(after_chars):
+            char_to_shape_idx[ch] = (
+                len(inp_shape) - len(after_chars) + rank
+            )
+
+    # Batch dims at the front (always preserved in order)
+    if ellipsis_pos == 'start':
+        batch_indices = list(range(num_ellipsis_dims))
+    elif ellipsis_pos == 'end':
+        batch_indices = list(range(num_explicit, len(inp_shape)))
+    elif ellipsis_pos == 'middle':
+        pos    = operand_str.index('...')
+        before = list(operand_str[:pos])
+        after  = list(operand_str[pos + 3:])
+        batch_indices = list(
+            range(len(before), len(inp_shape) - len(after))
+        )
+    else:
+        batch_indices = []
+
+    # Build final perm: batch dims first, then explicit dims in target order
+    explicit_perm = [char_to_shape_idx[ch] for ch in target_explicit_order]
+    perm          = batch_indices + explicit_perm
+
+    logging.debug(
+        f"Transpose perm for '{operand_str}' "
+        f"target={target_explicit_order}: {perm}"
+    )
+    return perm
+
+
+def tidl_replace_einsum_with_matmul_and_basic_ops(
+    graph: gs.Graph,
+    onnx_graph: onnx.GraphProto
+):
+    """
+    Replaces Einsum operations with Reshape + Transpose + MatMul.
+
+    Correctly handles '...' as a SINGLE ellipsis covering 0 or more
+    batch dimensions (not as individual dot characters).
+
+    Supported:
+      "bd,dn->bn"            no ellipsis
+      "...pd,...qd->...pq"   ellipsis at start
+      "pd...,qd...->pq..."   ellipsis at end
+      "p...d,q...d->p...q"   ellipsis in middle
+
+    Not supported (skip with warning):
+      "..p..q,..."           scattered dots
+    """
+    logging.debug("Starting Einsum -> MatMul replacement")
+
+    STRAIGHT_THROUGH_OPS = []
+    ELTWISE_OPS          = ['Add', 'Sub', 'Mul', 'Div']
+
     einsum_nodes = [node for node in graph.nodes if node.op == "Einsum"]
-    logging.debug(f"Found {len(einsum_nodes)} Einsum nodes in the graph")
-    
+    logging.debug(f"Found {len(einsum_nodes)} Einsum nodes")
+
     for einsum_node in einsum_nodes:
-        logging.debug(f"Processing Einsum node: {einsum_node.name}")
-        
-        # Get the Einsum equation from attributes
+        logging.debug(f"Processing: {einsum_node.name}")
+
+        # ---------------------------------------------------------------- #
+        # Step 1: Parse equation                                            #
+        # ---------------------------------------------------------------- #
         equation = einsum_node.attrs.get("equation", "")
-        logging.debug(f"Einsum equation: {equation}")
-        
-        # Validate equation format
-        assert isinstance(equation, str), "Einsum equation must be a string"
-        
-        # Parse the equation into left-hand side (inputs) and right-hand side (output)
-        lhs, rhs = equation.split('->')
-        
-        # Skip if right-hand side is empty
-        if len(rhs) == 0:
-            logging.debug(f"Skipping Einsum node {einsum_node.name} with empty right-hand side")
+        assert isinstance(equation, str)
+        logging.debug(f"Equation: {equation}")
+
+        if '->' not in equation:
+            logging.debug(f"Skipping: no '->'")
             continue
-            
-        # Parse right-hand side dimensions
-        if rhs == rhs.split()[0]:
-            rhs = [s for s in rhs]  # Convert single string to character list
-        else:
-            rhs = rhs.split()  # Already space-separated
-            
-        # Parse left-hand side operands
-        operands = lhs.split(',')
-        
-        # Store original inputs and outputs for possible restoration
-        _inp1, _inp2 = einsum_node.inputs
-        _out = einsum_node.outputs[0]
-        logging.debug(f"Input shapes: {_inp1.shape}, {_inp2.shape}, Output shape: {_out.shape}")
-        
-        # Only handle binary Einsum operations (with 2 inputs)
-        if len(operands) != 2:
-            logging.debug(f"Skipping Einsum node {einsum_node.name} with {len(operands)} operands (only binary operations supported)")
+
+        lhs, rhs_str = equation.split('->')
+        rhs_str      = rhs_str.strip()
+
+        if not rhs_str:
+            logging.debug(f"Skipping: empty RHS")
             continue
-            
-        # Process dimensions from each operand
-        dims = {}  # Dictionary to map dimension labels to their sizes
-        for i, operand in enumerate(operands):
-            # Parse operand dimensions
-            if operand == operand.split()[0]:
-                operand = [s for s in operand]  # Convert to character list
-            else:
-                operand = operand.split()
-                
-            # Store parsed operand back
-            operands[i] = operand
-            
-            # Get input tensor for this operand
-            inp = einsum_node.inputs[i]
-            
-            # Map each dimension label to its size from the input shape
-            for j, d in enumerate(operand):
-                if d not in dims:
-                    dims[d] = None
-                    if inp.shape:
-                        dims[d] = inp.shape[j]
-                        logging.debug(f"Dimension {d} has size {dims[d]}")
-        
-        # Identify multiplication dimensions (dimensions that appear in inputs but not in output)
-        mul_dims = [d for d in dims if d not in rhs] 
-        
-        # Only handle cases with exactly one multiplication dimension
+
+        operands_str = [op.strip() for op in lhs.split(',')]
+
+        if len(operands_str) != 2:
+            logging.debug(f"Skipping: {len(operands_str)} operands, need 2")
+            continue
+
+        op_str_a, op_str_b = operands_str
+
+        # ---------------------------------------------------------------- #
+        # Step 2: Validate — no scattered dots anywhere                    #
+        # ---------------------------------------------------------------- #
+        skip = False
+        for s in [op_str_a, op_str_b, rhs_str]:
+            pos = get_ellipsis_position(s)
+            if pos is None:
+                logging.warning(
+                    f"Skipping {einsum_node.name}: "
+                    f"scattered/invalid dots in '{s}'"
+                )
+                skip = True
+                break
+        if skip:
+            continue
+
+        # ---------------------------------------------------------------- #
+        # Step 3: Parse operands -> (has_ellipsis, explicit_chars)         #
+        # ---------------------------------------------------------------- #
+        has_ell_a, explicit_a = parse_operand(op_str_a)
+        has_ell_b, explicit_b = parse_operand(op_str_b)
+        has_ell_r, explicit_r = parse_operand(rhs_str)
+
+        if explicit_a is None or explicit_b is None or explicit_r is None:
+            logging.warning(f"Skipping {einsum_node.name}: parse failed")
+            continue
+
+        logging.debug(
+            f"A: has_ellipsis={has_ell_a}, explicit={explicit_a}\n"
+            f"B: has_ellipsis={has_ell_b}, explicit={explicit_b}\n"
+            f"R: has_ellipsis={has_ell_r}, explicit={explicit_r}"
+        )
+
+        # ---------------------------------------------------------------- #
+        # Step 4: Build dims from both inputs                              #
+        # ---------------------------------------------------------------- #
+        inp1, inp2 = einsum_node.inputs
+        shape1     = list(inp1.shape) if inp1.shape else []
+        shape2     = list(inp2.shape) if inp2.shape else []
+
+        dim_map_a = build_dim_map(op_str_a, shape1)
+        dim_map_b = build_dim_map(op_str_b, shape2)
+
+        if dim_map_a is None or dim_map_b is None:
+            logging.warning(f"Skipping {einsum_node.name}: dim_map failed")
+            continue
+
+        # Merge both dim maps
+        dims = {}
+        dims.update(dim_map_a)
+        dims.update(dim_map_b)
+        logging.debug(f"dims = {dims}")
+
+        # ---------------------------------------------------------------- #
+        # Step 5: Classify dimensions (explicit only, no dots)             #
+        # ---------------------------------------------------------------- #
+        # mul dims: in inputs but NOT in rhs explicit chars
+        mul_dims = [
+            d for d in dims
+            if d not in explicit_r
+        ]
+
         if len(mul_dims) != 1:
-            logging.debug(f"Skipping Einsum node {einsum_node.name}: found {len(mul_dims)} multiplication dimensions, need exactly 1")
+            logging.debug(
+                f"Skipping: {len(mul_dims)} mul dims, need exactly 1"
+            )
             continue
-        # TODO Remove this logic to add support for more than 1 mul_dims
-            
-        # Ensure the multiplication dimension appears in both operands
-        if not all(all(d in operand for d in mul_dims)  for operand in operands):
-            logging.debug(f"Skipping Einsum node {einsum_node.name}: multiplication dimension {mul_dims[0]} not in all operands")
+
+        mul_dim = mul_dims[0]
+
+        if mul_dim not in explicit_a or mul_dim not in explicit_b:
+            logging.debug(
+                f"Skipping: mul dim '{mul_dim}' not in both operands"
+            )
             continue
-            
-        # Unpack operands for clarity
-        a, b = operands
-        logging.debug(f"Operand dimensions - a: {a}, b: {b}")
-        
-        # Categorize dimensions:
-        # 1. Same dimensions: appear in both operands but are not multiplication dimensions
-        same_dims = [d for d in dims if d in a and d in b and d not in mul_dims]
-        # 2. Dimensions unique to first operand
-        diff_dims_a = [d for d in dims if d in a and d not in b and d not in mul_dims]
-        # 3. Dimensions unique to second operand
-        diff_dims_b = [d for d in dims if d not in a and d in b and d not in mul_dims]
-        
-        logging.debug(f"Dimension classification - same: {same_dims}, unique to a: {diff_dims_a}, unique to b: {diff_dims_b}, multiplication: {mul_dims}")
-        
-        # Find axes positions of the same dimensions in each operand
-        same_dim_axes_a = [i for i, d in enumerate(a) if d in same_dims]
-        same_dim_axes_b = [i for i, d in enumerate(b) if d in same_dims]
-        
-        # Ensure common dimensions are at the beginning of each operand in the same order
-        if same_dim_axes_a != list(range(len(same_dims))) or same_dim_axes_b != list(range(len(same_dims))):
-            logging.debug(f"Skipping Einsum node {einsum_node.name}: common dimensions are not at the beginning of operands")
+
+        same_dims   = [
+            d for d in dims
+            if d in explicit_a and d in explicit_b and d != mul_dim
+        ]
+        diff_dims_a = [
+            d for d in dims
+            if d in explicit_a and d not in explicit_b and d != mul_dim
+        ]
+        diff_dims_b = [
+            d for d in dims
+            if d not in explicit_a and d in explicit_b and d != mul_dim
+        ]
+
+        logging.debug(
+            f"same={same_dims}, diff_a={diff_dims_a}, "
+            f"diff_b={diff_dims_b}, mul=[{mul_dim}]"
+        )
+
+        # ---------------------------------------------------------------- #
+        # Step 6: Validate same dims are at start of both operands         #
+        # ---------------------------------------------------------------- #
+        same_pos_a = [i for i, d in enumerate(explicit_a) if d in same_dims]
+        same_pos_b = [i for i, d in enumerate(explicit_b) if d in same_dims]
+
+        if (same_pos_a != list(range(len(same_dims))) or
+                same_pos_b != list(range(len(same_dims)))):
+            logging.debug("Skipping: common dims not at start of operands")
             continue
-        
-        # Get input tensors
-        inp1, inp2 = einsum_node.inputs
-        
-        # Handle first operand (a) - ensure multiplication dimension is last
-        axes = [i for i, d in enumerate(a) if d in diff_dims_a]
-        mul_axis = [i for i, d in enumerate(a) if d == mul_dims[0]][0]
-        
-        # If the multiplication axis isn't at the right position, insert a transpose
-        if mul_axis != (len(a)-1):
-            logging.debug(f"Adding Transpose node for first operand to move multiplication dimension to the end")
-            
-            # Create permutation that puts same dims first, then unique dims, then mul dim last
-            perm = list(range(len(same_dims))) + axes + [mul_axis] 
-            
-            # Calculate output shape if input shape is available
-            shape = None
-            if inp1.shape:
-                shape = [inp1.shape[p] for p in perm]
-                
-            # Create transpose node
-            transpose_out = gs.Variable(f'{einsum_node.name}_tr1_out', inp1.dtype, shape)
-            transpose = gs.Node('Transpose', 
-                               f'{einsum_node.name}_tr1', 
-                               dict(perm=perm), 
-                               [inp1], 
-                               [transpose_out])
-                               
-            # Update einsum input and dimension order
-            einsum_node.inputs[0] = transpose_out
-            a = [a[p] for p in perm]
-            graph.nodes.append(transpose)
-            logging.debug(f"Added transpose with perm={perm}, new operand a dimensions: {a}")
-            
-            
-        # Handle second operand (b) - ensure multiplication dimension is in the right position
-        axes = [i for i, d in enumerate(b) if d in diff_dims_b]
-        mul_axis = [i for i, d in enumerate(b) if d == mul_dims[0]][0]
-        
-        # For MatMul compatibility, multiplication dimension should be after same dimensions
-        # but before unique dimensions in the second operand
-        if mul_axis != (len(b)-1-len(diff_dims_b)):
-            logging.debug(f"Adding Transpose node for second operand to position multiplication dimension correctly")
-            
-            # Create permutation: same dims first, then mul dim, then unique dims
-            perm = list(range(len(same_dims))) + [mul_axis] + axes
-            
-            # Calculate output shape if input shape is available
-            shape = None
-            if inp2.shape:
-                shape = [inp2.shape[p] for p in perm]
-                
-            # Create transpose node
-            transpose_out = gs.Variable(f'{einsum_node.name}_tr2_out', inp2.dtype, shape)
-            transpose = gs.Node('Transpose', 
-                               f'{einsum_node.name}_tr2', 
-                               dict(perm=perm), 
-                               [inp2], 
-                               [transpose_out])
-                               
-            # Update einsum input and dimension order
-            einsum_node.inputs[1] = transpose_out
-            b = [b[p] for p in perm]
-            graph.nodes.append(transpose)
-            logging.debug(f"Added transpose with perm={perm}, new operand b dimensions: {b}")
-        
-        # Get updated inputs and output
-        inp1, inp2 = einsum_node.inputs
-        axes = [i for i, d in enumerate(a) if d in diff_dims_a]
-        axes = [i for i, d in enumerate(b) if d in diff_dims_b]
+
+        # Save originals for restore
+        _inp1 = einsum_node.inputs[0]
+        _inp2 = einsum_node.inputs[1]
+        _out  = einsum_node.outputs[0]
+
+        # ---------------------------------------------------------------- #
+        # Step 7: Transpose A so layout = [..., same, diff_a, mul]         #
+        # ---------------------------------------------------------------- #
+        target_a = same_dims + diff_dims_a + [mul_dim]
+
+        if explicit_a != target_a:
+            logging.debug(
+                f"Transposing A: {explicit_a} -> {target_a}"
+            )
+            perm_a = build_transpose_perm(op_str_a, shape1, target_a)
+
+            if perm_a is None:
+                logging.warning(
+                    f"Skipping {einsum_node.name}: cannot build perm for A"
+                )
+                continue
+
+            tr_out_a = gs.Variable(
+                f'{einsum_node.name}_tr1_out',
+                inp1.dtype,
+                [shape1[p] for p in perm_a] if shape1 else None
+            )
+            tr_node_a = gs.Node(
+                'Transpose',
+                f'{einsum_node.name}_tr1',
+                dict(perm=perm_a),
+                [inp1], [tr_out_a]
+            )
+            graph.nodes.append(tr_node_a)
+            einsum_node.inputs[0] = tr_out_a
+            op_str_a   = rhs_str[:rhs_str.index('...')+3] + ''.join(target_a) \
+                         if has_ell_a else ''.join(target_a)
+            explicit_a = target_a
+            inp1       = tr_out_a
+            logging.debug(f"Transpose A perm={perm_a}")
+
+        # ---------------------------------------------------------------- #
+        # Step 8: Transpose B so layout = [..., same, mul, diff_b]         #
+        # ---------------------------------------------------------------- #
+        target_b = same_dims + [mul_dim] + diff_dims_b
+
+        if explicit_b != target_b:
+            logging.debug(
+                f"Transposing B: {explicit_b} -> {target_b}"
+            )
+            inp2   = einsum_node.inputs[1]
+            shape2 = list(inp2.shape) if inp2.shape else []
+
+            perm_b = build_transpose_perm(op_str_b, shape2, target_b)
+
+            if perm_b is None:
+                logging.warning(
+                    f"Skipping {einsum_node.name}: cannot build perm for B"
+                )
+                continue
+
+            tr_out_b = gs.Variable(
+                f'{einsum_node.name}_tr2_out',
+                inp2.dtype,
+                [shape2[p] for p in perm_b] if shape2 else None
+            )
+            tr_node_b = gs.Node(
+                'Transpose',
+                f'{einsum_node.name}_tr2',
+                dict(perm=perm_b),
+                [inp2], [tr_out_b]
+            )
+            graph.nodes.append(tr_node_b)
+            einsum_node.inputs[1] = tr_out_b
+            explicit_b = target_b
+            inp2       = tr_out_b
+            logging.debug(f"Transpose B perm={perm_b}")
+
+        # ---------------------------------------------------------------- #
+        # Step 9: Determine output explicit order and add transpose        #
+        # ---------------------------------------------------------------- #
+        # What MatMul naturally produces: same + diff_a + diff_b
+        natural_output = same_dims + diff_dims_a + diff_dims_b
+
         out = einsum_node.outputs[0]
-        
-        # If second operand has multiple axes in diff_dims_b, we need to flatten them
-        # This is needed for proper MatMul operation
-        if len(axes) > 1 and out.shape:
-            logging.debug(f"Multiple unique dimensions in second operand, creating Reshape to flatten them")
-            
-            # Calculate new shape: keep non-axes dimensions and flatten axes dimensions
-            shape = [dims[d] for i,d in enumerate(b) if i not in axes] + [np.prod([dims[d] for i,d in enumerate(b) if i in axes]).tolist()]
-            
-            # Create a combined dimension name for the flattened dimensions
-            s = ''
-            for axis in axes:
-                s += b[axis]
-                
-            # Update dimensions list
-            b = [d for i,d in enumerate(b) if i not in axes] + [s]
-            dims[s] = shape[-1]
-            
-            # Create reshape node
-            reshape_out = gs.Variable(f'{einsum_node.name}_rshp2_out', inp2.dtype, shape)
-            shape_const = gs.Constant(f"{einsum_node.name}_shape2", np.array(shape).astype(np.int64))
-            reshape = gs.Node('Reshape', 
-                             f'{einsum_node.name}_rshp2', 
-                             dict(), 
-                             [inp2, shape_const], 
-                             [reshape_out])
-                             
-            # Update einsum input
-            einsum_node.inputs[1] = reshape_out
-            graph.nodes.append(reshape)
-            logging.debug(f"Added reshape to shape {shape}, new operand b dimensions: {b}")
-            
-            # Update diff_dims_b as we've combined multiple dimensions
-            diff_dims_b = [d for d in dims if d not in a and d in b and d not in mul_dims]
-        
-        
-        # Determine the dimensions of the output based on the transformations we've applied
-        new_rhs = same_dims + diff_dims_a + diff_dims_b
-        logging.debug(f"New output dimensions before flattening: {new_rhs}")
-        
-        # Flatten multi-character dimensions
-        temp = []
-        for d in new_rhs:
-            if len(d) == 1:
-                temp.append(d)
-            elif len(d) > 1:
-                if d == d.split()[0]:
-                    d = [s for s in d]
-                else:
-                    d = d.split()
-                temp.extend(d)
-                
-        # Calculate output shape based on dimension sizes
-        shape = [dims[s] for s in temp]
-        shape = shape if all(s for s in shape) else None
-        logging.debug(f"Calculated intermediate output shape: {shape}")
-        
-        # If the output dimensions don't match what was requested in the original equation,
-        # add a transpose to get the right dimension order
-        if temp != rhs:
-            logging.debug(f"Output dimensions don't match requested dimensions, adding transpose")
-            logging.debug(f"Current: {temp}, Required: {rhs}")
-            
-            # Create transpose node to reorder dimensions
-            trans_in = gs.Variable(f'{einsum_node.name}_tr_out', out.dtype, shape)
-            perm = [temp.index(d) for d in rhs]
-            transpose = gs.Node('Transpose', 
-                               f'{einsum_node.name}_tr', 
-                               dict(perm=perm), 
-                               [trans_in], 
-                               [out])
-                               
-            # Update einsum output
-            graph.nodes.append(transpose)
-            out = trans_in
+
+        if natural_output != explicit_r:
+            logging.debug(
+                f"Output Transpose: {natural_output} -> {explicit_r}"
+            )
+            out_shape = list(out.shape) if out.shape else None
+
+            try:
+                perm_out = [natural_output.index(d) for d in explicit_r]
+            except ValueError as e:
+                logging.warning(
+                    f"Skipping {einsum_node.name}: "
+                    f"output perm failed: {e}"
+                )
+                einsum_node.inputs[0]  = _inp1
+                einsum_node.inputs[1]  = _inp2
+                einsum_node.outputs[0] = _out
+                continue
+
+            trans_in = gs.Variable(
+                f'{einsum_node.name}_tr_out',
+                out.dtype,
+                out_shape
+            )
+            tr_node = gs.Node(
+                'Transpose',
+                f'{einsum_node.name}_tr',
+                dict(perm=perm_out),
+                [trans_in], [out]
+            )
+            graph.nodes.append(tr_node)
             einsum_node.outputs[0] = trans_in
-            logging.debug(f"Added transpose with perm={perm} to get final output order")
-        
-        # If any of the output dimensions have multiple characters, we need to reshape
-        if any(len(d)>1 for d in new_rhs) and out.shape:
-            logging.debug(f"Output has multi-character dimensions, adding reshape")
-            
-            # Calculate shape based on the pre-flattened dimensions
-            shape1 = [dims[s] for s in new_rhs]
-            logging.debug(f"Reshaping to shape: {shape1}")
-            
-            # Create reshape node
-            reshape_in = gs.Variable(f'{einsum_node.name}_rshp_out', out.dtype, shape1)
-            shape_const = gs.Constant(f'{einsum_node.name}_shape', np.array(shape).astype(np.int64))
-            reshape = gs.Node('Reshape', 
-                             f'{einsum_node.name}_rshp', 
-                             {}, 
-                             [reshape_in, shape_const], 
-                             [out])
-                             
-            # Update einsum output
-            einsum_node.outputs[0] = reshape_in
-            graph.nodes.append(reshape)
-            logging.debug(f"Added reshape to final output shape")
-        
-        # Check if we can convert to MatMul based on the dimensions
-        axes_a = [i for i, d in enumerate(a) if d in diff_dims_a]
-        axes_b = [i for i, d in enumerate(b) if d in diff_dims_b]
-        
-        # If both operands have exactly one unique dimension, we can convert to MatMul
-        if len(axes_a) == 1 and len(axes_b) == 1:
-            logging.debug(f"Converting Einsum node to MatMul")
-            einsum_node.name += 'MatMul'  # Update node name
-            einsum_node.op = 'MatMul'     # Change operator to MatMul
-            einsum_node.attrs.clear()     # Clear attributes as they're not needed for MatMul
-            logging.debug(f"Successfully converted Einsum to MatMul: {einsum_node.name}")
+            out = trans_in
+            logging.debug(f"Output transpose perm={perm_out}")
+
+        # ---------------------------------------------------------------- #
+        # Step 10: Convert to MatMul                                        #
+        # ---------------------------------------------------------------- #
+        if len(diff_dims_a) == 1 and len(diff_dims_b) == 1:
+            logging.debug(f"Converting {einsum_node.name} -> MatMul")
+            einsum_node.name += '_MatMul'
+            einsum_node.op    = 'MatMul'
+            einsum_node.attrs.clear()
+            logging.debug(f"Success: {einsum_node.name}")
         else:
-            # If we can't convert to MatMul, restore original connections
-            logging.debug(f"Cannot convert to MatMul, restoring original Einsum node connections")
-            einsum_node.inputs[0] = _inp1
-            einsum_node.inputs[1] = _inp2  # Fixed bug: was using index 2
+            logging.debug(
+                f"Cannot convert to MatMul: "
+                f"diff_a={diff_dims_a}, diff_b={diff_dims_b}"
+            )
+            einsum_node.inputs[0]  = _inp1
+            einsum_node.inputs[1]  = _inp2
             einsum_node.outputs[0] = _out
-            
-    # Log completion of optimization
-    logging.debug("Completed Einsum replacement optimization")
+
+    logging.debug("Einsum -> MatMul replacement complete")
+
+

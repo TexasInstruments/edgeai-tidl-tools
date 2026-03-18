@@ -71,7 +71,7 @@ from .src.resize import tidl_convert_resize_params_size_to_scale, tidl_convert_r
 from .src.attention import tidl_optimize_attention
 from .src.attention_hf import tidl_optimize_hf_attention
 from .src.batch import tidl_modify_batch_dim
-from .src.concat import tidl_convert_concat_axis_width_to_channel, tidl_convert_single_concat_to_consecutive_concats
+from .src.concat import tidl_convert_concat_unsupported_axis_to_channel, tidl_convert_single_concat_to_consecutive_concats
 from .src.maxpool import tidl_convert_maxpool_to_cascaded_maxpool
 from .src.reducemean import tidl_expand_multiaxes_reducemean_to_single_axis_reducemeans
 from .src.gemm import tidl_convert_gemm_to_matmul_and_add
@@ -95,7 +95,7 @@ from .src.unsqueeze import tidl_convert_unsqueeze_to_reshape, tidl_eliminate_uns
 from .src.qdq import tidl_add_bias_qdq, tidl_remove_quantize_initializer, tidl_remove_duplicate_quantize_dequantize
 from .src.neg import tidl_convert_neg_to_mul
 from .src.expand import tidl_convert_expand_to_reshape_and_concat
-from .src.pad import tidl_convert_pad_above_height_axis_to_height_axis
+from .src.pad import tidl_convert_pad_above_height_axis_to_height_axis, tidl_convert_nonzero_constant_pad_to_zero_pad_add
 from .src.reducesum import tidl_expand_multiaxes_reducesum_to_single_axis_reducesums
 from .src.reducel2 import tidl_convert_reducel2_to_mul_reducesum_sqrt
 from .src.eltwise import tidl_replace_mean_with_eltwise, tidl_replace_sub_with_neg_add, tidl_support_broadcast_ops_constant_input
@@ -122,7 +122,7 @@ opt_ops = {
         'attention_block_optimization'              : tidl_optimize_attention,
         'hf_attention_block_optimization'           : tidl_optimize_hf_attention,
         'hf_detr_attention_block_optimization'      : tidl_detr_attention,
-        'convert_concat_axis_width_to_channel'      : tidl_convert_concat_axis_width_to_channel,
+        'convert_concat_unsupported_axis_to_channel': tidl_convert_concat_unsupported_axis_to_channel,
         'split_batch_dim_to_parallel_input_branches': tidl_modify_batch_dim,
         'convert_maxpool_to_cascaded_maxpool'       : tidl_convert_maxpool_to_cascaded_maxpool,
         'expand_multiaxes_reducemean_to_single_axis_reducemeans'              : tidl_expand_multiaxes_reducemean_to_single_axis_reducemeans,
@@ -180,7 +180,8 @@ opt_ops = {
         'adjust_clip_minval_maxval'                 : tidl_adjust_clip_minval_maxval,
         'convert_pad_above_height_axis_to_height_axis': tidl_convert_pad_above_height_axis_to_height_axis,
         'convert_single_axis_gethernd_to_gather'    : tidl_convert_single_axis_gethernd_to_gather,
-        'break_transpose_of_width_to_dim1_dim2_of_input_more_than_4d' : tidl_break_transpose_of_width_to_dim1_dim2_of_input_more_than_4d
+        'break_transpose_of_width_to_dim1_dim2_of_input_more_than_4d' : tidl_break_transpose_of_width_to_dim1_dim2_of_input_more_than_4d,
+        'convert_nonzero_constant_pad_to_zero_pad_add': tidl_convert_nonzero_constant_pad_to_zero_pad_add,
 }
 
 # Bucket definitions
@@ -224,7 +225,7 @@ adj_list = {
         'attention_block_optimization'              : [],
         'hf_attention_block_optimization'           : ['hf_detr_attention_block_optimization'],
         'hf_detr_attention_block_optimization'      : [],
-        'convert_concat_axis_width_to_channel'      : [],
+        'convert_concat_unsupported_axis_to_channel': [],
         'split_batch_dim_to_parallel_input_branches': [],
         'convert_maxpool_to_cascaded_maxpool'       : [],
         'expand_multiaxes_reducemean_to_single_axis_reducemeans'              : ['expand_layernorm_to_component_ops'],
@@ -271,7 +272,7 @@ adj_list = {
         'break_gelu_to_components'                  : [],
         'convert_reducemax_for_height_axis'         : [],
         'replace_tile_gatherelements_with_reshape_gather' : ['convert_tile_to_expand_for_size1_dims'],
-        'replace_einsum_with_matmul_and_basic_ops'             : ['convert_matmul_with_1d_weight_to_2d_weight_and_reshape','push_matmul_channel_in_height','convert_matmul_to_conv_1x1s1', 'break_transpose_of_width_to_dim1_dim2_of_input_more_than_4d' ],
+        'replace_einsum_with_matmul_and_basic_ops'  : ['hf_attention_block_optimization','convert_matmul_with_1d_weight_to_2d_weight_and_reshape','push_matmul_channel_in_height','convert_matmul_to_conv_1x1s1', 'break_transpose_of_width_to_dim1_dim2_of_input_more_than_4d' ],
         'convert_matmul_with_1d_weight_to_2d_weight_and_reshape':[],
         'convert_global_pooling_to_reduce_ops'      : ['expand_multiaxes_reducesum_to_single_axis_reducesums', 'expand_multiaxes_reducemean_to_single_axis_reducemeans', 'convert_maxpool_to_cascaded_maxpool'],
         'convert_tile_to_expand_for_size1_dims'     : ['convert_expand_to_reshape_and_concat'],
@@ -282,7 +283,8 @@ adj_list = {
         'adjust_clip_minval_maxval'                 : [],
         'convert_pad_above_height_axis_to_height_axis': [],
         'convert_single_axis_gethernd_to_gather'    : [],
-        'break_transpose_of_width_to_dim1_dim2_of_input_more_than_4d' : []
+        'break_transpose_of_width_to_dim1_dim2_of_input_more_than_4d' : [],
+        'convert_nonzero_constant_pad_to_zero_pad_add' : ['convert_pad_above_height_axis_to_height_axis']
 }
 
 def get_optimizers(bucket_flags=None):
@@ -293,7 +295,7 @@ def get_optimizers(bucket_flags=None):
         # operation specific
         'add_input_normalization'                   : False,
         'convert_resize_params_size_to_scale'       : False,
-        'convert_concat_axis_width_to_channel'      : False,
+        'convert_concat_unsupported_axis_to_channel': True,
         'convert_maxpool_to_cascaded_maxpool'       : True,
         'expand_multiaxes_reducemean_to_single_axis_reducemeans'  : True,
         'convert_gemm_to_matmul_and_add'            : False,
@@ -355,6 +357,7 @@ def get_optimizers(bucket_flags=None):
         'convert_pad_above_height_axis_to_height_axis': True,
         'convert_single_axis_gethernd_to_gather'    : True,
         'break_transpose_of_width_to_dim1_dim2_of_input_more_than_4d':True,
+        'convert_nonzero_constant_pad_to_zero_pad_add':True,
         
         # utilities specific
         'shape_inference_mode'      : 'all',

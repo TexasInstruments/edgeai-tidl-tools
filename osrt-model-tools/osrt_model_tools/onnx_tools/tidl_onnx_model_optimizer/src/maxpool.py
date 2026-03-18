@@ -161,22 +161,75 @@ def tidl_convert_maxpool_to_cascaded_maxpool(graph: gs.Graph, onnx_graph: onnx.G
 
         # Only include attributes that were present in the original node
         base_attrs = {}
-        
+
         # Copy optional attributes if they were present
         if "auto_pad" in maxpool.attrs:
             base_attrs["auto_pad"] = maxpool.attrs["auto_pad"]  # Will be "NOTSET"
-        
+
         if "ceil_mode" in maxpool.attrs:
             base_attrs["ceil_mode"] = maxpool.attrs["ceil_mode"]  # Will be 0
-        
+
         if "dilations" in maxpool.attrs:
             base_attrs["dilations"] = maxpool.attrs["dilations"]  # Will be [1, 1]
-        
+
         if "storage_order" in maxpool.attrs:
             base_attrs["storage_order"] = maxpool.attrs["storage_order"]  # Any value is OK
-        
-        
-        # Modify first layer 
+
+
+        # Check if padding >= 3, if so, add explicit Pad layer before MaxPool
+        # This avoids errors when padding is too large for cascaded MaxPool
+        pad_output = None
+        if orig_padding >= 3:
+            logging.debug(f"Padding {orig_padding} >= 3, adding explicit Pad layer before MaxPool")
+
+            # Get ONNX opset version
+            opset_version = graph.opset
+
+            # Create intermediate output for Pad node
+            pad_output = gs.Variable(
+                name=f"{maxpool.name}_padded",
+                shape=None,
+                dtype=output_dtype
+            )
+
+            # Convert MaxPool pads format to Pad node format
+            # MaxPool pads: [H_begin, W_begin, H_end, W_end] (4 values for 2D spatial)
+            # Pad node pads for 4D input [N, C, H, W]: [N_begin, C_begin, H_begin, W_begin, N_end, C_end, H_end, W_end] (8 values)
+            pad_pads = [0, 0, orig_pads[0], orig_pads[1], 0, 0, orig_pads[2], orig_pads[3]]
+
+            # Create Pad node based on opset version
+            if opset_version >= 11:
+                # ONNX opset >= 11: pads and constant_value are inputs
+                pads_constant = gs.Constant(
+                    name=f"{maxpool.name}_pads",
+                    values=np.array(pad_pads, dtype=np.int64)
+                )
+                constant_value = gs.Constant(
+                    name=f"{maxpool.name}_pad_value",
+                    values=np.array([0], dtype=np.float32)
+                )
+                pad_node = gs.Node(
+                    op="Pad",
+                    name=f"{maxpool.name}_pad",
+                    attrs={"mode": "constant"},
+                    inputs=[maxpool.inputs[0], pads_constant, constant_value],
+                    outputs=[pad_output]
+                )
+            else:
+                # ONNX opset < 11: pads and value are attributes
+                pad_node = gs.Node(
+                    op="Pad",
+                    name=f"{maxpool.name}_pad",
+                    attrs={"mode": "constant", "pads": pad_pads, "value": float('-inf')},
+                    inputs=[maxpool.inputs[0]],
+                    outputs=[pad_output]
+                )
+
+            graph.nodes.append(pad_node)
+            maxpool.inputs = [pad_output]
+            orig_pads = [0, 0, 0, 0]  # Reset padding for cascaded MaxPool layers
+
+        # Modify first layer
         first_layer_attrs = base_attrs.copy()
         first_layer_attrs["kernel_shape"] = [3, 3]
         first_layer_attrs["strides"] = [stride_sequence[0], stride_sequence[0]]

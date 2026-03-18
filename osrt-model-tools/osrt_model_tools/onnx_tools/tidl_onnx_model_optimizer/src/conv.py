@@ -113,6 +113,10 @@ def tidl_convert_conv_large_pad_to_smaller_kernel (graph: gs.Graph, onnx_graph: 
                           "out_channels will be accepted")
             continue
 
+        if any(not isinstance(s, int) for s in inp.shape):
+            logging.debug(f'Node {conv.name} has input of shape {inp.shape} which has string in it' )
+            continue
+        
         h, w = inp.shape[-2], inp.shape[-1]
         if  (w < pad_l) or (w < pad_r) or \
             (h < pad_t) or (h < pad_b):
@@ -164,7 +168,8 @@ def tidl_convert_conv_large_pad_to_smaller_kernel (graph: gs.Graph, onnx_graph: 
             logging.debug(f"Changing {conv.name} input weights and attributes")
             conv.attrs['pads'] = np.array(reduced_pads, dtype= np.int64)
             conv.attrs['kernel_shape'] = np.array(reduced_kernel_shape, dtype= np.int64)
-            conv.inputs[1] = gs.Constant(name= f"{weights.name}_reduced",
+            # Create unique name for reduced weights to avoid duplicates
+            conv.inputs[1] = gs.Constant(name= f"{conv.name}_weights_reduced",
                                          values=reduced_weight_tensor)
             # bias need not change
 
@@ -179,29 +184,37 @@ def tidl_convert_conv_7x7_stride4_to_stride1(graph: gs.Graph, onnx_graph: onnx.G
         if node.op == 'Conv':
             if node.attrs.get('kernel_shape', node.inputs[1].shape[2:]) == [7, 7] and node.attrs['strides'] == [4, 4]:
                 node.attrs['strides'] = [1, 1]
-                node.outputs[0].shape = None
 
-                next_nodes = list(node.outputs[0].outputs)
+                # Store original output and its consumers
+                original_output = node.outputs[0]
+                original_output.shape = None
+                next_nodes = list(original_output.outputs)
 
-                maxpool_output1 = gs.Variable(node.name.replace('Conv','MaxPool_out1'), dtype=np.float32)
-                maxpool_output2 = gs.Variable(node.name.replace('Conv','MaxPool_out2'), dtype=np.float32)
+                # Create unique output tensors for maxpool layers
+                conv_output = gs.Variable(f"{node.name}_stride1_output", dtype=np.float32)
+                maxpool_output1 = gs.Variable(f"{node.name}_MaxPool1_output", dtype=np.float32)
+                maxpool_output2 = gs.Variable(f"{node.name}_MaxPool2_output", dtype=np.float32)
 
-                new_maxpool1 = gs.Node(op="MaxPool", name=node.name.replace('Conv', 'MaxPool1'),
-                                                inputs=node.outputs,
+                # Update conv output to new unique tensor
+                node.outputs = [conv_output]
+
+                new_maxpool1 = gs.Node(op="MaxPool", name=f"{node.name}_MaxPool1",
+                                                inputs=[conv_output],
                                             outputs=[maxpool_output1])
                 new_maxpool1.attrs = dict(kernel_shape=[1, 1], strides=[2, 2])
                 graph.nodes.append(new_maxpool1)
                 logging.debug(f"Adding max pool node {new_maxpool1.name} in conv 7x7 conversion")
 
-                new_maxpool2 = gs.Node(op="MaxPool", name=node.name.replace('Conv', 'MaxPool2'),
+                new_maxpool2 = gs.Node(op="MaxPool", name=f"{node.name}_MaxPool2",
                                                 inputs=[maxpool_output1],
                                             outputs=[maxpool_output2])
                 new_maxpool2.attrs = dict(kernel_shape=[1, 1], strides=[2, 2])
                 graph.nodes.append(new_maxpool2)
                 logging.debug(f"Adding max pool node {new_maxpool2.name} in conv 7x7 conversion")
 
+                # Redirect consumers to use final maxpool output
                 for next_node in next_nodes:
-                    index = next_node.inputs.index(node.outputs[0])
+                    index = next_node.inputs.index(original_output)
                     next_node.inputs[index] = maxpool_output2
                 logging.debug(f"Changed the inputs of the conv {node.name}'s next layers in conv 7x7 conversion")
 
