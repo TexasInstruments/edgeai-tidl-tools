@@ -111,7 +111,7 @@ namespace onnxrt_wrapper
     {
         OrtStatus              *ortStatus;
         Ort::SessionOptions     sessionOpts;
-        c_api_tidl_options      tidlOpts{};
+        c_api_tidl_options      tidlOpts;
         int32_t                 status;
 
         // Set graph optimization level and logging severity
@@ -120,64 +120,34 @@ namespace onnxrt_wrapper
 
         if (m_tidlOffload)
         {
-            OrtStatus *def_status = OrtSessionsOptionsSetDefault_Tidl(&tidlOpts);
+            /*
+             * onnxruntime 1.23.0 enables input and output validation wherein
+             * the dimensions of io-tensors are matched exactly with the 
+             * dimensions in the original model. TIDL might modify those
+             * dimensions, for example extra padding requirement, OD post-processing
+             * etc. Disabling IO validation checks.
+             */
+            sessionOpts.AddConfigEntry(kOrtSessionOptionsConfigDisableInputValidation, "1");
+            sessionOpts.AddConfigEntry(kOrtSessionOptionsConfigDisableOutputValidation, "1");
 
-            // Parse and set from options map
-            if (options.find("artifacts_folder") != options.end())
-            {
-                strcpy(tidlOpts.artifacts_folder, options["artifacts_folder"].c_str());
-            }
-            else
+            // Set TIDL specific options
+            ortStatus = OrtSessionOptionsInitialize_Tidl(&tidlOpts);
+
+            if (ortStatus != NULL)
             {
                 status = -1;
-                throw std::runtime_error("'artifacts_folder' is not provided.");
+                throw std::runtime_error("ONNXRT initializing TIDL options failed");
             }
 
-            if (options.find("debug_level") != options.end())
+            for (const auto& [key, value] : options)
             {
-                try
+                ortStatus = OrtSessionOptionsSet_Tidl(&tidlOpts, key.c_str(), value.c_str());
+                if (ortStatus != NULL)
                 {
-                    tidlOpts.debug_level = std::stoi(options["debug_level"]);
-                }
-                catch (const std::invalid_argument& e)
-                {
-                    throw std::runtime_error("Could not parse debug_level");
+                    status = -1;
+                    throw std::runtime_error("ONNXRT setting TIDL options failed");
                 }
             }
-            if (options.find("priority") != options.end())
-            {
-                try
-                {
-                    tidlOpts.priority = std::stoi(options["priority"]);
-                }
-                catch (const std::invalid_argument& e)
-                {
-                    throw std::runtime_error("Could not parse priority");
-                }
-            }
-            if (options.find("max_pre_empt_delay") != options.end())
-            {
-                try
-                {
-                    tidlOpts.max_pre_empt_delay = std::stof(options["max_pre_empt_delay"]);
-                }
-                catch (const std::invalid_argument& e)
-                {
-                    throw std::runtime_error("Could not parse max_pre_empt_delay");
-                }
-            }
-            if (options.find("core_number") != options.end())
-            {
-                try
-                {
-                    tidlOpts.core_number = std::stoi(options["core_number"]);
-                }
-                catch (const std::invalid_argument& e)
-                {
-                    throw std::runtime_error("Could not parse core_number");
-                }
-            }
-
 
             ortStatus = OrtSessionOptionsAppendExecutionProvider_Tidl(sessionOpts, &tidlOpts);
         }

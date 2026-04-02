@@ -181,7 +181,7 @@ update_osrt_components() {
 
     echo
     echo "==================== Updating onnxruntime wheel ===================="
-    onnx_wheel=onnxruntime_tidl-1.15.0-cp312-cp312-linux_aarch64.whl
+    onnx_wheel=onnxruntime_tidl-1.23.0-cp312-cp312-linux_aarch64.whl
     cd $TARGET_FS_PATH/$HOME/arago_j7_pywhl
     wget --proxy off https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/ARM_LINUX/ARAGO/$SDK_VERSION/$onnx_wheel
     pip3 install $onnx_wheel --disable-pip-version-check
@@ -189,7 +189,7 @@ update_osrt_components() {
     echo
     echo "==================== Updating onnxruntime library ===================="
     cd $TARGET_FS_PATH/$HOME/required_libs
-    onnx_tar=onnx_1.15.0_aragoj7
+    onnx_tar=onnx_1.23.0_aragoj7
     wget --proxy off https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/ARM_LINUX/ARAGO/$SDK_VERSION/$onnx_tar.tar.gz
     if [ "$?" -eq "0" ]; then
         tar xf $onnx_tar.tar.gz && rm $onnx_tar.tar.gz
@@ -200,12 +200,12 @@ update_osrt_components() {
         rm -rf $TARGET_FS_PATH/usr/include/onnxruntime
         mv $onnx_tar/onnxruntime $TARGET_FS_PATH/usr/include/
 
-        if [ ! -f "$TARGET_FS_PATH/usr/lib/libonnxruntime.so.1.15.0.bkp" ]; then
-            mv $TARGET_FS_PATH/usr/lib/libonnxruntime.so.1.15.0 $TARGET_FS_PATH/usr/lib/libonnxruntime.so.1.15.0.bkp
+        if [ ! -f "$TARGET_FS_PATH/usr/lib/libonnxruntime.so.1.23.0.bkp" ]; then
+            mv $TARGET_FS_PATH/usr/lib/libonnxruntime.so.1.23.0 $TARGET_FS_PATH/usr/lib/libonnxruntime.so.1.23.0.bkp
         fi
-        cp -r  $onnx_tar/libonnxruntime.so.1.15.0   $TARGET_FS_PATH/usr/lib/
+        cp -r  $onnx_tar/libonnxruntime.so.1.23.0   $TARGET_FS_PATH/usr/lib/
         cd   $TARGET_FS_PATH/usr/lib/
-        ln -sf libonnxruntime.so.1.15.0 libonnxruntime.so
+        ln -sf libonnxruntime.so.1.23.0 libonnxruntime.so
     fi
 
     echo
