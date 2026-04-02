@@ -200,7 +200,7 @@ For detailed explanation of multi-core inference, check out [Multi C7x](./multi_
 | `advanced_options:network_name` | Prefix name for the compiled network and io binaries | String | "subgraph_" | This option is only applicable for ONNX runtime. Used for identification in logs and artifacts |
 | `advanced_options:c7x_firmware_version` | Version of C7x firmware to use | String | 11_02_07_00 | For specific firmware compatibility |
 | `advanced_options:log_file_name` | Name of log file | String | /tmp | For redirecting logs to a file |
-| `advanced_options:temp_buffer_dir` | Directory for temporary openvx buffers | Valid directory path | "/dev/shm" | Must be a valid directory with write permissions |
+| `advanced_options:temp_buffer_dir` | Directory for temporary openvx buffers | Valid directory path | "/dev/shm" | Must be a valid directory with write permissions. Path is limited to 64 characters |
 | `advanced_options:nc_temp_info_dir` | Directory for temporary network compiler info | Valid directory path | "/tmp" | Must be a valid directory with write permissions |
 | `advanced_options:net_inelement_type` | Forces input element type conversion to specified value | Comma-separated integers | None | By default, the input dataconvert converts based on the tensor_bit , i.e for 8 bit, it'll convert to int8 or unint8. This option overwrites this and forces to convert to a specific format bypassing the tensor_bits. Comma seperated string with integer is given for each input. Ex: '0, 1' means force input0 to uint8 and input1 to int8. Refer to [eTIDL_ElementType](./io_tensors.md#etidl_elementtype) for values. |
 | `advanced_options:enable_custom_layers` | Enable custom layer implementation support | 0-1 (Integer) | 0 | |

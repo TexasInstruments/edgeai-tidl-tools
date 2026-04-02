@@ -17,7 +17,7 @@ TIDL-RT supports acceleration of the operators listed below and any unsupported 
 
 ### Version
   - ONNX - 1.14.0 
-  - ONNX Runtime - 1.15.0 ([OPSET-19 IR-8](https://onnxruntime.ai/docs/reference/compatibility.html#onnx-opset-support))
+  - ONNX Runtime - 1.23.0 ([OPSET-21 IR-10](https://onnxruntime.ai/docs/reference/compatibility.html#onnx-opset-support))
 
 ### Operators Supported
 

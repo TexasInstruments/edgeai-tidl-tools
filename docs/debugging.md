@@ -30,7 +30,7 @@ While running model compilation or inference there are some general error that c
      - For inference outputs: Manually remove the `outputs` directory created on the TI SOC before running inference on the x86 PC.
      - For C++ build artifacts: Use the `build_cpp.sh` script with sudo privileges to clean the build environment: `sudo ./scripts/build/build_cpp.sh --clean`
 
-4. **C++ build errors**: Common reasons for C++ build errors are unset environment variables as mentioned in (2). Missing dependencies while building on x86. Dependencies for x86 can be found in `tools` folder which are downloaded as part of `setup.sh`. Make sure the tools folder has the following: `cnpy`, `osrt_deps/onnx_1.15.0_x86_u22`, `osrt_deps/tflite_2.12_x86_u22`, `osrt_deps/tvm_0.18.0_x86_u22`
+4. **C++ build errors**: Common reasons for C++ build errors are unset environment variables as mentioned in (2). Missing dependencies while building on x86. Dependencies for x86 can be found in `tools` folder which are downloaded as part of `setup.sh`. Make sure the tools folder has the following: `cnpy`, `osrt_deps/onnx_1.23.0_x86_u22`, `osrt_deps/tflite_2.12_x86_u22`, `osrt_deps/tvm_0.18.0_x86_u22`
 
 5. **C++ run errors**: A common mistake that is observed is C++ binary incompatibility. Binaries compiled for x86 can only be used in x86 system while binaries compiled for aarch64 can only be used in aarch64 systems. For more details, see the [Build README](../scripts/build/README.md). If you are switching between TI device and x86 system, make sure to recompile C++ applications.
 

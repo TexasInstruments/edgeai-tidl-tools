@@ -223,3 +223,13 @@ class ONNXRT:
     def _set_default_session_options(self):
         self.session_options.log_severity_level = 3
         self.session_options.intra_op_num_threads = 1
+
+        '''
+        onnxruntime 1.23.0 enables input and output validation wherein
+        the dimensions of io-tensors are matched exactly with the 
+        dimensions in the original model. TIDL might modify those
+        dimensions, for example extra padding requirement, OD post-processing
+        etc. Disabling IO validation checks.
+        '''
+        self.session_options.add_session_config_entry("session.disable_input_validation", "1")
+        self.session_options.add_session_config_entry("session.disable_output_validation", "1")

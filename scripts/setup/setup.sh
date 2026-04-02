@@ -153,7 +153,7 @@ echo '******************* REQUIRED PYTHON PACKAGES INSTALLED *******************
 echo
 echo '******************** INSTALLING OSRT PYTHON PACKAGES ********************'
 echo "Installing: onnxruntime python wheel"
-pip3 install --quiet https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/onnxruntime_tidl-1.15.0-cp310-cp310-linux_x86_64.whl
+pip3 install --quiet https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/onnxruntime_tidl-1.23.0-cp310-cp310-linux_x86_64.whl
 check_status "Failed to install onnxruntime_tidl wheel"
 
 echo "Installing: tflite python wheel"
@@ -250,22 +250,22 @@ if [ $skip_cpp_deps -eq 0 ]; then
     cd osrt_deps
 
     # ONNXRUNTIME
-    OSRT_CPP_DEP_LINK=https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/onnx_1.15.0_x86_u22.tar.gz
+    OSRT_CPP_DEP_LINK=https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/onnx_1.23.0_x86_u22.tar.gz
     echo "Installing: onnxruntime cpp deps"
     echo "Download link : ${OSRT_CPP_DEP_LINK}"
-    rm -rf onnx_1.15.0_x86_u22.tar.gz onnx_1.15.0_x86_u22 2>/dev/null
+    rm -rf onnx_1.23.0_x86_u22.tar.gz onnx_1.23.0_x86_u22 2>/dev/null
     wget --quiet ${OSRT_CPP_DEP_LINK}
     check_status "Failed to download onnxruntime cpp deps"
-    tar -xf onnx_1.15.0_x86_u22.tar.gz    
-    cd onnx_1.15.0_x86_u22
+    tar -xf onnx_1.23.0_x86_u22.tar.gz    
+    cd onnx_1.23.0_x86_u22
     if [ ! -f libonnxruntime.so ];then
-        ln -s libonnxruntime.so.1.15.0 libonnxruntime.so
+        ln -s libonnxruntime.so.1.23.0 libonnxruntime.so
     fi
-    if [ ! -f libonnxruntime.so.1.15.0 ];then
-        ln -s libonnxruntime.so libonnxruntime.so.1.15.0
+    if [ ! -f libonnxruntime.so.1.23.0 ];then
+        ln -s libonnxruntime.so libonnxruntime.so.1.23.0
     fi
     cd ../
-    rm -rf onnx_1.15.0_x86_u22.tar.gz
+    rm -rf onnx_1.23.0_x86_u22.tar.gz
 
     # TFLITE
     TFLITE_CPP_DEP_LINK=https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/tflite_2.12_x86_u22.tar.gz
