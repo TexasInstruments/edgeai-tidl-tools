@@ -56,7 +56,10 @@ TIDL provides multiple deployment options with industry defined inference engine
 ### Execution via Open Source Runtimes
 
 * **ONNX Runtime**: ONNX Runtime based inference with execution on Cortex-A + C7x-MMA, using TIDL as execution provider.
+TIDL uses a **TI fork of ONNX Runtime** ([TexasInstruments/onnxruntime](https://github.com/TexasInstruments/onnxruntime)) that adds two custom execution providers — `TIDLCompilationProvider` (for model compilation/import) and `TIDLExecutionProvider` (for accelerated inference). The standard upstream `onnxruntime` package from PyPI **does not** include these providers. This pre-built wheel and library from the fork is downloaded automatically as part of the [setup process](#setup-on-x86-pc). For users who need to rebuild the fork from source, instructions are available in the [TIDL Execution Provider README](https://github.com/TexasInstruments/onnxruntime/blob/tidl-1.15/onnxruntime/core/providers/tidl/README.md).
+
 * **TFLite Runtime**: TensorFlow Lite based inference with execution on Cortex-A + C7x-MMA, using TIDL as delegate.
+
 * **TVM Runtime**: TVM based inference with execution on Cortex-A + C7x-MMA
 
    These enable:
