@@ -264,7 +264,7 @@ def run(config,
                 print(f"[ERROR][{model}] : Cannot find model-artifacts folder {artifacts_path}")
                 continue
 
-        options = {"soc" : soc, "artifacts_folder" : artifacts_path}
+        options = {"artifacts_folder" : artifacts_path}
 
         # Parse compile/infer options from config.yaml
         if compile == True:
@@ -334,6 +334,8 @@ def run(config,
             session = TVMRT(model_path=info["path"], tidl_offload=not disable_tidl_offload)
             if (compile == False) and not os.path.isdir(os.path.join(artifacts_path, "tempDir")):
                 disable_tidl_offload = True
+
+            options["soc"] = soc
 
         # Get number of fames to run for
         if "num_frames" in info:
