@@ -26,11 +26,8 @@ The figure below illustrates the workflow of DNN development and deployment on T
    - [Introduction](#introduction)
    - [What does edgeai-tidl-tools provide?](#what-does-edgeai-tidl-tools-provide)
    - [Supported Devices and Compatibility](#supported-devices-and-compatibility)
-   - [Current Version Compatibility](#current-version-compatibility)
+   - [Version Compatibility](#version-compatibility)
    - [Workflow](#workflow)
-      - [Python Workflow](#python-workflow)
-      - [C++ Workflow](#c-workflow)
-      - [Cross-Language Workflow](#cross-language-workflow)
    - [Runtime Wrapper APIs and Examples](#runtime-wrapper-apis-and-examples)
    - [Getting Started](#getting-started)
       - [Setup on X86 PC](#setup-on-x86-pc)
@@ -317,7 +314,7 @@ Running these examples successfully validates that your setup is correct. If you
 
 All the libraries and dependencies needed for TI SOC should already be packaged as part of the SDK. 
 
-> [NOTE] Ensure that your TI SOC is supported as listed in the [Supported Devices and Runtimes](#supported-devices-and-runtimes) table above. Additionally, check [Current Version Compatibility](#current-version-compatibility) to check the supported SDK version.
+> [NOTE] Ensure that your TI SOC is supported as listed in the [Supported Devices and Compatibility](#supported-devices-and-compatibility) table above. Additionally, check [Version Compatibility](#version-compatibility) to check the supported SDK version.
 
 You have two options for setting up the EdgeAI TIDL Tools repository on your TI SOC:
 
@@ -502,7 +499,7 @@ Explore tools and resources for testing and validating your models:
 
 - [TIDL Unit Test Framework](test/tidl_unit/README.md): Learn how to use the pytest-based framework to validate models across different runtimes and devices
 - [Test Reports](test/reports/README.md): Review detailed test reports for various deep-learning operators across TI devices
-- [Model Validation Best Practices](docs/debugging.md#validating-model-outputs): Understand how to validate model outputs and troubleshoot accuracy issues
+- [Model Validation Best Practices](docs/debugging.md#incorrect-inference-results): Understand how to validate model outputs and troubleshoot accuracy issues
 
 ### 7. Debugging
 

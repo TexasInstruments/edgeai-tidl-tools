@@ -26,7 +26,7 @@ The [onnx_tools](osrt_model_tools/onnx_tools/README.md) provide utilities for wo
 
 ### tflite_tools
 
-The [tflite_tools](osrt_model_tools/tflite_tools/README.md) provide utilities for working with TensorFlow Lite model format.
+The `tflite_tools` provide utilities for working with TensorFlow Lite model format.
 
 * Provides modules to perform various optimizations on TensorFlow Lite models to make them more suitable for TIDL inference
 * Provides various utility functions for TFLite models including RGB to YUV input format converter, optimizing model inputs etc.
