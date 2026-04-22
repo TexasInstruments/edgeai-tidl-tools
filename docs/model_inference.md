@@ -32,7 +32,7 @@ The TIDL framework consists of multiple layers that work together to provide eff
 
 1. **Hardware Layer**: The foundation of TIDL, consisting of the C7x/MMA to offload computations to
 2. **OpenVX Layer**: Provides a standardized framework for interfacing to the hardware. Refer to [TIDL OpenVX Node](./tidlrt.md#tidl-openvx-node) for usage example.
-3. **TIDL-RT**: Abstraction over TIDL OpenVX Node. Refer to [TIDL-RT](./tidlrt.md#tidl) for usage example.
+3. **TIDL-RT**: Abstraction over TIDL OpenVX Node. Refer to [TIDL-RT](./tidlrt.md#tidl-rt-on-cortex-a) for usage example.
 4. **Runtime Frameworks**: High-level interfaces for model inference that internally calls TIDL-RT APIs. Refer to [../runtimes](../runtimes/README.md) for usage example across various frameworks.
 
 This layered architecture provides flexibility for different use cases while maintaining high performance through hardware acceleration.

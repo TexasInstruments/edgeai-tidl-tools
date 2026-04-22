@@ -190,7 +190,7 @@ source ./setup.sh
 
 For detailed documentation on each tool, refer to:
 - [ONNX Tools Documentation](../osrt-model-tools/osrt_model_tools/onnx_tools/README.md)
-- [TFLite Tools Documentation](../osrt-model-tools/osrt_model_tools/tflite_tools/README.md)
+- TFLite Tools Documentation (see `osrt-model-tools/osrt_model_tools/tflite_tools/`)
 
 
 ## Backward Compatibility

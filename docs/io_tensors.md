@@ -212,7 +212,7 @@ To access element at position [c, h, w]:
 Final address = baseAddress + c * channelStride + (padT + h) * rowStride + (padL + w) * elemSize
 ```
 
-For a working reference code refer to [../runtimes/tidl_wrapper/cpp/tidlrt/README.md](../runtimes/tidl_wrapper/cpp/tidlrt/README.md) and check the implementation in [../runtimes/tidl_wrapper/cpp/tidlrt/tidlrt_core.cpp](../runtimes/tidl_wrapper/cpp/tidlrt/tidlrt_core.cpp)
+For a working reference code refer to [../runtimes/tidl_wrapper/cpp/tidlrt/README.md](../runtimes/tidl_wrapper/cpp/tidlrt/README.md) and check the implementation in [../runtimes/tidl_wrapper/cpp/tidlrt/tidlrt_wrapper.cpp](../runtimes/tidl_wrapper/cpp/tidlrt/tidlrt_wrapper.cpp)
 
 ## Input/Output tensor handling in OSRT
 

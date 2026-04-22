@@ -7,7 +7,6 @@ This document provides information about model compilation for TIDL framework, i
 - [Python-Only Compilation Support](#python-only-compilation-support)
 - [Introduction to Model Compilation](#introduction-to-model-compilation)
 - [Compilation Flow](#compilation-flow)
-  - [Layer Descriptions](#layer-descriptions)
 - [Compiled Model Artifacts Directory](#compiled-model-artifacts-directory)
   - [Key Artifact Files](#key-artifact-files)
   - [Identifying Fully Offloaded Models](#identifying-fully-offloaded-models)

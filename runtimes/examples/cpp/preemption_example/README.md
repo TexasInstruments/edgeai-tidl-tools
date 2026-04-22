@@ -46,7 +46,7 @@ The `max_preempt_delay` property controls when and how preemption occurs:
 | Large value | The lower priority network has more breathing room to complete operations before being preempted |
 | FLT_MAX | The system will only preempt at the most optimal point in the entire network |
 
-For more detailed information about preemption in TIDL, see the [preemption documentation](../../../docs/preemption.md).
+For more detailed information about preemption in TIDL, see the [preemption documentation](../../../../docs/preemption.md).
 
 ## Example Structure
 
