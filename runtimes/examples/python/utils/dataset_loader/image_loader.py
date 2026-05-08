@@ -43,6 +43,10 @@ class Imageloader():
         Returns:
             np.ndarray: The loaded image(s) as a numpy array with the specified shape and dtype
         """
+        # Check for dynamic shapes
+        for i, dim in enumerate(shape):
+            if not isinstance(dim, int):
+                raise ValueError(f"[ERROR] Image loader does not support dynamic shape {shape}")
         
         if len(shape) < 3:
             raise ValueError(f"[ERROR] Invalid shape {shape} for image. Expected at least 3 dimensions")

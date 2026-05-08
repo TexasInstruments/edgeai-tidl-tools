@@ -51,6 +51,22 @@ class NPZloader():
     
         data_shape = list(data.shape)
         x_shape = list(shape)
+        has_dynamic_shape = False
+
+        resolved_shape = []
+        for i, dim in enumerate(x_shape):
+            if not isinstance(dim, int):
+                # variable dimension (e.g. 'batch_size')
+                has_dynamic_shape = True
+                if(i < len(data_shape)):
+                    resolved_shape.append(data_shape[i])
+                else:
+                    raise ValueError(f"[ERROR] Model has variable dimension '{dim}' at position {i}, but loaded data has fewer dimensions ({len(data_shape)})")
+            else:
+                resolved_shape.append(int(dim))
+
+        if(has_dynamic_shape):
+            print(f"\n[WARN] Model has dynamic shape, expected shape {x_shape} resolved to {resolved_shape}")
 
         while len(data_shape) > 1 and data_shape[0] == 1:
             data_shape.pop(0)
@@ -61,13 +77,13 @@ class NPZloader():
         # if data_shape != x_shape:
         #     raise ValueError(f"[ERROR] Loaded data shape {data.shape} does not match expected shape {shape}")
 
-        if math.prod(data_shape) != math.prod(x_shape):
+        if math.prod(data_shape) != math.prod(resolved_shape):
             raise ValueError(f"[ERROR] Loaded data shape {data.shape} volume does not match expected shape {shape} volume")
 
         if data.dtype != dtype:
             raise ValueError(f"[ERROR] Loaded data type {data.dtype} does not match expected type {dtype}")
 
-        data = data.reshape(shape)
+        data = data.reshape(resolved_shape)
 
         self.curr_data += 1
         

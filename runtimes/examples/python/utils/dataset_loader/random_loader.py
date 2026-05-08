@@ -25,6 +25,11 @@ class Randomloader():
         Returns:
             np.ndarray: The loaded data
         """
+        # Check for dynamic shapes
+        for i, dim in enumerate(shape):
+            if not isinstance(dim, int):
+                raise ValueError(f"[ERROR] Random loader does not support dynamic shape {shape}")
+
         np.random.seed(seed)
         data = np.random.randn(*shape).astype(dtype)
         return data

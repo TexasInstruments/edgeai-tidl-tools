@@ -71,6 +71,7 @@ Key features:
 - **Important Note**: Data is loaded in sequence as arrays appear in the file, NOT based on the keys in the npz file. Make sure your arrays are in the correct order.
 - Automatically wraps around to the beginning when all arrays have been used
 - Flexible shape validation:
+  - Resolves dynamic shapes using the dimensions in the input file
   - Removes leading dimensions of size 1 before comparison
   - Validates that total volume (product of dimensions) matches rather than exact shape
   - Allows for shape flexibility while ensuring data size compatibility

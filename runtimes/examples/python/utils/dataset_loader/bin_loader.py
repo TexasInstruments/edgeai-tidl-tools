@@ -39,6 +39,11 @@ class BINloader():
         Returns:
             np.ndarray: The loaded data
         """
+        # Check for dynamic shapes
+        for i, dim in enumerate(shape):
+            if not isinstance(dim, int):
+                raise ValueError(f"[ERROR] Binary loader does not support dynamic shape {shape}")
+                
         # Calculate the byte size of the requested data
         element_size = np.dtype(dtype).itemsize
         total_bytes_needed = int(np.prod(shape)) * element_size
