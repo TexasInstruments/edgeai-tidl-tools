@@ -50,6 +50,7 @@ def pytest_runtest_makereport(item, call):
     #runtime = item.funcargs['runtime']
     runtime = "onnxrt"
     report.tidl_subgraphs = "Not detected"
+    report.tidl_nodes = "Not detected"
     report.complete_tidl_offload = "Not detected"
     report.nmse = "-"
     report.mse = "-"
@@ -99,7 +100,7 @@ def pytest_runtest_makereport(item, call):
             if num_sg:
                 report.tidl_subgraphs = num_sg
 
-        # Parsing complete tidl offload
+        # Parsing nodes and complete tidl offload
         if (report.tidl_subgraphs.isdigit() and int(report.tidl_subgraphs) >= 1):
             if runtime == "tflitert":
                 total_nodes_regex = re.search("out of ([0-9]*) nodes", report.capstdout)
@@ -108,23 +109,22 @@ def pytest_runtest_makereport(item, call):
                 total_nodes_regex = re.search("Total Nodes - ([0-9]*)", report.capstdout)
                 offloaded_nodes_regex = re.search("Offloaded Nodes - ([0-9]*)", report.capstdout)
 
-            if(total_nodes_regex is None or offloaded_nodes_regex is None):
-                cpu_table_regex = re.search(r"\|\s*CPU\s*\|\s+(\d+)\s+\|", report.capstdout)
-                if (cpu_table_regex is not None):
-                    if str(cpu_table_regex[1]).lower() == '0':
-                        report.complete_tidl_offload = "True"
-                    else:
-                        report.complete_tidl_offload = "False"
-            elif (total_nodes_regex is not None and offloaded_nodes_regex is not None):
+            if total_nodes_regex is not None and offloaded_nodes_regex is not None:
                 try:
                     total_nodes = int(total_nodes_regex[1].strip())
                     offloaded_nodes = int(offloaded_nodes_regex[1].strip())
-                    if (offloaded_nodes >= total_nodes):
-                        report.complete_tidl_offload = "True"
-                    else:
-                        report.complete_tidl_offload = "False"
+                    report.tidl_nodes = f"{offloaded_nodes}/{total_nodes}"
+                    report.complete_tidl_offload = "True" if offloaded_nodes >= total_nodes else "False"
                 except:
                     pass
+            else:
+                c7x_nodes_regex = re.search(r"\|\s*C7x\s*\|\s*(\d+)\s*\|", report.capstdout)
+                cpu_nodes_regex = re.search(r"\|\s*CPU\s*\|\s*(\d+)\s*\|", report.capstdout)
+                if c7x_nodes_regex is not None:
+                    c7x_nodes = int(c7x_nodes_regex[1])
+                    cpu_nodes = int(cpu_nodes_regex[1]) if cpu_nodes_regex is not None else 0
+                    report.tidl_nodes = f"{c7x_nodes}/{c7x_nodes + cpu_nodes}"
+                    report.complete_tidl_offload = "True" if cpu_nodes == 0 else "False"
 
         else:
             report.complete_tidl_offload = "-"
@@ -186,7 +186,7 @@ def pytest_html_results_table_header(cells):
     # Remove Links column only (index 3)
     if len(cells) > 3:
         cells.pop(3)
-    cells.insert(3, html.th("TIDL Subgraphs"))
+    cells.insert(3, html.th("TIDL Offload Status"))
     cells.insert(4, html.th("Complete TIDL Offload"))
     cells.insert(5, html.th("Output Metrics"))
     cells.insert(6, html.th("Output Plot"))
@@ -197,7 +197,10 @@ def pytest_html_results_table_row(report, cells):
         cells.pop(3)
 
     if(hasattr(report,'tidl_subgraphs')):
-        cells.insert(3, html.td(report.tidl_subgraphs))
+        subgraph_text = report.tidl_subgraphs
+        if hasattr(report, 'tidl_nodes') and report.tidl_nodes != "Not detected":
+            subgraph_text = f"{report.tidl_subgraphs} subgraph(s) [{report.tidl_nodes} nodes]"
+        cells.insert(3, html.td(subgraph_text))
     if(hasattr(report,'complete_tidl_offload')):
         cells.insert(4, html.td(report.complete_tidl_offload))
     
