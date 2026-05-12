@@ -327,9 +327,6 @@ def run(config,
             if (disable_tidl_offload) and (compile == False):
                 print(f"[ERROR] {model} : TVMRT : Flag 'disable_tidl_offload' is valid only for compilation. First compile model with '--compile --disable_tidl_offload' on PC and then run inference without this flag\n")
                 continue
-            elif (disable_tidl_offload) and (compile == True) and options["advanced_options:c7x_codegen"]:
-                print(f"[ERROR] {model} : TVMRT : TIDL offload should be enabled if the c7x codegen is set to True. Remove the '--disable_tidl_offload' option and compile again\n")
-                continue
 
             session = TVMRT(model_path=info["path"], tidl_offload=not disable_tidl_offload)
             if (compile == False) and not os.path.isdir(os.path.join(artifacts_path, "tempDir")):
