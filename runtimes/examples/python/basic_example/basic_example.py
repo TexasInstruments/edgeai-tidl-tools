@@ -653,11 +653,11 @@ def main():
             
             print(f"Outputs saved: {output_path}")
             for i, data in enumerate(output_data):
-                output_path = os.path.join(output_path, f"frame_{i+1}")
+                output_frame_path = os.path.join(output_path, f"frame_{i+1}")
                 try:
-                    os.makedirs(output_path, exist_ok=True)
+                    os.makedirs(output_frame_path, exist_ok=True)
                 except OSError as e:
-                    print(f"[ERROR] [{model}] Frame:{i} : Cannot create directory for saving output {output_path} : {e}")
+                    print(f"[ERROR] [{model}] Frame:{i} : Cannot create directory for saving output {output_frame_path} : {e}")
                     continue
                 
                 output_binaries = data[0]
@@ -666,13 +666,13 @@ def main():
                 for name, binary in output_binaries.items():
                     out_bin_file = f"{name}.bin"
                     out_bin_file = out_bin_file.replace('/', '_')
-                    out_bin_file = os.path.join(output_path, out_bin_file)
+                    out_bin_file = os.path.join(output_frame_path, out_bin_file)
                     binary.tofile(out_bin_file)
                 
                 for name, data in post_proc_data.items():
                     metadata, image = data
-                    image_path = os.path.join(output_path, f"{name}.jpg")
-                    metadata_path = os.path.join(output_path, f"{name}.txt")
+                    image_path = os.path.join(output_frame_path, f"{name}.jpg")
+                    metadata_path = os.path.join(output_frame_path, f"{name}.txt")
                     image.save(image_path, "JPEG")
                     with open(metadata_path, 'w+') as f:
                         f.write(metadata)
