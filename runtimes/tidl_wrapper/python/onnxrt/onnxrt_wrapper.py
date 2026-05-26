@@ -21,6 +21,8 @@ class ONNXRT:
             return np.uint8
         elif(onnx_type == 'tensor(int32)'):
             return np.int32
+        elif(onnx_type == 'tensor(bool)'):
+            return np.bool
         else:
             print("[WARN] Could not determine numpy type from onnx type. Returning float.")
             return np.float32
