@@ -17,6 +17,7 @@ Layer Trace Inspector is a Streamlit-based interactive web application that help
   - Error metrics (MAX, AVG, Relative Average)
 - **Flexible Data Selection**: Select specific index ranges for detailed analysis
 - **Support for Layer Info Mapping**: Map between reference and test layer outputs using a layer info file
+- **Interactive Directory Navigation**: Pass a parent directory and drill down into subdirectories via a collapsible sidebar navigator
 
 ## Installation
 
@@ -30,15 +31,25 @@ pip install -r requirements.txt
 
 ### Basic Usage
 
-To run the Layer Trace Inspector with basic options:
-
 ```bash
 streamlit run layer_trace_inspector.py -- --traceRef <path_to_reference_outputs> --traceTest <path_to_test_outputs>
 ```
 
-### Advanced Usage
+### Shared Parent Directory
 
-To run with layer info mapping:
+If both `--traceRef` and `--traceTest` live under the same parent, use `--tracesFolder` as a shorthand:
+
+```bash
+streamlit run layer_trace_inspector.py -- --tracesFolder <path_to_parent_dir>
+```
+
+Individual arguments override the default when needed:
+
+```bash
+streamlit run layer_trace_inspector.py -- --tracesFolder <path_to_parent_dir> --traceRef <explicit_ref_path>
+```
+
+### With Layer Info Mapping
 
 ```bash
 streamlit run layer_trace_inspector.py -- --traceRef <path_to_reference_outputs> --traceTest <path_to_test_outputs> --traceInfo <path_to_layer_info_file_from_model_artifacts>
@@ -46,10 +57,25 @@ streamlit run layer_trace_inspector.py -- --traceRef <path_to_reference_outputs>
 
 ### Command Line Arguments
 
-- `--traceRef`: Path to the directory containing reference model output binaries
-- `--traceTest`: Path to the directory containing test model output binaries
-- `--traceInfo`: (Optional) Path to the layer info file that maps between reference and test layers. Can be found in model artifacts.
-- `-v, --verbose`: Enable verbose debug logging
+| Argument | Required | Description |
+|---|---|---|
+| `--tracesFolder` | No | Parent directory used as the default for both `--traceRef` and `--traceTest` |
+| `--traceRef` | No* | Directory containing reference model output binaries |
+| `--traceTest` | No* | Directory containing test model output binaries |
+| `--traceInfo` | No | Layer info file mapping reference and test layers (found in model artifacts) |
+| `-v, --verbose` | No | Enable verbose debug logging |
+
+\* At least one of `--tracesFolder` or both `--traceRef`/`--traceTest` must be provided.
+
+### Directory Navigation
+
+If any of the provided paths contain subdirectories, a **Trace Folder Selection** navigator appears at the top of the sidebar:
+
+- A single dropdown shows the subdirectories at the current level
+- **Enter ↓** descends into the selected subfolder
+- **Go Up ↑** goes back one level
+- A breadcrumb caption shows the current position relative to the base path
+- The navigator collapses automatically once both ref and test folders are resolved to leaf directories (no further subdirs)
 
 ## Web Interface
 

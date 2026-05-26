@@ -18,12 +18,56 @@ def parse_args():
     Parse command line arguments
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("--traceRef", type=str, help="<path to reference output binaries>", default = None)
-    parser.add_argument("--traceTest", type=str, help="<path to test output binaries>", default = None)
-    parser.add_argument("--traceInfo", type=str, help="<path to layer info file>(Optional)", default = None)
+    parser.add_argument("--tracesFolder", type=str, help="<parent directory used as default for both --traceRef and --traceTest>", default=None)
+    parser.add_argument("--traceRef", type=str, help="<path to reference output binaries or parent directory>", default=None)
+    parser.add_argument("--traceTest", type=str, help="<path to test output binaries or parent directory>", default=None)
+    parser.add_argument("--traceInfo", type=str, help="<path to layer info file>(Optional)", default=None)
     parser.add_argument("-v", "--verbose", action="store_true", default=False, help="Enable debug traces")
     args = parser.parse_args()
     return args
+
+
+def get_subdirs(path: str) -> list:
+    """Return sorted list of subdirectory names within path."""
+    return sorted([d for d in os.listdir(path) if os.path.isdir(os.path.join(path, d))])
+
+
+def resolve_dir_with_dropdown(base_path: str, label: str, key_prefix: str) -> str:
+    """
+    Show a single dropdown for the current navigation level.
+    Uses session state to track position; Enter/Go Up buttons move one level at a time.
+    Returns the currently selected directory path.
+    """
+    nav_key = f"{key_prefix}_nav_path"
+
+    if nav_key not in st.session_state or not st.session_state[nav_key].startswith(base_path):
+        st.session_state[nav_key] = base_path
+
+    current_path = st.session_state[nav_key]
+    subdirs = get_subdirs(current_path)
+
+    rel = os.path.relpath(current_path, base_path)
+    breadcrumb = os.path.basename(base_path) if rel == "." else f"{os.path.basename(base_path)}/{rel}"
+    st.caption(f"📁 {breadcrumb}")
+
+    if subdirs:
+        selected = st.selectbox(label, subdirs, key=f"{key_prefix}_select")
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("Enter ↓", key=f"{key_prefix}_enter", use_container_width=True):
+                st.session_state[nav_key] = os.path.join(current_path, selected)
+                st.rerun()
+        with col2:
+            if current_path != base_path:
+                if st.button("Go Up ↑", key=f"{key_prefix}_up", use_container_width=True):
+                    st.session_state[nav_key] = str(pathlib.Path(current_path).parent)
+                    st.rerun()
+    elif current_path != base_path:
+        if st.button("Go Up ↑", key=f"{key_prefix}_up"):
+            st.session_state[nav_key] = str(pathlib.Path(current_path).parent)
+            st.rerun()
+
+    return current_path
 
 
 class VisualizationUtils:
@@ -451,22 +495,62 @@ if __name__ == "__main__":
     args = parse_args()
     if args.verbose:
         logger.setLevel(logging.DEBUG)
-    
+
+    # Validate tracesFolder if provided
+    if args.tracesFolder is not None and not os.path.isdir(args.tracesFolder):
+        logger.error(f"tracesFolder '{args.tracesFolder}' is not a valid directory")
+        exit(1)
+
+    # Apply tracesFolder as fallback for traceRef / traceTest
+    if args.traceRef is None:
+        args.traceRef = args.tracesFolder
+    if args.traceTest is None:
+        args.traceTest = args.tracesFolder
+
     # Check if traceRef and traceTest are directories
-    if args.traceRef is None or not os.path.isdir(args.traceRef):
+    if args.traceRef is None:
+        logger.error("traceRef is not set: provide --traceRef or --tracesFolder")
+        exit(1)
+    if not os.path.isdir(args.traceRef):
         logger.error(f"traceRef '{args.traceRef}' is not a valid directory")
         exit(1)
-    
-    if args.traceTest is None or not os.path.isdir(args.traceTest):
+
+    if args.traceTest is None:
+        logger.error("traceTest is not set: provide --traceTest or --tracesFolder")
+        exit(1)
+    if not os.path.isdir(args.traceTest):
         logger.error(f"traceTest '{args.traceTest}' is not a valid directory")
         exit(1)
-    
+
     if args.traceInfo is not None and not os.path.isfile(args.traceInfo):
         logger.error(f"traceInfo '{args.traceInfo}' is not a valid file")
         exit(1)
 
+    ref_path = args.traceRef
+    test_path = args.traceTest
+
+    ref_subdirs = get_subdirs(args.traceRef)
+    test_subdirs = get_subdirs(args.traceTest)
+
+    if ref_subdirs or test_subdirs:
+        # Peek at current navigation positions from session state to decide
+        # whether to auto-collapse (both are at leaf dirs with no more subdirs)
+        ref_current = st.session_state.get("ref_nav_path", args.traceRef)
+        test_current = st.session_state.get("test_nav_path", args.traceTest)
+        ref_done = not ref_subdirs or len(get_subdirs(ref_current)) == 0
+        test_done = not test_subdirs or len(get_subdirs(test_current)) == 0
+
+        with st.sidebar:
+            with st.expander("Trace Folder Selection", expanded=not (ref_done and test_done)):
+                if ref_subdirs:
+                    ref_path = resolve_dir_with_dropdown(args.traceRef, "Ref", "ref")
+                    st.caption(f"`{ref_path}`")
+                if test_subdirs:
+                    test_path = resolve_dir_with_dropdown(args.traceTest, "Test", "test")
+                    st.caption(f"`{test_path}`")
+
     layer_trace_inspector = LayerTraceInspector(
-        args.traceRef, args.traceTest, args.traceInfo
+        ref_path, test_path, args.traceInfo
     )
 
     if args.traceInfo is not None:
