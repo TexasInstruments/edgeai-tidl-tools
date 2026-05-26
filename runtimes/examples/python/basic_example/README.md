@@ -69,6 +69,7 @@ The script supports the following command-line arguments:
 - `-x, --config`: Path to config.yaml file (default: `<script_dir>/config.yaml`)
 - `-m, --models [MODEL_NAMES ...]`: Filter model keys to run from the config file
 - `-r, --runtimes [RUNTIME_TYPES ...]`: Filter by runtime types ('onnxrt', 'tflitert', 'tidlrt', or 'tvmrt')
+- `--dump-frames N`: Collect and save only the first N frame outputs. Default: all frames
 
 ## Configuration File
 
@@ -394,6 +395,12 @@ Where:
 - `<script_directory>` is the directory containing the basic_example.py script
 - `{model_name}` is the name of the model as specified in the config file
 - `frame_{frame_num}` is the frame number directory (e.g., "frame_1", "frame_2", etc.)
+
+To collect and save only the first N frames:
+
+```bash
+python basic_example.py --infer --dump-frames 1
+```
 
 
 ## Verbose Mode

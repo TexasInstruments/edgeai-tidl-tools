@@ -77,6 +77,10 @@ def exit_on_critical_error(pytestconfig):
     return pytestconfig.getoption("exit_on_critical_error")
 
 @pytest.fixture(scope="session")
+def num_frames(pytestconfig):
+    return pytestconfig.getoption("num_frames")
+
+@pytest.fixture(scope="session")
 def timeout(pytestconfig):
     return pytestconfig.getoption("timeout")
 
@@ -173,10 +177,11 @@ def test_tidl_unit(model_name: str,
                   disable_plot: bool,
                   no_subprocess: bool,
                   exit_on_critical_error: bool,
-                  timeout: int):
+                  timeout: int,
+                  num_frames: int):
     """
     Test function that runs tests for models defined in config files using basic_example.py's run() function.
-    
+
     Args:
         model_name: Name of the model to test
         configs: List of config file paths
@@ -191,6 +196,7 @@ def test_tidl_unit(model_name: str,
         no_subprocess: Whether to disable running as subprocess
         exit_on_critical_error: Whether to exit on critical error
         timeout: Timeout for test
+        num_frames: Number of frames to run (overwrites model config if specified)
     """
     # Force no_subprocess=True on aarch64 platform, also prevent model compilation on SoC
     if platform.machine() == 'aarch64':
@@ -247,7 +253,8 @@ def test_tidl_unit(model_name: str,
             options=options_dict,
             nmse_threshold=nmse_threshold,
             disable_plot=disable_plot,
-            timeout=timeout
+            timeout=timeout,
+            num_frames=num_frames
         )
     else:
         perform_test_subprocess(
@@ -263,7 +270,8 @@ def test_tidl_unit(model_name: str,
             nmse_threshold=nmse_threshold,
             disable_plot=disable_plot,
             timeout=timeout,
-            exit_on_critical_error=exit_on_critical_error
+            exit_on_critical_error=exit_on_critical_error,
+            num_frames=num_frames
         )
 
 def perform_test_subprocess(**kwargs):
@@ -306,6 +314,7 @@ def perform_test_oneprocess(**kwargs):
     options_dict = kwargs.get('options', {})
     nmse_threshold = kwargs.get('nmse_threshold', -1)
     disable_plot = kwargs.get('disable_plot', False)
+    num_frames = kwargs.get('num_frames', None)
     
     # Determine which config file contains the model
     config_file = None
@@ -404,6 +413,12 @@ def perform_test_oneprocess(**kwargs):
             model_config['runtime'] = force_runtime
             print(f"[INFO] Overwriting runtime with forced runtime: {force_runtime}")
 
+        # If num_frames is specified, overwrite it in the model config
+        if num_frames is not None:
+            model_config = new_config['models'][model_name]
+            model_config['num_frames'] = num_frames
+            print(f"[INFO] Overwriting num_frames with: {num_frames}")
+
         # Print runtime information for pytest_runtest_makereport to parse
         runtime = new_config['models'][model_name]['runtime']
         print(f"\nRUNTIME: {runtime}")
@@ -434,9 +449,9 @@ def perform_test_oneprocess(**kwargs):
             tidl_tools_path=tidl_tools_path,
             artifacts_base_path=artifacts_base_path,
             disable_tidl_offload=disable_tidl_offload,
-            verbose=True
+            verbose=True,
+            dump_frames=1
         )
-        
         # Clean up temporary directory in artifacts folder
         if not run_infer and not disable_tidl_offload:
             '''
@@ -490,6 +505,7 @@ def perform_test_oneprocess(**kwargs):
                     else:
                         new_config['models'][model_name]['runtime'] = "tflitert"
       
+                new_config['models'][model_name]['num_frames'] = 1
                 _, reference_outputs = run(
                     config=new_config,
                     soc=soc,
@@ -497,7 +513,8 @@ def perform_test_oneprocess(**kwargs):
                     tidl_tools_path=tidl_tools_path,
                     artifacts_base_path=artifacts_base_path,
                     disable_tidl_offload=True,
-                    verbose=False
+                    verbose=False,
+                    dump_frames=1
                 )
                 ref_binary_outputs = reference_outputs[model_name][0][0]
                 ref_post_processed_outputs = reference_outputs[model_name][0][1]

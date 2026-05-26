@@ -51,6 +51,7 @@ pip install -r requirements.txt
 - `--disable-plot`: Disable output plot in generated report
 - `--no-subprocess`: Disable running as subprocess
 - `--exit-on-critical-error`: Force exit test on critical error
+- `--num-frames`: Number of frames to run. Overwrites `num_frames` in the model config if specified.
 - `--timeout`: Timeout for test in seconds (default: 1000)
 - `-n`: Number of parallel processes (default: auto)
 

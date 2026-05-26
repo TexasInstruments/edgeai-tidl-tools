@@ -195,13 +195,14 @@ def run(config,
         tidl_tools_path : str = None,
         artifacts_base_path : str = None,
         disable_tidl_offload : bool = False,
-        verbose : bool = False):
+        verbose : bool = False,
+        dump_frames : int = None):
     """
     Run models based on the provided configuration.
-    
+
     This function processes the configuration, sets up the environment for model execution,
     and runs the specified models either in compilation or inference mode.
-    
+
     Args:
         config (dict): Run configuration dictionary
         soc (str): System-on-Chip (SoC) identifier
@@ -210,7 +211,8 @@ def run(config,
         artifacts_base_path (str, optional): Base path for model artifacts
         disable_tidl_offload (bool, optional): Whether to disable TIDL offload. Defaults to False.
         verbose (bool, optional): Whether to enable verbose output. Defaults to False.
-    
+        dump_frames (int, optional): Collect and return only the first N frame outputs. Default: all frames.
+
     Returns:
         tuple: (status, outputs) where status is 0 for success and outputs is a dictionary containing output data for each model
     """
@@ -567,26 +569,28 @@ def run(config,
                         else:
                             sum_performance[perf_key] = [perf_val, perf_unit]
 
-            # Store output binaries
-            frame_output_binary = {}
-            try:
-                for output_name, output_data in output.items():
-                    output_data = np.array(output_data, dtype=np.float32)
-                    frame_output_binary[output_name] = output_data
-            except:
-                pass
-
-            # Post process and store output images
-            frame_post_proc_output = {}
-            if (compile == False) and (post_process):
-                for j in range(len(input_images)):
-                    metadata, post_processed_image = post_process.process(input_images[j][1], list(output.values()), j)
-                    image_name = os.path.basename(input_images[j][0]).strip().split('.')[0]
-                    frame_post_proc_output[image_name] = (metadata, post_processed_image)
-
             if model not in outputs:
                 outputs[model] = []
-            outputs[model].append((frame_output_binary, frame_post_proc_output))
+
+            # Store output binaries
+            if dump_frames is None or len(outputs[model]) < dump_frames:
+                frame_output_binary = {}
+                try:
+                    for output_name, output_data in output.items():
+                        output_data = np.array(output_data, dtype=np.float32)
+                        frame_output_binary[output_name] = output_data
+                except:
+                    pass
+
+                # Post process and store output images
+                frame_post_proc_output = {}
+                if (compile == False) and (post_process):
+                    for j in range(len(input_images)):
+                        metadata, post_processed_image = post_process.process(input_images[j][1], list(output.values()), j)
+                        image_name = os.path.basename(input_images[j][0]).strip().split('.')[0]
+                        frame_post_proc_output[image_name] = (metadata, post_processed_image)
+
+                outputs[model].append((frame_output_binary, frame_post_proc_output))
 
         # Print average performance metrics after processing all frames
         if len(sum_performance) > 0:
@@ -628,6 +632,7 @@ def main():
     parser.add_argument('-m', '--models', nargs='*', type=str, help='Filter model keys to run from config file. Default: None')
     parser.add_argument('-r', '--runtimes', nargs='*', type=str, choices=['onnxrt', 'tflitert', 'tidlrt', 'tvmrt'],
                         help='Filter by runtime types. Default: None (run all runtimes)')
+    parser.add_argument('--dump-frames', type=int, default=None, metavar='N', help='Collect and save only the first N frame outputs. Default: all frames')
     args = parser.parse_args()
 
     # Update config file path if provided
@@ -675,7 +680,8 @@ def main():
         tidl_tools_path=TIDL_TOOLS_PATH,
         artifacts_base_path=ARTIFACTS_BASE,
         disable_tidl_offload=args.disable_tidl_offload,
-        verbose=args.verbose
+        verbose=args.verbose,
+        dump_frames=args.dump_frames
     )
 
     if (status != 0):

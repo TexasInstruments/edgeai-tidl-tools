@@ -25,6 +25,7 @@ def pytest_addoption(parser):
     parser.addoption("--disable-plot", action="store_true", default=False, help='Disable output plot in generated report')
     parser.addoption("--no-subprocess", action="store_true", default=False, help='Disable Running as subprocess')
     parser.addoption("--exit-on-critical-error", action="store_true", default=False, help='Force exit test on critical error')
+    parser.addoption("--num-frames", type=int, default=None, help='Number of frames to run. Overwrites num_frames in model config if specified.')
 
 def pytest_sessionfinish(session):
     try:
