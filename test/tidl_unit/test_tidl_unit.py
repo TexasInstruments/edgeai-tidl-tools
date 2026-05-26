@@ -198,11 +198,8 @@ def test_tidl_unit(model_name: str,
         timeout: Timeout for test
         num_frames: Number of frames to run (overwrites model config if specified)
     """
-    # Force no_subprocess=True on aarch64 platform, also prevent model compilation on SoC
+    # Prevent model compilation on SoC
     if platform.machine() == 'aarch64':
-        print("[INFO] Running on aarch64 platform. Disabling subprocess and setting num_threads=1.")
-        no_subprocess = True
-
         if not disable_tidl_offload and not run_infer:
             pytest.skip("Model compilation is not supported on SoC. Please compile models on x86 and transfer/mount artifacts to SoC.")
 
