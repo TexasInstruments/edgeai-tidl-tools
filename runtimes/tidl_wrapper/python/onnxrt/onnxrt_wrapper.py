@@ -113,6 +113,7 @@ class ONNXRT:
         'subgraph_time': Total TIDL Subgraphs processing time (ms)
         'read_total': Total DDR Read bytes [X for x86 runs]
         'write_total': Total DDR Write bytes [X for x86 runs]
+        'total': Total DDR Read+Write bytes [X for x86 runs]
 
         Returns:
             dict: performance_name : (performance_value, unit)
@@ -151,7 +152,8 @@ class ONNXRT:
                  'core_time':       (core_time,"ms"),
                  'subgraph_time':   (subgraph_time,"ms"),
                  'read_total':      (read_total, "bytes"),
-                 'write_total':     (write_total, "bytes")
+                 'write_total':     (write_total, "bytes"),
+                 'total':           (read_total+write_total, "bytes")
                 }
 
         return stats

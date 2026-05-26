@@ -117,6 +117,7 @@ def get_performance(self):
               'subgraph_time': (value, "ms") - Total TIDL Subgraphs processing time
               'read_total': (value, "bytes") - Total DDR Read bytes [X for x86 runs]
               'write_total': (value, "bytes") - Total DDR Write bytes [X for x86 runs]
+              'total': (value, "bytes") - Total DDR Read+Write bytes [X for x86 runs]
     """
 ```
 
@@ -253,6 +254,7 @@ The `get_performance()` method returns a dictionary with the following metrics, 
 | `subgraph_time` | Time spent in all TIDL subgraph execution | milliseconds (ms) |
 | `read_total` | Total DDR read bytes | bytes |
 | `write_total` | Total DDR write bytes | bytes |
+| `total` | Total DDR Read+Write bytes | bytes |
 
 ## Model Information
 

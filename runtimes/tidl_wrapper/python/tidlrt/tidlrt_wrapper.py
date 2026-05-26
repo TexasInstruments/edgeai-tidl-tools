@@ -116,9 +116,10 @@ class TIDLRT:
 
         'total_time': Total time taken for run (ms)
         'core_time': Total time taken barring the io copy time (ms)
-        'subgraph_time': Total TIDL Subgraphs processing time (ms)
+        'graph_time': Total TIDL graph processing time (ms)
         'read_total': Total DDR Read bytes [X for x86 runs]
         'write_total': Total DDR Write bytes [X for x86 runs]
+        'total': Total DDR Read+Write bytes [X for x86 runs]
 
         Returns:
             dict: performance_name : (performance_value, unit)
@@ -149,7 +150,8 @@ class TIDLRT:
                  'core_time':       (core_time,"ms"),
                  'graph_time':      (proc_time,"ms"),
                  'read_total':      (read_total, "bytes"),
-                 'write_total':     (write_total, "bytes")
+                 'write_total':     (write_total, "bytes"),
+                 'total':           (read_total+write_total, "bytes")
                 }
 
         return stats
