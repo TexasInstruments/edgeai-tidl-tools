@@ -12,6 +12,7 @@ This document provides information about model compilation for TIDL framework, i
   - [Identifying Fully Offloaded Models](#identifying-fully-offloaded-models)
 - [Compilation Options](#compilation-options)
   - [General Options](#general-options)
+  - [Optimization Specific Options](#optimization-specific-options)
   - [Quantization Specific Options](#quantization-specific-options)
   - [Object Detection Specific Options](#object-detection-specific-options)
   - [Multi Subgraph Specific Options](#multi-subgraph-specific-options)
@@ -115,6 +116,16 @@ When compiling models, you can configure various options to control the compilat
 | `advanced_options:add_data_convert_ops` | Control data conversion layer addition to input outputs | 0 - Do not add dataconvert layer<br>1 - Add data convert at inputs only<br>2 - Add data convert at outputs only<br>3 - Add dataconvert at both inputs and outputs | 0 |  |
 | `ti_internal_nc_flag` | Internal use only | - | - | - |
 
+### Optimization Specific Options
+| Option Name | Description | Allowed Values | Default Value | Notes |
+|------------|-------------|----------------|---------------|---------------------|
+| `advanced_options:graph_optimization_level` | Controls the level of graph optimizations applied during compilation | 0 - TIDL_OPTIMIZE_LEVEL_BASIC (basic optimizations only)<br>1 - TIDL_OPTIMIZE_LEVEL_EXTENDED (basic + extended optimizations) | 0 | When set to TIDL_OPTIMIZE_LEVEL_EXTENDED, extended optimizations like shape-folding is enabled to enhance performance. Currently TIDL_OPTIMIZE_LEVEL_EXTENDED is an experimental feature and has gone through limited validation |
+| `advanced_options:batch_mode` | Enable batch processing mode | 0 - 1 | 0 | If enabled, i.e set to 1, the outermost non-singleton dimension of certain layers will be stitched to width dimension for performance improvements|
+| `advanced_options:partial_init_during_compile` | Enable partial initialization of handles during model compilation to reduce inference initialization time | 0-1 (Integer) | 0 | Inference on host-emulation will not work if model is compiled with this flag enabled. Enabling this flag reduces int initialization time during inference by performing some internal compuations during compile time which would otherwise be performed during inference initialization. 
+| `advanced_options:packetize_mode` | Enable packetization mode for sparse weights in the model | 0-1 (Integer) | 0 | For optimizing memory access patterns |
+| `advanced_options:high_resolution_optimization` | Enable high resolution optimization for improving performance on high resolution models | 0-1 (Integer) | 0 | This option enables "Super Tiling" wher-in feature-maps in layers are processed in chunks instead of complete data for better memory optimization  |
+| `advanced_options:pre_batchnorm_fold` | Fuses BatchNorm present before a Convolution | 0-1 (Integer) | 1 | Improves performance by folding batch norm into convolution |
+| `advanced_options:optimize_batchnorm_higherdims` | Fuses higher dimension for batchnorm to lower dimensions for performance improvements | 0-1 (Integer) | 0 | |
 
 ### Quantization Specific Options
 
@@ -123,6 +134,7 @@ For detailed explanation of quantization in TIDL, check out [Quantization](./qua
 | Option Name | Description | Allowed Values | Default Value | Notes |
 |------------|-------------|----------------|---------------|---------------------|
 | `accuracy_level` | Level of accuracy optimization | 0, 1, 2, 9 (Integer) | 1 | Higher values prioritize accuracy over performance |
+| `bias_calibration_factor` | Bias Calibration Factor | Float | 0.05 | Contribution used to update the bias in each iteration based on the difference of actual mean with respect to the mean after quantization |
 | `advanced_options:calibration_frames` | Number of frames to use for calibration | Integer > 0 | 20 | More frames can improve accuracy but increase compilation time. This option is only applicable when `accuracy_level = 1` |
 | `advanced_options:calibration_iterations` | Number of iterations for calibration | Integer > 0 | 50 | More iterations can improve accuracy but increase compilation time. This option is only applicable when `accuracy_level = 1` |
 | `advanced_options:quantization_scale_type` | Type of quantization style to use | 0 - Non-Power of 2<br>1 - Power of 2<br>3 - TFLite Pre-Quantized Model<br>4 - Asymmetric Per-Channel Quantization | 0 | |
@@ -190,13 +202,6 @@ For detailed explanation of multi-core inference, check out [Multi C7x](./multi_
 | `advanced_options:log_file_name` | Name of log file | String | /tmp | For redirecting logs to a file |
 | `advanced_options:temp_buffer_dir` | Directory for temporary openvx buffers | Valid directory path | "/dev/shm" | Must be a valid directory with write permissions |
 | `advanced_options:nc_temp_info_dir` | Directory for temporary network compiler info | Valid directory path | "/tmp" | Must be a valid directory with write permissions |
-| `advanced_options:batch_mode` | Enable batch processing mode | 0 - 1 | 0 | If enabled, i.e set to 1, the outermost non-singleton dimension of certain layers will be stitched to width dimension for performance improvements|
-| `advanced_options:partial_init_during_compile` | Enable partial initialization of handles during model compilation to reduce inference initialization time | 0-1 (Integer) | 0 | Inference on host-emulation will not work if model is compiled with this flag enabled. Enabling this flag reduces int initialization time during inference by performing some internal compuations during compile time which would otherwise be performed during inference initialization. 
-| `advanced_options:packetize_mode` | Enable packetization mode for sparse weights in the model | 0-1 (Integer) | 0 | For optimizing memory access patterns |
-| `advanced_options:high_resolution_optimization` | Enable high resolution optimization for improving performance on high resolution models | 0-1 (Integer) | 0 | This option enables "Super Tiling" wher-in feature-maps in layers are processed in chunks instead of complete data for better memory optimization  |
-| `advanced_options:pre_batchnorm_fold` | Fuses BatchNorm present before a Convolution | 0-1 (Integer) | 1 | Improves performance by folding batch norm into convolution |
-| `advanced_options:optimize_batchnorm_higherdims` | Fuses higher dimension for batchnorm to lower dimensions for performance improvements | 0-1 (Integer) | 0 | |
-| `advanced_options:enable_shape_folding` | Enable shape folding optimization | 0-1 (Integer) | 0 | Can improve performance for certain models by manipulation shapes. This is currently an experimental feature. |
 | `advanced_options:net_inelement_type` | Forces input element type conversion to specified value | Comma-separated integers | None | By default, the input dataconvert converts based on the tensor_bit , i.e for 8 bit, it'll convert to int8 or unint8. This option overwrites this and forces to convert to a specific format bypassing the tensor_bits. Comma seperated string with integer is given for each input. Ex: '0, 1' means force input0 to uint8 and input1 to int8. Refer to [eTIDL_ElementType](./io_tensors.md#etidl_elementtype) for values. |
 | `advanced_options:enable_custom_layers` | Enable custom layer implementation support | 0-1 (Integer) | 0 | |
 | `advanced_options:custom_layers_names_list` | List of custom layer names | Comma-separated string | None | |
