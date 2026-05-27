@@ -5,6 +5,7 @@ import pytest
 from py.xml import html
 import re
 import os
+import platform
 from datetime import datetime
 
 def pytest_addoption(parser):
@@ -41,6 +42,18 @@ def pytest_configure(config):
     reports_dir = config.option.reports_dir
     os.makedirs(reports_dir, exist_ok=True)
     config.option.htmlpath = os.path.join(reports_dir, 'report_' + datetime.now().strftime("%m-%d-%Y_%H-%M-%S")+".html")
+
+    # Set EVM (aarch64) default timeout to 10s; x86 keeps pytest-timeout's default
+    # Only applies when --timeout is not explicitly passed on the command line
+    if platform.machine() == 'aarch64':
+        cli_args = config.invocation_params.args
+        if not any(arg.startswith('--timeout') for arg in cli_args):
+            config.option.timeout = 10
+
+    # Scale timeout by num_frames if provided, capped at 300s
+    num_frames = config.option.num_frames
+    if num_frames is not None:
+        config.option.timeout = min(config.option.timeout * num_frames, 300)
 
 # Adds the tidl_subgraphs attribute to test report
 @pytest.hookimpl(hookwrapper=True)
