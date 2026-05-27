@@ -41,7 +41,7 @@ class BINloader():
         """
         # Check for dynamic shapes
         for i, dim in enumerate(shape):
-            if not isinstance(dim, int):
+            if not isinstance(dim, (int, np.integer)):
                 raise ValueError(f"[ERROR] Binary loader does not support dynamic shape {shape}")
                 
         # Calculate the byte size of the requested data

@@ -55,7 +55,7 @@ class NPZloader():
 
         resolved_shape = []
         for i, dim in enumerate(x_shape):
-            if not isinstance(dim, int):
+            if not isinstance(dim, (int, np.integer)):
                 # variable dimension (e.g. 'batch_size')
                 has_dynamic_shape = True
                 if(i < len(data_shape)):

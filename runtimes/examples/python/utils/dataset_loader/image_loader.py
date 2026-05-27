@@ -45,7 +45,7 @@ class Imageloader():
         """
         # Check for dynamic shapes
         for i, dim in enumerate(shape):
-            if not isinstance(dim, int):
+            if not isinstance(dim, (int, np.integer)):
                 raise ValueError(f"[ERROR] Image loader does not support dynamic shape {shape}")
         
         if len(shape) < 3:
