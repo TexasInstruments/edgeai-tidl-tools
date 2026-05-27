@@ -170,6 +170,7 @@ def pytest_runtest_makereport(item, call):
         if exit_on_critical_error:
             ignore_filters = ["VX_ZONE_ERROR:Enabled","Globally Enabled","Globally Disabled","VX_ZONE_ERROR:[tivxObjectDeInit"]
             critical_errors = ["VX_ZONE_ERROR","dumped core","core dump","Segmentation fault","PROCESS TIMED OUT"]
+            exit_msg = None
             for i in report.capstdout.strip().split('\n'):
                 i = i.strip()
                 ignore = False
@@ -180,7 +181,19 @@ def pytest_runtest_makereport(item, call):
                 if not ignore:
                     for j in critical_errors:
                         if j in i:
-                            pytest.exit(f"CRITICAL_ERROR - {item.nodeid} - {j} detected. Exiting test run.")
+                            exit_msg = f"CRITICAL_ERROR - {item.nodeid} - {j} detected. Exiting test run."
+                            break
+                if exit_msg:
+                    break
+            if exit_msg:
+                report._exit_after_log = exit_msg
+
+# Calls pytest.exit() after pytest-html has saved the report, so the output logs are captured
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_logreport(report):
+    yield  # Let pytest-html and other plugins process the report first
+    if hasattr(report, '_exit_after_log'):
+        pytest.exit(report._exit_after_log)
 
 # Inserts the TIDL Subgraphs table header
 def pytest_html_results_table_header(cells):
