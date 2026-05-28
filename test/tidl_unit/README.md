@@ -52,7 +52,7 @@ pip install -r requirements.txt
 - `--no-subprocess`: Disable running as subprocess
 - `--exit-on-critical-error`: Force exit test on critical error
 - `--num-frames`: Number of frames to run. Overwrites `num_frames` in the model config if specified.
-- `--timeout`: Timeout for test in seconds (default: 1000)
+- `--timeout`: Timeout for test in seconds (default: 10s on aarch64, pytest-timeout default on x86). When `--num-frames` is also specified, the timeout is scaled by the number of frames (capped at 300s).
 - `-n`: Number of parallel processes (default: auto)
 
 
@@ -134,13 +134,16 @@ For **models with post-processing defined in config**, the framework uses specia
 
 ## Test Reports
 
-HTML test reports are generated in the reports directory (specified by `--reports-dir`, default: `./reports`) with filenames in the format `report_<date>_<time>.html` (e.g., `report_02-02-2026_10-23-37.html`). The reports include:
+HTML test reports are generated in the reports directory (specified by `--reports-dir`, default: `./reports`) with filenames in the format `report_<date>_<time>.html` (e.g., `report_02-02-2026_10-23-37.html`). The reports include the following columns:
 
-- Test status (pass/fail)
-- TIDL subgraphs information
-- Complete TIDL offload status
-- Output metrics
-- Output plots/images comparing reference and actual outputs
+| Column | Description |
+|---|---|
+| Result | Pass / fail / xfail status |
+| Test | Model name and parametrize ID |
+| TIDL Offload Status | `ALL`, `PARTIAL`, or `NONE` with subgraph and node counts (e.g. `ALL - 1 subgraph(s) [186/186 nodes]`) |
+| Perf Metrics | Inference timing and DDR bandwidth from the first TIDL run: `total_time`, `core_time`, `subgraph_time` (or `graph_time`), `read_total`, `write_total`, `ddr_total` |
+| Output Metrics | For binary outputs: MAX NMSE, MAX MSE, MAX DELTA. For post-processed outputs: match count (e.g. `3/5 images match`) |
+| Output Plot | Visual comparison of reference vs. actual outputs (binary tensor plot or post-processed images) |
 
 > **Note:** When running tests on a TI SoC, the HTML reports might be generated with root ownership. If you want to view these reports on your PC as a non-root user, you may need to change the owner of the file using the `chown` command:
 > ```bash
