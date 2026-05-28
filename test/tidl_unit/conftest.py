@@ -65,12 +65,12 @@ def pytest_runtest_makereport(item, call):
     runtime = "onnxrt"
     report.tidl_subgraphs = "Not detected"
     report.tidl_nodes = "Not detected"
-    report.complete_tidl_offload = "Not detected"
     report.nmse = "-"
     report.mse = "-"
     report.max_delta = "-"
     report.post_proc_metrics = "-"
     report.plot_data = None
+    report.perf_metrics = None
 
     runtime = "onnxrt"
     if hasattr(report, 'capstdout') and report.capstdout:
@@ -105,7 +105,7 @@ def pytest_runtest_makereport(item, call):
             tvm_relay_detect = re.search("TVM Relay detected ([0-9]*) subgraphs", report.capstdout)
             if (tvm_relay_detect is not None and not num_sg):
                 num_sg = tvm_relay_detect[1]
-            
+
             # If all else fails, extract from performance summary (only printed during inference)
             num_subgraph_regex = re.search(r"num_subgraphs\s*:\s*([0-9]*)", report.capstdout)
             if (num_subgraph_regex is not None and not num_sg):
@@ -114,7 +114,7 @@ def pytest_runtest_makereport(item, call):
             if num_sg:
                 report.tidl_subgraphs = num_sg
 
-        # Parsing nodes and complete tidl offload
+        # Parsing nodes
         if (report.tidl_subgraphs.isdigit() and int(report.tidl_subgraphs) >= 1):
             if runtime == "tflitert":
                 total_nodes_regex = re.search("out of ([0-9]*) nodes", report.capstdout)
@@ -128,7 +128,6 @@ def pytest_runtest_makereport(item, call):
                     total_nodes = int(total_nodes_regex[1].strip())
                     offloaded_nodes = int(offloaded_nodes_regex[1].strip())
                     report.tidl_nodes = f"{offloaded_nodes}/{total_nodes}"
-                    report.complete_tidl_offload = "True" if offloaded_nodes >= total_nodes else "False"
                 except:
                     pass
             else:
@@ -138,10 +137,6 @@ def pytest_runtest_makereport(item, call):
                     c7x_nodes = int(c7x_nodes_regex[1])
                     cpu_nodes = int(cpu_nodes_regex[1]) if cpu_nodes_regex is not None else 0
                     report.tidl_nodes = f"{c7x_nodes}/{c7x_nodes + cpu_nodes}"
-                    report.complete_tidl_offload = "True" if cpu_nodes == 0 else "False"
-
-        else:
-            report.complete_tidl_offload = "-"
 
         nmse_regex = re.search(r'MAX_NMSE: (\d*\.\d+|\d+|None)', report.capstdout)
         if nmse_regex:
@@ -155,12 +150,44 @@ def pytest_runtest_makereport(item, call):
         if max_delta_regex:
             max_delta = max_delta_regex.group(1)
             report.max_delta = str(max_delta)
-        
+
         post_proc_metrics_regex = re.search(r'POST-PROC METRICS: (.+)$', report.capstdout, re.MULTILINE)
         if post_proc_metrics_regex:
             post_proc_metrics = post_proc_metrics_regex.group(1)
             report.post_proc_metrics = str(post_proc_metrics)
-            
+
+        # Parse performance metrics from the first TIDL inference block only.
+        # Truncate at reference run marker to avoid picking up the CPU-only reference run.
+        _ref_marker = "Generating reference outputs"
+        _stdout_tidl = report.capstdout.split(_ref_marker)[0]
+        _perf_block_match = re.search(
+            r'={5,}\nAverage performance metrics[^\n]*\n-{5,}\n(.*?)\n={5,}',
+            _stdout_tidl, re.DOTALL
+        )
+        if _perf_block_match:
+            _block = _perf_block_match.group(1)
+            def _parse_perf_field(name):
+                m = re.search(rf'^\s*{re.escape(name)}\s*:\s*([\d.]+\s*\w+)', _block, re.MULTILINE)
+                return m.group(1).strip() if m else None
+
+            total_time = _parse_perf_field('total_time')
+            core_time = _parse_perf_field('core_time')
+            _sg = _parse_perf_field('subgraph_time')
+            subgraph_time_label = 'subgraph_time' if _sg else 'graph_time'
+            subgraph_time = _sg or _parse_perf_field('graph_time')
+            read_total = _parse_perf_field('read_total')
+            write_total = _parse_perf_field('write_total')
+            ddr_total = _parse_perf_field('total')
+
+            report.perf_metrics = {
+                'total_time': total_time,
+                'core_time': core_time,
+                'subgraph_time': (subgraph_time_label, subgraph_time),
+                'read_total': read_total,
+                'write_total': write_total,
+                'ddr_total': ddr_total,
+            }
+
         # Extract plot data from the output
         plot_data_regex = re.search(r'PLOT_BASE_64_PATH: (.+?)(?:\n|$)', report.capstdout)
         if plot_data_regex:
@@ -210,27 +237,70 @@ def pytest_runtest_logreport(report):
 
 # Inserts the TIDL Subgraphs table header
 def pytest_html_results_table_header(cells):
-    # Remove Links column only (index 3)
+    # Remove Links (index 3) and Duration (index 2)
     if len(cells) > 3:
         cells.pop(3)
-    cells.insert(3, html.th("TIDL Offload Status"))
-    cells.insert(4, html.th("Complete TIDL Offload"))
-    cells.insert(5, html.th("Output Metrics"))
-    cells.insert(6, html.th("Output Plot"))
+    cells.pop(2)
+    cells.insert(2, html.th("TIDL Offload Status"))
+    cells.insert(3, html.th("Perf Metrics"))
+    cells.insert(4, html.th("Output Metrics"))
+    cells.insert(5, html.th("Output Plot"))
 
 # Inserts the number of TIDL subgraphs for each row
 def pytest_html_results_table_row(report, cells):
     if len(cells) > 3:
         cells.pop(3)
+    cells.pop(2)
 
-    if(hasattr(report,'tidl_subgraphs')):
-        subgraph_text = report.tidl_subgraphs
-        if hasattr(report, 'tidl_nodes') and report.tidl_nodes != "Not detected":
-            subgraph_text = f"{report.tidl_subgraphs} subgraph(s) [{report.tidl_nodes} nodes]"
-        cells.insert(3, html.td(subgraph_text))
-    if(hasattr(report,'complete_tidl_offload')):
-        cells.insert(4, html.td(report.complete_tidl_offload))
-    
+    # TIDL Offload Status: ALL / PARTIAL / NONE with node/subgraph counts
+    if hasattr(report, 'tidl_subgraphs') and hasattr(report, 'tidl_nodes'):
+        sgs = report.tidl_subgraphs
+        nodes = report.tidl_nodes
+        if nodes != "Not detected":
+            try:
+                offloaded, total = (int(x) for x in nodes.split('/'))
+                if offloaded == 0:
+                    status = "NONE"
+                elif offloaded >= total:
+                    status = "ALL"
+                else:
+                    status = "PARTIAL"
+            except:
+                status = "-"
+        elif sgs.isdigit() and int(sgs) == 0:
+            status = "NONE"
+        else:
+            status = "-"
+
+        if nodes != "Not detected":
+            offload_text = f"{status} - {sgs} subgraph(s) [{nodes} nodes]"
+        else:
+            offload_text = f"{status} - {sgs} subgraph(s)"
+
+        offload_div = html.div(html.p(offload_text, style="margin: 0;"))
+        cells.insert(2, html.td(offload_div))
+
+    # Add performance metrics
+    if hasattr(report, 'perf_metrics') and report.perf_metrics:
+        pm = report.perf_metrics
+        perf_div = html.div()
+        if pm.get('total_time'):
+            perf_div.append(html.p(f"total_time: {pm['total_time']}", style="margin: 0;"))
+        if pm.get('core_time'):
+            perf_div.append(html.p(f"core_time: {pm['core_time']}", style="margin: 0;"))
+        if pm.get('subgraph_time') and pm['subgraph_time'][1]:
+            sg_label, sg_val = pm['subgraph_time']
+            perf_div.append(html.p(f"{sg_label}: {sg_val}", style="margin: 0;"))
+        if pm.get('read_total'):
+            perf_div.append(html.p(f"read_total: {pm['read_total']}", style="margin: 0;"))
+        if pm.get('write_total'):
+            perf_div.append(html.p(f"write_total: {pm['write_total']}", style="margin: 0;"))
+        if pm.get('ddr_total'):
+            perf_div.append(html.p(f"ddr_total: {pm['ddr_total']}", style="margin: 0;"))
+        cells.insert(3, html.td(perf_div))
+    else:
+        cells.insert(3, html.td("-"))
+
     # Add output metrics if available
     if(hasattr(report,'nmse') or hasattr(report,'mse') or hasattr(report,'max_delta') or hasattr(report,'post_proc_metrics')):
         metrics = []
@@ -240,26 +310,26 @@ def pytest_html_results_table_row(report, cells):
             metrics.append(f"MAX MSE: {report.mse}")
         if(hasattr(report,'max_delta') and report.max_delta != '-' and report.max_delta != 'None'):
             metrics.append(f"MAX DELTA: {report.max_delta}")
-        
+
         if not metrics and hasattr(report, 'post_proc_metrics') and report.post_proc_metrics != '-':
             metrics.append(f"{report.post_proc_metrics}")
-        
+
         if metrics:
             metrics_div = html.div()
             for i, metric in enumerate(metrics):
                 metrics_div.append(html.p(metric, style="margin: 0;"))
-            cells.insert(5, html.td(metrics_div))
+            cells.insert(4, html.td(metrics_div))
         else:
-            cells.insert(5, html.td("-"))
-    
+            cells.insert(4, html.td("-"))
+
     # Add plot image if available
     if hasattr(report, 'plot_data') and report.plot_data:
         img_html = html.div(
-            html.img(src=f"data:image/png;base64,{report.plot_data}", 
+            html.img(src=f"data:image/png;base64,{report.plot_data}",
                     style="max-width:250px; cursor:pointer; margin:0; padding:0;",
                     onclick="window.open(this.src)"),
             style="text-align:center; margin:0; padding:0;"
         )
-        cells.insert(6, html.td(img_html, style="text-align:center; margin:0; padding:0;"))
+        cells.insert(5, html.td(img_html, style="text-align:center; margin:0; padding:0;"))
     else:
-        cells.insert(6, html.td("-"))
+        cells.insert(5, html.td("-"))
