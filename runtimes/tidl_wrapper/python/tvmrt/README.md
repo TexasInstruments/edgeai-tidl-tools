@@ -23,13 +23,6 @@ This module is designed to simplify the process of using TVM Runtime with TIDL a
 - NumPy
 - TIDL Tools (for model compilation)
 
-## Note
-
-For inference on target machine, user needs to manually install additional dependencies using the below command:
-``` python
-pip3 install psutil typing_extensions
-```
-
 ## API Documentation
 
 ### TVMRT Class

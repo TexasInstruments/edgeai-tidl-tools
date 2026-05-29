@@ -345,23 +345,8 @@ You have two options for setting up the EdgeAI TIDL Tools repository on your TI 
    
    You have two options for building C++ components on TI SOC:
 
-   > **Important Note for SDK 11.2:** The yaml-cpp library is not packaged in SDK 11.2. This will be fixed in future SDK releases. As a result:
-   > - Cross-compilation with 11.2 SDK will not work for compiling the C++ examples
-   > - For native compilation, you must first clone, build, and install yaml-cpp on the SoC as a prerequisite
-
    **Option 1: Native Compilation** (Building directly on the TI SOC):
    ```bash
-   # For SDK 11.2, first install yaml-cpp
-   git clone -b 0.8.0 https://github.com/jbeder/yaml-cpp.git
-   cd yaml-cpp
-   mkdir build && cd build
-   cmake .. -DYAML_BUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX=/usr
-   make -j2
-   make install
-   cd ../../
-   rm -rf yaml-cpp
-
-   # Then build the C++ components
    ./scripts/build/build_cpp.sh --clean
    ./scripts/build/build_cpp.sh
    ```
@@ -369,8 +354,7 @@ You have two options for setting up the EdgeAI TIDL Tools repository on your TI 
 
    **Option 2: Cross-Compilation** (Building on X86 PC for TI SOC):
    ```bash
-   # Following steps are executed on x86 PC to cross-compile for aarch64 
-   # Note: This will not work with SDK 11.2 due to missing yaml-cpp package
+   # Following steps are executed on x86 PC to cross-compile for aarch64
    export SDK_PATH=<path to sdk> # Ex: /home/user/ti-processor-sdk-rtos-j784s4-evm-11_02_00_05
    export TARGET_CPU=aarch64
    ./scripts/build/build_cpp.sh --clean
@@ -406,11 +390,7 @@ You have two options for setting up the EdgeAI TIDL Tools repository on your TI 
    python3 basic_example.py --config ./config.yaml -r tflitert --infer
 
    # Running tvmrt examples
-   # Note: The TVM python wheel requires additional dependencies that are 
-   # currently not provided in SDK 11.2. Please run
-   # `pip install psutil typing_extensions` on SoC to enable tvm inference
-   # 
-   #python3 basic_example.py --config ./config.yaml -r tvmrt --infer
+   python3 basic_example.py --config ./config.yaml -r tvmrt --infer
 
    cd -
    ```
