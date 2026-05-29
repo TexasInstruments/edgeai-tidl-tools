@@ -125,42 +125,39 @@ namespace tvmrt_wrapper
             return -1;
         }
 
-        // Construct paths to TVM artifacts
-        std::string modelSoPath = m_artifactsPath + "/deploy_lib.so";
-        std::string modelJsonPath = m_artifactsPath + "/deploy_graph.json";
-        std::string modelParamsPath = m_artifactsPath + "/deploy_param.params";
-
-        #include <filesystem>
-
+        // Determine suffix based on architecture, mirroring the Python wrapper
+        const char *suffix = nullptr;
         struct utsname name;
-        if (uname(&name) == 0) 
+        if (uname(&name) == 0)
         {
-            if (strcmp(name.machine, "aarch64") == 0 || strcmp(name.machine, "arm64") == 0) 
-            {
-                std::filesystem::copy_file(modelSoPath + ".evm", modelSoPath, std::filesystem::copy_options::overwrite_existing);
-                std::filesystem::copy_file(modelJsonPath + ".evm", modelJsonPath, std::filesystem::copy_options::overwrite_existing);
-                std::filesystem::copy_file(modelParamsPath + ".evm", modelParamsPath, std::filesystem::copy_options::overwrite_existing);
-            } 
-            else if (strcmp(name.machine, "x86_64") == 0) 
-            {
-                std::filesystem::copy_file(modelSoPath + ".pc", modelSoPath, std::filesystem::copy_options::overwrite_existing);
-                std::filesystem::copy_file(modelJsonPath + ".pc", modelJsonPath, std::filesystem::copy_options::overwrite_existing);
-                std::filesystem::copy_file(modelParamsPath + ".pc", modelParamsPath, std::filesystem::copy_options::overwrite_existing);
-            }
+            if (strcmp(name.machine, "aarch64") == 0 || strcmp(name.machine, "arm64") == 0)
+                suffix = ".evm";
+            else if (strcmp(name.machine, "x86_64") == 0)
+                suffix = ".pc";
+        }
+        if (suffix == nullptr)
+        {
+            printf("[ERROR] uname() failed or unsupported architecture\n");
+            return -1;
         }
 
-        // Check if files exist
+        // Construct paths to TVM artifacts using the suffixed filenames directly (no copy needed)
+        std::string modelSoPath     = m_artifactsPath + "/deploy_lib.so"        + suffix;
+        std::string modelJsonPath   = m_artifactsPath + "/deploy_graph.json"    + suffix;
+        std::string modelParamsPath = m_artifactsPath + "/deploy_param.params"  + suffix;
+
         if (!fs::exists(modelSoPath) || !fs::exists(modelJsonPath) || !fs::exists(modelParamsPath))
         {
-            printf("[ERROR] TVM model files not found at %s\n", m_artifactsPath.c_str());
-            printf("[ERROR] Expected files: deploy_lib.so, deploy_graph.json, deploy_param.params\n");
+            printf("[ERROR] TVM model files not found in %s\n", m_artifactsPath.c_str());
+            printf("[ERROR] Expected: deploy_lib.so%s, deploy_graph.json%s, deploy_param.params%s\n",
+                   suffix, suffix, suffix);
             return -1;
         }
 
         try
         {
             // Load the compiled module
-            tvm::runtime::Module modFactory = tvm::runtime::Module::LoadFromFile(modelSoPath);
+            tvm::runtime::Module modFactory = tvm::runtime::Module::LoadFromFile(modelSoPath, "so");
 
             // Load JSON graph
             std::ifstream jsonIn(modelJsonPath);
@@ -171,10 +168,6 @@ namespace tvmrt_wrapper
             std::ifstream paramsIn(modelParamsPath, std::ios::binary);
             std::string paramsData((std::istreambuf_iterator<char>(paramsIn)), std::istreambuf_iterator<char>());
             paramsIn.close();
-
-            std::remove(modelSoPath.c_str());
-            std::remove(modelJsonPath.c_str());
-            std::remove(modelParamsPath.c_str());
 
             // Create graph runtime module
             const tvm::runtime::PackedFunc *createGraphFn = tvm::runtime::Registry::Get("tvm.graph_executor.create");
