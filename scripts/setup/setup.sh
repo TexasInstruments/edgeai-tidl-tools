@@ -38,7 +38,7 @@ else
 return
 fi
 
-REL=11_02_04_00
+REL=11_02_12_00
 echo "Version $REL"
 
 CURRDIR=`pwd`
@@ -109,35 +109,24 @@ else
     fi
 fi
 
-# Define all supported SOCs
-ALL_SOCS=("AM62" "AM62A" "J721E" "J721S2" "J784S4" "J722S")
+# This release (11_02_12_00) supports J722S only
 SOC=${SOC^^}
-if [ ! -z "$SOC" ];then
-    case "$SOC" in
-      AM62|AM62A|J721E|J721S2|J784S4|J722S)
-        ALL_SOCS=("$SOC")
-        ;;
-      AM68PA|TDA4VM)
-        ALL_SOCS=("J721E")
-        ;;
-      AM68A|TDA4VL)
-        ALL_SOCS=("J721S2")
-        ;; 
-      AM69A|TDA4VH)
-        ALL_SOCS=("J784S4")
-        ;;
-      AM67A|TDA4AEN)
-        ALL_SOCS=("J722S")
-        ;;
-      *)
-        echo "Invalid SOC $SOC defined. Allowed values are:"
-        echo "AM62, AM62A, (J721E or TDA4VM), (J721S2 or TDA4VL or AM68A), (J784S4 or TDA4VH or AM69A) and (J722S or TDA4AEN or AM67A)"
-        return
-        ;;
-    esac
-    echo
-    echo "Using specified SOC=${SOC}"
-fi
+SOC=${SOC:-"J722S"}
+case "$SOC" in
+  J722S)
+    ALL_SOCS=("J722S")
+    ;;
+  AM67A|TDA4AEN)
+    SOC="J722S"
+    ALL_SOCS=("J722S")
+    ;;
+  *)
+    echo "Invalid SOC $SOC defined. Release $REL only supports J722S | TDA4AEN | AM67A."
+    return
+    ;;
+esac
+echo
+echo "Using SOC: ${SOC}"
 
 # Python packages setup
 cd ${SCRIPTDIR}

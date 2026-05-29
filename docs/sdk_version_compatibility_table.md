@@ -44,14 +44,23 @@ In the edgeai-tidl-tools version format `MAJOR_MINOR_PATCH_BUILD`:
 
 ## SDK Version 11.02.xx.xx
 
-- **`11_02_04_00`** - [Default](#default)
+- **`11_02_12_00`** - [Default for J722S](#default)
+- **`11_02_04_00`** - [Default for J7212S/J784S4/J721E](#default)
 
-> These releases have been validated on:
+> `11_02_04_00` has been validated on:
 > - AM62A - N/A
 > - J722S \| TDA4AEN \| AM67A - N/A
 > - J721E \| TDA4VM           - PSDK LINUX 11.02.00.04 / PSDK RTOS 11.02.00.06
 > - J721S2 \| TDA4VL \| AM68A - PSDK LINUX 11.02.00.04 / PSDK RTOS 11.02.00.06
 > - J784S4 \| TDA4VH \| AM69A - PSDK LINUX 11.02.00.04 / PSDK RTOS 11.02.00.06
+> - AM62 - N/A
+
+> `11_02_12_00` has been validated on:
+> - AM62A - N/A
+> - J722S \| TDA4AEN \| AM67A - PSDK LINUX 11.02.00.06 / PSDK RTOS 11.02.00.10
+> - J721E \| TDA4VM           - N/A
+> - J721S2 \| TDA4VL \| AM68A - N/A
+> - J784S4 \| TDA4VH \| AM69A - N/A
 > - AM62 - N/A
 
 ## SDK Version 11.01.xx.xx
