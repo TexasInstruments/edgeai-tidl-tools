@@ -44,9 +44,10 @@ In the edgeai-tidl-tools version format `MAJOR_MINOR_PATCH_BUILD`:
 
 ## SDK Version 11.02.xx.xx
 
-- **`11_02_04_00`** - [Default](#default)
+- **`11_02_12_00`** - [Default for J722S](#default)
+- **`11_02_04_00`** - [Default for J7212S/J784S4/J721E](#default)
 
-> These releases have been validated on:
+> `11_02_04_00` has been validated on:
 > - AM62A - N/A
 > - J722S \| TDA4AEN \| AM67A - N/A
 > - J721E \| TDA4VM           - PSDK LINUX 11.02.00.04 / PSDK RTOS 11.02.00.06
@@ -54,8 +55,19 @@ In the edgeai-tidl-tools version format `MAJOR_MINOR_PATCH_BUILD`:
 > - J784S4 \| TDA4VH \| AM69A - PSDK LINUX 11.02.00.04 / PSDK RTOS 11.02.00.06
 > - AM62 - N/A
 
+> `11_02_12_00` has been validated on:
+> - AM62A - N/A
+> - J722S \| TDA4AEN \| AM67A - PSDK LINUX 11.02.00.06 / PSDK RTOS 11.02.00.10
+> - J721E \| TDA4VM           - N/A
+> - J721S2 \| TDA4VL \| AM68A - N/A
+> - J784S4 \| TDA4VH \| AM69A - N/A
+> - AM62 - N/A
+
 ## SDK Version 11.01.xx.xx
 
+- **`11_02_13_00`** - [Patch with backward compatibility](#patch-with-backward-compatibility)
+- **`11_02_07_00`** - [Patch with backward compatibility](#patch-with-backward-compatibility)
+- **`11_02_05_00`** - [Patch with backward compatibility](#patch-with-backward-compatibility)
 - **`11_01_06_00`** - [Default](#default)
 
 > These releases have been validated on:
@@ -68,6 +80,9 @@ In the edgeai-tidl-tools version format `MAJOR_MINOR_PATCH_BUILD`:
 
 ## SDK Version 11.00.xx.xx
 
+- **`11_02_13_00`** - [Patch with backward compatibility](#patch-with-backward-compatibility)
+- **`11_02_07_00`** - [Patch with backward compatibility](#patch-with-backward-compatibility)
+- **`11_02_05_00`** - [Patch with backward compatibility](#patch-with-backward-compatibility)
 - **`11_01_07_00`** - [Patch with backward compatibility](#patch-with-backward-compatibility)
 - **`11_01_05_00`** - [Patch with backward compatibility](#patch-with-backward-compatibility)
 - **`11_00_08_00`** - [Patch with default compatibility](#patch-with-default-compatibility)
