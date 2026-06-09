@@ -37,7 +37,7 @@ fi
 SCRIPTDIR=`pwd`
 TARGET_FS_PATH=/
 
-REL="11_02_04_00"
+REL="11_02_14_00"
 
 SOC=${SOC:-'null'}
 TISDK_IMAGE=${TISDK_IMAGE:-'null'}
