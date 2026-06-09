@@ -59,7 +59,7 @@ When running inference with TIDL, you can configure various options to control t
 | `max_pre_empt_delay` | Maximum allowed delay to server higher priority execution | 0 - FLT_MAX | FLT_MAX | Refer to [Preemption](./preemption.md) for more details |
 | `core_number` | Specify the C7x core to execute on  | 1 - \<Max core of C7x on device\> | 1 | Refer to [Multi C7x](./multi_c7x.md) for more details |
 | `core_start_idx` | Specify the C7x core to start execution from in case of high throughput or low latency modes | 1 - \<Max core of C7x on device\> | 1 | Refer to [Multi C7x](./multi_c7x.md) for more details |
-| `advanced_options:temp_buffer_dir` | Redirect temporary OpenVX Buffers in x86. Applicable only for x86 run | Valid directory path | /dev/shm | This option is currently applicable only when using Python for Inference on x86 PC. Path is limited to 64 characters |
+| `advanced_options:temp_buffer_dir` | Redirect temporary OpenVX Buffers in x86. Applicable only for x86 run | Valid directory path < 64 characters | /dev/shm | Path is limited to 64 characters |
 
 ## Input/Output Tensors Handling
 
