@@ -196,7 +196,8 @@ def run(config,
         artifacts_base_path : str = None,
         disable_tidl_offload : bool = False,
         verbose : bool = False,
-        dump_frames : int = None):
+        dump_frames : int = None,
+        output_base_path : str = None):
     """
     Run models based on the provided configuration.
 
@@ -212,6 +213,7 @@ def run(config,
         disable_tidl_offload (bool, optional): Whether to disable TIDL offload. Defaults to False.
         verbose (bool, optional): Whether to enable verbose output. Defaults to False.
         dump_frames (int, optional): Collect and return only the first N frame outputs. Default: all frames.
+        output_base_path (str, optional): Base path to save outputs. When None, outputs are not saved to disk.
 
     Returns:
         tuple: (status, outputs) where status is 0 for success and outputs is a dictionary containing output data for each model
@@ -603,6 +605,35 @@ def run(config,
                 print(f"{str(perf_key):<{max_key_length+2}}: {perf_val:.2f} {perf_unit}")
             print("="*80 + "\n")
 
+        # Save outputs for this model if applicavle
+        if output_base_path is not None and compile == False and model in outputs and len(outputs[model]) > 0:
+            if disable_tidl_offload:
+                output_path = os.path.join(output_base_path, model, "no_offload")
+            else:
+                output_path = os.path.join(output_base_path, model, "offload")
+
+            for i, data in enumerate(outputs[model]):
+                path = os.path.join(output_path, f"frame_{i+1}")
+                try:
+                    os.makedirs(path, exist_ok=True)
+                except OSError as e:
+                    print(f"[ERROR] [{model}] Frame:{i} : Cannot create directory for saving output {path} : {e}")
+                    continue
+
+                output_binaries = data[0]
+                post_proc_data = data[1]
+
+                for name, binary in output_binaries.items():
+                    out_bin_file = f"{name}.bin".replace('/', '_')
+                    binary.tofile(os.path.join(path, out_bin_file))
+
+                for name, frame_data in post_proc_data.items():
+                    metadata, image = frame_data
+                    image.save(os.path.join(path, f"{name}.jpg"), "JPEG")
+                    with open(os.path.join(path, f"{name}.txt"), 'w+') as f:
+                        f.write(metadata)
+
+            print(f"Outputs saved: {output_path}")
 
     return status, outputs
 
@@ -681,45 +712,12 @@ def main():
         artifacts_base_path=ARTIFACTS_BASE,
         disable_tidl_offload=args.disable_tidl_offload,
         verbose=args.verbose,
-        dump_frames=args.dump_frames
+        dump_frames=args.dump_frames,
+        output_base_path=OUTPUT_BASE if not args.compile else None
     )
 
     if (status != 0):
         sys.exit(status)
-
-    # Save outputs
-    if outputs != None and args.compile == False:
-        for model, output_data in outputs.items():
-            if args.disable_tidl_offload:
-                output_path = os.path.join(OUTPUT_BASE, model, "no_offload")
-            else:
-                output_path = os.path.join(OUTPUT_BASE, model, "offload")
-            
-            print(f"Outputs saved: {output_path}")
-            for i, data in enumerate(output_data):
-                path = os.path.join(output_path, f"frame_{i+1}")
-                try:
-                    os.makedirs(path, exist_ok=True)
-                except OSError as e:
-                    print(f"[ERROR] [{model}] Frame:{i} : Cannot create directory for saving output {path} : {e}")
-                    continue
-                
-                output_binaries = data[0]
-                post_proc_data = data[1]
-
-                for name, binary in output_binaries.items():
-                    out_bin_file = f"{name}.bin"
-                    out_bin_file = out_bin_file.replace('/', '_')
-                    out_bin_file = os.path.join(path, out_bin_file)
-                    binary.tofile(out_bin_file)
-                
-                for name, data in post_proc_data.items():
-                    metadata, image = data
-                    image_path = os.path.join(path, f"{name}.jpg")
-                    metadata_path = os.path.join(path, f"{name}.txt")
-                    image.save(image_path, "JPEG")
-                    with open(metadata_path, 'w+') as f:
-                        f.write(metadata)
 
 if __name__ == "__main__":
     main()
