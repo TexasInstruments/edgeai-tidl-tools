@@ -39,18 +39,18 @@ class PostProcessSegmentation():
         else:
             outputs = outputs[batch]
 
-        img = input.resize((outputs.shape[-1], outputs.shape[-2]), PIL.Image.LANCZOS).convert("RGBA")
-
         outputs = np.squeeze(outputs)
-
-        draw = ImageDraw.Draw(img)
 
         if outputs.ndim > 2:
             outputs = outputs.argmax(axis=2)
 
         outputs = np.squeeze(outputs)
         mask, mask_image = self._mask_transform(outputs)
-        input = post_process_utils.RGB2YUV(input)
+        input_arr = np.array(input)
+        if mask_image.shape[:2] != input_arr.shape[:2]:
+            input_size = (input_arr.shape[1], input_arr.shape[0])
+            mask_image = np.array(Image.fromarray(mask_image).resize(input_size, PIL.Image.NEAREST))
+        input = post_process_utils.RGB2YUV(input_arr)
         mask_image = post_process_utils.RGB2YUV(mask_image)
         input[:, :, 1] = mask_image[:, :, 1]
         input[:, :, 2] = mask_image[:, :, 2]
