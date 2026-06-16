@@ -12,7 +12,6 @@ class ONNXRT:
     @staticmethod
     def get_np_type_from_onnx_type(onnx_type):
         onnx_type = onnx_type.strip().lower()
-        # [TODO] : Put more types
         if(onnx_type == 'tensor(float)'):
             return np.float32
         elif(onnx_type == 'tensor(int64)'):
@@ -22,7 +21,17 @@ class ONNXRT:
         elif(onnx_type == 'tensor(int32)'):
             return np.int32
         elif(onnx_type == 'tensor(bool)'):
-            return np.bool
+            return np.bool_
+        elif(onnx_type == 'tensor(uint16)'):
+            return np.uint16
+        elif(onnx_type == 'tensor(int16)'):
+            return np.int16
+        elif(onnx_type == 'tensor(int8)'):
+            return np.int8
+        elif(onnx_type == 'tensor(uint32)'):
+            return np.uint32
+        elif(onnx_type == 'tensor(uint64)'):
+            return np.uint64
         else:
             print("[WARN] Could not determine numpy type from onnx type. Returning float.")
             return np.float32
