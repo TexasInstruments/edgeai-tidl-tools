@@ -385,7 +385,7 @@ def test_optimizers():
     """
     return {
         # operation specific to be specified here
-        'replace_einsum_with_matmul_and_basic_ops' : True,
+        'expand_slice_across_multiple_axis' : True,
 
         # utilities specific
         'shape_inference_mode'      : 'all',

@@ -23,23 +23,35 @@ The figure below illustrates the workflow of DNN development and deployment on T
 # EdgeAI TIDL Tools
 
 <!-- TOC -->
-   - [Introduction](#introduction)
-   - [What does edgeai-tidl-tools provide?](#what-does-edgeai-tidl-tools-provide)
-   - [Supported Devices and Compatibility](#supported-devices-and-compatibility)
-   - [Version Compatibility](#version-compatibility)
-   - [Workflow](#workflow)
-   - [Runtime Wrapper APIs and Examples](#runtime-wrapper-apis-and-examples)
-   - [Getting Started](#getting-started)
-      - [Setup on X86 PC](#setup-on-x86-pc)
-      - [Running on X86 PC](#running-on-x86-pc)
-      - [Setup on TI SOC](#setup-on-ti-soc)
-      - [Running on TI SOC](#running-on-ti-soc)
-   - [Testing](#testing)
-      - [TIDL Unit Test Framework](#tidl-unit-test-framework)
-      - [Test Reports](#test-reports)
-   - [User Guide](#user-guide)
-   - [Additional Support](#additional-support)
-   - [License](#license)
+- [TIDL - TI Deep Learning Product](#tidl---ti-deep-learning-product)
+- [EdgeAI TIDL Tools](#edgeai-tidl-tools)
+  - [Introduction](#introduction)
+    - [Execution via Open Source Runtimes](#execution-via-open-source-runtimes)
+    - [Native execution](#native-execution)
+  - [What does edgeai-tidl-tools provide?](#what-does-edgeai-tidl-tools-provide)
+  - [Supported Devices and Compatibility](#supported-devices-and-compatibility)
+  - [Version Compatibility](#version-compatibility)
+    - [Notes:](#notes)
+  - [Workflow](#workflow)
+  - [Runtime Wrapper APIs and Examples](#runtime-wrapper-apis-and-examples)
+  - [Getting Started](#getting-started)
+    - [Setup on X86 PC](#setup-on-x86-pc)
+    - [Running on X86 PC](#running-on-x86-pc)
+    - [Setup on TI SOC](#setup-on-ti-soc)
+    - [Running on TI SOC](#running-on-ti-soc)
+  - [Testing](#testing)
+    - [TIDL Unit Test Framework](#tidl-unit-test-framework)
+    - [Test Reports](#test-reports)
+  - [User Guide](#user-guide)
+    - [1. Getting Started with TIDL](#1-getting-started-with-tidl)
+    - [2. Development APIs and Examples](#2-development-apis-and-examples)
+    - [3. Advanced Features](#3-advanced-features)
+    - [4. Model Optimizations](#4-model-optimizations)
+    - [5. Performance Optimization](#5-performance-optimization)
+    - [6. Testing and Validation](#6-testing-and-validation)
+    - [7. Debugging](#7-debugging)
+  - [Additional Support](#additional-support)
+  - [License](#license)
 <!-- /TOC -->
 
 <br>
@@ -89,7 +101,7 @@ This repository provides:
 - Ready-to-use [Python and C++ Wrapper APIs](./runtimes/tidl_wrapper/README.md) for easy integration
 - Ready-to-use [Python and C++ reference](./runtimes/examples/README.md) examples.
 - Comprehensive [userguide](#user-guide) including workflow, compilation and inference processes, supported operators, debugging etc.
-- Utility scripts for optimizing and modifying models using [osrt-model-tools](./osrt-model-tools/README.md)
+- Utility scripts for optimizing and modifying models using [model-tools/tidl-onnx-model-optimizer](./model-tools/tidl-onnx-model-optimizer)
 - Utility scripts for setup, build, docker and debugging.
 - Pytest based [TIDL Unit Test Framework](./test/tidl_unit/README.md) for validating models across different runtimes and devices
 - Detailed [test reports](./test/reports/README.md) for various deep-learning operators across TI devices

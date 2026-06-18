@@ -1,15 +1,31 @@
 # tidl-onnx-model-optimizer
 This module contains various modifications and optimization on the original ONNX graph and generates a new optimized ONNX model with the same functionality as the original model but with a more optimized structure for TIDL-RT inference.
 
-## Setup
-For setting up execute the command
 
-    cd ../onnx_tools
+## Setup
+### Option 1: Setup directly from the git repository
+```
+pip install tidl_onnx_model_optimizer@git+https://github.com/TexasInstruments/edgeai-tidl-tools.git@master#subdirectory=model-tools/tidl-onnx-model-optimizer
+```
+
+### Option2: Setup after git clone
+For setting up execute the command from inside tidl-onnx-model-optimizer
+
     source ./setup.sh
 
-This depends on the [onnx-graphsurgeon](https://github.com/NVIDIA/TensorRT/tree/master/tools/onnx-graphsurgeon)
+Note: This depends on the [onnx-graphsurgeon](https://github.com/NVIDIA/TensorRT/tree/master/tools/onnx-graphsurgeon)
 
-## Use
+
+## Quick Start
+
+**Optimize an ONNX model:**
+```python
+from tidl_onnx_model_optimizer import optimize
+optimize('model.onnx', 'model_optimized.onnx')
+```
+
+
+## Usage
 After running setup script, you will have `tidl_onnx_model_optimizer` python package installed in your python environment, which can be used as follows:
 
     from tidl_onnx_model_optimizer import optimize
