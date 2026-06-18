@@ -4,28 +4,32 @@ This document provides answers to frequently asked questions about using the Edg
 
 ## Table of Contents
 
-- [General Questions](#general-questions)
-  - [What is TIDL?](#what-is-tidl)
-  - [Which TI devices are supported?](#which-ti-devices-are-supported)
-  - [What frameworks are supported?](#what-frameworks-are-supported)
-- [Setup and Installation](#setup-and-installation)
-  - [How do I set up the development environment?](#how-do-i-set-up-the-development-environment)
-  - [How do I set up an NFS server on my PC for mounting to a TI SOC?](#how-do-i-set-up-an-nfs-server-on-my-pc-for-mounting-to-a-ti-soc)
-  - [How do I check if my setup is correct?](#how-do-i-check-if-my-setup-is-correct)
-- [Model Compilation](#model-compilation)
-  - [Why can't I compile models on the TI SOC?](#why-cant-i-compile-models-on-the-ti-soc)
-  - [How do I know if my model is fully offloaded?](#how-do-i-know-if-my-model-is-fully-offloaded)
-- [Model Optimization Tools](#model-optimization-tools)
-  - [Why should I optimize my models before using TIDL?](#why-should-i-optimize-my-models-before-using-tidl)
-  - [What is osrt-model-tools?](#what-is-osrt-model-tools)
-  - [What can I do with osrt-model-tools?](#what-can-i-do-with-osrt-model-tools)
-  - [How do I install and use osrt-model-tools?](#how-do-i-install-and-use-osrt-model-tools)
-- [Backward Compatibility](#backward-compatibility)
-  - [How do I check SDK version compatibility?](#how-do-i-check-sdk-version-compatibility)
-  - [What is the update_target script?](#what-is-the-update_target-script)
-- [Basic Issues and Debugging](#basic-issues-and-debugging)
-  - [Linker Failure](#linker-failure)
-  - [Debugging](#debugging)
+- [Frequently Asked Questions (FAQ)](#frequently-asked-questions-faq)
+  - [Table of Contents](#table-of-contents)
+  - [General Questions](#general-questions)
+    - [What is TIDL?](#what-is-tidl)
+    - [Which TI devices are supported?](#which-ti-devices-are-supported)
+    - [What frameworks are supported?](#what-frameworks-are-supported)
+  - [Setup and Installation](#setup-and-installation)
+    - [How do I set up the development environment?](#how-do-i-set-up-the-development-environment)
+    - [How do I set up an NFS server on my PC for mounting to a TI SOC?](#how-do-i-set-up-an-nfs-server-on-my-pc-for-mounting-to-a-ti-soc)
+    - [How do I check if my setup is correct?](#how-do-i-check-if-my-setup-is-correct)
+  - [Model Compilation](#model-compilation)
+    - [Why can't I compile models on the TI SOC?](#why-cant-i-compile-models-on-the-ti-soc)
+    - [How do I know if my model is fully offloaded?](#how-do-i-know-if-my-model-is-fully-offloaded)
+  - [Model Optimization Tools](#model-optimization-tools)
+    - [Why should I optimize my models before using TIDL?](#why-should-i-optimize-my-models-before-using-tidl)
+    - [What is tidl-onnx-model-optimizer?](#what-is-tidl-onnx-model-optimizer)
+    - [What can I do with tidl-onnx-model-optimizer?](#what-can-i-do-with-tidl-onnx-model-optimizer)
+    - [What is osrt-model-tools?](#what-is-osrt-model-tools)
+      - [ONNX Tools:](#onnx-tools)
+      - [TFLite Tools:](#tflite-tools)
+  - [Backward Compatibility](#backward-compatibility)
+    - [How do I check SDK version compatibility?](#how-do-i-check-sdk-version-compatibility)
+    - [What is the update\_target script?](#what-is-the-update_target-script)
+  - [Basic Issues and Debugging](#basic-issues-and-debugging)
+    - [Linker Failure](#linker-failure)
+    - [Debugging](#debugging)
 
 ## General Questions
 
@@ -155,19 +159,23 @@ Many general optimizations and tricks can be performed on models offline even be
 2. **Better Performance**: Pre-optimized models often execute faster on TIDL hardware.
 3. **Simplified Input/Output Processing**: Tools like RGB to YUV converters can simplify the integration with camera pipelines.
 
-The osrt-model-tools package provides utilities to perform these optimizations easily and effectively.
+The tidl-onnx-model-optimizer package provides utilities to perform these optimizations easily and effectively.
+
+### What is tidl-onnx-model-optimizer?
+
+OSRT Model Tools is a collection of functions for optimizing and modifying ONNX models to improve their compatibility and performance with TIDL (TI Deep Learning). It provides tools to help prepare models for efficient execution on TI devices.
+
+### What can I do with tidl-onnx-model-optimizer?
+
+The tidl-onnx-model-optimizer package provides several functions for model optimization:
+- **Model Optimization**: Optimize ONNX models for TIDL inference by performing various user selected optimizations
+
 
 ### What is osrt-model-tools?
-
-OSRT Model Tools is a collection of utilities for optimizing and modifying ONNX and TFLite models to improve their compatibility and performance with TIDL (TI Deep Learning). It provides tools to help prepare models for efficient execution on TI devices.
-
-### What can I do with osrt-model-tools?
-
-The osrt-model-tools package provides several utilities for model optimization:
+osrt-model-tools contains a set of utilities to do the following:
 
 #### ONNX Tools:
-- **Model Optimization**: Optimize ONNX models for TIDL inference by performing various user selected optimizations
-- **Model Input Optimization**: Optimize ONNX models input to add pre-processing as part of the model
+- **Model Input Pre-Processing**: Modify ONNX models input to add pre-processing as part of the model
 - **RGB to YUV Conversion**: Convert RGB-trained models to accept YUV (NV12) image format as input
 - **Batch Size Modification**: Update models to support specific batch dimensions
 - **Intermediate Outputs**: Add output layers to all nodes for debugging
@@ -175,23 +183,12 @@ The osrt-model-tools package provides several utilities for model optimization:
 - **Node Name Management**: Get nodes between specific layers or simplify intermediate tensor names
 
 #### TFLite Tools:
-- **Model Optimization**: Optimize TensorFlow Lite models for TIDL inference by performing various user selected optimizations
+- **Model Pre-Processing**: Modify TFLite models input to add pre-processing as part of the model
 - **RGB to YUV Conversion**: Convert RGB-trained TFLite models to accept YUV (NV12) input format
 
-### How do I install and use osrt-model-tools?
-
-The osrt-model-tools package is installed as part of `setup.sh` script.
-
-To install manually after making some change in osrt-model-tool:
-```bash
-cd osrt-model-tools
-source ./setup.sh
-```
-
 For detailed documentation on each tool, refer to:
-- [ONNX Tools Documentation](../osrt-model-tools/osrt_model_tools/onnx_tools/README.md)
-- TFLite Tools Documentation (see `osrt-model-tools/osrt_model_tools/tflite_tools/`)
-
+- [ONNX Tools Documentation](../model-tools//osrt-model-tools/osrt_model_tools/onnx_tools)
+- [TFLite Tools Documentation](../model-tools/osrt-model-tools/osrt_model_tools/tflite_tools)
 
 ## Backward Compatibility
 

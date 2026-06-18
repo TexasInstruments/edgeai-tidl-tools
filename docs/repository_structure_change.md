@@ -6,10 +6,17 @@ This document provides a comprehensive overview of the structural changes made t
 
 ## Table of Contents
 
-- [Motivation](#motivation)
-- [Key Structural Changes](#key-structural-changes)
-- [Directory Structure Comparison](#directory-structure-comparison)
-- [Navigating the New Structure](#navigating-the-new-structure)
+- [Repository Structure Changes](#repository-structure-changes)
+  - [Table of Contents](#table-of-contents)
+  - [Motivation](#motivation)
+  - [Key Structural Changes](#key-structural-changes)
+    - [1. Modular Organization](#1-modular-organization)
+    - [2. Improved API Structure](#2-improved-api-structure)
+    - [3. Enhanced Examples](#3-enhanced-examples)
+  - [Directory Structure Comparison](#directory-structure-comparison)
+  - [Navigating the New Structure](#navigating-the-new-structure)
+    - [For Getting Started](#for-getting-started)
+    - [For Development](#for-development)
 
 ## Motivation
 
@@ -33,7 +40,7 @@ The new structure organizes code and resources into logical modules:
   - Examples are in `runtimes/examples/`
 - **Documentation**: Enhanced documentation is centralized in the `docs/` directory with dedicated files for each topic
 - **Scripts**: Utility scripts are organized by function in the `scripts/` directory
-- **Model Tools**: Model optimization tools are now organized under `osrt-model-tools/`
+- **Model Tools**: Model optimization tools and utilities are now organized under `model-tools/`
 
 ### 2. Improved API Structure
 

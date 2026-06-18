@@ -172,13 +172,21 @@ echo '******************** OSRT PYTHON PACKAGES INSTALLED ********************'
 cd ${SCRIPTDIR}
 
 # Graph optimizer tool setup
-cd ${SCRIPTDIR}/../../osrt-model-tools
+cd ${SCRIPTDIR}/../../model-tools/tidl-onnx-model-optimizer
 if [[ $skip_model_optimizer -eq 0 ]]; then
     echo
-    echo '*********************** DOWNLOADING MODEL OPTIMIZER **********************'
+    echo '*********************** INSTALLING tidl-onnx-model-optimizer **********************'
     source ./setup.sh
-    
-    echo '*********************** MODEL OPTIMIZER DOWNLOADED ***********************'
+    echo '*********************** tidl-onnx-model-optimizer INSTALLED ***********************'
+fi
+cd ${SCRIPTDIR}
+
+cd ${SCRIPTDIR}/../../model-tools/osrt-model-tools
+if [[ $skip_model_optimizer -eq 0 ]]; then
+    echo
+    echo '*********************** INSTALLING osrt-model-tools **********************'
+    source ./setup.sh
+    echo '*********************** osrt-model-tools INSTALLED ***********************'
 fi
 cd ${SCRIPTDIR}
 

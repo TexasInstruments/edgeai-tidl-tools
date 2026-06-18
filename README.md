@@ -494,8 +494,8 @@ After mastering the basics, explore these topics to leverage advanced features:
 - [OD Meta Arch](docs/od_meta_arch.md): Understand optimized post-processing for object detection
 
 ### 4. Model Optimizations
-
-- [OSRT Model Tools](osrt-model-tools/README.md): Utilities for optimizing ONNX and TFLite models offline
+- [tidl-onnx-model-optimizer](model-tools/tidl-onnx-model-optimizer): Optimize ONNX models for TIDL compatibility with 60+ transformation rules. Supports advanced optimizations for attention blocks, quantization, layout conversions, and more.
+- [osrt-model-tools](model-tools/osrt-model-tools): Collection of utilities for ONNX and TensorFlow Lite models, including format conversion (RGB to YUV) and preprocessing utilities.
 
 ### 5. Performance Optimization
 

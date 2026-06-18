@@ -4,17 +4,19 @@ This document provides information about general error, trace logs, debugging du
 
 ## Table of Contents
 
-- [General Errors](#general-errors)
-- [Visualizing Original Model](#visualizing-original-model)
-- [Debug Trace Logs](#debug-trace-logs)
-- [Debugging Model Compilation](#debugging-model-compilation)
-- [Debugging Model Inference](#debugging-model-inference)
-  - [Model Artifacts Incompatibility](#model-artifacts-incompatibility)
-  - [Inferencing Failures](#inferencing-failures)
-  - [Incorrect Inference Results](#incorrect-inference-results)
-  - [Inference Performance](#inference-performance)
-- [Basic Root Causing](#basic-root-causing)
-- [Additional Support](#additional-support)
+- [Debugging](#debugging)
+  - [Table of Contents](#table-of-contents)
+  - [General Errors](#general-errors)
+  - [Visualizing Original Model](#visualizing-original-model)
+  - [Debug Trace Logs](#debug-trace-logs)
+  - [Debugging Model Compilation](#debugging-model-compilation)
+  - [Debugging Model Inference](#debugging-model-inference)
+    - [Model Artifacts Incompatibility](#model-artifacts-incompatibility)
+    - [Inferencing Failures](#inferencing-failures)
+    - [Incorrect Inference Results](#incorrect-inference-results)
+    - [Inference Performance](#inference-performance)
+  - [Basic Root Causing](#basic-root-causing)
+  - [Additional Support](#additional-support)
 
 ## General Errors
 While running model compilation or inference there are some general error that can be encountered and its solution:
@@ -105,7 +107,7 @@ When facing incorrect inference results, the debugging process typically involve
 
 1. **Get Golden Outputs**: First, obtain the golden output by running the model via the native model runtime without TIDL-offload to get layer-level outputs. [Python Basic Examples](../runtimes/examples/python/basic_example/README.md) provides option to run with native runtime using `-d` option and the outputs are dumped in `outputs/*model-key*/no_offload/` folder
 
-   - For ONNX models: When running via native ONNX Runtime, you need to modify the model to add outputs to each layer since ONNX Runtime does not provide an option to dump intermediate outputs. Refer to [osrt-model-tools](../osrt-model-tools/osrt_model_tools/onnx_tools/tidl_onnx_model_utils/README.md#add_intermediate_outputs) for a simple script to add intermediate outputs to an onnx model.
+   - For ONNX models: When running via native ONNX Runtime, you need to modify the model to add outputs to each layer since ONNX Runtime does not provide an option to dump intermediate outputs. Refer to [osrt-model-tools](../model-tools/osrt-model-tools/osrt_model_tools/onnx_tools/tidl_onnx_model_utils/README.md#add_intermediate_outputs) for a simple script to add intermediate outputs to an onnx model.
 
    - For TFLite models: TFLite provides built-in options to dump intermediate outputs.
     ``` python
@@ -153,7 +155,7 @@ The other rows are meant for TI's internal team for debugging performance issues
 
 - If the results on `8-bit` is correct, run the compiled artifacts on TI Device and compare the results. If that is wrong, it indicates failure in dataflow and/or dsp code.
 
-- If you suspect an issue in a specific part of the model, you can use the `extract_model` script to extract a subgraph from the model for focused debugging. This allows you to isolate and test just the problematic section. Refer to [osrt-model-tools](../osrt-model-tools/osrt_model_tools/onnx_tools/tidl_onnx_model_utils/README.md#extract_model) for a simple script to extract subsection of an onnx model.
+- If you suspect an issue in a specific part of the model, you can use the `extract_model` script to extract a subgraph from the model for focused debugging. This allows you to isolate and test just the problematic section. Refer to [osrt-model-tools](../model-tools/osrt-model-tools/osrt_model_tools/onnx_tools/tidl_onnx_model_utils/README.md#extract_model) for a simple script to extract subsection of an onnx model.
 
 ## Additional Support
 
