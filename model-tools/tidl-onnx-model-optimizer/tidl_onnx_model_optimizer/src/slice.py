@@ -372,6 +372,7 @@ def tidl_expand_slice_across_multiple_axis (graph: gs.Graph, onnx_graph: onnx.Gr
                     
                 node.outputs.clear()
                 # node_iter += 1
+                graph.toposort()
 
 
 def tidl_convert_2_dimension_slice_to_maxpool (graph: gs.Graph, onnx_graph: onnx.GraphProto):

@@ -108,139 +108,120 @@ def tidl_convert_concat_unsupported_axis_to_channel(graph: gs.Graph, onnx_graph:
     """
     logging.debug("Starting conversion of unsupported-axis Concat operations using Reshape approach")
     tensors = graph.tensors()
-
-    # Find all Concat nodes in the graph
+    
     concat_nodes = [node for node in graph.nodes if node.op == "Concat"]
     logging.debug(f"Found {len(concat_nodes)} Concat nodes to examine")
-
+    
     for node in concat_nodes:
-        # Get the concat axis (handle negative indices)
+        # Get the concat axis and normalize to negative index for generalized dimension support
         concat_axis = node.attrs['axis']
-        if concat_axis < 0:
-            concat_axis = len(node.inputs[0].shape) + concat_axis
 
-        # TIDL supports Concat on axes 1, 2, 3 (Channel, Height, Width) for 4D tensors
-        # Any other axis (like 0 for batch) needs to be converted
-        supported_axes = [1, 2, 3]  # C, H, W in NCHW format
+        # Check if input shape is defined before using it
+        if node.inputs[0].shape is None:
+            logging.warning(f"Concat node {node.name} has undefined input shape. Skipping.")
+            continue
 
-        if concat_axis not in supported_axes:
-            logging.debug(f"Found unsupported-axis Concat node: {node.name} with axis {concat_axis}")
+        num_dims = len(node.inputs[0].shape)
+        
+        # Convert positive axis to negative for uniform handling
+        # e.g., for 4D tensor: axis 0 -> -4, axis 1 -> -3, axis 2 -> -2, axis 3 -> -1
+        if concat_axis >= 0:
+            concat_axis = concat_axis - num_dims
+        
+        # TIDL supports last 3 axes: -1 (W), -2 (H), -3 (C) for any N-D tensor
+        # Skip if axis is already supported (last 3 axes)
+        supported_axes = [-1, -2, -3]
+        if concat_axis in supported_axes:
+            logging.debug(f"Concat node {node.name} axis {concat_axis} is supported. Skipping.")
+            continue
 
-            # Validate all inputs have consistent shapes
-            valid_input = True
-            first_shape = node.inputs[0].shape
+        logging.debug(f"Found unsupported-axis Concat node: {node.name} with axis {concat_axis}")
 
-            for inp in node.inputs:
-                if inp.shape is None or len(inp.shape) < 2:
-                    logging.warning(f"{inp.name} input to {node.name} has invalid shape {inp.shape}. Skipping this Concat.")
-                    valid_input = False
-                    break
+        # Validate all inputs have consistent shapes
+        valid_input = True
+        first_shape = node.inputs[0].shape
+        for inp in node.inputs:
+            if inp.shape is None or len(inp.shape) < 2:
+                logging.warning(f"{inp.name} input to {node.name} has invalid shape {inp.shape}. Skipping this Concat.")
+                valid_input = False
+                break
+        
+        if not valid_input:
+            logging.debug(f"Skipping node {node.name} due to invalid input dimensions")
+            continue
 
-            # Skip this node if any input doesn't have valid dimensions
-            if not valid_input:
-                logging.debug(f"Skipping node {node.name} due to invalid input dimensions")
-                continue
+        # Convert negative axis back to positive for shape indexing
+        original_axis = num_dims + concat_axis  # e.g., -4 in 5D tensor → index 1
 
-            original_axis = concat_axis
+        original_shape = list(first_shape)
 
-            # Calculate flattened shape: keep dimensions up to concat_axis, flatten rest
-            # For example: [1, 1, 64, 320, 320] with axis=0 → [1, 1*64*320*320] = [1, 6553600]
-            original_shape = list(first_shape)
-            num_dims = len(original_shape)
+        # Calculate the product of all dimensions after the concat axis
+        flat_size = 1
+        for i in range(original_axis + 1, num_dims):
+            flat_size *= original_shape[i]
 
-            # Calculate the product of all dimensions after the concat axis
-            flat_size = 1
-            for i in range(original_axis + 1, num_dims):
-                flat_size *= original_shape[i]
+        # New shape: keep dims up to concat_axis, flatten everything after into one dim
+        reshaped_dims = original_shape[:original_axis + 1] + [flat_size]
 
-            # New shape is [dim0, dim1, ..., dim_concat_axis, flat_size]
-            # Then we keep up to and including concat_axis, and flatten everything after
-            reshaped_dims = original_shape[:original_axis + 1] + [flat_size]
+        logging.debug(f"Converting Concat axis for {node.name}: axis {concat_axis} (positive: {original_axis})")
+        logging.debug(f"Original shape: {original_shape}, Reshaped to: {reshaped_dims}")
 
-            logging.debug(f"Converting Concat axis for {node.name}: axis {original_axis}")
-            logging.debug(f"Original shape: {original_shape}, Reshaped to: {reshaped_dims}")
-
-            ## Modify inputs to the concat node - reshape all inputs to flatten dimensions
-            logging.debug(f"Modifying {len(node.inputs)} inputs to Concat node {node.name}")
-            for idx, inp in enumerate(node.inputs):
-                ## Handle constant inputs differently - reshape the actual data
-                if isinstance(inp, gs.Constant):
-                    concat_const_tensor = np.array(tensors[inp.name].values, dtype=np.float32)
-
-                    # Reshape const input
-                    logging.debug(f"Reshaping constant input {inp.name}: {concat_const_tensor.shape} → {reshaped_dims}")
-                    reshaped_const_tensor = concat_const_tensor.reshape(reshaped_dims)
-                    node.inputs[idx] = gs.Constant(name=f'{inp.name}_reshaped_ax{original_axis}_flattened',
-                                                    values=reshaped_const_tensor)
-
-                ## Handle variable inputs by creating reshape nodes
-                else:
-                    # Create shape constant for Reshape operation
-                    reshape_shape_name = f'{inp.name}_reshape_shape_flatten'
-                    reshape_shape_constant = gs.Constant(name=reshape_shape_name,
-                                                        values=np.array(reshaped_dims, dtype=np.int64))
-
-                    # Create reshape layer
-                    reshape_out = gs.Variable(name=f'{inp.name}_reshaped_ax{original_axis}_flattened',
-                                             dtype=np.float32,
-                                             shape=reshaped_dims)
-                    reshape_node = gs.Node(name=f'reshape_{inp.name}_ax{original_axis}_flatten',
-                                          op='Reshape',
-                                          inputs=[inp, reshape_shape_constant],
-                                          outputs=[reshape_out])
-                    logging.debug(f"Adding reshape node {reshape_node.name}: {inp.shape} → {reshaped_dims}")
-                    graph.nodes.append(reshape_node)
-
-                    # feed new input to concat
-                    node.inputs[idx] = reshape_out
-
-            # Concat axis remains the same (it's valid for the flattened shape)
-            # No need to change node.attrs['axis']
-
-            ## Modify outputs from concat - need to reshape back to restore original dimensionality
-            logging.debug(f"Modifying {len(node.outputs)} outputs from Concat node {node.name}")
-            for idx, outp in enumerate(node.outputs):
-                # Calculate the output shape after concat
-                # The concat happens on original_axis, so sum all input sizes on that axis
-                concat_flat_shape = reshaped_dims.copy()
-                total_size_on_concat_axis = sum(inp.shape[original_axis] for inp in node.inputs)
-                concat_flat_shape[original_axis] = total_size_on_concat_axis
-
-                # Calculate the final output shape after reshaping back
-                # Restore original dimensions, but with concatenated size on the concat_axis
-                final_shape = original_shape.copy()
-                final_shape[original_axis] = total_size_on_concat_axis
-
-                logging.debug(f"Concat output shape (flattened): {concat_flat_shape}, target shape: {final_shape}")
-
-                # Create shape constant for Reshape operation
-                reshape_back_shape_name = f'{outp.name}_reshape_shape_restore'
-                reshape_back_shape_constant = gs.Constant(name=reshape_back_shape_name,
-                                                         values=np.array(final_shape, dtype=np.int64))
-
-                # Create reshape layer to restore original dimensionality
-                reshape_in = gs.Variable(name=f'{outp.name}_reshaped_ax{original_axis}_restored',
-                                        dtype=np.float32,
-                                        shape=concat_flat_shape)
-                reshape_node = gs.Node(name=f'reshape_{outp.name}_ax{original_axis}_restore',
+        # Modify inputs to the concat node - reshape all inputs to flatten dimensions
+        logging.debug(f"Modifying {len(node.inputs)} inputs to Concat node {node.name}")
+        for idx, inp in enumerate(node.inputs):
+            if isinstance(inp, gs.Constant):
+                concat_const_tensor = np.array(tensors[inp.name].values, dtype=np.float32)
+                logging.debug(f"Reshaping constant input {inp.name}: {concat_const_tensor.shape} → {reshaped_dims}")
+                reshaped_const_tensor = concat_const_tensor.reshape(reshaped_dims)
+                node.inputs[idx] = gs.Constant(name=f'{inp.name}_reshaped_ax{original_axis}_flattened',
+                                                values=reshaped_const_tensor)
+            else:
+                reshape_shape_constant = gs.Constant(name=f'{inp.name}_reshape_shape_flatten',
+                                                     values=np.array(reshaped_dims, dtype=np.int64))
+                reshape_out = gs.Variable(name=f'{inp.name}_reshaped_ax{original_axis}_flattened',
+                                         dtype=np.float32,
+                                         shape=reshaped_dims)
+                reshape_node = gs.Node(name=f'reshape_{inp.name}_ax{original_axis}_flatten',
                                       op='Reshape',
-                                      inputs=[reshape_in, reshape_back_shape_constant],
-                                      outputs=[outp])
-                logging.debug(f"Adding reshape node {reshape_node.name}: {concat_flat_shape} → {final_shape}")
+                                      inputs=[inp, reshape_shape_constant],
+                                      outputs=[reshape_out])
+                logging.debug(f"Adding reshape node {reshape_node.name}: {inp.shape} → {reshaped_dims}")
                 graph.nodes.append(reshape_node)
+                node.inputs[idx] = reshape_out
 
-                # Update output variable shape
-                outp.shape = final_shape
+        # After reshaping inputs, update axis in concat node to -1 (last axis of flattened tensor)
+        # Since we flattened everything after concat_axis into one dim,
+        # the concat axis is now the second-to-last or last axis → use original_axis directly
+        # No axis attribute change needed as original_axis is still valid for reshaped_dims
 
-                # Replace original output with the input to our new reshape node
-                # This completes the transformation chain:
-                # 1. Original input tensors → Reshape nodes (flatten dimensions after concat_axis)
-                # 2. Flattened inputs → Concat operation on original axis
-                # 3. Concat output → Final Reshape (restore original dimensionality)
-                # 4. Final output has same data arrangement as if concat on original axis was performed
-                node.outputs[idx] = reshape_in
+        # Modify outputs from concat - reshape back to restore original dimensionality
+        logging.debug(f"Modifying {len(node.outputs)} outputs from Concat node {node.name}")
+        for idx, outp in enumerate(node.outputs):
+            concat_flat_shape = reshaped_dims.copy()
+            total_size_on_concat_axis = sum(inp.shape[original_axis] for inp in node.inputs)
+            concat_flat_shape[original_axis] = total_size_on_concat_axis
 
-            logging.debug(f"Successfully converted Concat node {node.name} on axis {original_axis} using Reshape approach")
+            # Restore original shape with updated concat axis size
+            final_shape = original_shape.copy()
+            final_shape[original_axis] = total_size_on_concat_axis
+
+            logging.debug(f"Concat output shape (flattened): {concat_flat_shape}, target shape: {final_shape}")
+
+            reshape_back_shape_constant = gs.Constant(name=f'{outp.name}_reshape_shape_restore',
+                                                      values=np.array(final_shape, dtype=np.int64))
+            reshape_in = gs.Variable(name=f'{outp.name}_reshaped_ax{original_axis}_restored',
+                                    dtype=np.float32,
+                                    shape=concat_flat_shape)
+            reshape_node = gs.Node(name=f'reshape_{outp.name}_ax{original_axis}_restore',
+                                  op='Reshape',
+                                  inputs=[reshape_in, reshape_back_shape_constant],
+                                  outputs=[outp])
+            logging.debug(f"Adding reshape node {reshape_node.name}: {concat_flat_shape} → {final_shape}")
+            graph.nodes.append(reshape_node)
+            outp.shape = final_shape
+            node.outputs[idx] = reshape_in
+
+        logging.debug(f"Successfully converted Concat node {node.name} on axis {concat_axis} using Reshape approach")
 
 
 def tidl_convert_single_concat_to_consecutive_concats (graph: gs.Graph, onnx_graph: onnx.GraphProto, base:int=None):
