@@ -10,6 +10,7 @@ from multiprocessing import Process
 from typing import List, Dict, Tuple, Any, Union
 import yaml
 import platform
+import time
 
 # Add paths to import basic_example.py
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
@@ -439,6 +440,7 @@ def perform_test_oneprocess(**kwargs):
                 print(f"[WARNING] Failed to clean up artifacts directory: {e}")
 
         # Run the model using basic_example.py's run() function with the modified config
+        _run_start = time.monotonic()
         status, outputs = run(
             config=new_config,
             soc=soc,
@@ -449,6 +451,9 @@ def perform_test_oneprocess(**kwargs):
             verbose=True,
             dump_frames=1
         )
+        _run_elapsed = time.monotonic() - _run_start
+        print(f"WALL_TIME: {_run_elapsed:.2f} s")
+
         # Clean up temporary directory in artifacts folder
         if not run_infer and not disable_tidl_offload:
             '''

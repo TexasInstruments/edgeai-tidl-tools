@@ -187,6 +187,10 @@ def pytest_runtest_makereport(item, call):
                 'write_total': write_total,
                 'ddr_total': ddr_total,
             }
+        else:
+            _wall_time_match = re.search(r'WALL_TIME:\s*([\d.]+\s*\w+)', _stdout_tidl)
+            if _wall_time_match:
+                report.perf_metrics = {'wall_time': _wall_time_match.group(1).strip()}
 
         # Extract plot data from the output
         plot_data_regex = re.search(r'PLOT_BASE_64_PATH: (.+?)(?:\n|$)', report.capstdout)
@@ -284,6 +288,8 @@ def pytest_html_results_table_row(report, cells):
     if hasattr(report, 'perf_metrics') and report.perf_metrics:
         pm = report.perf_metrics
         perf_div = html.div()
+        if pm.get('wall_time'):
+            perf_div.append(html.p(f"wall_time: {pm['wall_time']}", style="margin: 0; color: gray;"))
         if pm.get('total_time'):
             perf_div.append(html.p(f"total_time: {pm['total_time']}", style="margin: 0;"))
         if pm.get('core_time'):
