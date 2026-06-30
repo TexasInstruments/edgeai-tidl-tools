@@ -48,10 +48,11 @@ TIDL provides mechanism to enable debug trace logs at various levels. These logs
   - 0 - No Debug Prints
   - 1 - Level-1 Debug Prints
   - 2 - Level-2 Debug Prints
-  - 3 - Level-1 Debug Prints and dump fixed point layer traces in /tmp/
-  - 4 - Level-1 Debug Prints and dump fixed and floating point layer traces in /tmp/
-  - 5 - Level-2 Debug Prints and dump fixed point layer traces in /tmp/
-  - 6 - Level-3 Debug Prints
+  - 3 - Level-1 Debug Prints and dump fixed point layer traces under `<trace_base_name>_<subgraph_name>_*.y`
+  - 4 - Level-1 Debug Prints and dump fixed and floating point layer traces under `<trace_base_name>_<subgraph_name>_*.y` and `<trace_base_name>_<subgraph_name>_*_float.bin`
+  - 5 - Level-2 Debug Prints and dump fixed and floating point layer traces under `<trace_base_name>_<subgraph_name>_*.y` and `<trace_base_name>_<subgraph_name>_*_float.bin`
+
+The default value of `trace_base_name` is `/tmp/tidl_trace`. It can be configured using `advanced_options:trace_base_name` inference option. Refer to [Inference Options](./model_inference.md#inference-options) for more details.
 
 > **NOTE**: To get error prints on TI Device, make sure to run **vx_remote_arm.out**. This can be done by sourcing **vision_apps_init.sh**.
 > ```bash
@@ -123,10 +124,10 @@ When facing incorrect inference results, the debugging process typically involve
         tensor.tofile(FOLDER + f"out_{t['index']}.bin")
     ```
 
-2. **Get TIDL Outputs**: Run the original model with `debug_level = 4` as specified in "Debug Trace Logs" section above. This will dump layer level outputs under /tmp folder. Make sure to clear the /tmp folder before running it to avoid debugging traces from older and unrelated inference runs. The dumped trace will follow the following naming <br><br>
-"**tidl_trace_name_layernum_batch_dim1_dim2_channel_widthxheight**" <br><br>For example:<br>
-tidl_trace_subgraph_0_0001_0001_0001_00004_00002_000128x00064_float.bin (Float trace)
-<br> tidl_trace_subgraph_0_0001_0001_0001_00004_00002_000128x00064.y (Fixed trace) <br><br>graph_name: subgraph_0, layer_num: 0001, batch: 1, dim1: 1, dim2: 4, channel: 2, height: 64, width: 128<br><br>Indicating a output dimension for Layer 1 to be 1x1x4x2x64x128 <br><br>
+2. **Get TIDL Outputs**: Run the original model with `debug_level = 4` as specified in "Debug Trace Logs" section above. By default, trace files are dumped under `/tmp/` with the prefix `tidl_trace`. Use `advanced_options:trace_base_name` to redirect traces to a custom path/prefix (e.g. `/my/traces/model_trace`). Make sure the target directory exists before running inference. Clear the trace output directory before running to avoid mixing traces from older inference runs. The dumped trace will follow the following naming <br><br>
+"**`<trace_base_name>_<subgraph_name>_layernum_batch_dim1_dim2_channel_widthxheight`**" <br><br>For example (with default `trace_base_name=/tmp/tidl_trace`):<br>
+/tmp/tidl_trace_subgraph_0_0001_0001_0001_00004_00002_000128x00064_float.bin (Float trace)
+<br> /tmp/tidl_trace_subgraph_0_0001_0001_0001_00004_00002_000128x00064.y (Fixed trace) <br><br>graph_name: subgraph_0, layer_num: 0001, batch: 1, dim1: 1, dim2: 4, channel: 2, height: 64, width: 128<br><br>Indicating a output dimension for Layer 1 to be 1x1x4x2x64x128 <br><br>
 Once the outputs are generated and dumped copy it over to an empty folder.
 <br> <br> TIP: If you are using basic_examples, copy over the traces to `outputs/*model-key*/offload/` folder since the golden outputs as specified above are dumped in `outputs/*model-key*/no_offload/`. With this you will have consistency and easier time comparing the traces.
 
