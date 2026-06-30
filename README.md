@@ -39,9 +39,6 @@ The figure below illustrates the workflow of DNN development and deployment on T
     - [Running on X86 PC](#running-on-x86-pc)
     - [Setup on TI SOC](#setup-on-ti-soc)
     - [Running on TI SOC](#running-on-ti-soc)
-  - [Testing](#testing)
-    - [TIDL Unit Test Framework](#tidl-unit-test-framework)
-    - [Test Reports](#test-reports)
   - [User Guide](#user-guide)
     - [1. Getting Started with TIDL](#1-getting-started-with-tidl)
     - [2. Development APIs and Examples](#2-development-apis-and-examples)
@@ -57,7 +54,12 @@ The figure below illustrates the workflow of DNN development and deployment on T
 <br>
 <br>
 
+> [!TIP]
+> **New to EdgeAI TIDL Tools?** Head to the **[User Guide](#user-guide)** for a structured learning path — from basic setup to advanced features, debugging, and performance optimization.
+
 > **Note:** This repository features a completely redesigned structure from release `11_02_04_00` onwards compared to previous versions of edgeai-tidl-tools. For details on the structural changes, migration guidance, and how to still access the older repository structure, please refer to the [Repository Structure Changes](./docs/repository_structure_change.md) documentation.
+
+---
 
 ## Introduction
 TIDL provides multiple deployment options with industry defined inference engines as well as TIDL's own native inference engine:
@@ -90,6 +92,8 @@ TIDL uses a **TI fork of ONNX Runtime** ([TexasInstruments/onnxruntime](https://
 For more information, check [TIDLRT](./docs/tidlrt.md)
 
 
+---
+
 ## What does edgeai-tidl-tools provide?
 
 This repository is meant to serve as a reference application allowing users to draw inspiration to create their own applications around TIDL.
@@ -101,7 +105,7 @@ This repository provides:
 - Ready-to-use [Python and C++ Wrapper APIs](./runtimes/tidl_wrapper/README.md) for easy integration
 - Ready-to-use [Python and C++ reference](./runtimes/examples/README.md) examples.
 - Comprehensive [userguide](#user-guide) including workflow, compilation and inference processes, supported operators, debugging etc.
-- Utility scripts for optimizing and modifying models using [model-tools/tidl-onnx-model-optimizer](./model-tools/tidl-onnx-model-optimizer)
+- Utility scripts for optimizing and modifying models offline using [model-tools](./model-tools)
 - Utility scripts for setup, build, docker and debugging.
 - Pytest based [TIDL Unit Test Framework](./test/tidl_unit/README.md) for validating models across different runtimes and devices
 - Detailed [test reports](./test/reports/README.md) for various deep-learning operators across TI devices
@@ -115,6 +119,8 @@ This modular architecture allows for flexible usage patterns:
 2. Use only the wrapper APIs to build custom applications
 3. Mix and match Python and C++ components as needed
 
+---
+
 ## Supported Devices and Compatibility
 <div align="center">
 
@@ -127,6 +133,8 @@ This modular architecture allows for flexible usage patterns:
 | J784S4 \| TDA4VH \| AM69A | :heavy_check_mark:   | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | AM62                    | :x:                  | :heavy_check_mark: | :heavy_check_mark: | :x: | :x: |
 </div>
+
+---
 
 ## Version Compatibility
 
@@ -161,6 +169,8 @@ This section provides information about the compatibility between the **current 
 - For detailed compatibility information and backward compatibility notes, please refer to the [SDK Version Compatibility Table](docs/sdk_version_compatibility_table.md).
 - When using this branch/tag, make sure to compile your models with the appropriate settings for your target device.
 - Runtime versions are fixed for a given branch/tag of EdgeAI TIDL Tools.
+
+---
 
 ## Workflow
 The typical workflow involves two main steps:
@@ -217,6 +227,8 @@ This workflow allows for flexible development and deployment scenarios:
 > - Models compiled via onnxrt can only be used for inference with onnxrt and tidlrt
 > - Models compiled via tflitert can only be used for inference with tflitert and tidlrt
 
+---
+
 ## Runtime Wrapper APIs and Examples
 
 The EdgeAI TIDL Tools are structured with two main components under [./runtimes](./runtimes/):
@@ -231,6 +243,8 @@ For more detailed information about the wrapper APIs and examples, refer to the 
 - [C++ Wrapper APIs](runtimes/tidl_wrapper/cpp/README.md)
 - [Python examples](runtimes/examples/python/README.md)
 - [C++ examples](runtimes/examples/cpp/README.md)
+
+---
 
 ## Getting Started
 
@@ -439,26 +453,7 @@ You have two options for setting up the EdgeAI TIDL Tools repository on your TI 
 
    - Outputs will be saved in `./runtimes/examples/cpp/basic_example/outputs/{model_name}/offload/frame_{frame_num}/`
 
-## Testing
-
-### TIDL Unit Test Framework
-The [TIDL Unit Test Framework](test/tidl_unit/README.md) provides a structured approach to testing models and enables systematic validation across different runtimes and devices. This framework is particularly useful for:
-
-- Validating model compatibility with TIDL acceleration
-- Ensuring consistent results between reference and accelerated implementations
-- Benchmarking performance across different configurations
-- Regression testing when updating to new SDK versions
-
-For detailed usage instructions and options, refer to the [TIDL Unit Test Framework documentation](test/tidl_unit/README.md).
-
-### Test Reports
-
-The repository includes detailed test reports for various deep-learning operators across TI devices in the [test/reports](test/reports/README.md) directory. These reports are generated using the pytest-based TIDL Unit Test for each release of edgeai-tidl-tools.
-
-These reports provide valuable information for:
-- Evaluating which operators and with what properties are supported and tested on specific devices
-- Troubleshooting compatibility issues
-- Making informed decisions about model selection and optimization
+---
 
 ## User Guide
 
@@ -520,8 +515,12 @@ Finally explore how to troubleshoot.
 - [Debugging](docs/debugging.md): Learn how to identify and solve issues with setup, model compilation, inference, and performance
 
 
+---
+
 ## Additional Support
 For any additional queries or support, please visit the [TI E2E Forum](https://e2e.ti.com/).
+
+---
 
 ## License
 Please see the license under which this repository is made available: [LICENSE](./LICENSE)
