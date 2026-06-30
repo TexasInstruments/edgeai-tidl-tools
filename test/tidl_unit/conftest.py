@@ -16,6 +16,7 @@ def pytest_addoption(parser):
     parser.addoption("--disable-tidl-offload", action="store_true", help='Disable TIDL Offload')
 
     parser.addoption("--artifacts-dir", type=str, default=None, help='Directory to store/use compiled models artifacts. Default ./model-artifacts')
+    parser.addoption("--trace-base-dir", type=str, default=None, help='Base directory for inference trace dumps. Traces are written to <trace-base-dir>/<test_name>/. Only active during inference (--run-infer).')
     parser.addoption("--reports-dir", type=str, default="reports", help='Directory to store resultant reports')
 
     parser.addoption("--force-runtime", type=str, default=None, help='Overwrite runtime defined in config file.')

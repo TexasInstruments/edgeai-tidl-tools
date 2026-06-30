@@ -93,6 +93,10 @@ def reports_dir(pytestconfig):
 def keep_full_model_artifacts(pytestconfig):
     return pytestconfig.getoption("keep_full_model_artifacts")
 
+@pytest.fixture(scope="session")
+def trace_base_dir(pytestconfig):
+    return pytestconfig.getoption("trace_base_dir")
+
 def get_models_from_configs(config_files: List[str], model_filters: List[str] = None) -> List[str]:
     """
     Extract model names from config files with optional filtering.
@@ -184,7 +188,8 @@ def test_tidl_unit(model_name: str,
                   exit_on_critical_error: bool,
                   timeout: int,
                   num_frames: int,
-                  keep_full_model_artifacts: bool):
+                  keep_full_model_artifacts: bool,
+                  trace_base_dir: str):
     """
     Test function that runs tests for models defined in config files using basic_example.py's run() function.
 
@@ -258,7 +263,8 @@ def test_tidl_unit(model_name: str,
             disable_plot=disable_plot,
             timeout=timeout,
             num_frames=num_frames,
-            keep_full_model_artifacts=keep_full_model_artifacts
+            keep_full_model_artifacts=keep_full_model_artifacts,
+            trace_base_dir=trace_base_dir
         )
     else:
         perform_test_subprocess(
@@ -276,7 +282,8 @@ def test_tidl_unit(model_name: str,
             timeout=timeout,
             exit_on_critical_error=exit_on_critical_error,
             num_frames=num_frames,
-            keep_full_model_artifacts=keep_full_model_artifacts
+            keep_full_model_artifacts=keep_full_model_artifacts,
+            trace_base_dir=trace_base_dir
         )
 
 def perform_test_subprocess(**kwargs):
@@ -321,6 +328,7 @@ def perform_test_oneprocess(**kwargs):
     disable_plot = kwargs.get('disable_plot', False)
     num_frames = kwargs.get('num_frames', None)
     keep_full_model_artifacts = kwargs.get('keep_full_model_artifacts', False)
+    trace_base_dir = kwargs.get('trace_base_dir', None)
     
     # Determine which config file contains the model
     config_file = None
@@ -400,7 +408,17 @@ def perform_test_oneprocess(**kwargs):
             for key, value in options_dict.items():
                 model_config['compile_options'][key] = value
                 model_config['infer_options'][key] = value
-        
+
+        # Inject trace_base_name and debug_level into infer_options only (not compile_options)
+        if trace_base_dir and run_infer:
+            model_config = new_config['models'][model_name]
+            if 'infer_options' not in model_config:
+                model_config['infer_options'] = {}
+            trace_dir = os.path.join(trace_base_dir, model_name)
+            os.makedirs(trace_dir, exist_ok=True)
+            model_config['infer_options']['advanced_options:trace_base_name'] = os.path.join(trace_dir, 'tidl_trace')
+            model_config['infer_options']['debug_level'] = 4
+
         # If force_runtime is provided, overwrite the runtime in the config
         if force_runtime:
             model_config = new_config['models'][model_name]

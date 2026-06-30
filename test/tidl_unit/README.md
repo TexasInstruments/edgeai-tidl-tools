@@ -43,6 +43,7 @@ pip install -r requirements.txt
 - `--run-infer`: Run in inference mode (default is compilation mode)
 - `--disable-tidl-offload`: Disable TIDL offload
 - `--artifacts-dir`: Directory to store/use compiled models artifacts. (default: `./model-artifacts/<soc>/<runtime>/<tensor_bits>/`)
+- `--trace-base-dir`: Base directory for inference trace dumps. When set, traces are written to `<trace-base-dir>/<model_name>/` and `debug_level` is automatically set to 4. Only active during inference (`--run-infer`).
 - `--reports-dir`: Directory to store resultant reports. (default: `./reports`)
 - `--force-runtime`: Overwrite runtime defined in config file. Note: For ONNX models (.onnx), only 'onnxrt', 'tidlrt', or 'tvmrt' can be forced. For TFLite models (.tflite), only 'tflitert' can be forced.
 - `--options`: Additional options to pass to the run function (e.g., `--options tensor_bits=8 advanced_options:quantization_scale_type=4`)
@@ -83,6 +84,10 @@ pytest test_tidl_unit.py --configs /path/to/config.yaml --options tensor_bits=16
 
 # Overwrite nmse-threshold and overwrite some inference options defined in config
 pytest test_tidl_unit.py --configs /path/to/config.yaml  --nmse_threshold=0.1 --options debug_level=1 --run-infer
+
+# Dump inference traces for all models to a directory
+pytest test_tidl_unit.py --configs /path/to/config.yaml --run-infer --trace-base-dir /path/to/traces
+# Traces will be written to /path/to/traces/<model_name>/tidl_trace_*
 ```
 
 ### Suggestions
