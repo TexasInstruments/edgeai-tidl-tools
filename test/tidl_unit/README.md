@@ -53,6 +53,7 @@ pip install -r requirements.txt
 - `--exit-on-critical-error`: Force exit test on critical error
 - `--num-frames`: Number of frames to run. Overwrites `num_frames` in the model config if specified.
 - `--timeout`: Timeout for test in seconds (default: 10s on aarch64, pytest-timeout default on x86). When `--num-frames` is also specified, the timeout is scaled by the number of frames (capped at 300s).
+- `--keep-full-model-artifacts`: Do not remove `tempDir` from the artifacts folder after compilation. Useful for debugging or inspecting intermediate compilation outputs.
 - `-n`: Number of parallel processes (default: auto)
 
 

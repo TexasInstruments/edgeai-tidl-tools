@@ -89,6 +89,10 @@ def timeout(pytestconfig):
 def reports_dir(pytestconfig):
     return pytestconfig.getoption("reports_dir")
 
+@pytest.fixture(scope="session")
+def keep_full_model_artifacts(pytestconfig):
+    return pytestconfig.getoption("keep_full_model_artifacts")
+
 def get_models_from_configs(config_files: List[str], model_filters: List[str] = None) -> List[str]:
     """
     Extract model names from config files with optional filtering.
@@ -179,7 +183,8 @@ def test_tidl_unit(model_name: str,
                   no_subprocess: bool,
                   exit_on_critical_error: bool,
                   timeout: int,
-                  num_frames: int):
+                  num_frames: int,
+                  keep_full_model_artifacts: bool):
     """
     Test function that runs tests for models defined in config files using basic_example.py's run() function.
 
@@ -252,7 +257,8 @@ def test_tidl_unit(model_name: str,
             nmse_threshold=nmse_threshold,
             disable_plot=disable_plot,
             timeout=timeout,
-            num_frames=num_frames
+            num_frames=num_frames,
+            keep_full_model_artifacts=keep_full_model_artifacts
         )
     else:
         perform_test_subprocess(
@@ -269,7 +275,8 @@ def test_tidl_unit(model_name: str,
             disable_plot=disable_plot,
             timeout=timeout,
             exit_on_critical_error=exit_on_critical_error,
-            num_frames=num_frames
+            num_frames=num_frames,
+            keep_full_model_artifacts=keep_full_model_artifacts
         )
 
 def perform_test_subprocess(**kwargs):
@@ -313,6 +320,7 @@ def perform_test_oneprocess(**kwargs):
     nmse_threshold = kwargs.get('nmse_threshold', -1)
     disable_plot = kwargs.get('disable_plot', False)
     num_frames = kwargs.get('num_frames', None)
+    keep_full_model_artifacts = kwargs.get('keep_full_model_artifacts', False)
     
     # Determine which config file contains the model
     config_file = None
@@ -455,7 +463,7 @@ def perform_test_oneprocess(**kwargs):
         print(f"WALL_TIME: {_run_elapsed:.2f} s")
 
         # Clean up temporary directory in artifacts folder
-        if not run_infer and not disable_tidl_offload:
+        if not run_infer and not disable_tidl_offload and not keep_full_model_artifacts:
             '''
             Can't remove tempDir in TVMRT since "tempDir" is used to determine
             offload during inference for TVMRT in basic examples. This
