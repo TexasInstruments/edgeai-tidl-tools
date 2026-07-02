@@ -220,6 +220,12 @@ elseif((${HOST_CPU} STREQUAL  "aarch64") AND (${TARGET_CPU}  STREQUAL  "aarch64"
   # aarch64 native buildsystem
   message(STATUS "Compiling for aarch64...")
 
+  # Signal to build_app that onnxruntime soname fix is needed
+  if(EXISTS /usr/lib/libonnxruntime.so AND NOT EXISTS /usr/lib/libonnxruntime.so.1)
+    set(ONNXRT_SONAME_NEEDS_FIX TRUE)
+    set(ONNXRT_LIB_RUNTIME_PATH /usr/lib/libonnxruntime.so)
+  endif()
+
   if(ENABLE_SDK_9_2_COMPATIBILITY)
     set(TARGET_DEVICE_PYTHON python3.10)
   else()
@@ -275,6 +281,12 @@ elseif((${HOST_CPU} STREQUAL  "x86") AND (${TARGET_CPU}  STREQUAL  "aarch64"))
     endif()
 
     set(TARGET_FS_PATH $ENV{SDK_PATH}/targetfs)
+
+    # Signal to build_app that onnxruntime soname fix is needed
+    if(EXISTS ${TARGET_FS_PATH}/usr/lib/libonnxruntime.so AND NOT EXISTS ${TARGET_FS_PATH}/usr/lib/libonnxruntime.so.1)
+      set(ONNXRT_SONAME_NEEDS_FIX TRUE)
+      set(ONNXRT_LIB_RUNTIME_PATH /usr/lib/libonnxruntime.so)  # path on target device
+    endif()
     set(TOOLCHAIN_PATH $ENV{SDK_PATH}/toolchain/sysroots/x86_64-arago-linux/usr/bin/aarch64-oe-linux/)
 
     message(STATUS "TARGET_FS_PATH: ${TARGET_FS_PATH}")
@@ -378,7 +390,7 @@ endfunction()
 # Build app
 function(build_app app_name)
     add_executable(${app_name} ${ARGN})
-    
+
     target_link_libraries(${app_name}
                           -Wl,--unresolved-symbols=ignore-in-shared-libs,--start-group
                           ${COMMON_LINK_LIBS}
@@ -386,5 +398,21 @@ function(build_app app_name)
                           ${SYSTEM_LINK_LIBS}
                           -Wl,--end-group
                          )
+
+    # If libonnxruntime.so.1 symlink is missing, create it next to the binary
+    # and set RPATH=$ORIGIN so the loader finds it at runtime (no root required)
+    if(ONNXRT_SONAME_NEEDS_FIX)
+        add_custom_command(TARGET ${app_name} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E create_symlink
+                ${ONNXRT_LIB_RUNTIME_PATH}
+                $<TARGET_FILE_DIR:${app_name}>/libonnxruntime.so.1
+            COMMENT "Creating libonnxruntime.so.1 symlink alongside ${app_name}"
+        )
+        set_target_properties(${app_name} PROPERTIES
+            BUILD_RPATH  "$ORIGIN"
+            INSTALL_RPATH "$ORIGIN"
+        )
+    endif()
+
     set(BIN_INSTALL_DIR ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR})
 endfunction()

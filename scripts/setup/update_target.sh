@@ -205,7 +205,8 @@ update_osrt_components() {
         fi
         cp -r  $onnx_tar/libonnxruntime.so.1.23.0   $TARGET_FS_PATH/usr/lib/
         cd   $TARGET_FS_PATH/usr/lib/
-        ln -sf libonnxruntime.so.1.23.0 libonnxruntime.so
+        ln -sf libonnxruntime.so.1.23.0 libonnxruntime.so.1
+        ln -sf libonnxruntime.so.1 libonnxruntime.so
     fi
 
     echo
