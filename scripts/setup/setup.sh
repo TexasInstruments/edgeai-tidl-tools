@@ -49,17 +49,22 @@ mkdir -p ${TIDL_TOOLS_BASE_PATH}
 # Check command execution status
 check_status()
 {
-    if [ $? -ne 0 ]; then
+    local code=$?
+    if [ $code -ne 0 ]; then
         cd ${CURRDIR}
         echo "ERROR: $1"
-        echo "Exiting with code $?"
-        exit $?
+        echo "Exiting with code $code"
+        exit $code
     fi
 }
 
 skip_model_optimizer=0
 skip_cpp_deps=0
 skip_data=0
+skip_onnxruntime=0
+skip_tflite=0
+skip_tvm=0
+skip_tidlruntime=0
 
 POSITIONAL=()
 while [[ $# -gt 0 ]]
@@ -75,6 +80,18 @@ case $key in
     --skip_data)
     skip_data=1
     ;;
+    --skip_onnxruntime)
+    skip_onnxruntime=1
+    ;;
+    --skip_tflite)
+    skip_tflite=1
+    ;;
+    --skip_tvm)
+    skip_tvm=1
+    ;;
+    --skip_tidlruntime)
+    skip_tidlruntime=1
+    ;;
     -h|--help)
     echo Usage: $0 [options]
     echo
@@ -82,6 +99,10 @@ case $key in
     echo --skip_model_optimizer     Skip installing model optimizer python package
     echo --skip_cpp_deps            Skip downloading dependencies for CPP examples
     echo --skip_data                Skip downloading out-of-box models and inputs
+    echo --skip_onnxruntime         Skip installing onnxruntime python wheel and CPP deps
+    echo --skip_tflite              Skip installing tflite python wheel and CPP deps
+    echo --skip_tvm                 Skip installing tvm python wheel and CPP deps
+    echo --skip_tidlruntime         Skip installing tidlruntime python wheel
     exit 0
     ;;
 esac
@@ -90,10 +111,10 @@ done
 set -- "${POSITIONAL[@]}"
 
 # Check python version
-version_match=`python3 -c 'import sys;r=0 if sys.version_info >= (3,6) else 1;print(r)'`
+version_match=`python3 -c 'import sys;r=0 if (sys.version_info >= (3,10) and sys.version_info < (3,11))  else 1;print(r)'`
 if [ $version_match -ne 0 ]; then
-    echo 'python version must be >= 3.6'
-return
+    echo 'python version must be 3.10'
+    return
 fi
 
 # Check if CPU or GPU tools
@@ -139,82 +160,263 @@ if [ ! -z "$SOC" ];then
     echo "Using specified SOC=${SOC}"
 fi
 
-# Python packages setup
+# Basic Python packages setup
 cd ${SCRIPTDIR}
 echo
-echo '******************* INSTALLING REQUIRED PYTHON PACKAGES ******************'
+echo '******************* INSTALLING BASIC PYTHON PACKAGES ******************'
 
 pip3 install pybind11[global]
 pip3 install -r ./requirements_pc.txt
 check_status "Failed to install packages from requirements_pc.txt"
+pip3 install -r ../../test/tidl_unit/requirements.txt
+check_status "Failed to install packages from ${SCRIPTDIR}/../../test/tidl_unit/requirements.txt"
 
-echo '******************* REQUIRED PYTHON PACKAGES INSTALLED *******************'
-
-echo
-echo '******************** INSTALLING OSRT PYTHON PACKAGES ********************'
-echo "Installing: onnxruntime python wheel"
-pip3 install --quiet https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/onnxruntime_tidl-1.23.0-cp310-cp310-linux_x86_64.whl
-check_status "Failed to install onnxruntime_tidl wheel"
-
-echo "Installing: tflite python wheel"
-pip3 install --quiet https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/tflite_runtime-2.12.0-cp310-cp310-linux_x86_64.whl
-check_status "Failed to install tflite_runtime wheel"
-
-echo "Installing: tidlruntime python wheel"
-pip3 install --quiet https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/tidlruntime-0.1.0-cp310-cp310-linux_x86_64.whl
-check_status "Failed to install tidlruntime wheel"
-
-echo "Installing: tvm python wheel"
-pip3 install --quiet https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/tvm-0.18.0-cp310-cp310-linux_x86_64.whl
-check_status "Failed to install tvm wheel"
-
-echo '******************** OSRT PYTHON PACKAGES INSTALLED ********************'
-cd ${SCRIPTDIR}
+echo '******************* BASIC PYTHON PACKAGES INSTALLED *******************'
 
 # Graph optimizer tool setup
-cd ${SCRIPTDIR}/../../model-tools/tidl-onnx-model-optimizer
 if [[ $skip_model_optimizer -eq 0 ]]; then
+    cd ${SCRIPTDIR}/../../model-tools/tidl-onnx-model-optimizer
     echo
-    echo '*********************** INSTALLING tidl-onnx-model-optimizer **********************'
+    echo '*********************** INSTALLING TIDL-ONNX-MODEL-OPTIMIZER **********************'
     source ./setup.sh
-    echo '*********************** tidl-onnx-model-optimizer INSTALLED ***********************'
+    echo '*********************** TIDL-ONNX-MODEL-OPTIMIZER INSTALLED ***********************'
 fi
+
+if [[ $skip_model_optimizer -eq 0 ]]; then
+    cd ${SCRIPTDIR}/../../model-tools/osrt-model-tools
+    echo
+    echo '*********************** INSTALLING OSRT-MODEL-TOOLS **********************'
+    source ./setup.sh
+    echo '*********************** OSRT-MODEL-TOOLS INSTALLED ***********************'
+fi
+
 cd ${SCRIPTDIR}
 
-cd ${SCRIPTDIR}/../../model-tools/osrt-model-tools
-if [[ $skip_model_optimizer -eq 0 ]]; then
+# CNPY
+if [ $skip_cpp_deps -eq 0 ]; then
     echo
-    echo '*********************** INSTALLING osrt-model-tools **********************'
-    source ./setup.sh
-    echo '*********************** osrt-model-tools INSTALLED ***********************'
+    echo '*************************** BUILDING CNPY ****************************'
+    cd ${TIDL_TOOLS_BASE_PATH}
+    CNPY_GIT=https://github.com/rogersce/cnpy.git
+    echo "Cloning and building: cnpy"
+    echo "Clone link : ${CNPY_GIT}"
+    rm -rf cnpy 2>/dev/null
+    git clone ${CNPY_GIT}
+    cd cnpy
+    mkdir build
+    cd build
+    cmake .. -DCMAKE_INSTALL_PREFIX=${TIDL_TOOLS_BASE_PATH}/cnpy
+    make
+    make install
+    echo '*************************** CNPY BUILD DONE **************************'
+    cd ${SCRIPTDIR}
 fi
-cd ${SCRIPTDIR}
 
-# TIDL TOOLS setup 
+# Download out-of-box data
+if [ $skip_data -eq 0 ]; then
+    echo
+    echo '************************* DOWNLOADING OUT-OF-BOX MODELS AND INPUTS *************************'
+
+    DATA_DIR="${SCRIPTDIR}/../../runtimes/examples"
+    if [ -d "$DATA_DIR/data" ]; then
+        echo " ${DATA_DIR}/data already exists, skipping download"
+    else
+        cd ${DATA_DIR}
+        DATA_LINK=https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/Data/data.tar.gz
+        echo "Downloading: out-of-box data"
+        echo "Download link : ${DATA_LINK}"
+        wget --quiet ${DATA_LINK}
+        check_status "Failed to download out-of-box data"
+        tar -xf data.tar.gz    
+        rm -rf data.tar.gz 
+        echo '************************* MODELS DOWNLOADED *************************'
+    fi
+fi
+
+# OSRT Installation
+echo
+echo '******************** INSTALLING OSRT PACKAGES ********************'
+
+if [ $skip_cpp_deps -eq 0 ]; then
+    rm -rf ${TIDL_TOOLS_BASE_PATH}/osrt_deps 2>/dev/null
+fi
+
+# ONNXRUNTIME
+if [ $skip_onnxruntime -eq 0 ]; then
+
+    # Python
+    echo
+    echo "[ONNXRUNTIME PYTHON]"
+    OSRT_PYTHON_WHL_LINK=https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/onnxruntime_tidl-1.23.0-cp310-cp310-linux_x86_64.whl
+    echo "Downloading and Installing: ${OSRT_PYTHON_WHL_LINK}"
+    pip3 uninstall -y onnxruntime 2>/dev/null
+    pip3 uninstall -y onnxruntime_tidl 2>/dev/null
+    pip3 install --quiet ${OSRT_PYTHON_WHL_LINK}
+    check_status "Failed to install ${OSRT_PYTHON_WHL_LINK}"
+
+    # CPP
+    if [ $skip_cpp_deps -eq 0 ]; then
+        echo
+        echo "[ONNXRUNTIME CPP]"
+        mkdir -p ${TIDL_TOOLS_BASE_PATH}/osrt_deps
+        cd ${TIDL_TOOLS_BASE_PATH}/osrt_deps
+        OSRT_CPP_DEP_LINK=https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/onnx_1.23.0_x86_u22.tar.gz
+        echo "Downloading and Setting : ${OSRT_CPP_DEP_LINK}"
+        rm -rf onnx_1.23.0_x86_u22.tar.gz onnx_1.23.0_x86_u22 2>/dev/null
+        wget --quiet ${OSRT_CPP_DEP_LINK}
+        check_status "Failed to download onnxruntime cpp deps"
+        tar -xf onnx_1.23.0_x86_u22.tar.gz
+        cd onnx_1.23.0_x86_u22
+        if [ ! -f libonnxruntime.so ];then
+            ln -s libonnxruntime.so.1.23.0 libonnxruntime.so
+        fi
+        if [ ! -f libonnxruntime.so.1.23.0 ];then
+            ln -s libonnxruntime.so libonnxruntime.so.1.23.0
+        fi
+        cd ../
+        rm -rf onnx_1.23.0_x86_u22.tar.gz
+        cd ${SCRIPTDIR}
+    fi
+else
+    echo "Skipping: onnxruntime (--skip_onnxruntime)"
+fi
+
+# TFLITE
+if [ $skip_tflite -eq 0 ]; then
+
+    # Python
+    echo
+    echo "[TFLITE PYTHON]"
+    TFLITE_PYTHON_WHL_LINK=https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/tflite_runtime-2.12.0-cp310-cp310-linux_x86_64.whl
+    echo "Downloading and Installing: ${TFLITE_PYTHON_WHL_LINK}"
+    pip3 uninstall -y tflite_runtime 2>/dev/null
+    pip3 install --quiet ${TFLITE_PYTHON_WHL_LINK}
+    check_status "Failed to install ${TFLITE_PYTHON_WHL_LINK}"
+
+    # CPP
+    if [ $skip_cpp_deps -eq 0 ]; then
+        echo
+        echo "[TFLITE CPP]"
+        mkdir -p ${TIDL_TOOLS_BASE_PATH}/osrt_deps
+        cd ${TIDL_TOOLS_BASE_PATH}/osrt_deps
+        TFLITE_CPP_DEP_LINK=https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/tflite_2.12_x86_u22.tar.gz
+        echo "Downloading and Setting : ${TFLITE_CPP_DEP_LINK}"
+        rm -rf tflite_2.12_x86_u22.tar.gz tflite_2.12_x86_u22 2>/dev/null
+        wget --quiet ${TFLITE_CPP_DEP_LINK}
+        check_status "Failed to download tflite cpp deps"
+        tar -xf tflite_2.12_x86_u22.tar.gz
+        rm -rf tflite_2.12_x86_u22.tar.gz
+        cd ${SCRIPTDIR}
+    fi
+else
+    echo "Skipping: tflite (--skip_tflite)"
+fi
+
+# TVM
+if [ $skip_tvm -eq 0 ]; then
+    # Python
+    echo
+    echo "[TVM PYTHON]"
+    TVM_PYTHON_WHL_LINK=https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/tvm-0.18.0-cp310-cp310-linux_x86_64.whl
+    echo "Downloading and Installing: ${TVM_PYTHON_WHL_LINK}"
+    pip3 uninstall -y tvm 2>/dev/null
+    pip3 install --quiet ${TVM_PYTHON_WHL_LINK}
+    check_status "Failed to install ${TVM_PYTHON_WHL_LINK}"
+
+    # CPP
+    if [ $skip_cpp_deps -eq 0 ]; then
+        echo
+        echo "[TVM CPP]"
+        if python3 -c "import tvm" 2>/dev/null; then
+            tvm_python_module_dir=$(python3 << EOF
+import tvm
+import os
+print(os.path.dirname(tvm.__file__))
+EOF
+)
+            check_status "Failed to get TVM python module directory"
+            mkdir -p ${TIDL_TOOLS_BASE_PATH}/osrt_deps
+            cd ${TIDL_TOOLS_BASE_PATH}/osrt_deps
+            ln -sf "$tvm_python_module_dir" tvm_0.18.0_x86_u22
+            check_status "Failed to create symbolic link for TVM"
+        else
+            echo "WARNING: TVM Python module not found. Skipping TVM cpp deps setup."
+        fi
+    fi
+
+    # ARM GCC COMPILER
+    echo
+    echo "[TVM ARM GCC COMPILER]"
+    cd ${TIDL_TOOLS_BASE_PATH}
+    if [ ! -d arm-gnu-toolchain-13.2.Rel1-x86_64-aarch64-none-linux-gnu ];then
+        ARM_GCC_LINK=https://developer.arm.com/-/media/Files/downloads/gnu/13.2.rel1/binrel/arm-gnu-toolchain-13.2.rel1-x86_64-aarch64-none-linux-gnu.tar.xz
+        echo "Downloading and Setting : ${ARM_GCC_LINK}"
+        wget --quiet ${ARM_GCC_LINK}
+        check_status "Failed to download ARM GNU TOOLCHAIN"
+        tar -xf arm-gnu-toolchain-13.2.rel1-x86_64-aarch64-none-linux-gnu.tar.xz
+        rm -rf arm-gnu-toolchain-13.2.rel1-x86_64-aarch64-none-linux-gnu.tar.xz
+    else
+        echo "Skipping arm-gnu-toolchain-13.2.Rel1-x86_64-aarch64-none-linux-gnu download: found at $(pwd)/arm-gnu-toolchain-13.2.Rel1-x86_64-aarch64-none-linux-gnu"
+    fi
+
+    # C7X COMPILER
+    echo
+    echo "[TVM C7X COMPILER]"
+    if [ ! -d ti-cgt-c7000_5.0.0.LTS ];then
+        C7X_INSTALLER_LINK=https://dr-download.ti.com/software-development/ide-configuration-compiler-or-debugger/MD-707zYe3Rik/5.0.0.LTS/ti_cgt_c7000_5.0.0.LTS_linux-x64_installer.bin
+        echo "Downloading and Setting : ${C7X_INSTALLER_LINK}"
+        wget --quiet ${C7X_INSTALLER_LINK}
+        check_status "Failed to download C7X compiler installer"
+        chmod +x ${C7X_INSTALLER_LINK##*/}
+        ./${C7X_INSTALLER_LINK##*/} --mode unattended --installdir $(pwd)
+        rm -rf ${C7X_INSTALLER_LINK##*/}
+    else
+        echo "Skipping ti-cgt-c7000_5.0.0.LTS download: found at $(pwd)/ti-cgt-c7000_5.0.0.LTS"
+    fi
+
+    cd ${SCRIPTDIR}
+else
+    echo "Skipping: tvm (--skip_tvm)"
+fi
+
+# TIDLRUNTIME
+if [ $skip_tidlruntime -eq 0 ]; then
+    echo
+    echo "[TIDLRUNTIME PYTHON]"
+    TIDLRUNTIME_PYTHON_WHL_LINK=https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/tidlruntime-0.1.0-cp310-cp310-linux_x86_64.whl
+    echo "Downloading and Installing: ${TIDLRUNTIME_PYTHON_WHL_LINK}"
+    pip3 uninstall -y tidlruntime 2>/dev/null
+    pip3 install --quiet ${TIDLRUNTIME_PYTHON_WHL_LINK}
+    check_status "Failed to install ${TIDLRUNTIME_PYTHON_WHL_LINK}"
+else
+    echo "Skipping: tidlruntime (--skip_tidlruntime)"
+fi
+
+echo '******************** OSRT PACKAGES INSTALLED ********************'
+
+# TIDL TOOLS setup
 cd ${TIDL_TOOLS_BASE_PATH}
 echo
 echo '************************* DOWNLOADING TIDL_TOOLS *************************'
 # Loop over all SOCs in the ALL_SOCS array
 for current_soc in "${ALL_SOCS[@]}"; do
-    
+
     if [ "${current_soc}" == "AM62" ]; then
         continue
     fi
 
     echo
     echo "Processing SOC: ${current_soc}"
-    
+
     TIDL_TOOLS_PATH=${TIDL_TOOLS_BASE_PATH}/${current_soc^^}/
     mkdir -p ${TIDL_TOOLS_PATH}
 
-    if [ -d ${TIDL_TOOLS_PATH}/tidl_tools ]; then
-        echo "[WARNING] ${TIDL_TOOLS_PATH} already has tidl_tools present. Skip downloading."
-        echo "          To download again, please remove ${TIDL_TOOLS_PATH}/tidl_tools"
-        continue
-    fi
-
     cd ${TIDL_TOOLS_PATH}
-    rm -rf tidl_tools.tar.gz tidl_tools_gpu.tar.gz tidl_tools 2>/dev/null
+    if [ -d ${TIDL_TOOLS_PATH}/tidl_tools ]; then
+        echo "[INFO] Existing tidl_tools found at ${TIDL_TOOLS_PATH}/tidl_tools. Re-downloading..."
+        rm -rf tidl_tools
+    fi
+    rm -rf tidl_tools.tar.gz tidl_tools_gpu.tar.gz 2>/dev/null
 
     if [ $tidl_gpu_tools -eq 1 ]; then
         TOOLS_LINK=https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/TIDL_TOOLS/${current_soc^^}/tidl_tools_gpu.tar.gz
@@ -232,7 +434,7 @@ for current_soc in "${ALL_SOCS[@]}"; do
         wget --quiet $TOOLS_LINK
         check_status "Failed to download CPU TIDL TOOLS for ${current_soc^^}"
 
-        tar -xzf tidl_tools.tar.gz        
+        tar -xzf tidl_tools.tar.gz
         rm tidl_tools.tar.gz
     fi
 
@@ -243,132 +445,6 @@ for current_soc in "${ALL_SOCS[@]}"; do
     cd ${TIDL_TOOLS_BASE_PATH}
 done
 echo '************************* TIDL_TOOLS DOWNLOADED *************************'
-cd ${SCRIPTDIR}
-
-# CPP OSRT DEPS
-cd ${TIDL_TOOLS_BASE_PATH}
-if [ $skip_cpp_deps -eq 0 ]; then
-    echo
-    echo '*************************** DOWNLOADING OSRT CPP DEPS *************************'
-
-    cd ${TIDL_TOOLS_BASE_PATH}
-    rm -rf osrt_deps 2>/dev/null
-    mkdir -p osrt_deps    
-
-    cd osrt_deps
-
-    # ONNXRUNTIME
-    OSRT_CPP_DEP_LINK=https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/onnx_1.23.0_x86_u22.tar.gz
-    echo "Installing: onnxruntime cpp deps"
-    echo "Download link : ${OSRT_CPP_DEP_LINK}"
-    rm -rf onnx_1.23.0_x86_u22.tar.gz onnx_1.23.0_x86_u22 2>/dev/null
-    wget --quiet ${OSRT_CPP_DEP_LINK}
-    check_status "Failed to download onnxruntime cpp deps"
-    tar -xf onnx_1.23.0_x86_u22.tar.gz    
-    cd onnx_1.23.0_x86_u22
-    if [ ! -f libonnxruntime.so ];then
-        ln -s libonnxruntime.so.1.23.0 libonnxruntime.so
-    fi
-    if [ ! -f libonnxruntime.so.1.23.0 ];then
-        ln -s libonnxruntime.so libonnxruntime.so.1.23.0
-    fi
-    cd ../
-    rm -rf onnx_1.23.0_x86_u22.tar.gz
-
-    # TFLITE
-    TFLITE_CPP_DEP_LINK=https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/X86_64_LINUX/UBUNTU_22_04/tflite_2.12_x86_u22.tar.gz
-    echo "Downloading: tflite cpp deps"
-    echo "Download link : ${TFLITE_CPP_DEP_LINK}"
-    rm -rf tflite_2.12_x86_u22.tar.gz tflite_2.12_x86_u22 2>/dev/null
-    wget --quiet ${TFLITE_CPP_DEP_LINK}
-    check_status "Failed to download tflite cpp deps"
-    tar -xf tflite_2.12_x86_u22.tar.gz    
-    rm -rf tflite_2.12_x86_u22.tar.gz 
-
-    # TVM
-    echo "Setting up TVM cpp deps"
-    tvm_python_module_dir=$(python3  << EOF
-import tvm
-import os
-print(os.path.dirname(tvm.__file__))
-EOF
-)
-    check_status "Failed to get TVM python module directory"
-
-    ln -sf "$tvm_python_module_dir" tvm_0.18.0_x86_u22
-    check_status "Failed to create symbolic link for TVM"
-
-    echo '*************************** CPP DEPS DOWNLOADED **************************'
-
-    echo
-    echo '*************************** CLONING AND BUILDING CNPY *************************'
-    # Install and build cnpy for cpp numpy dependency
-    cd ${TIDL_TOOLS_BASE_PATH}
-
-    CNPY_GIT=https://github.com/rogersce/cnpy.git
-    echo "Cloning and building: cnpy"
-    echo "Clone link : ${CNPY_GIT}"
-    rm -rf cnpy 2>/dev/null
-    git clone ${CNPY_GIT}
-    cd cnpy
-    mkdir build
-    cd build
-    cmake .. -DCMAKE_INSTALL_PREFIX=${TIDL_TOOLS_BASE_PATH}/cnpy
-    make
-    make install
-
-    echo '*************************** CNPY BUILD DONE **************************'
-fi
-cd ${SCRIPTDIR}
-
-echo
-echo '************************* INSTALLING ARM GCC COMPILER *************************'
-cd ${TIDL_TOOLS_BASE_PATH}
-if [ ! -d arm-gnu-toolchain-13.2.Rel1-x86_64-aarch64-none-linux-gnu ];then
-    wget --quiet https://developer.arm.com/-/media/Files/downloads/gnu/13.2.rel1/binrel/arm-gnu-toolchain-13.2.rel1-x86_64-aarch64-none-linux-gnu.tar.xz
-    check_status "Failed to download ARM GNU TOOLCHAIN"
-    tar -xf arm-gnu-toolchain-13.2.rel1-x86_64-aarch64-none-linux-gnu.tar.xz
-    rm -rf arm-gnu-toolchain-13.2.rel1-x86_64-aarch64-none-linux-gnu.tar.xz
-else
-    echo "Skipping arm-gnu-toolchain-13.2.Rel1-x86_64-aarch64-none-linux-gnu download: found at $(pwd)/arm-gnu-toolchain-13.2.Rel1-x86_64-aarch64-none-linux-gnu"
-fi
-cd ${SCRIPTDIR}
-
-echo
-echo '************************* INSTALLING C7X COMPILER *************************'
-
-cd ${TIDL_TOOLS_BASE_PATH}
-if [ ! -d ti-cgt-c7000_5.0.0.LTS ];then
-    wget --quiet https://dr-download.ti.com/software-development/ide-configuration-compiler-or-debugger/MD-707zYe3Rik/5.0.0.LTS/ti_cgt_c7000_5.0.0.LTS_linux-x64_installer.bin
-    check_status "Failed to download C7X compiler installer"
-    chmod +x ti_cgt_c7000_5.0.0.LTS_linux-x64_installer.bin
-    ./ti_cgt_c7000_5.0.0.LTS_linux-x64_installer.bin --mode unattended --installdir $(pwd)
-    rm -rf ti_cgt_c7000_5.0.0.LTS_linux-x64_installer.bin
-else
-    echo "Skipping ti-cgt-c7000_5.0.0.LTS download: found at $(pwd)/ti-cgt-c7000_5.0.0.LTS"
-fi
-
-# Download out-of-box data
-if [ $skip_data -eq 0 ]; then
-    echo
-    echo '************************* DOWNLOADING OUT-OF-BOX MODELS AND INPUTS *************************'
-
-    DATA_DIR="${SCRIPTDIR}/../../runtimes/examples"
-    if [ -d "$DATA_DIR/data" ]; then
-        echo "  ${DATA_DIR}/data already exists, skipping download"
-    else
-        cd ${DATA_DIR}
-        DATA_LINK=https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/Data/data.tar.gz
-        echo "Downloading: out-of-box data"
-        echo "Download link : ${DATA_LINK}"
-        wget --quiet ${DATA_LINK}
-        check_status "Failed to download out-of-box data"
-        tar -xf data.tar.gz    
-        rm -rf data.tar.gz 
-        echo '************************* MODELS DOWNLOADED *************************'
-    fi
-fi
-
 cd ${SCRIPTDIR}
 
 echo

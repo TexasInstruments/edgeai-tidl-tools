@@ -117,4 +117,12 @@ echo "TIDL_TOOLS_PATH=$TIDL_TOOLS_PATH"
 echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
 echo "CGT7X_ROOT=$CGT7X_ROOT"
 echo "ARM64_GCC_PATH=$ARM64_GCC_PATH"
+if [ -f "$TIDL_TOOLS_PATH/version.txt" ]; then
+    echo "-------------------------------------------------------------------------"
+    echo "TIDL Tools Version Info:"
+    while IFS='=' read -r key value; do
+        [[ -z "$key" || "$key" == \#* ]] && continue
+        printf "  %-12s: %s\n" "$key" "$value"
+    done < "$TIDL_TOOLS_PATH/version.txt"
+fi
 echo "========================================================================="
