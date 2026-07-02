@@ -99,6 +99,29 @@ fi
 # Add the paths to LD_LIBRARY_PATH
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$TIDL_TOOLS_PATH:$TOOLSDIR/osrt_deps
 
+# Check if the GLIBCXX version required by onnxruntime is available in the active libstdc++
+_ort_so=$(python3 -c "
+import os, onnxruntime
+print(os.path.join(os.path.dirname(onnxruntime.__file__), 'capi', 'onnxruntime_pybind11_state.so'))
+" 2>/dev/null)
+if [ -n "$_ort_so" ] && [ -f "$_ort_so" ]; then
+    _required=$(strings "$_ort_so" 2>/dev/null | grep "^GLIBCXX_" | sort -V | tail -1)
+    if [ -n "$_required" ]; then
+        _glibcxx_ok=0
+        for _p in $(echo "$LD_LIBRARY_PATH" | tr ':' ' ') /usr/lib/x86_64-linux-gnu /usr/lib64 /lib/x86_64-linux-gnu; do
+            if [ -f "$_p/libstdc++.so.6" ]; then
+                strings "$_p/libstdc++.so.6" 2>/dev/null | grep -qx "$_required" && _glibcxx_ok=1
+                break
+            fi
+        done
+        if [ $_glibcxx_ok -eq 0 ]; then
+            echo "[WARN] $_required not found in active libstdc++.so.6"
+            echo "       onnxruntime may fail with ImportError. Refer to docs/faq.md for fix."
+        fi
+    fi
+fi
+unset _ort_so _required _glibcxx_ok _p
+
 if [ -f $TOOLSDIR/ti-cgt-c7000_5.0.0.LTS/bin/cl7x ]; then
     export CGT7X_ROOT=$TOOLSDIR/ti-cgt-c7000_5.0.0.LTS
 else

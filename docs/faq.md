@@ -28,6 +28,7 @@ This document provides answers to frequently asked questions about using the Edg
     - [How do I check SDK version compatibility?](#how-do-i-check-sdk-version-compatibility)
     - [What is the update\_target script?](#what-is-the-update_target-script)
   - [Basic Issues and Debugging](#basic-issues-and-debugging)
+    - [ImportError: GLIBCXX version not found](#importerror-glibcxx-version-not-found)
     - [Linker Failure](#linker-failure)
     - [Debugging](#debugging)
 
@@ -216,6 +217,52 @@ The `update_target.sh` script updates two main component groups:
 The `update_target.sh` script is a simple bash script that serves as a reference for manually updating components.
 
 ## Basic Issues and Debugging
+
+### ImportError: GLIBCXX version not found
+
+**Error:**
+```
+ImportError: /path/to/libstdc++.so.6: version `GLIBCXX_X.X.XX' not found
+(required by onnxruntime/capi/onnxruntime_pybind11_state.so)
+```
+
+**Cause:** The onnxruntime wheel was built with GCC 12+, which requires `GLIBCXX_3.4.30` in `libstdc++.so.6`. The `libstdc++` being loaded at runtime is too old.
+
+**Fix 1 — Conda/Miniconda (most common):**
+
+Conda's activate script prepends `~/miniconda3/lib` to `LD_LIBRARY_PATH`, causing its older `libstdc++` to take precedence over the system one. Fix by prepending the system path:
+```bash
+export LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH
+```
+
+**Fix 2 — System GCC too old (e.g. Ubuntu 20.04 without conda):**
+
+Install GCC 12, which provides a newer `libstdc++`:
+```bash
+sudo apt install gcc-12 g++-12
+```
+
+**Fix 3 — No system libstdc++ with 3.4.30 (e.g. inside Docker):**
+
+Update libstdc++ via conda:
+```bash
+conda install -c conda-forge libstdcxx-ng
+```
+
+**Verify the fix:**
+
+First, find the exact version your onnxruntime requires:
+```bash
+python3 -c "import os, onnxruntime; print(os.path.join(os.path.dirname(onnxruntime.__file__), 'capi', 'onnxruntime_pybind11_state.so'))"
+# Then:
+strings <path from above> | grep "^GLIBCXX_" | sort -V | tail -1
+```
+
+Then check if your system libstdc++ has it:
+```bash
+strings /usr/lib/x86_64-linux-gnu/libstdc++.so.6 | grep <required_version>
+```
+If this returns the version, Fix 1 will work. If it returns nothing, use Fix 2 or Fix 3.
 
 ### Linker Failure
 
