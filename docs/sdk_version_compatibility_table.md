@@ -59,6 +59,7 @@ In the edgeai-tidl-tools version format `MAJOR_MINOR_PATCH_BUILD`:
 
 ## SDK Version 11.02.xx.xx
 
+- **`11_02_17_00`** - [Patch with backward compatibility](#patch-with-backward-compatibility)
 - **`11_02_12_00`** - [Default for J722S](#default)
 - **`11_02_04_00`** - [Default for J7212S/J784S4/J721E](#default)
 
@@ -80,6 +81,7 @@ In the edgeai-tidl-tools version format `MAJOR_MINOR_PATCH_BUILD`:
 
 ## SDK Version 11.01.xx.xx
 
+- **`11_02_17_00`** - [Patch with backward compatibility](#patch-with-backward-compatibility)
 - **`11_02_13_00`** - [Patch with backward compatibility](#patch-with-backward-compatibility)
 - **`11_02_07_00`** - [Patch with backward compatibility](#patch-with-backward-compatibility)
 - **`11_02_05_00`** - [Patch with backward compatibility](#patch-with-backward-compatibility)
@@ -95,6 +97,7 @@ In the edgeai-tidl-tools version format `MAJOR_MINOR_PATCH_BUILD`:
 
 ## SDK Version 11.00.xx.xx
 
+- **`11_02_17_00`** - [Patch with backward compatibility for J784S4 ADAS SDK only](#patch-with-backward-compatibility)
 - **`11_02_13_00`** - [Patch with backward compatibility](#patch-with-backward-compatibility)
 - **`11_02_07_00`** - [Patch with backward compatibility](#patch-with-backward-compatibility)
 - **`11_02_05_00`** - [Patch with backward compatibility](#patch-with-backward-compatibility)

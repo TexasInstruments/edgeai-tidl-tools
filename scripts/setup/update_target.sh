@@ -37,10 +37,9 @@ fi
 SCRIPTDIR=`pwd`
 TARGET_FS_PATH=/
 
-REL="11_02_16_00"
+REL="11_02_17_00"
 
 SOC=${SOC:-'null'}
-TISDK_IMAGE=${TISDK_IMAGE:-'null'}
 SDK_VERSION=${SDK_VERSION:-'null'}
 UPDATE_OSRT_COMPONENTS=${UPDATE_OSRT_COMPONENTS:-1}
 UPDATE_FIRMWARE_AND_LIB=${UPDATE_FIRMWARE_AND_LIB:-1}
@@ -50,7 +49,6 @@ SOC=${SOC^^}
 echo "========================================================================="
 echo "REL: ${REL}"
 echo "SOC: ${SOC}"
-echo "TISDK_IMAGE: ${TISDK_IMAGE}"
 echo "SDK_VERSION: ${SDK_VERSION}"
 echo "UPDATE_OSRT_COMPONENTS: ${UPDATE_OSRT_COMPONENTS}"
 echo "UPDATE_FIRMWARE_AND_LIB: ${UPDATE_FIRMWARE_AND_LIB}"
@@ -58,7 +56,7 @@ echo "========================================================================="
 
 
 verify_env() {
-    if [ "$REL" != "11_02_13_00" ]; then
+    if [ "$REL" != "11_02_17_00" ]; then
         echo "Cannot invoke this script with version $REL. This is not a backward compatible release."
         return 1
     fi
@@ -82,46 +80,27 @@ verify_env() {
       *)
         echo "Invalid SOC $SOC defined. Allowed values are:"
         echo "AM62, AM62A, (J721E or TDA4VM), (J721S2 or TDA4VL or AM68A), (J784S4 or TDA4VH or AM69A) and (J722S or TDA4AEN or AM67A)"
-        return
+        return 1
         ;;
     esac
 
-
-    if [ "$TISDK_IMAGE" != "adas" ] && [ "$TISDK_IMAGE" != "edgeai" ]; then
-        echo
-        echo "Incorrect TISDK_IMAGE defined: $TISDK_IMAGE"
-        echo "Run either of below commands"
-        echo "export TISDK_IMAGE=edgeai"
-        echo "export TISDK_IMAGE=adas"
-        return 1
-    fi
-
-    if [ "$SDK_VERSION" != "11_1" ] && [ "$SDK_VERSION" != "11_0" ]; then
+    if [ "$SDK_VERSION" != "11_2_0" ] && [ "$SDK_VERSION" != "11_1" ] && [ "$SDK_VERSION" != "11_0" ]; then
         echo
         echo "Incorrect SDK_VERSION defined: $SDK_VERSION"
-        echo "Allowed values for SDK_VERSION is 11_1 or 11_0"
+        echo "Allowed values for SDK_VERSION is 11_2_0 or 11_1 or 11_0(only for J784S4)"
         return 1
     fi
 
-    if [ "$SOC" == "AM62A" ]; then
-        if [ "$SDK_VERSION" == "11_0" ]; then
-            echo
-            echo "SDK_VERSION 11_0 does not exist for AM62A"
-            return 1
-        fi
-        if [ "$TISDK_IMAGE" == "adas" ]; then
-            echo
-            echo "AM62A does not have ADAS SDK. Use EDGEAI"
-            return 1
-        fi
+    if [ "$SDK_VERSION" == "11_0" ] && [ "$SOC" != "J784S4" ]; then
+        echo
+        echo "SDK_VERSION 11_0 is only allowed for J784S4"
+        return 1
     fi
 
-    if [ "$TISDK_IMAGE" == "edgeai" ] && [ "$SDK_VERSION" == "11_1" ]; then
-        if [ "$SOC" == "J721S2" ] || [ "$SOC" == "J784S4" ] || [ "$SOC" == "J722S" ] || [ "$SOC" == "J721E" ]; then
-            echo
-            echo "$SOC does not have 11_1 EDGEAI SDK"
-            return 1
-        fi
+    if [ "$SDK_VERSION" == "11_2_0" ] && [ "$SOC" == "AM62A" ]; then
+        echo
+        echo "SDK_VERSION 11_2_0 does not exist for AM62A"
+        return 1
     fi
 
     return 0
@@ -131,7 +110,7 @@ update_arm_tidl_headers() {
     echo
     echo "==================== Updating Headers ===================="
     cd $TARGET_FS_PATH/$HOME/required_libs
-    git clone -b master git://git.ti.com/processor-sdk-vision/arm-tidl.git
+    git clone -b master https://git.ti.com/git/processor-sdk-vision/arm-tidl.git
     if [ "$?" -eq "0" ]; then
         # Backup old files
         if [ ! -f "$TARGET_FS_PATH/usr/include/itidl_rt.h.bkp" ]; then
@@ -184,6 +163,7 @@ update_osrt_components() {
     onnx_wheel=onnxruntime_tidl-1.23.0-cp312-cp312-linux_aarch64.whl
     cd $TARGET_FS_PATH/$HOME/arago_j7_pywhl
     wget --proxy off https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/ARM_LINUX/ARAGO/$SDK_VERSION/$onnx_wheel
+    pip3 uninstall -y onnxruntime-tidl onnxruntime
     pip3 install $onnx_wheel --disable-pip-version-check
 
     echo
@@ -214,6 +194,7 @@ update_osrt_components() {
     cd $TARGET_FS_PATH/$HOME/arago_j7_pywhl
     tfl_wheel=tflite_runtime-2.12.0-cp312-cp312-linux_aarch64.whl
     wget --proxy off https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/ARM_LINUX/ARAGO/$SDK_VERSION/$tfl_wheel
+    pip3 uninstall -y tflite_runtime
     pip3 install --upgrade --force-reinstall $tfl_wheel --disable-pip-version-check
 
     echo
@@ -247,6 +228,7 @@ update_osrt_components() {
     cd $TARGET_FS_PATH/$HOME/arago_j7_pywhl
     tvm_wheel=tvm-0.18.0-cp312-cp312-linux_aarch64.whl
     wget --proxy off https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/ARM_LINUX/ARAGO/$SDK_VERSION/$tvm_wheel
+    pip3 uninstall -y tvm
     pip3 install --upgrade --force-reinstall $tvm_wheel --disable-pip-version-check
 
     echo
@@ -268,6 +250,7 @@ update_osrt_components() {
     cd $TARGET_FS_PATH/$HOME/arago_j7_pywhl
     tidlrt_wheel=tidlruntime-0.1.0-cp312-cp312-linux_aarch64.whl
     wget --proxy off https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/OSRT_TOOLS/ARM_LINUX/ARAGO/$SDK_VERSION/$tidlrt_wheel
+    pip3 uninstall -y tidlruntime
     pip3 install --upgrade --force-reinstall $tidlrt_wheel --disable-pip-version-check
 
     echo
@@ -284,8 +267,13 @@ update_osrt_components() {
 }
 
 update_firmware_and_lib() {
-    FIRMWARE_TARBALL=https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/FIRMWARES/${SOC^^}/$TISDK_IMAGE/$SDK_VERSION/firmware.tar.gz
-    TIDL_LIB_TARBALL=https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/FIRMWARES/${SOC^^}/$TISDK_IMAGE/$SDK_VERSION/tidl_lib.tar.gz
+    if [ "${SOC}" == "AM62A" ]; then
+        TISDK_IMAGE_PATH="edgeai"
+    else
+        TISDK_IMAGE_PATH="adas"
+    fi
+    FIRMWARE_TARBALL=https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/FIRMWARES/${SOC^^}/$TISDK_IMAGE_PATH/$SDK_VERSION/firmware.tar.gz
+    TIDL_LIB_TARBALL=https://software-dl.ti.com/jacinto7/esd/tidl-tools/$REL/FIRMWARES/${SOC^^}/$TISDK_IMAGE_PATH/$SDK_VERSION/tidl_lib.tar.gz
 
     echo
     echo "==================== Updating C7X firmware ===================="
@@ -294,63 +282,57 @@ update_firmware_and_lib() {
     if [ "${SOC}" == "AM62A" ]; then
         FIRMWARE_PATH=$TARGET_FS_PATH/lib/firmware/ti-ipc/am62axx
     else
-        if [ "${TISDK_IMAGE}" == "edgeai" ]; then
-            FIRMWARE_PATH=$TARGET_FS_PATH/lib/firmware/vision_apps_eaik
-        else
-            FIRMWARE_PATH=$TARGET_FS_PATH/lib/firmware/vision_apps_evm
-        fi
+        FIRMWARE_PATH=$TARGET_FS_PATH/lib/firmware/vision_apps_evm
     fi
 
     echo "FIRMWARE_PATH: ${FIRMWARE_PATH}"
     wget --proxy off $FIRMWARE_TARBALL
-    if [ "$?" -ne "0" ]; then
-        echo "Downloading firmware failed. Please check if $FIRMWARE_TARBALL is valid"
-    fi
-    tar -xf firmware.tar.gz && rm firmware.tar.gz
+    if [ "$?" -eq "0" ]; then
+        tar -xf firmware.tar.gz && rm firmware.tar.gz
 
-    if [ "${SOC}" == "AM62A" ]; then
-        cd firmware/ti-ipc/am62axx
-    else
-        if [ "${TISDK_IMAGE}" == "edgeai" ]; then
-            cd firmware/vision_apps_eaik
+        if [ "${SOC}" == "AM62A" ]; then
+            cd firmware/ti-ipc/am62axx
         else
             cd firmware/vision_apps_evm
         fi
-    fi
 
-    for file in `find ./ -name "*c7*.out*"`; do
-        echo "Replacing ${file}"
-        if [ -f $FIRMWARE_PATH/$file ]; then
-            if [ ! -f "$FIRMWARE_PATH/$file.bkp" ]; then
-                mv $FIRMWARE_PATH/$file $FIRMWARE_PATH/$file.bkp
+        for file in `find ./ -name "*c7*.out*"`; do
+            echo "Replacing ${file}"
+            if [ -f $FIRMWARE_PATH/$file ]; then
+                if [ ! -f "$FIRMWARE_PATH/$file.bkp" ]; then
+                    mv $FIRMWARE_PATH/$file $FIRMWARE_PATH/$file.bkp
+                fi
+            else
+                echo "WARNING: $file not used in $FIRMWARE_PATH. Still copying"
             fi
-        else
-            echo "WARNING: $file not used in $FIRMWARE_PATH. Still copying"
-        fi
-        cp $file $FIRMWARE_PATH/
-    done
+            cp $file $FIRMWARE_PATH/
+        done
+    else
+        echo "Downloading firmware failed. Please check if $FIRMWARE_TARBALL is valid"
+    fi
 
 
     echo
     echo "==================== Updating TIDL libraries ===================="
     cd $TARGET_FS_PATH/$HOME/updated_firmware_and_lib
     wget --proxy off $TIDL_LIB_TARBALL
-    if [ "$?" -ne "0" ]; then
+    if [ "$?" -eq "0" ]; then
+        tar -xf tidl_lib.tar.gz && rm tidl_lib.tar.gz
+        cd tidl_lib
+        for file in *; do
+            echo "Replacing ${file}"
+            if [ -f $TARGET_FS_PATH/usr/lib/$file ]; then
+                if [ ! -f "$TARGET_FS_PATH/usr/lib/$file.bkp" ]; then
+                    mv $TARGET_FS_PATH/usr/lib/$file $TARGET_FS_PATH/usr/lib/$file.bkp
+                fi
+            else
+                echo "WARNING: $file not used. Still copying"
+            fi
+            cp $file $TARGET_FS_PATH/usr/lib
+        done
+    else
         echo "Downloading tidl_lib failed. Please check if $TIDL_LIB_TARBALL is valid"
     fi
-    tar -xf tidl_lib.tar.gz && rm tidl_lib.tar.gz
-    cd tidl_lib
-    for file in *; do
-        echo "Replacing ${file}"
-        if [ -f $TARGET_FS_PATH/usr/lib/$file ]; then
-            if [ ! -f "$TARGET_FS_PATH/usr/lib/$file.bkp" ]; then
-                mv $TARGET_FS_PATH/usr/lib/$file $TARGET_FS_PATH/usr/lib/$file.bkp
-            fi
-        else
-            echo "WARNING: $file not used. Still copying"
-        fi
-        cp $file $TARGET_FS_PATH/usr/lib
-    done
 }
 
 verify_env

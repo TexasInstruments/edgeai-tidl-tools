@@ -106,19 +106,18 @@ The `update_target.sh` script uses several environment variables to control its 
 
 > **Note:** Make sure you have a stable internet connection on the target device to run this script. Reboot the device after the update for the new firmware to be loaded.
 
-#### <u>SDK 11.0 and 11.1</u>
+#### <u>SDK 11.2.0 and 11.1 and 11.0</u>
 
 Run the following on target device to update components:
 ```bash
-export SDK_VERSION=11_1             # Choose from: 11_0, 11_1
-export SOC=J721S2                   
-export TISDK_IMAGE=adas             # Choose: adas (for EVM boards), edgeai (for SK boards)
+export SDK_VERSION=11_1             # Choose from: 11_2_0, 11_1, 11_0
+export SOC=J784S4                   
 ./update_target.sh
 ```
 
 > **_NOTE:_**
-> - SDK_VERSION 11_0 does not exist for AM62A
-> - AM62A does not have ADAS Image. Use EDGEAI instead
+> - SDK_VERSION 11_0 is only allowed for J784S4
+> - SDK_VERSION 11_2_0 does not exist for AM62A
 
 You can also control which components to update:
 ```bash
