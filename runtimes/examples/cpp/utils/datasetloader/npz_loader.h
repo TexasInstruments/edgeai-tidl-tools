@@ -122,24 +122,41 @@ public:
 
     /**
      * @brief Load data from the NPZ file.
-     * 
+     *
      * @param data Pointer to pre-allocated memory where data will be stored
      * @param numBytes Number of bytes to load (including padding)
      * @param padT Number of rows to pad at the top. Default : 0
      * @param padB Number of rows to pad at the bottom. Default : 0
      * @param padL Number of columns to pad at the left. Default : 0
      * @param padR Number of columns to pad at the right. Default : 0
+     * @param name Key to load from the NPZ file. If non-empty and found, loads by name;
+     *             otherwise falls back to index-based loading. Default : ""
      * @return size_t Number of bytes loaded
      */
-    size_t load(void* data, size_t numBytes, int32_t padT = 0, int32_t padB = 0, int32_t padL = 0, int32_t padR = 0)
+    size_t load(void* data, size_t numBytes, int32_t padT = 0, int32_t padB = 0, int32_t padL = 0, int32_t padR = 0, const std::string& name = "")
     {
-        if (m_currData >= m_dataCount)
-        {
-            m_currData = 0;
-        }
+        const cnpy::NpyArray* npyArray = nullptr;
 
-        
-        const cnpy::NpyArray* npyArray = m_dataValues[m_currData];
+        auto it = !name.empty() ? m_npzData.find(name) : m_npzData.end();
+        if (it != m_npzData.end())
+        {
+            npyArray = &it->second;
+        }
+        else
+        {
+            if (!name.empty())
+            {
+                std::cout << "[WARN] Key '" << name << "' not found in NPZ (available:";
+                for (const auto& kv : m_npzData) std::cout << " " << kv.first;
+                std::cout << "), falling back to index-based loading" << std::endl;
+            }
+            if (m_currData >= m_dataCount)
+            {
+                m_currData = 0;
+            }
+            npyArray = m_dataValues[m_currData];
+            m_currData++;
+        }
 
         if (npyArray->shape.size() < 1)
         {
@@ -225,9 +242,7 @@ public:
                 }
             }
         }
-        
-        m_currData++;
-        
+
         return numBytes;
     }
 
