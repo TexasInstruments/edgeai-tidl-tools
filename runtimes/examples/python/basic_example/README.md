@@ -261,7 +261,7 @@ The example supports four types of input data:
 
 1. **Image**: Loads input data from Image (.jpg, .jpeg, .png). Supports both single images and batches of images.
 2. **Random**: Generates random input data (seed = 0) with the appropriate shape and data type
-3. **.npz files**: Loads input data from NumPy .npz files, supporting multiple arrays in a single file
+3. **.npz files**: Loads input data from NumPy .npz files by matching array keys to model input names, with sequential index-based fallback
 4. **.bin files**: Loads input data from binary files. Binary files contain raw tensor data that can be directly loaded into model inputs.
 
 Input data is specified in the config.yaml file for each model in several ways:
@@ -358,7 +358,9 @@ Random loader loads a seeded random value (seed = 0) with specified shape and da
 
 When using .npz files as input data, the following requirements must be met:
 
-1. **Multiple Inputs**: The NPZ loader supports cycling through multiple arrays in a single file. **Important Note: The data will be loaded in sequence as arrays appear in the file, NOT based on the keys in the npz file**. Make sure to have the same number of numpy arrays in the same order as the inputs in the model.
+1. **Loading by Name (Recommended)**: The NPZ loader will look up each array by the model input name. Name your arrays to match the model input names when creating the file (e.g. `np.savez('data.npz', images=arr0, masks=arr1)`). This is the safest approach for multi-input models as it is order-independent.
+
+   **Index-based Fallback**: If an array key matching the input name is not found, the loader falls back to loading arrays sequentially by position and prints a warning with the available keys. In this case, make sure the arrays are in the same order as the model inputs.
 
 2. **Shape and Data Type**:
    - **Flexible Shape Validation**: The NPZ loader supports more flexible shape validation:

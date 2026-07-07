@@ -30,7 +30,7 @@ class Imageloader():
         self.data_count = len(self.file_path)
         self.curr_data = 0
 
-    def load(self, shape: Tuple[int, ...], dtype: np.dtype, format: str = "NCHW") -> np.ndarray:
+    def load(self, shape: Tuple[int, ...], dtype: np.dtype, format: str = "NCHW", **kwargs) -> np.ndarray:
         """
         Load an image or batch of images and convert to a numpy array with the specified shape and dtype.
         

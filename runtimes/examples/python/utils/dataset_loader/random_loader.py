@@ -23,10 +23,10 @@ class Randomloader():
         """
         pass
     
-    def load(self, shape: Tuple[int, ...], dtype: np.dtype, format: str = None, seed: int = 0) -> np.ndarray:
+    def load(self, shape: Tuple[int, ...], dtype: np.dtype, format: str = None, **kwargs) -> np.ndarray:
         """
         Generate random data with the specified shape and dtype.
-    
+
         Args:
             shape (Tuple[int, ...]): Shape of the data
             dtype (np.dtype): Datatype of the data
@@ -41,7 +41,7 @@ class Randomloader():
             if not isinstance(dim, (int, np.integer)):
                 raise ValueError(f"[ERROR] Random loader does not support dynamic shape {shape}")
 
-        np.random.seed(seed)
+        np.random.seed(kwargs.get('seed', 0))
         if dtype == np.bool_:
             prob_true = 0.5
             data = np.random.binomial(1, prob_true, size=shape).astype(dtype)
