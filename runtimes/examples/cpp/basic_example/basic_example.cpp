@@ -808,7 +808,7 @@ private:
                 // Fill input tensor (only valid portion)
                 try
                 {
-                    loader->load(inputsPtr[i]->data, inputsPtr[i]->validSize, inputsPtr[i]->padT, inputsPtr[i]->padB, inputsPtr[i]->padL, inputsPtr[i]->padR);
+                    loader->load(inputsPtr[i]->data, inputsPtr[i]->validSize, inputsPtr[i]->padT, inputsPtr[i]->padB, inputsPtr[i]->padL, inputsPtr[i]->padR, inputsPtr[i]->name);
                 }
                 catch (const std::exception& e)
                 {
