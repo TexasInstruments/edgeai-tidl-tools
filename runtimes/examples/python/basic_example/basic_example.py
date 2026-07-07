@@ -485,7 +485,7 @@ def run(config,
                     img_count += 1
 
                 # Load the data
-                data = dataset_loader.load(shape=shape, dtype=dtype, format=format)
+                data = dataset_loader.load(shape=shape, dtype=dtype, format=format, name=name)
 
                 # Do pre-processing in images only for float inputs
                 if pre_process and dtype == np.float32:

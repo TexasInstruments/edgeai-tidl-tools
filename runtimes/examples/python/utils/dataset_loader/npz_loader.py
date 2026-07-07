@@ -32,22 +32,30 @@ class NPZloader():
             
         self.curr_data = 0
 
-    def load(self, shape: Tuple[int, ...], dtype: np.dtype, format: str = None) -> np.ndarray:
+    def load(self, shape: Tuple[int, ...], dtype: np.dtype, format: str = None, **kwargs) -> np.ndarray:
         """
         Load data from the NPZ file.
-    
+
         Args:
             shape (Tuple[int, ...]): Expected shape of the data
             dtype (np.dtype): Expected type of the data
             format (str, optional): Format (NCHW or NHWC). Default: None
+            name (str, optional): Key to load from the NPZ file. If provided and found,
+                loads by name; otherwise falls back to index-based loading.
 
         Returns:
             np.ndarray: The loaded data
         """
-        if self.curr_data >= self.data_count:
-            self.curr_data = 0
-            
-        data = self.data_values[self.curr_data]
+        name = kwargs.get('name')
+        if name is not None and name in self.data:
+            data = self.data[name]
+        else:
+            if name is not None:
+                print(f"[WARN] Key '{name}' not found in NPZ (available: {list(self.data.keys())}), falling back to index-based loading")
+            if self.curr_data >= self.data_count:
+                self.curr_data = 0
+            data = self.data_values[self.curr_data]
+            self.curr_data += 1
     
         data_shape = list(data.shape)
         x_shape = list(shape)
@@ -85,8 +93,6 @@ class NPZloader():
 
         data = data.reshape(resolved_shape)
 
-        self.curr_data += 1
-        
         return data
         
     def reset(self):

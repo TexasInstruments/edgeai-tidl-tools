@@ -45,22 +45,28 @@ Generates random numpy arrays with specified shape and dtype.
 # Create a random loader
 loader = DatasetLoader.create_loader('random')
 
-# Generate random data
+# Generate random data (seed defaults to 0)
+data = loader.load(shape=(1, 3, 224, 224), dtype=np.float32)
+
+# Generate random data with a specific seed (passed via kwargs)
 data = loader.load(shape=(1, 3, 224, 224), dtype=np.float32, seed=42)
 ```
 
 #### NPZLoader
 
-Loads data from NumPy .npz files. Supports cycling through multiple arrays in a single file.
+Loads data from NumPy .npz files. Supports name-based and index-based loading.
 
 ```python
 # Create an NPZ loader
 loader = DatasetLoader.create_loader('npz', file_path='path/to/data.npz')
 
-# Load data with specific shape and dtype
+# Load by name (recommended) — looks up the array whose key matches 'input_0'
+data = loader.load(shape=(1, 3, 224, 224), dtype=np.float32, name='input_0')
+
+# Load by index (fallback) — advances sequentially through arrays in the file
 data = loader.load(shape=(1, 3, 224, 224), dtype=np.float32)
 
-# Reset the loader to start from the beginning
+# Reset the loader to start from the beginning (index-based mode)
 loader.reset()
 
 # Check how many items are remaining
@@ -68,8 +74,9 @@ remaining = loader.get_remaining_items()
 ```
 
 Key features:
-- **Important Note**: Data is loaded in sequence as arrays appear in the file, NOT based on the keys in the npz file. Make sure your arrays are in the correct order.
-- Automatically wraps around to the beginning when all arrays have been used
+- **Name-based loading (recommended)**: When `name` is provided and matches a key in the NPZ file, that array is loaded directly. This is the safest approach for multi-input models — name your NPZ arrays to match the model input names (e.g. `np.savez('data.npz', images=arr0, masks=arr1)`).
+- **Index-based fallback**: If `name` is not provided or not found in the file, arrays are loaded sequentially by position. A warning listing available keys is printed when a name lookup fails.
+- Automatically wraps around to the beginning when all arrays have been used (index-based mode)
 - Flexible shape validation:
   - Resolves dynamic shapes using the dimensions in the input file
   - Removes leading dimensions of size 1 before comparison
@@ -154,9 +161,12 @@ import numpy as np
 # Create an NPZ loader
 loader = DatasetLoader.create_loader('npz', file_path='input_data.npz')
 
-# Process multiple frames
+# Load by name — recommended for multi-input models
+# NPZ file created with: np.savez('input_data.npz', images=arr0, masks=arr1)
+data = loader.load(shape=(1, 3, 224, 224), dtype=np.float32, name='images')
+
+# Load by index — cycles through arrays sequentially
 for i in range(5):
-    # Load data (will cycle through available arrays)
     data = loader.load(shape=(1, 3, 224, 224), dtype=np.float32)
     # Process data...
 ```

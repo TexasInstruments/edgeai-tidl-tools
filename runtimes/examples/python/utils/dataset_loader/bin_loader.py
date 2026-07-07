@@ -25,7 +25,7 @@ class BINloader():
         self.start_idx = 0
         self.binary_size = len(self.binary_data)
     
-    def load(self, shape: Tuple[int, ...], dtype: np.dtype, format: str = None) -> np.ndarray:
+    def load(self, shape: Tuple[int, ...], dtype: np.dtype, format: str = None, **kwargs) -> np.ndarray:
         """
         Load data from the BIN file starting from the current position.
         Each call to load can use a different datatype and will continue
