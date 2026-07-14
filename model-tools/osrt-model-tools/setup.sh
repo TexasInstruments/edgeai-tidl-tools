@@ -41,7 +41,7 @@ do
 	pip3 install --no-input $line;
 done < requirements.txt
 
-pip install --no-input onnx-graphsurgeon==0.5.2 --extra-index-url https://pypi.ngc.nvidia.com
+pip install --no-input onnx-graphsurgeon==0.6.1 --extra-index-url https://pypi.ngc.nvidia.com
 
 echo 'installing the onnx graph optimization toolkit...'
 python3 ./setup.py develop

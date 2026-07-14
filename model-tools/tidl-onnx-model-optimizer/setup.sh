@@ -41,7 +41,7 @@ echo 'Installing python packages...'
 # 	pip3 install --no-input $line;
 # done < requirements.txt
 pip install --no-input -r requirements.txt
-pip install --no-input onnx-graphsurgeon==0.5.2
+pip install --no-input onnx-graphsurgeon==0.6.1
 
 echo 'installing the onnx graph optimization toolkit...'
 python3 ./setup.py develop
