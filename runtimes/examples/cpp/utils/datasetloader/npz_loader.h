@@ -137,7 +137,24 @@ public:
     {
         const cnpy::NpyArray* npyArray = nullptr;
 
+        // Normalize name: replace '::' with '__' to match NPZ keys saved on systems
+        // where ':' is invalid in filenames (e.g. Windows zip entries).
+        auto normalizeName = [](const std::string& s) {
+            std::string result = s;
+            size_t pos = 0;
+            while ((pos = result.find("::", pos)) != std::string::npos)
+            {
+                result.replace(pos, 2, "__");
+                pos += 2;
+            }
+            return result;
+        };
+
         auto it = !name.empty() ? m_npzData.find(name) : m_npzData.end();
+        if (it == m_npzData.end() && !name.empty())
+        {
+            it = m_npzData.find(normalizeName(name));
+        }
         if (it != m_npzData.end())
         {
             npyArray = &it->second;

@@ -47,8 +47,11 @@ class NPZloader():
             np.ndarray: The loaded data
         """
         name = kwargs.get('name')
+        normalized_name = name.replace('::', '__') if name is not None else None
         if name is not None and name in self.data:
             data = self.data[name]
+        elif normalized_name is not None and normalized_name in self.data:
+            data = self.data[normalized_name]
         else:
             if name is not None:
                 print(f"[WARN] Key '{name}' not found in NPZ (available: {list(self.data.keys())}), falling back to index-based loading")
