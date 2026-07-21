@@ -38,7 +38,7 @@ else
 return
 fi
 
-REL=11_02_17_00
+REL=11_02_17_03
 echo "Version $REL"
 
 CURRDIR=`pwd`
@@ -131,7 +131,7 @@ else
 fi
 
 # Define all supported SOCs
-ALL_SOCS=("AM62" "AM62A" "J721E" "J721S2" "J784S4" "J722S")
+ALL_SOCS=("J784S4")
 SOC=${SOC^^}
 if [ ! -z "$SOC" ];then
     case "$SOC" in

@@ -97,6 +97,7 @@ In the edgeai-tidl-tools version format `MAJOR_MINOR_PATCH_BUILD`:
 
 ## SDK Version 11.00.xx.xx
 
+- **`11_02_17_03`** - [Patch with backward compatibility for J784S4 ADAS SDK only](#patch-with-backward-compatibility)
 - **`11_02_17_00`** - [Patch with backward compatibility for J784S4 ADAS SDK only](#patch-with-backward-compatibility)
 - **`11_02_13_00`** - [Patch with backward compatibility](#patch-with-backward-compatibility)
 - **`11_02_07_00`** - [Patch with backward compatibility](#patch-with-backward-compatibility)

@@ -37,10 +37,10 @@ fi
 SCRIPTDIR=`pwd`
 TARGET_FS_PATH=/
 
-REL="11_02_17_00"
+REL="11_02_17_03"
 
-SOC=${SOC:-'null'}
-SDK_VERSION=${SDK_VERSION:-'null'}
+SOC=J784S4
+SDK_VERSION=11_0
 UPDATE_OSRT_COMPONENTS=${UPDATE_OSRT_COMPONENTS:-1}
 UPDATE_FIRMWARE_AND_LIB=${UPDATE_FIRMWARE_AND_LIB:-1}
 
@@ -56,7 +56,7 @@ echo "========================================================================="
 
 
 verify_env() {
-    if [ "$REL" != "11_02_17_00" ]; then
+    if [ "$REL" != "11_02_17_03" ]; then
         echo "Cannot invoke this script with version $REL. This is not a backward compatible release."
         return 1
     fi

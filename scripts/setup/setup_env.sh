@@ -43,7 +43,7 @@ CURRDIR=`pwd`
 SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 TOOLSDIR=`realpath ${SCRIPTDIR}/../../tools`
 
-SOC=$1
+SOC=J784S4
 
 if [ -z "$SOC" ];then
     echo "[ERROR] SOC not defined"
