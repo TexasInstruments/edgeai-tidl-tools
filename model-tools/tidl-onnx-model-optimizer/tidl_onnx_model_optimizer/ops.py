@@ -362,7 +362,7 @@ def get_optimizers(bucket_flags=None):
         # utilities specific
         'shape_inference_mode'      : 'all',
         'simplify_mode'             : 'pre',
-        'simplify_kwargs'           : {'skipped_optimizers': ['fuse_consecutive_concats']},
+        'simplify_kwargs'           : { },
     }
     
     for bucket in BUCKETS:

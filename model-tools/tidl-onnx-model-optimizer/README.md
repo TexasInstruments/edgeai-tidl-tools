@@ -43,7 +43,7 @@ Input arguments to `optimize`
                             post:run only after graph surgeon optimization,
                             all (default): both pre and post are enabled,
                             None: both disabled]
-    simplify_mode:          (pre/post/all/None) flag to use onnxsim simplification
+    simplify_mode:          (pre/post/all/None) flag to use onnxslim simplification
                             [pre : simplify only before graph surgeon
                             optimizations, post:simplify only after graph
                             surgeon optimization, all: both pre and post are

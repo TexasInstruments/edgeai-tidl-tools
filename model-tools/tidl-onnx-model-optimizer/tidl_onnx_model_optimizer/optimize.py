@@ -67,7 +67,7 @@ import logging
 import onnx_graphsurgeon as gs
 import onnx
 from onnx import shape_inference
-from onnxsim import simplify
+from onnxslim import slim
 
 from .ops import opt_ops, get_optimizers, get_topological_sorted_key_order, qdq_supported_ops, expand_bucket_flags, get_topological_sorted_bucket_order, BUCKETS, BUCKET_ADJ_LIST
 from .src.common import format_logger
@@ -219,10 +219,10 @@ def tidl_modify(model_path: str, out_model_path: str, args: dict):
     if args['simplify_mode'] in ["all", "pre"]:
         logging.info("Enabled pre-processing simplification")
         simplify_kwargs = args['simplify_kwargs'] or {}
-        model, ok = simplify(model, **simplify_kwargs)
-        if not ok:
-            logging.error("Failed during simplification, aborting...")
-            sys.exit(-1)
+        try:
+            model = slim(model, **simplify_kwargs)
+        except Exception as e:
+            logging.warning(f"WARNING : Pre-processing simplification failed: {e}, continuing without simplification...")
 
     onnx_graph = model.graph
     graph = gs.import_onnx(model)
@@ -258,11 +258,11 @@ def tidl_modify(model_path: str, out_model_path: str, args: dict):
 
     if args['simplify_mode'] in ["all", "post"]:
         logging.info("Enabled post-processing simplification")
-        simplify_kwargs = args['simplify_kwargs']
-        out_model, ok = simplify(out_model, **simplify_kwargs)
-        if not ok:
-            logging.error("Failed during simplification, aborting...")
-            sys.exit(-1)
+        simplify_kwargs = args['simplify_kwargs'] or {}
+        try:
+            out_model = slim(out_model, **simplify_kwargs)
+        except Exception as e:
+            logging.warning(f"WARNING : Post-processing simplification failed: {e}, continuing without simplification...")
             
     print_node_count_table(model, out_model)
     
@@ -285,7 +285,7 @@ def optimize (model:str, out_model:str = None, verbose:bool= False, custom_optim
                             post:run only after graph surgeon optimization,
                             all (default): both pre and post are enabled,
                             None: both disabled]
-    simplify_mode:          (pre/post/all/None) flag to use onnxsim simplification
+    simplify_mode:          (pre/post/all/None) flag to use onnxslim simplification
                             [pre : simplify only before graph surgeon
                             optimizations, post:simplify only after graph
                             surgeon optimization, all: both pre and post are
