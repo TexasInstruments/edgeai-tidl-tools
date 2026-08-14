@@ -81,12 +81,16 @@ def tidl_remove_where_layer(graph: gs.Graph, onnx_graph: onnx.GraphProto):
             if np.all(condition):
                 # If condition is all True, replace Where with the 'x' input
                 for n_id in find_out_layers(node):
-                    n_id.inputs[0] = node.inputs[1]
+                    for i, inp in enumerate(n_id.inputs):
+                        if inp is node.outputs[0]:
+                            n_id.inputs[i] = node.inputs[1]
                 node.outputs.clear()
                 logging.debug(f"Removed the where node {node.name}")
             elif np.all(~condition):
                 # If condition is all False, replace Where with the 'y' input
                 for n_id in find_out_layers(node):
-                    n_id.inputs[0] = node.inputs[2]
+                    for i, inp in enumerate(n_id.inputs):
+                        if inp is node.outputs[0]:
+                            n_id.inputs[i] = node.inputs[2]
                 node.outputs.clear()
-                logging.debug(f"Removed the where node {node.name}")
+                logging.debug(f"Removed the where node {node.name}") 
