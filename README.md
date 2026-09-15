@@ -145,10 +145,10 @@ This section provides information about the compatibility between the **current 
 | Device Family | SDK Version |
 |---------------|-------------|
 | AM62A         | N/A |
-| J722S \| TDA4AEN \| AM67A |[Processor SDK RTOS 11.02.01.03](https://www.ti.com/tool/download/PROCESSOR-SDK-RTOS-J722S/11.02.01.03)<br>[Processor SDK LINUX 11.02.01.03](https://www.ti.com/tool/download/PROCESSOR-SDK-LINUX-J722S/11.02.01.03) |
-| J721E \| TDA4VM | [Processor SDK RTOS 11.02.01.03](https://www.ti.com/tool/download/PROCESSOR-SDK-RTOS-J721E/11.02.01.03)<br>[Processor SDK LINUX 11.02.01.03](https://www.ti.com/tool/download/PROCESSOR-SDK-LINUX-J721E/11.02.01.03) |
-| J721S2 \| TDA4VL \| AM68A | [Processor SDK RTOS 11.02.01.03](https://www.ti.com/tool/download/PROCESSOR-SDK-RTOS-J721S2/11.02.01.03)<br>[Processor SDK LINUX 11.02.01.03](https://www.ti.com/tool/download/PROCESSOR-SDK-LINUX-J721S2/11.02.01.03) |
-| J784S4 \| TDA4VH \| AM69A | [Processor SDK RTOS 11.02.01.03](https://www.ti.com/tool/download/PROCESSOR-SDK-RTOS-J784S4/11.02.01.03)<br>[Processor SDK LINUX 11.02.01.03](https://www.ti.com/tool/download/PROCESSOR-SDK-LINUX-J784S4/11.02.01.03) |
+| J722S \| TDA4AEN \| AM67A | [Processor SDK RTOS 11.02.02.04](https://www.ti.com/tool/download/PROCESSOR-SDK-RTOS-J722S/11.02.02.04)<br>[Processor SDK LINUX 11.02.02.05](https://www.ti.com/tool/download/PROCESSOR-SDK-LINUX-J722S/11.02.02.05) |
+| J721E \| TDA4VM | [Processor SDK RTOS 11.02.02.04](https://www.ti.com/tool/download/PROCESSOR-SDK-RTOS-J721E/11.02.02.04)<br>[Processor SDK LINUX 11.02.02.05](https://www.ti.com/tool/download/PROCESSOR-SDK-LINUX-J721E/11.02.02.05) |
+| J721S2 \| TDA4VL \| AM68A | [Processor SDK RTOS 11.02.02.04](https://www.ti.com/tool/download/PROCESSOR-SDK-RTOS-J721S2/11.02.02.04)<br>[Processor SDK LINUX 11.02.02.05](https://www.ti.com/tool/download/PROCESSOR-SDK-LINUX-J721S2/11.02.02.05) |
+| J784S4 \| TDA4VH \| AM69A | [Processor SDK RTOS 11.02.02.04](https://www.ti.com/tool/download/PROCESSOR-SDK-RTOS-J784S4/11.02.02.04)<br>[Processor SDK LINUX 11.02.02.05](https://www.ti.com/tool/download/PROCESSOR-SDK-LINUX-J784S4/11.02.02.05) |
 | AM62          | N/A |
 
 </div>

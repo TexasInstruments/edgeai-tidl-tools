@@ -5,6 +5,7 @@ This page provides a compatibility table for compatibilty of EdgeAI TIDL Tools w
 ## Table of Contents
 - [Compatibility Types](#compatibility-types)
 - [Versioning Scheme](#versioning-scheme)
+- [SDK Version 11.02.02.xx](#sdk-version-110202xx)
 - [SDK Version 11.02.01.xx](#sdk-version-110201xx)
 - [SDK Version 11.02.00.xx](#sdk-version-110200xx)
 - [SDK Version 11.01.xx.xx](#sdk-version-1101xxxx)
@@ -41,6 +42,18 @@ In the edgeai-tidl-tools version format `MAJOR_MINOR_PATCH_BUILD`:
 - **3rd number**:
   - **Even 3rd number** (e.g., `06` in `11_01_06_00`): Usually indicates a default release or a patch on default
   - **Odd 3rd number** (e.g., `07` in `11_01_07_00`): Usually indicates a backward compatible release
+
+## SDK Version 11.02.02.xx
+
+- **`11_02_20_00`** - [Default](#default)
+
+> `11_02_20_00` has been validated on:
+> - AM62A - N/A
+> - J722S \| TDA4AEN \| AM67A - PSDK LINUX 11.02.02.05 / PSDK RTOS 11.02.02.04
+> - J721E \| TDA4VM           - PSDK LINUX 11.02.02.05 / PSDK RTOS 11.02.02.04
+> - J721S2 \| TDA4VL \| AM68A - PSDK LINUX 11.02.02.05 / PSDK RTOS 11.02.02.04
+> - J784S4 \| TDA4VH \| AM69A - PSDK LINUX 11.02.02.05 / PSDK RTOS 11.02.02.04
+> - AM62 - N/A
 
 ## SDK Version 11.02.01.xx
 
