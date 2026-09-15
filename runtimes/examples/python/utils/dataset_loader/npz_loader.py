@@ -76,9 +76,6 @@ class NPZloader():
             else:
                 resolved_shape.append(int(dim))
 
-        if(has_dynamic_shape):
-            print(f"\n[WARN] Model has dynamic shape, expected shape {x_shape} resolved to {resolved_shape}")
-
         while len(data_shape) > 1 and data_shape[0] == 1:
             data_shape.pop(0)
 

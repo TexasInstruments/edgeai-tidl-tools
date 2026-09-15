@@ -14,6 +14,7 @@ This document provides information about TIDL-RT and underlying OpenVX Node, how
     - [sTIDLRT_Params_t](#stidlrt_params_t)
     - [sTIDLRT_PerfStats_t](#stidlrt_perfstats_t)
     - [sTIDLRT_Tensor_t](#stidlrt_tensor_t)
+    - [Controllable ENV Variables](#controllable-env-variables)
     - [Sample Application Code](#sample-application-code)
   - [TIDL OpenVX Node](#tidl-openvx-node)
   - [ERRORS](#errors)
@@ -146,6 +147,16 @@ int32_t TIDLRT_allocSharedMem(int32_t alignment, int32_t size);
  * @param[in] ptr  Pointer to memory previously allocated with TIDLRT_allocSharedMem
  */
 void TIDLRT_freeSharedMem(void *ptr);
+
+/**
+ * @brief Function to check whether the memory pointer is part of shared heap
+ *        section or not
+ *
+ * @param[in] ptr     Pointer to the memory
+ *
+ * @return int32_t    1 - True, 0 - False
+ */
+int32_t TIDLRT_isSharedMem(void *ptr);
 ```
 
 #### Input/Output Buffer Management
@@ -210,7 +221,14 @@ The `sTIDLRT_Tensor_t` structure is defined in `itidl_rt.h` (present inside tidl
 | `layout`  | `uint32_t` | `0` | Layout of the data - [eTIDL_TensorLayout](./io_tensors.md#etidl_tensorlayout) |
 | `zeroPoint`  | `int32_t` | `0` | Zero point for Asymmetric Fixed point Representation |
 | `scale`  | `float` | `1.0` | Scale used for float to fixed point conversion |
+| `isDynamic` | `uint8_t` | `0` | Flag to indicate if tensor is dynamic |
 
+#### Controllable ENV Variables
+
+TIDL-RT exposes few environment variables which can be set or unset to control behaviour.
+
+- **TIDL_RT_DEBUG**: Enable/Disable extra debug prints. By default extra debug prints are disabled.
+- **TIDL_RT_DDR_STATS**: Enable/Disable DDR reporting during performance api invoke. By default DDR peformance reporting is always enabled. Set it to 0 to disable DDR performance reporting. Please note that the DDR read/write bytes reported by performance api is the total DDR traffic of the whole SOC and not just TIDL alone. 
 
 #### Sample Application Code:
 

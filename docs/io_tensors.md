@@ -51,6 +51,7 @@ The following constants and enumerations are defined in `itidl_io.h` (present in
 | `TIDL_SinglePrecFloat` | 6 | 32-bit floating point |
 | `TIDL_UnsignedDoubleWord` | 7 | Unsigned 64-bit integer |
 | `TIDL_SignedDoubleWord` | 8 | Signed 64-bit integer |
+| `TIDL_Bool` | 9 | Boolean |
 
 #### eTIDL_TensorLayout
 
@@ -131,6 +132,8 @@ The `sTIDL_IOBufDesc_t` structure is defined in `itidl_io.h` (present inside tid
 | `outLayout` | `int32_t[TIDL_IO_MAX_NUM_CORES * TIDL_MAX_ALG_OUT_BUFS]` | Data Layout of each input data buffer (ref: eTIDL_TensorLayout) |
 | `outBufSize` | `int32_t[TIDL_IO_MAX_NUM_CORES * TIDL_MAX_ALG_OUT_BUFS]` | Expected input buffer size (elements) of each output |
 | `numValidTensorDims` | `int32_t[TIDL_IO_MAX_NUM_CORES * TIDL_MAX_ALG_OUT_BUFS]` | Number of valid dimensions in the output tensor (ONNX) |
+| `inIsDynamic` | `int32_t[TIDL_IO_MAX_NUM_CORES * TIDL_MAX_ALG_IN_BUFS]` | Flag to indicate is the input tensor(s) is dynamic |
+| `outIsDynamic` | `int32_t[TIDL_IO_MAX_NUM_CORES * TIDL_MAX_ALG_OUT_BUFS]` | Flag to indicate is the output tensor(s) is dynamic |
 
 ### Why do I see input/output buffer size requirement more than my model?
 
