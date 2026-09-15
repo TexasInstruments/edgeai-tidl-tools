@@ -30,7 +30,7 @@ class PostProcessDetection():
         if self.framework:
             self.framework = self.framework.strip()
             if self.framework != '' and self.framework not in supported_framework:
-                raise ValueError(f"[ERROR] {self.framwork} self.framework is not currently supported for post processing. Supported frameworks: {', '.join(supported_framework)}")
+                raise ValueError(f"[ERROR] {self.framework} self.framework is not currently supported for post processing. Supported frameworks: {', '.join(supported_framework)}")
 
         elif self.od_type:
             self.od_type = self.od_type.strip()
