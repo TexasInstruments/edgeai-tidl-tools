@@ -1,3 +1,5 @@
+> **Note:** Operator test reports are currently not available for this release. Please keep an eye on master branch for the test reports once it is available in the upcoming days. 
+
 # Test Reports
 
 This directory contains comprehensive operator test reports for various TI SoC. These reports are generated using the pytest-based [TIDL Unit Test Framework](../tidl_unit/README.md) and are published for each release of edgeai-tidl-tools.
