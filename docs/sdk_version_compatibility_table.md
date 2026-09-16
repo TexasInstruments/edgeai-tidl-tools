@@ -47,7 +47,7 @@ In the edgeai-tidl-tools version format `MAJOR_MINOR_PATCH_BUILD`:
 
 - **`11_02_20_00`** - [Default](#default)
 
-> `11_02_20_00` has been validated on:
+> These releases have been validated on:
 > - AM62A - N/A
 > - J722S \| TDA4AEN \| AM67A - PSDK LINUX 11.02.02.05 / PSDK RTOS 11.02.02.04
 > - J721E \| TDA4VM           - PSDK LINUX 11.02.02.05 / PSDK RTOS 11.02.02.04
@@ -57,9 +57,10 @@ In the edgeai-tidl-tools version format `MAJOR_MINOR_PATCH_BUILD`:
 
 ## SDK Version 11.02.01.xx
 
+- **`11_02_21_00`** - [Patch with backward compatibility](#patch-with-backward-compatibility)
 - **`11_02_16_00`** - [Default](#default)
 
-> `11_02_16_00` has been validated on:
+> These releases have been validated on:
 > - AM62A - N/A
 > - J722S \| TDA4AEN \| AM67A - PSDK LINUX 11.02.01.03 / PSDK RTOS 11.02.01.03
 > - J721E \| TDA4VM           - PSDK LINUX 11.02.01.03 / PSDK RTOS 11.02.01.03
@@ -70,28 +71,23 @@ In the edgeai-tidl-tools version format `MAJOR_MINOR_PATCH_BUILD`:
 
 ## SDK Version 11.02.00.xx
 
+- **`11_02_21_00`** - [Patch with backward compatibility](#patch-with-backward-compatibility)
 - **`11_02_17_00`** - [Patch with backward compatibility](#patch-with-backward-compatibility)
 - **`11_02_12_00`** - [Default for J722S](#default)
 - **`11_02_04_00`** - [Default for J7212S/J784S4/J721E](#default)
 
-> `11_02_04_00` has been validated on:
+
+> These releases have been validated on:
 > - AM62A - N/A
-> - J722S \| TDA4AEN \| AM67A - N/A
+> - J722S \| TDA4AEN \| AM67A - PSDK LINUX 11.02.00.06 / PSDK RTOS 11.02.00.10
 > - J721E \| TDA4VM           - PSDK LINUX 11.02.00.04 / PSDK RTOS 11.02.00.06
 > - J721S2 \| TDA4VL \| AM68A - PSDK LINUX 11.02.00.04 / PSDK RTOS 11.02.00.06
 > - J784S4 \| TDA4VH \| AM69A - PSDK LINUX 11.02.00.04 / PSDK RTOS 11.02.00.06
 > - AM62 - N/A
 
-> `11_02_12_00` has been validated on:
-> - AM62A - N/A
-> - J722S \| TDA4AEN \| AM67A - PSDK LINUX 11.02.00.06 / PSDK RTOS 11.02.00.10
-> - J721E \| TDA4VM           - N/A
-> - J721S2 \| TDA4VL \| AM68A - N/A
-> - J784S4 \| TDA4VH \| AM69A - N/A
-> - AM62 - N/A
-
 ## SDK Version 11.01.xx.xx
 
+- **`11_02_21_00`** - [Patch with backward compatibility for AM62A EDGEAI SDK only](#patch-with-backward-compatibility)
 - **`11_02_17_00`** - [Patch with backward compatibility](#patch-with-backward-compatibility)
 - **`11_02_13_00`** - [Patch with backward compatibility](#patch-with-backward-compatibility)
 - **`11_02_07_00`** - [Patch with backward compatibility](#patch-with-backward-compatibility)
@@ -108,6 +104,7 @@ In the edgeai-tidl-tools version format `MAJOR_MINOR_PATCH_BUILD`:
 
 ## SDK Version 11.00.xx.xx
 
+- **`11_02_21_00`** - [Patch with backward compatibility for J784S4 ADAS SDK only](#patch-with-backward-compatibility)
 - **`11_02_17_00`** - [Patch with backward compatibility for J784S4 ADAS SDK only](#patch-with-backward-compatibility)
 - **`11_02_13_00`** - [Patch with backward compatibility](#patch-with-backward-compatibility)
 - **`11_02_07_00`** - [Patch with backward compatibility](#patch-with-backward-compatibility)

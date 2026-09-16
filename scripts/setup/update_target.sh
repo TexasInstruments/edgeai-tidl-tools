@@ -37,7 +37,7 @@ fi
 SCRIPTDIR=`pwd`
 TARGET_FS_PATH=/
 
-REL="11_02_20_00"
+REL="11_02_21_00"
 
 SOC=${SOC:-'null'}
 SDK_VERSION=${SDK_VERSION:-'null'}
@@ -56,7 +56,7 @@ echo "========================================================================="
 
 
 verify_env() {
-    if [ "$REL" != "11_02_17_00" ]; then
+    if [ "$REL" != "11_02_21_00" ]; then
         echo "Cannot invoke this script with version $REL. This is not a backward compatible release."
         return 1
     fi
@@ -84,22 +84,33 @@ verify_env() {
         ;;
     esac
 
-    if [ "$SDK_VERSION" != "11_2_0" ] && [ "$SDK_VERSION" != "11_1" ] && [ "$SDK_VERSION" != "11_0" ]; then
+    if [ "$SDK_VERSION" != "11_2_1" ] && [ "$SDK_VERSION" != "11_2_0" ] && [ "$SDK_VERSION" != "11_1" ] && [ "$SDK_VERSION" != "11_0" ]; then
         echo
         echo "Incorrect SDK_VERSION defined: $SDK_VERSION"
-        echo "Allowed values for SDK_VERSION is 11_2_0 or 11_1 or 11_0(only for J784S4)"
+        echo "Allowed values for SDK_VERSION:"
+        echo "  - 11_2_1 and 11_2_0 for J7* ADAS SDK"
+        echo "  - 11_1 for AM62A EDGEAI SDK only"
+        echo "  - 11_0 for J784S4 ADAS SDK only"
+        return 1
+    fi
+
+    if [ "$SDK_VERSION" == "11_2_1" ] || [ "$SDK_VERSION" == "11_2_0" ]; then
+        if [ "$SOC" == "AM62A" ]; then
+            echo
+            echo "SDK_VERSION 11_2_1 or 11_2_0 is not allowed for AM62A"
+            return 1
+        fi
+    fi
+
+    if [ "$SDK_VERSION" == "11_1" ] && [ "$SOC" != "AM62A" ]; then
+        echo
+        echo "SDK_VERSION 11_1 is only allowed for AM62A"
         return 1
     fi
 
     if [ "$SDK_VERSION" == "11_0" ] && [ "$SOC" != "J784S4" ]; then
         echo
         echo "SDK_VERSION 11_0 is only allowed for J784S4"
-        return 1
-    fi
-
-    if [ "$SDK_VERSION" == "11_2_0" ] && [ "$SOC" == "AM62A" ]; then
-        echo
-        echo "SDK_VERSION 11_2_0 does not exist for AM62A"
         return 1
     fi
 
@@ -110,7 +121,17 @@ update_arm_tidl_headers() {
     echo
     echo "==================== Updating Headers ===================="
     cd $TARGET_FS_PATH/$HOME/required_libs
-    git clone -b master https://git.ti.com/git/processor-sdk-vision/arm-tidl.git
+    rm -rf arm-tidl
+
+    ARM_TIDL_BRANCH=11.2.x_sdk
+    ARM_TIDL_COMMIT=855a829719dc4fd0592a45f10388cd44948e3eb8
+
+    git clone -b ${ARM_TIDL_BRANCH} https://git.ti.com/git/processor-sdk-vision/arm-tidl.git
+    cd arm-tidl
+    git checkout ${ARM_TIDL_COMMIT}
+
+    cd $TARGET_FS_PATH/$HOME/required_libs
+
     if [ "$?" -eq "0" ]; then
         # Backup old files
         if [ ! -f "$TARGET_FS_PATH/usr/include/itidl_rt.h.bkp" ]; then
@@ -129,7 +150,7 @@ update_arm_tidl_headers() {
         cp -r arm-tidl/rt/inc/*  $TARGET_FS_PATH/usr/include/processor_sdk/tidl_j7/arm-tidl/rt/inc/
         cp -r arm-tidl/tiovx_kernels/include/*  $TARGET_FS_PATH/usr/include/processor_sdk/tidl_j7/arm-tidl/tiovx_kernels/include/
     else
-        echo "[WARN] Failed to clone arm-tidl" 
+        echo "[WARN] Failed to clone and checkout arm-tidl" 
     fi
 }
 

@@ -99,26 +99,25 @@ A typical workflow for using these scripts on x86 machine:
 The `update_target.sh` script uses several environment variables to control its behavior:
 
 - `SOC`: Specifies the target System on Chip.
-- `TISDK_IMAGE`: Specifies the type of TISDK image on the target device
 - `SDK_VERSION`: Specifies the SDK version on the target device
 - `UPDATE_OSRT_COMPONENTS`: Controls whether to update OSRT components
 - `UPDATE_FIRMWARE_AND_LIB`: Controls whether to update firmware and libraries
 
 > **Note:** Make sure you have a stable internet connection on the target device to run this script. Reboot the device after the update for the new firmware to be loaded.
 
-#### <u>SDK 11.0 and 11.1</u>
+#### <u>SDK 11.2.1, 11.2.0, 11.1 and 11.0</u>
 
 Run the following on target device to update components:
 ```bash
-export SDK_VERSION=11_1             # Choose from: 11_0, 11_1
+export SDK_VERSION=11_2_0             # Choose from: 11_2_1, 11_2_0, 11_1, 11_0
 export SOC=J721S2                   
-export TISDK_IMAGE=adas             # Choose: adas (for EVM boards), edgeai (for SK boards)
 ./update_target.sh
 ```
 
 > **_NOTE:_**
-> - SDK_VERSION 11_0 does not exist for AM62A
-> - AM62A does not have ADAS Image. Use EDGEAI instead
+> - SDK_VERSION 11_2_1 and 11_2_0 compatibility is only enabled for J7* ADAS SDKs
+> - SDK_VERSION 11_1 compatibility is only enabled for AM62A EDGEI SDK
+> - SDK_VERSION 11_0 compatibility is only enabled for J784S4 ADAS SDK
 
 You can also control which components to update:
 ```bash
