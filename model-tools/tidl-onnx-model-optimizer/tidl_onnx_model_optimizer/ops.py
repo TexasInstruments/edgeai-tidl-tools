@@ -68,6 +68,7 @@ from typing import List, Dict
 # importing all opt functions
 from .src.argmax import tidl_convert_unsupported_argmax_to_supported
 from .src.resize import tidl_convert_resize_params_size_to_scale, tidl_convert_resize_params_size_to_scale_dynamic_batch, tidl_remove_unity_resize
+from .src.resize import tidl_convert_align_corners_resize_to_matmul
 from .src.attention import tidl_optimize_attention
 from .src.attention_hf import tidl_optimize_hf_attention
 from .src.batch import tidl_modify_batch_dim
@@ -117,6 +118,7 @@ from .src.transpose import tidl_break_transpose_of_width_to_dim1_dim2_of_input_m
 
 ### function dict to execute
 opt_ops = {
+        'convert_align_corners_resize_to_matmul'    : tidl_convert_align_corners_resize_to_matmul,
         "add_input_normalization"                   : tidl_add_input_normalization,
         'convert_resize_params_size_to_scale'       : tidl_convert_resize_params_size_to_scale,
         'attention_block_optimization'              : tidl_optimize_attention,
@@ -220,6 +222,7 @@ qdq_supported_ops = ['add_bias_qdq', 'remove_quantize_initializer', 'remove_dupl
 
 # adjancency list
 adj_list = {
+        'convert_align_corners_resize_to_matmul'    : ['convert_resize_params_size_to_scale'],
         'add_input_normalization'                   : ['convert_unsupported_argmax_to_supported'],
         'convert_resize_params_size_to_scale'       : [],
         'attention_block_optimization'              : [],
@@ -292,6 +295,7 @@ def get_optimizers(bucket_flags=None):
     Default optimizers option list
     """
     opts = {
+        'convert_align_corners_resize_to_matmul'    : False,
         # operation specific
         'add_input_normalization'                   : False,
         'convert_resize_params_size_to_scale'       : False,

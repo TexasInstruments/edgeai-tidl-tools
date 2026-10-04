@@ -54,6 +54,30 @@ The above command will generate the output model in the same location as mention
 
 ## Bucket-Based Optimization
 
+### Optional align-corners Resize workaround
+
+For static float32 NCHW bilinear Resize with `coordinate_transformation_mode=align_corners`,
+`convert_align_corners_resize_to_matmul` expresses interpolation as two separable
+constant MatMul operations, preserving the ONNX coordinates for MMA execution.
+It is disabled by default and skips dynamic shapes/sizes, antialiasing, explicit
+axes, non-unit batch sizes, and resizing batch/channel dimensions. It accepts
+constant sizes or constant scales.
+
+```python
+from tidl_onnx_model_optimizer import optimize
+from tidl_onnx_model_optimizer.ops import get_optimizers
+
+options = get_optimizers()
+options['convert_align_corners_resize_to_matmul'] = True
+optimize('model.onnx', 'model_optimized.onnx', custom_optimizers=options)
+```
+
+Dense interpolation matrices increase constants and arithmetic; benchmark memory
+and latency on the intended device before enabling this workaround. It addresses
+coordinate correctness and does not establish real-time performance. Tests can
+be run with `python -m unittest discover -s tests -p 'test_align_corners_resize.py'`
+after installing this package and ONNX Runtime.
+
 The optimizer supports a **bucket** mechanism to group related optimizations and control their execution order. Buckets are logical collections of optimization passes that can be enabled or disabled as a group. This allows users to easily apply sets of related transformations, ensuring dependencies and execution order are respected.
 > **Note:** Buckets are for better categorization and creating structure. All optimizations will work even without using buckets; you can enable and use individual optimizations directly.
 

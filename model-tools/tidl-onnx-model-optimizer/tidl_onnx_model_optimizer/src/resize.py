@@ -67,6 +67,99 @@ import numpy as np
 from .common import *
 
 
+def tidl_convert_align_corners_resize_to_matmul(graph: gs.Graph,
+                                               onnx_graph: onnx.GraphProto):
+    """Preserve static float32 NCHW bilinear align-corners coordinates on MMA.
+
+    This optional workaround replaces spatial Resize with two separable constant
+    matrix products. It deliberately skips dynamic shapes, antialiasing, and
+    resizing batch/channel dimensions. Dense constants can increase memory/MACs.
+    """
+    used_names = set(graph.tensors()) | {n.name for n in graph.nodes}
+
+    def unique(name):
+        candidate, index = name, 0
+        while candidate in used_names:
+            index += 1
+            candidate = f"{name}_{index}"
+        used_names.add(candidate)
+        return candidate
+
+    def interpolation_matrix(source, destination):
+        # Preserve ONNX's float32 multiply-then-divide coordinate order.
+        coordinates = (np.arange(destination, dtype=np.float32)
+                       * np.float32(source - 1)
+                       / np.float32(max(destination - 1, 1)))
+        lower = np.floor(coordinates).astype(np.int64)
+        upper = np.minimum(lower + 1, source - 1)
+        fraction = coordinates - lower.astype(np.float32)
+        weights = np.zeros((source, destination), dtype=np.float32)
+        weights[lower, np.arange(destination)] += 1 - fraction
+        weights[upper, np.arange(destination)] += fraction
+        return weights
+
+    for node in list(graph.nodes):
+        if (node.op != "Resize" or len(node.inputs) < 3 or len(node.outputs) != 1
+                or node.attrs.get("mode") != "linear"
+                or node.attrs.get("coordinate_transformation_mode") != "align_corners"
+                or node.attrs.get("antialias", 0)
+                or "axes" in node.attrs
+                or node.attrs.get("keep_aspect_ratio_policy", "stretch") != "stretch"):
+            continue
+        source, target = node.inputs[0], node.outputs[0]
+        shapes = (source.shape, target.shape)
+        if (source.dtype != np.float32 or any(s is None or len(s) != 4 for s in shapes)
+                or any(not isinstance(d, (int, np.integer)) or d <= 0
+                       for s in shapes for d in s)
+                or source.shape[:2] != target.shape[:2] or source.shape[0] != 1):
+            continue
+        # Shape annotations alone do not prove a runtime sizes input is constant.
+        if len(node.inputs) > 3 and not node.inputs[3].is_empty():
+            sizes = node.inputs[3]
+            if (not isinstance(sizes, gs.Constant)
+                    or not np.array_equal(sizes.values, target.shape)):
+                continue
+        else:
+            scales = node.inputs[2]
+            if (not isinstance(scales, gs.Constant) or scales.values.shape != (4,)
+                    or not np.isfinite(scales.values).all()
+                    or not np.array_equal(scales.values[:2], [1, 1])
+                    or not np.array_equal(np.floor(np.asarray(source.shape) * scales.values), target.shape)):
+                continue
+
+        _, channels, height, width = source.shape
+        out_height, out_width = target.shape[-2:]
+        prefix = (node.name or target.name) + "_align_corners"
+
+        def constant(suffix, value):
+            return gs.Constant(unique(prefix + suffix), values=np.asarray(value))
+
+        def append(op, inputs, suffix, shape, attrs=None, output=None):
+            value = output if output is not None else gs.Variable(
+                unique(prefix + suffix), dtype=np.float32, shape=shape)
+            graph.nodes.append(gs.Node(op=op, name=unique(prefix + suffix + "_node"),
+                                       inputs=inputs, outputs=[value], attrs=attrs or {}))
+            return value
+
+        # Detach the old producer before connecting the existing public tensor.
+        node.outputs.clear()
+        value = append("Reshape", [source, constant("_width_shape", np.array(
+            [1, channels * height, width], dtype=np.int64))], "_width_input", [1, channels * height, width])
+        value = append("MatMul", [value, constant("_width_weights", interpolation_matrix(width, out_width))],
+                       "_width_product", [1, channels * height, out_width])
+        value = append("Reshape", [value, constant("_width_output_shape", np.array(
+            [1, channels, height, out_width], dtype=np.int64))], "_width_output", [1, channels, height, out_width])
+        value = append("Transpose", [value], "_height_transposed", [1, channels, out_width, height], {"perm": [0, 1, 3, 2]})
+        value = append("Reshape", [value, constant("_height_shape", np.array(
+            [1, channels * out_width, height], dtype=np.int64))], "_height_input", [1, channels * out_width, height])
+        value = append("MatMul", [value, constant("_height_weights", interpolation_matrix(height, out_height))],
+                       "_height_product", [1, channels * out_width, out_height])
+        value = append("Reshape", [value, constant("_height_output_shape", np.array(
+            [1, channels, out_width, out_height], dtype=np.int64))], "_height_output", [1, channels, out_width, out_height])
+        append("Transpose", [value], "_output", target.shape, {"perm": [0, 1, 3, 2]}, output=target)
+        logging.debug(f"Replaced align-corners Resize {node.name} with separable MatMul")
+
+
 def tidl_convert_resize_params_size_to_scale(graph: gs.Graph,
                                              onnx_graph: onnx.GraphProto) :
     """
@@ -287,4 +380,3 @@ def tidl_remove_unity_resize(graph: gs.Graph,
 
                 #node will be removed by cleanup since it has only unused outputs
     #
-
